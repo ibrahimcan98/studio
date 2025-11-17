@@ -57,7 +57,7 @@ export default function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-20 items-center">
         <Link href="/" className="flex items-center space-x-2 mr-6">
-          <Image src="/logo.png" alt="Türk Çocuk Akademisi" width={140} height={140} />
+          <Image src="https://i.ibb.co/mR5pwn6/logo.png" alt="Türk Çocuk Akademisi" width={140} height={35} />
         </Link>
         
         <div className="flex flex-1 items-center justify-end gap-6">

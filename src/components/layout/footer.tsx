@@ -8,7 +8,7 @@ export default function Footer() {
         <div className="grid gap-10 md:grid-cols-3">
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <Image src="/logo.png" alt="Türk Çocuk Akademisi" width={140} height={140} />
+              <Image src="https://i.ibb.co/mR5pwn6/logo.png" alt="Türk Çocuk Akademisi" width={140} height={35} />
             </div>
             <p className="text-muted-foreground max-w-xs">
               Yurt dışındaki çocuklar için oyun tabanlı, eğlenceli ve etkili Türkçe öğrenimi platformu.
