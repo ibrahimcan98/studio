@@ -93,10 +93,10 @@ export default function Header() {
                 <UserMenu />
               ) : (
                 <>
+                  <Button className="font-semibold">Ücretsiz Deneme</Button>
                   <Button variant="ghost" className="font-semibold" asChild>
                     <Link href="/login">Giriş Yap</Link>
                   </Button>
-                  <Button className="font-semibold">Ücretsiz Deneme</Button>
                 </>
               )}
             </div>
@@ -125,10 +125,10 @@ export default function Header() {
                           </Link>
                         ))}
                       </nav>
+                      <Button className="w-full font-semibold">Ücretsiz Deneme</Button>
                       <Button asChild className="w-full font-semibold">
                         <Link href="/login">Giriş Yap</Link>
                       </Button>
-                       <Button className="w-full font-semibold">Ücretsiz Deneme</Button>
                     </div>
                   </SheetContent>
                 </Sheet>
