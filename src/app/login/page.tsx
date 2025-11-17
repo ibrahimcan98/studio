@@ -281,7 +281,7 @@ export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-cyan-50 via-amber-50 to-white p-4 overflow-hidden">
+    <div className="relative flex min-h-screen flex-col items-center bg-gradient-to-br from-cyan-50 via-amber-50 to-white p-4 overflow-hidden pt-20">
       <div className="absolute top-8 left-8">
         <Logo />
       </div>
