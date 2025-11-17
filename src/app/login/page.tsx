@@ -1,15 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
 } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
-
+import { doc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -24,7 +22,7 @@ import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import { LoginIllustration } from '@/components/illustrations/login-illustration';
 import { SignUpIllustration } from '@/components/illustrations/signup-illustration';
-import { useAuth, useFirestore, setDocumentNonBlocking, initiateEmailSignIn, initiateEmailSignUp } from '@/firebase';
+import { useAuth, useFirestore, setDocumentNonBlocking, initiateEmailSignIn } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 function LoginForm({
@@ -41,7 +39,7 @@ function LoginForm({
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!auth) return;
 
@@ -132,22 +130,24 @@ function SignUpForm({
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!auth || !db) return;
-  
+
     setIsSubmitting(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-  
+
       await updateProfile(user, { displayName: name });
-  
+
       const userDocRef = doc(db, 'users', user.uid);
+      // Non-blocking update
       setDocumentNonBlocking(userDocRef, {
-        uid: user.uid,
-        displayName: name,
+        id: user.uid,
+        firstName: name.split(' ')[0] || '',
+        lastName: name.split(' ').slice(1).join(' ') || '',
         email: user.email,
-        createdAt: new Date(),
+        userType: 'parent',
       }, { merge: true });
-  
+
       toast({
         title: 'Harika!',
         description: 'Hesabınız oluşturuldu. Yönlendiriliyorsunuz...',
@@ -249,9 +249,18 @@ function SignUpForm({
 
 export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
-  
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) {
+    return null; // or a loading spinner
+  }
+
   return (
-    <div className="relative flex min-h-screen flex-col items-center bg-gradient-to-br from-cyan-50 via-amber-50 to-white p-4 overflow-hidden pt-20">
+    <div className="relative flex min-h-screen flex-col items-center bg-gradient-to-br from-cyan-50 via-amber-50 to-white p-4 overflow-hidden">
       <div className="absolute top-8 left-8">
         <Logo />
       </div>
