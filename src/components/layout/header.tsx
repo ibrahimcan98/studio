@@ -1,3 +1,4 @@
+'use client';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -13,31 +14,44 @@ import { Logo } from '@/components/logo';
 import { Menu } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import Image from 'next/image';
+import { useUser } from '@/firebase/auth/use-user';
+import { getAuth, signOut } from 'firebase/auth';
 
 export default function Header() {
-  const isLoggedIn = false; // Set to true to see logged-in state
+  const { user, loading } = useUser();
+  const isLoggedIn = !!user;
+
   const navLinks = [
     { href: '#parents', label: 'Ebeveyn Portalı' },
     { href: '#teachers', label: 'Öğretmen Portalı' },
     { href: '#pricing', label: 'Paketler' },
   ];
 
+  const handleLogout = async () => {
+    const auth = getAuth();
+    await signOut(auth);
+  };
+
   const UserMenu = () => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10">
-            <AvatarImage data-ai-hint="woman smiling" src="https://picsum.photos/seed/105/40/40" alt="Tuba K." />
-            <AvatarFallback>TK</AvatarFallback>
+            <AvatarImage
+              data-ai-hint="woman smiling"
+              src={user?.photoURL || "https://picsum.photos/seed/105/40/40"}
+              alt={user?.displayName || 'Kullanıcı'}
+            />
+            <AvatarFallback>{user?.displayName?.charAt(0) || 'U'}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">Tuba K.</p>
+            <p className="text-sm font-medium leading-none">{user?.displayName || 'Kullanıcı'}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              tuba.k@example.com
+              {user?.email}
             </p>
           </div>
         </DropdownMenuLabel>
@@ -48,7 +62,7 @@ export default function Header() {
         <DropdownMenuItem>Ders Geçmişi</DropdownMenuItem>
         <DropdownMenuItem>Hesap Ayarları</DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>Çıkış Yap</DropdownMenuItem>
+        <DropdownMenuItem onClick={handleLogout}>Çıkış Yap</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -59,7 +73,7 @@ export default function Header() {
         <Link href="/" className="flex items-center space-x-2 mr-6">
           <Logo />
         </Link>
-        
+
         <div className="flex flex-1 items-center justify-end gap-6">
           <nav className="hidden items-center space-x-6 text-sm font-medium md:flex">
             {navLinks.map((link) => (
@@ -75,17 +89,21 @@ export default function Header() {
 
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-4">
-              {isLoggedIn ? (
+              {loading ? null : isLoggedIn ? (
                 <UserMenu />
               ) : (
                 <>
+                  <Button variant="ghost" className="font-semibold" asChild>
+                    <Link href="/login">Giriş Yap</Link>
+                  </Button>
                   <Button className="font-semibold">Ücretsiz Deneme</Button>
-                  <Button variant="ghost" className="font-semibold">Giriş Yap</Button>
                 </>
               )}
             </div>
             <div className="md:hidden">
-              {isLoggedIn ? <UserMenu /> : (
+              {loading ? null : isLoggedIn ? (
+                <UserMenu />
+              ) : (
                 <Sheet>
                   <SheetTrigger asChild>
                     <Button variant="ghost" size="icon">
@@ -107,8 +125,10 @@ export default function Header() {
                           </Link>
                         ))}
                       </nav>
-                      <Button className="w-full font-semibold">Ücretsiz Deneme</Button>
-                      <Button variant="ghost" className="w-full font-semibold">Giriş Yap</Button>
+                      <Button asChild className="w-full font-semibold">
+                        <Link href="/login">Giriş Yap</Link>
+                      </Button>
+                       <Button className="w-full font-semibold">Ücretsiz Deneme</Button>
                     </div>
                   </SheetContent>
                 </Sheet>
