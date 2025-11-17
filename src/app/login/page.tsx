@@ -7,7 +7,6 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
-  User,
 } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
@@ -25,7 +24,7 @@ import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import { LoginIllustration } from '@/components/illustrations/login-illustration';
 import { SignUpIllustration } from '@/components/illustrations/signup-illustration';
-import { useAuth, useFirestore } from '@/firebase';
+import { useAuth, useFirestore, setDocumentNonBlocking, initiateEmailSignIn, initiateEmailSignUp } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 function LoginForm({
@@ -47,36 +46,12 @@ function LoginForm({
     if (!auth) return;
 
     setIsSubmitting(true);
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      toast({
-        title: 'Başarılı!',
-        description: 'Giriş yaptınız. Yönlendiriliyorsunuz...',
-      });
-      router.push('/');
-    } catch (error: any) {
-      let errorMessage =
-        'Giriş yaparken bir hata oluştu. Lütfen tekrar deneyin.';
-      if (
-        error.code === 'auth/user-not-found' ||
-        error.code === 'auth/wrong-password' ||
-        error.code === 'auth/invalid-credential'
-      ) {
-        errorMessage =
-          'E-posta veya şifre hatalı. Lütfen bilgilerinizi kontrol edin.';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Geçersiz bir e-posta adresi girdiniz.';
-      }
-
-      toast({
-        variant: 'destructive',
-        title: 'Hata',
-        description: errorMessage,
-      });
-      console.error('Firebase Auth Error:', error.code, error.message);
-    } finally {
-      setIsSubmitting(false);
-    }
+    initiateEmailSignIn(auth, email, password);
+    toast({
+      title: 'Başarılı!',
+      description: 'Giriş yaptınız. Yönlendiriliyorsunuz...',
+    });
+    router.push('/');
   };
 
   return (
@@ -157,26 +132,22 @@ function SignUpForm({
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!auth || !db) return;
-
+  
     setIsSubmitting(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
+  
       await updateProfile(user, { displayName: name });
-      
-      // Save user info to Firestore
-      await setDoc(doc(db, 'users', user.uid), {
+  
+      const userDocRef = doc(db, 'users', user.uid);
+      setDocumentNonBlocking(userDocRef, {
         uid: user.uid,
         displayName: name,
         email: user.email,
         createdAt: new Date(),
-      });
-
+      }, { merge: true });
+  
       toast({
         title: 'Harika!',
         description: 'Hesabınız oluşturuldu. Yönlendiriliyorsunuz...',
@@ -197,7 +168,6 @@ function SignUpForm({
         title: 'Hata',
         description: errorMessage,
       });
-      console.error('Firebase Auth Error:', error.code, error.message);
     } finally {
       setIsSubmitting(false);
     }
