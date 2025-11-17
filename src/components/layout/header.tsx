@@ -57,7 +57,7 @@ export default function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-20 items-center">
         <Link href="/" className="flex items-center space-x-2 mr-6">
-          <Image src="https://i.ibb.co/6yVpWfQ/turk-cocuk-akademisi-logo.png" alt="Türk Çocuk Akademisi" width={50} height={50} />
+          <Logo />
         </Link>
         
         <div className="flex flex-1 items-center justify-end gap-6">
@@ -79,8 +79,8 @@ export default function Header() {
                 <UserMenu />
               ) : (
                 <>
-                  <Button variant="ghost" className="font-semibold">Giriş Yap</Button>
                   <Button className="font-semibold">Ücretsiz Deneme</Button>
+                  <Button variant="ghost" className="font-semibold">Giriş Yap</Button>
                 </>
               )}
             </div>
