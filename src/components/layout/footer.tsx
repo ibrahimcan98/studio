@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Logo } from '@/components/logo';
+import Image from 'next/image';
 
 export default function Footer() {
   return (
@@ -7,7 +7,10 @@ export default function Footer() {
       <div className="container py-12 md:py-16">
         <div className="grid gap-10 md:grid-cols-3">
           <div className="space-y-4">
-            <Logo />
+            <div className="flex items-center gap-2">
+              <Image src="/logo.png" alt="Türk Çocuk Akademisi" width={40} height={40} />
+              <span className="font-bold text-xl">Türk Çocuk Akademisi</span>
+            </div>
             <p className="text-muted-foreground max-w-xs">
               Yurt dışındaki çocuklar için oyun tabanlı, eğlenceli ve etkili Türkçe öğrenimi platformu.
             </p>
