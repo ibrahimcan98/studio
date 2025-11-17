@@ -55,10 +55,11 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-20 items-center">
-        <div className="mr-auto flex items-center gap-6">
-          <Link href="/" className="flex items-center space-x-2">
-            <Logo />
-          </Link>
+        <Link href="/" className="flex items-center space-x-2 mr-6">
+          <Logo />
+        </Link>
+        
+        <div className="flex flex-1 items-center justify-end gap-6">
           <nav className="hidden items-center space-x-6 text-sm font-medium md:flex">
             {navLinks.map((link) => (
               <Link
@@ -70,44 +71,48 @@ export default function Header() {
               </Link>
             ))}
           </nav>
-        </div>
 
-        <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center gap-4">
-            {isLoggedIn ? (
-              <UserMenu />
-            ) : (
-              <Button variant="secondary" className="font-semibold">Ücretsiz Deneme</Button>
-            )}
-          </div>
-          <div className="md:hidden">
-            {isLoggedIn ? <UserMenu /> : (
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <Menu className="h-6 w-6" />
-                    <span className="sr-only">Menüyü aç</span>
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="right">
-                  <div className="flex flex-col gap-y-6 pt-10">
-                    <Logo />
-                    <nav className="flex flex-col gap-4">
-                      {navLinks.map((link) => (
-                        <Link
-                          key={link.label}
-                          href={link.href}
-                          className="text-lg font-medium transition-colors hover:text-foreground/80"
-                        >
-                          {link.label}
-                        </Link>
-                      ))}
-                    </nav>
-                    <Button variant="secondary" className="w-full font-semibold">Ücretsiz Deneme</Button>
-                  </div>
-                </SheetContent>
-              </Sheet>
-            )}
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-4">
+              {isLoggedIn ? (
+                <UserMenu />
+              ) : (
+                <>
+                  <Button variant="ghost" className="font-semibold">Giriş Yap</Button>
+                  <Button className="font-semibold">Ücretsiz Deneme</Button>
+                </>
+              )}
+            </div>
+            <div className="md:hidden">
+              {isLoggedIn ? <UserMenu /> : (
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <Menu className="h-6 w-6" />
+                      <span className="sr-only">Menüyü aç</span>
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="right">
+                    <div className="flex flex-col gap-y-6 pt-10">
+                      <Logo />
+                      <nav className="flex flex-col gap-4">
+                        {navLinks.map((link) => (
+                          <Link
+                            key={link.label}
+                            href={link.href}
+                            className="text-lg font-medium transition-colors hover:text-foreground/80"
+                          >
+                            {link.label}
+                          </Link>
+                        ))}
+                      </nav>
+                      <Button variant="ghost" className="w-full font-semibold">Giriş Yap</Button>
+                      <Button className="w-full font-semibold">Ücretsiz Deneme</Button>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              )}
+            </div>
           </div>
         </div>
       </div>
