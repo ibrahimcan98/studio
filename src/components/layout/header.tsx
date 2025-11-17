@@ -78,8 +78,8 @@ export default function Header() {
                 <UserMenu />
               ) : (
                 <>
-                  <Button variant="ghost" className="font-semibold">Giriş Yap</Button>
                   <Button className="font-semibold">Ücretsiz Deneme</Button>
+                  <Button variant="ghost" className="font-semibold">Giriş Yap</Button>
                 </>
               )}
             </div>
@@ -106,8 +106,8 @@ export default function Header() {
                           </Link>
                         ))}
                       </nav>
-                      <Button variant="ghost" className="w-full font-semibold">Giriş Yap</Button>
                       <Button className="w-full font-semibold">Ücretsiz Deneme</Button>
+                      <Button variant="ghost" className="w-full font-semibold">Giriş Yap</Button>
                     </div>
                   </SheetContent>
                 </Sheet>
