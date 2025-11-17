@@ -58,7 +58,6 @@ export default function Header() {
       <div className="container flex h-20 items-center">
         <Link href="/" className="flex items-center space-x-2 mr-6">
           <Image src="/logo.png" alt="Türk Çocuk Akademisi" width={40} height={40} />
-          <span className="font-bold text-xl hidden sm:inline-block">Türk Çocuk Akademisi</span>
         </Link>
         
         <div className="flex flex-1 items-center justify-end gap-6">
@@ -80,8 +79,8 @@ export default function Header() {
                 <UserMenu />
               ) : (
                 <>
-                  <Button className="font-semibold">Ücretsiz Deneme</Button>
                   <Button variant="ghost" className="font-semibold">Giriş Yap</Button>
+                  <Button className="font-semibold">Ücretsiz Deneme</Button>
                 </>
               )}
             </div>

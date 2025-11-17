@@ -11,9 +11,6 @@ export function Logo({ className }: { className?: string }) {
         height={40} 
         className="h-10 w-auto"
       />
-      <span className="text-xl font-bold tracking-tight">
-        Türk Çocuk Akademisi
-      </span>
     </div>
   );
 }

@@ -9,7 +9,6 @@ export default function Footer() {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Image src="/logo.png" alt="Türk Çocuk Akademisi" width={40} height={40} />
-              <span className="font-bold text-xl">Türk Çocuk Akademisi</span>
             </div>
             <p className="text-muted-foreground max-w-xs">
               Yurt dışındaki çocuklar için oyun tabanlı, eğlenceli ve etkili Türkçe öğrenimi platformu.
