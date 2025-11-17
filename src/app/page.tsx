@@ -1,4 +1,3 @@
-import Header from '@/components/layout/header';
 import Hero from '@/components/sections/hero';
 import WhyUs from '@/components/sections/why-us';
 import HowItWorks from '@/components/sections/how-it-works';
@@ -10,18 +9,15 @@ import Footer from '@/components/layout/footer';
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <Header />
-      <main className="flex-1">
-        <Hero />
-        <WhyUs />
-        <HowItWorks />
-        <MapJourney />
-        <Pricing />
-        <Testimonials />
-        <Faq />
-      </main>
+    <>
+      <Hero />
+      <WhyUs />
+      <HowItWorks />
+      <MapJourney />
+      <Pricing />
+      <Testimonials />
+      <Faq />
       <Footer />
-    </div>
+    </>
   );
 }
