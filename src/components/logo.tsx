@@ -7,9 +7,9 @@ export function Logo({ className }: { className?: string }) {
       <Image 
         src="/logo.png" 
         alt="Türk Çocuk Akademisi Logo" 
-        width={40} 
-        height={40} 
-        className="h-10 w-auto"
+        width={140} 
+        height={140} 
+        className="w-auto"
       />
     </div>
   );
