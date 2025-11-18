@@ -207,7 +207,7 @@ export default function EbeveynPortaliPage() {
 
       {isPremium ? (
         <Card className="bg-gradient-to-r from-green-400 to-teal-500 text-white shadow-lg border-none">
-          <div className="p-6">
+          <div className="p-6 flex items-center justify-between">
               <div className='space-y-4'>
                 <h3 className="text-2xl font-bold flex items-center gap-2"><Crown /> Premium Üyelik Aktif</h3>
                 <p className="text-white/80">Sınırsız can, tüm kategoriler ve daha fazlası!</p>
@@ -222,10 +222,10 @@ export default function EbeveynPortaliPage() {
                         <Target className="w-5 h-5"/> Özel rozetler ve ödüller
                     </li>
                 </ul>
-                <Button asChild variant="outline" className="bg-white/20 text-white hover:bg-white/30 border-white/50">
-                    <Link href="/ebeveyn-portali/uyelik">Üyeliği Yönet</Link>
-                </Button>
               </div>
+              <Button asChild variant="outline" className="bg-white/20 text-white hover:bg-white/30 border-white/50">
+                  <Link href="/ebeveyn-portali/uyelik">Üyeliği Yönet</Link>
+              </Button>
           </div>
         </Card>
       ) : (
@@ -424,3 +424,5 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
+
+    
