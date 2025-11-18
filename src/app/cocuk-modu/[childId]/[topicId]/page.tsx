@@ -48,7 +48,7 @@ export default function TopicPage() {
 
     return (
         <div className="bg-amber-50 h-screen p-4 sm:p-8 flex flex-col overflow-hidden">
-             <header className="flex-shrink-0 mb-8">
+             <header className="flex-shrink-0 mb-4">
                 <div className="w-full max-w-4xl mx-auto flex items-center justify-center relative">
                     <Button 
                         variant="outline" 

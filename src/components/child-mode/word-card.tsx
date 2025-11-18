@@ -76,17 +76,17 @@ export function WordCard({ wordList }: WordCardProps) {
     };
 
     return (
-        <Card className="w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col">
-            <div className={`relative w-full aspect-[4/3] bg-gradient-to-br ${gradient}`}>
+        <Card className={`w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col bg-gradient-to-br ${gradient}`}>
+            <div className="relative w-full aspect-video mx-auto mt-4 mb-2 px-4">
                 <Image
-                    src={`https://picsum.photos/seed/${currentWord.word}/600/400`}
+                    src={`https://picsum.photos/seed/${currentWord.word}/600/338`}
                     alt={currentWord.word}
                     fill
-                    className="object-cover"
+                    className="object-cover rounded-2xl"
                     data-ai-hint={currentWord.word}
                 />
             </div>
-            <div className="bg-white p-8">
+            <div className="bg-white p-8 rounded-t-3xl">
                 <div className="flex items-center justify-center gap-4 mb-8">
                     <Button
                         size="icon"
