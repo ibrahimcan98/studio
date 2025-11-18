@@ -44,6 +44,7 @@ export default function Header() {
   };
   
   const handleLinkClick = (href: string) => {
+    if(!href) return;
     setMobileMenuOpen(false);
     router.push(href);
   };
@@ -51,7 +52,7 @@ export default function Header() {
 
   const navLinks = [
     { href: '#teachers', label: 'Öğretmen Portalı' },
-    { href: '#pricing', label: 'Paketler' },
+    { href: '', label: 'Kurslar' },
   ];
 
   const handleLogout = async () => {
@@ -149,15 +150,19 @@ export default function Header() {
               <button onClick={() => router.push(isLoggedIn ? '/ebeveyn-portali' : '/login')} className="transition-colors hover:text-foreground/80 text-foreground/60">
               Ebeveyn Portalı
             </button>
-            {navLinks.map((link) => (
-              <Link
-                key={link.label}
-                href={link.href}
-                className="transition-colors hover:text-foreground/80 text-foreground/60"
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              const Comp = link.href ? Link : 'span';
+              return (
+                <Comp
+                  key={link.label}
+                  // @ts-ignore
+                  href={link.href}
+                  className={cn("transition-colors hover:text-foreground/80 text-foreground/60", !link.href && "cursor-default")}
+                >
+                  {link.label}
+                </Comp>
+              );
+            })}
           </nav>
           
           <div className="md:hidden">
@@ -189,7 +194,8 @@ export default function Header() {
                                 <button
                                     key={link.label}
                                     onClick={() => handleLinkClick(link.href)}
-                                    className="text-lg font-medium transition-colors hover:text-foreground/80 text-left"
+                                    disabled={!link.href}
+                                    className="text-lg font-medium transition-colors hover:text-foreground/80 text-left disabled:text-foreground/60 disabled:cursor-default"
                                 >
                                     {link.label}
                                 </button>
