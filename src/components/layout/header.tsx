@@ -13,8 +13,7 @@ import {
 import { Logo } from '@/components/logo';
 import { Menu } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import Image from 'next/image';
-import { useUser } from '@/firebase/auth/use-user';
+import { useUser } from '@/firebase';
 import { getAuth, signOut } from 'firebase/auth';
 
 export default function Header() {
@@ -50,9 +49,6 @@ export default function Header() {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{user?.displayName || 'Kullanıcı'}</p>
-            <p className="text-xs leading-none text-muted-foreground">
-              {user?.email}
-            </p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -93,10 +89,10 @@ export default function Header() {
                 <UserMenu />
               ) : (
                 <>
-                  <Button className="font-semibold">Ücretsiz Deneme</Button>
                   <Button variant="ghost" className="font-semibold" asChild>
                     <Link href="/login">Giriş Yap</Link>
                   </Button>
+                  <Button className="font-semibold">Ücretsiz Deneme</Button>
                 </>
               )}
             </div>
@@ -125,10 +121,10 @@ export default function Header() {
                           </Link>
                         ))}
                       </nav>
-                      <Button className="w-full font-semibold">Ücretsiz Deneme</Button>
-                      <Button asChild className="w-full font-semibold">
+                      <Button variant="ghost" className="w-full font-semibold" asChild>
                         <Link href="/login">Giriş Yap</Link>
                       </Button>
+                      <Button className="w-full font-semibold">Ücretsiz Deneme</Button>
                     </div>
                   </SheetContent>
                 </Sheet>
