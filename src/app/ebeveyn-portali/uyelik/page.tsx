@@ -93,9 +93,14 @@ export default function UyelikYonetimiPage() {
       } else if (!userData?.isPremium) {
         router.push('/premium');
       }
-    }, [user, userData, isLoading]);
+    }, [user, userData, isLoading, router]);
 
-    if (isLoading) {
+    const formatDate = (dateString: string) => {
+        if (!dateString) return '';
+        return format(parseISO(dateString), 'd MMMM yyyy', { locale: tr });
+    };
+
+    if (isLoading || !user || !userData?.isPremium) {
       return (
         <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
           <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -103,16 +108,6 @@ export default function UyelikYonetimiPage() {
       );
     }
     
-    if (!user || !userData?.isPremium) {
-       return null;
-    }
-
-
-    const formatDate = (dateString: string) => {
-        if (!dateString) return '';
-        return format(parseISO(dateString), 'd MMMM yyyy', { locale: tr });
-    };
-
     const startDate = formatDate(userData?.premiumStartDate);
     const renewalDate = formatDate(userData?.premiumEndDate);
 
