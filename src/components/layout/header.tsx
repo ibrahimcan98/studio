@@ -38,6 +38,7 @@ export default function Header() {
   const handleLogout = async () => {
     const auth = getAuth();
     await signOut(auth);
+    router.push('/');
   };
 
   const UserMenu = () => (
@@ -47,7 +48,7 @@ export default function Header() {
           <Avatar className="h-10 w-10">
             <AvatarImage
               data-ai-hint="woman smiling"
-              src={user?.photoURL || "https://picsum.photos/seed/105/40/40"}
+              src={user?.photoURL || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHx3b21hbiUyMHNtaWxpbmd8ZW58MHx8fHwxNzYzMzk3NDM0fDA&ixlib=rb-4.1.0&q=80&w=1080"}
               alt={user?.displayName || 'Kullanıcı'}
             />
             <AvatarFallback>{user?.displayName?.charAt(0) || 'U'}</AvatarFallback>
@@ -57,7 +58,7 @@ export default function Header() {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user?.displayName || 'Kullanıcı'}</p>
+            <p className="text-sm font-medium leading-none">{user?.displayName}</p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -99,18 +100,15 @@ export default function Header() {
             <div className="hidden md:flex items-center gap-4">
               {loading ? null : isLoggedIn ? (
                 <>
-                  <Button variant="ghost" className="font-semibold" asChild>
-                    <Link href="/login">Giriş Yap</Link>
-                  </Button>
                   <Button className="font-semibold">Ücretsiz Deneme</Button>
                   <UserMenu />
                 </>
               ) : (
                 <>
-                   <Button variant="ghost" className="font-semibold" asChild>
+                  <Button className="font-semibold">Ücretsiz Deneme</Button>
+                  <Button variant="ghost" className="font-semibold" asChild>
                     <Link href="/login">Giriş Yap</Link>
                   </Button>
-                  <Button className="font-semibold">Ücretsiz Deneme</Button>
                 </>
               )}
             </div>
@@ -145,10 +143,10 @@ export default function Header() {
                           </Link>
                         ))}
                       </nav>
+                      <Button className="w-full font-semibold">Ücretsiz Deneme</Button>
                       <Button variant="ghost" className="w-full font-semibold" asChild>
                         <Link href="/login">Giriş Yap</Link>
                       </Button>
-                      <Button className="w-full font-semibold">Ücretsiz Deneme</Button>
                     </div>
                   </SheetContent>
                 </Sheet>
