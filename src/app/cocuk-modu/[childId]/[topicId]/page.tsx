@@ -40,26 +40,28 @@ export default function TopicPage() {
 
     if (!topic) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-amber-50">
+            <div className="flex h-screen items-center justify-center bg-amber-50">
                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
             </div>
         );
     }
 
     return (
-        <div className="bg-amber-50 min-h-screen p-4 sm:p-8 flex flex-col">
-             <div className="w-full max-w-4xl mx-auto mb-8 flex items-center justify-center relative">
-                <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="absolute left-0 top-1/2 -translate-y-1/2 rounded-full h-12 w-12 bg-white/50"
-                    onClick={() => router.push(`/cocuk-modu/${childId}`)}
-                >
-                    <ArrowLeft className="w-6 h-6" />
-                </Button>
-                <h1 className="text-3xl sm:text-4xl font-bold text-center text-gray-800">{topic.name}</h1>
-            </div>
-            <div className="flex-1 flex items-center justify-center">
+        <div className="bg-amber-50 h-screen p-4 sm:p-8 flex flex-col overflow-hidden">
+             <header className="flex-shrink-0 mb-8">
+                <div className="w-full max-w-4xl mx-auto flex items-center justify-center relative">
+                    <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="absolute left-0 top-1/2 -translate-y-1/2 rounded-full h-12 w-12 bg-white/50"
+                        onClick={() => router.push(`/cocuk-modu/${childId}`)}
+                    >
+                        <ArrowLeft className="w-6 h-6" />
+                    </Button>
+                    <h1 className="text-3xl sm:text-4xl font-bold text-center text-gray-800">{topic.name}</h1>
+                </div>
+            </header>
+            <div className="flex-1 flex items-center justify-center min-h-0">
                <WordCard wordList={topic.wordList} />
             </div>
         </div>

@@ -43,7 +43,7 @@ export default function CocukModuPage() {
 
   if (authLoading || childLoading || isAuthenticated === null) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-amber-50">
+      <div className="flex h-screen items-center justify-center bg-amber-50">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
@@ -55,7 +55,7 @@ export default function CocukModuPage() {
   
   if (!childData) {
     return (
-        <div className="flex min-h-screen items-center justify-center bg-amber-50">
+        <div className="flex h-screen items-center justify-center bg-amber-50">
             <p>Çocuk bilgileri bulunamadı.</p>
         </div>
     );
@@ -63,7 +63,7 @@ export default function CocukModuPage() {
 
 
   return (
-    <div className="bg-amber-50 min-h-screen">
+    <div className="bg-amber-50 h-screen flex flex-col overflow-hidden">
       <ChildHeader 
         childName={childData.firstName} 
         lives={isPremium ? 'unlimited' : 3}
@@ -71,7 +71,7 @@ export default function CocukModuPage() {
         isPremium={isPremium}
         childId={childId}
       />
-      <main className="container py-8 px-4 md:px-8">
+      <main className="flex-1 container py-8 px-4 md:px-8 overflow-y-auto">
         <div className="text-center mb-10">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-800">
             Merhaba, {childData.firstName}! 👋
@@ -88,7 +88,7 @@ export default function CocukModuPage() {
             </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-8">
             {topics.map((topic) => (
                 <TopicCard 
                     key={topic.id}
