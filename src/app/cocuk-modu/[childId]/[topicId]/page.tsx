@@ -5,6 +5,7 @@ import topicsData from '@/data/topics.json';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { WordCard } from '@/components/child-mode/word-card';
 
 type Word = {
     word: string;
@@ -47,24 +48,20 @@ export default function TopicPage() {
     }
 
     return (
-        <div className="bg-amber-50 min-h-screen p-4 sm:p-8">
-             <div className="relative mb-8 flex items-center justify-center">
+        <div className="bg-amber-50 min-h-screen p-4 sm:p-8 flex flex-col">
+             <div className="w-full max-w-4xl mx-auto mb-8 flex items-center justify-center relative">
                 <Button 
                     variant="outline" 
                     size="icon" 
-                    className="absolute left-0 top-1/2 -translate-y-1/2 rounded-full h-12 w-12"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 rounded-full h-12 w-12 bg-white/50"
                     onClick={() => router.push(`/cocuk-modu/${childId}`)}
                 >
                     <ArrowLeft className="w-6 h-6" />
                 </Button>
-                <h1 className="text-3xl sm:text-4xl font-bold text-center">{topic.name}</h1>
+                <h1 className="text-3xl sm:text-4xl font-bold text-center text-gray-800">{topic.name}</h1>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {topic.wordList.map((word, index) => (
-                    <div key={index} className="border p-4 rounded-lg bg-white shadow-md">
-                        <p className="text-lg font-semibold">{word.word}</p>
-                    </div>
-                ))}
+            <div className="flex-1 flex items-center justify-center">
+               <WordCard wordList={topic.wordList} />
             </div>
         </div>
     );
