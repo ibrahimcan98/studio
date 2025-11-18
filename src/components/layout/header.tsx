@@ -141,11 +141,11 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-20 items-center">
-        <Link href="/" className="flex items-center space-x-2 mr-6">
+        <Link href="/" className="flex items-center space-x-2 mr-auto">
           <Logo />
         </Link>
         
-        <div className="flex flex-1 items-center justify-end gap-2 md:gap-6">
+        <div className="flex items-center justify-end gap-2 md:gap-6">
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
               <button onClick={() => router.push(isLoggedIn ? '/ebeveyn-portali' : '/login')} className="transition-colors hover:text-foreground/80 text-foreground/60">
               Ebeveyn Portalı
@@ -163,8 +163,22 @@ export default function Header() {
                 </Comp>
               );
             })}
+             <Button variant="secondary" className="font-semibold">Ücretsiz Deneme</Button>
           </nav>
           
+           {userLoading ? (
+                <div className="h-10 w-10 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>
+            ) : isLoggedIn ? (
+                <UserMenu />
+            ) : (
+                <div className="hidden md:flex items-center gap-2">
+                    <Button variant="ghost" className="font-semibold" asChild>
+                        <Link href="/login">Giriş Yap</Link>
+                    </Button>
+                </div>
+            )}
+
+
           <div className="md:hidden">
              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
@@ -174,18 +188,14 @@ export default function Header() {
                     </Button>
                 </SheetTrigger>
                 <SheetContent side="right">
-                    <SheetHeader className="sr-only">
-                      <SheetTitle>Mobil Menü</SheetTitle>
-                      <SheetDescription>
-                        Uygulama içi gezinme linkleri.
-                      </SheetDescription>
-                    </SheetHeader>
-                    <div className="flex flex-col gap-y-6 pt-10">
+                    <SheetHeader className="border-b pb-4">
                         <SheetClose asChild>
                           <Link href="/" className="flex items-center space-x-2">
                             <Logo />
                           </Link>
                         </SheetClose>
+                    </SheetHeader>
+                    <div className="flex flex-col gap-y-6 pt-6 h-full">
                         <nav className="flex flex-col gap-4">
                             <button onClick={handlePortalClick} className="text-lg font-medium transition-colors hover:text-foreground/80 text-left">
                                 Ebeveyn Portalı
@@ -202,42 +212,18 @@ export default function Header() {
                             ))}
                         </nav>
                          <div className="flex flex-col gap-4 mt-auto">
-                            {isLoggedIn ? (
-                                <Button variant="outline" className="w-full font-semibold text-lg" onClick={handleLogout}>
-                                    Çıkış Yap
-                                </Button>
-                            ) : (
-                                <>
+                            {!isLoggedIn && (
                                  <Button variant="outline" className="w-full font-semibold text-lg" onClick={() => handleLinkClick("/login")}>
                                     Giriş Yap
                                  </Button>
-                                 <Button className="w-full font-semibold text-lg">
-                                     Ücretsiz Deneme
-                                 </Button>
-                                </>
                             )}
+                            <Button className="w-full font-semibold text-lg">
+                                Ücretsiz Deneme
+                            </Button>
                          </div>
                     </div>
                 </SheetContent>
             </Sheet>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {userLoading ? (
-              <div className="h-10 w-10 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>
-            ) : isLoggedIn ? (
-              <div className='hidden md:flex items-center gap-2'>
-                <Button variant="secondary" className="font-semibold">Ücretsiz Deneme</Button>
-                <UserMenu />
-              </div>
-            ) : (
-              <div className="hidden md:flex items-center gap-2">
-                <Button variant="ghost" className="font-semibold" asChild>
-                  <Link href="/login">Giriş Yap</Link>
-                </Button>
-                <Button className="font-semibold">Ücretsiz Deneme</Button>
-              </div>
-            )}
           </div>
 
         </div>
