@@ -210,17 +210,15 @@ export default function Header() {
                                     {link.label}
                                 </button>
                             ))}
-                        </nav>
-                         <div className="flex flex-col gap-4 mt-auto">
-                            {!isLoggedIn && (
+                            <Button variant="secondary" className="w-full font-semibold text-lg mt-2">
+                                Ücretsiz Deneme
+                            </Button>
+                             {!isLoggedIn && (
                                  <Button variant="outline" className="w-full font-semibold text-lg" onClick={() => handleLinkClick("/login")}>
                                     Giriş Yap
                                  </Button>
                             )}
-                            <Button className="w-full font-semibold text-lg">
-                                Ücretsiz Deneme
-                            </Button>
-                         </div>
+                        </nav>
                     </div>
                 </SheetContent>
             </Sheet>
