@@ -1,6 +1,6 @@
 'use client';
 
-import { Crown, Calendar, Check, Star, RefreshCw, Snowflake, Mail, CreditCard, Download, AlertTriangle } from "lucide-react";
+import { Crown, Check, Mail, CreditCard, Download, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -15,6 +15,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useState } from 'react';
+import { useUser, useFirestore } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from "lucide-react";
 
 const paymentHistory = [
     { date: "15 Kasım 2025", amount: "14 €", status: "Başarılı" },
@@ -38,17 +44,58 @@ const premiumFeatures = [
 ];
 
 export default function UyelikYonetimiPage() {
-    // Note: All dynamic logic has been removed to prevent infinite loops.
-    // This component is now static.
+    const { user } = useUser();
+    const db = useFirestore();
+    const router = useRouter();
+    const { toast } = useToast();
+    const [isCancelling, setIsCancelling] = useState(false);
 
     const staticPremiumStartDate = "15 Kasım 2024";
     const staticPremiumEndDate = "15 Aralık 2024";
+
+    const handleCancelSubscription = async () => {
+        if (!user || !db) {
+            toast({
+                variant: "destructive",
+                title: "Hata",
+                description: "İşlem için giriş yapmalısınız.",
+            });
+            return;
+        }
+
+        setIsCancelling(true);
+        const userDocRef = doc(db, 'users', user.uid);
+
+        try {
+            await updateDoc(userDocRef, {
+                isPremium: false,
+                premiumStartDate: null,
+                premiumEndDate: null,
+            });
+
+            toast({
+                title: "Başarılı",
+                description: "Premium üyeliğiniz iptal edildi.",
+            });
+
+            router.push('/ebeveyn-portali');
+
+        } catch (error) {
+            console.error("Cancellation error:", error);
+            toast({
+                variant: "destructive",
+                title: "Hata",
+                description: "Üyelik iptal edilirken bir sorun oluştu.",
+            });
+            setIsCancelling(false);
+        }
+    };
+
 
     return (
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20">
             <h2 className="text-3xl font-bold tracking-tight">Üyelik Yönetimi</h2>
             
-            {/* Üyelik Durumu Kartı */}
             <Card className="shadow-lg">
                 <CardHeader className="bg-primary/5 rounded-t-lg">
                     <CardTitle className="flex items-center gap-2 text-primary"><Crown /> Premium Üyeliğiniz Aktif</CardTitle>
@@ -66,9 +113,7 @@ export default function UyelikYonetimiPage() {
                 </CardContent>
             </Card>
 
-            {/* Faturalandırma ve Plan Değiştirme */}
             <div className="grid md:grid-cols-2 gap-8">
-                 {/* Faturalandırma */}
                 <Card>
                     <CardHeader>
                         <CardTitle>Faturalandırma</CardTitle>
@@ -106,10 +151,9 @@ export default function UyelikYonetimiPage() {
                     </CardContent>
                 </Card>
 
-                 {/* Planı Değiştir */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><RefreshCw/> Planını Değiştir</CardTitle>
+                        <CardTitle className="flex items-center gap-2"> Planını Değiştir</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {plans.map((plan) => (
@@ -133,9 +177,7 @@ export default function UyelikYonetimiPage() {
                 </Card>
             </div>
 
-            {/* Premium Avantajları ve Destek */}
             <div className="grid md:grid-cols-3 gap-8">
-                 {/* Premium Avantajları */}
                 <Card className="md:col-span-2">
                     <CardHeader>
                          <CardTitle className="flex items-center gap-2"><Star/> Premium ile neler kazanıyorsunuz?</CardTitle>
@@ -151,7 +193,6 @@ export default function UyelikYonetimiPage() {
                         </ul>
                     </CardContent>
                 </Card>
-                {/* Destek */}
                 <Card>
                      <CardHeader>
                          <CardTitle className="flex items-center gap-2"><Mail/> Destek Alın</CardTitle>
@@ -165,7 +206,6 @@ export default function UyelikYonetimiPage() {
                 </Card>
             </div>
             
-            {/* Üyelik İptali */}
             <Card className="bg-red-50 border-red-200">
                  <CardContent className="p-6 grid sm:grid-cols-2 gap-6 items-center">
                     <div>
@@ -192,8 +232,13 @@ export default function UyelikYonetimiPage() {
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogCancel>Vazgeç</AlertDialogCancel>
-                                <AlertDialogAction className="bg-destructive hover:bg-destructive/90">
-                                    Evet, İptal Et
+                                <AlertDialogAction
+                                    onClick={handleCancelSubscription}
+                                    disabled={isCancelling}
+                                    className="bg-destructive hover:bg-destructive/90"
+                                >
+                                    {isCancelling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                    {isCancelling ? 'İptal Ediliyor...' : 'Evet, İptal Et'}
                                 </AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
