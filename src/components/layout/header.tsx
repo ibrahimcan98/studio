@@ -16,7 +16,7 @@ import { Menu, Loader2, LayoutDashboard, User, Package, History, Settings, LogOu
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { getAuth, signOut } from 'firebase/auth';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { doc } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
@@ -26,8 +26,13 @@ import { cn } from '@/lib/utils';
 export default function Header() {
   const { user, loading: userLoading } = useUser();
   const router = useRouter();
+  const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isLoggedIn = !!user;
+
+  if (pathname.startsWith('/cocuk-modu')) {
+    return null;
+  }
 
   const handlePortalClick = () => {
     setMobileMenuOpen(false);
