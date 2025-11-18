@@ -11,7 +11,6 @@ export type Course = {
     title: string;
     ageGroup: string;
     shortDescription: string;
-    blobColor: string;
     cta: {
         text: string;
         iconBgColor: string;
@@ -23,7 +22,6 @@ export type Course = {
     details: {
         duration: string;
         gains: string[];
-        gainsColor: string;
     };
     academicSteps?: AcademicStep[];
     pricing: {
@@ -46,7 +44,6 @@ export const COURSES: Course[] = [
         title: "Başlangıç Kursu",
         ageGroup: "3-4 yaş",
         shortDescription: "3–4 yaşındaki çocuğunuz için çevrim içi bir Türkçe oyun saati!\n* Yaş grubu tahmindir. Çocuğunuzun hazır bulunuşluğu ve sizin beklentilerinize göre başlayacağınız kurs belirlenir.",
-        blobColor: "bg-accent", // #FFD166
         cta: {
             text: "Detaylı bilgi için tıkla >",
             iconBgColor: "bg-yellow-100",
@@ -62,7 +59,6 @@ export const COURSES: Course[] = [
                 "Türkçe şarkılar dinler ve anlar.",
                 "Sorulara Türkçe cevaplar verebilir.",
             ],
-            gainsColor: "bg-[#FFF8E7]",
         },
         pricing: {
             perLesson: { '4': 24.75, '8': 22.38, '12': 20.75, '24': 12.46 },
@@ -79,7 +75,6 @@ export const COURSES: Course[] = [
         title: "Konuşma Kursu",
         ageGroup: "Okul öncesi",
         shortDescription: "5 yaşındaki çocuğunuz için keyifli bir ısınma turu!\n* Yaş grubu tahmindir. Çocuğunuzun hazır bulunuşluğu ve sizin beklentilerinize göre başlayacağınız kurs belirlenir.",
-        blobColor: "bg-cyan-300",
         cta: {
             text: "Detaylı bilgi için tıkla >",
             iconBgColor: "bg-teal-100",
@@ -98,7 +93,6 @@ export const COURSES: Course[] = [
                 "Türkçe şarkılar dinler ve anlar.",
                 "Türkçe hikâye dinler / çizgi film izler ve yorumlar.",
             ],
-            gainsColor: "bg-[#FFF0CC]",
         },
         pricing: {
             perLesson: { '4': 18, '8': 17.5, '12': 16.5, '24': 15 },
@@ -115,7 +109,6 @@ export const COURSES: Course[] = [
         title: "Gelişim Kursu",
         ageGroup: "İlkokul ve ortaokul",
         shortDescription: "Çocuğunuz için etkili, genel kültür dersleri.",
-        blobColor: "bg-green-200", // #C7EFCF
         cta: { 
             text: "Detaylı bilgi için tıkla >",
             iconBgColor: "bg-teal-100",
@@ -130,7 +123,6 @@ export const COURSES: Course[] = [
                 "Fen, sanat, sosyal bilimler gibi konuları Türkçe olarak ifade edebilir.",
                 "Bu konularda yeterli kelime bilgisine sahiptir.",
             ],
-            gainsColor: "bg-[#F0FAF8]",
         },
         pricing: {
              perLesson: { '4': 25.25, '8': 26.31, '12': 22.88, '24': 21.06 },
@@ -147,7 +139,6 @@ export const COURSES: Course[] = [
         title: "Akademik Kurs",
         ageGroup: "İlkokul ve ortaokul",
         shortDescription: "Okuma yazma bilen her öğrencinin alabileceği Akademik Kurs, 4 adımdan oluşur.",
-        blobColor: "bg-green-400", // #7BE495
         cta: { 
             text: "Detaylı bilgi için tıkla >",
             iconBgColor: "bg-teal-100",

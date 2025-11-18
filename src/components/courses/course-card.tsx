@@ -25,21 +25,34 @@ const SmoothScrollLink = ({ to, children, className }: { to: string, children: R
 
 
 export const CourseCard = ({ course }: { course: Course }) => {
+    
+    const getBackgroundColor = (id: string) => {
+        switch (id) {
+            case 'baslangic':
+                return 'bg-[#FFF8E7]';
+            case 'konusma':
+                return 'bg-[#FFF0CC]';
+            case 'gelisim':
+                return 'bg-[#F0FAF8]';
+            case 'akademik':
+                return 'bg-[#D4EDE3]';
+            default:
+                return 'bg-white';
+        }
+    }
+
     return (
         <div className={cn(
             "relative p-8 rounded-3xl overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:scale-[1.03]",
-            course.id === 'konusma' ? 'bg-[#FFF0CC]' : 
-            course.id === 'baslangic' ? 'bg-[#FFF8E7]' :
-            course.id === 'gelisim' ? 'bg-[#F0FAF8]' :
-            course.id === 'akademik' ? 'bg-[#D4EDE3]' : 'bg-white'
+            getBackgroundColor(course.id)
         )}>
             
             <div className="relative z-10 flex flex-col h-full">
                  <div className="flex justify-between items-start mb-4">
-                    <div className={`w-14 h-14 rounded-2xl flex-shrink-0 flex items-center justify-center ${course.cta.iconBgColor}`}>
-                        <BookOpen className={`w-7 h-7 ${course.cta.iconTextColor}`} />
+                    <div className={cn("w-14 h-14 rounded-2xl flex-shrink-0 flex items-center justify-center", course.cta.iconBgColor)}>
+                        <BookOpen className={cn("w-7 h-7", course.cta.iconTextColor)} />
                     </div>
-                     <Badge className={`${course.cta.badgeColor} ${course.cta.badgeTextColor}`}>{course.details.duration}</Badge>
+                     <Badge className={cn(course.cta.badgeColor, course.cta.badgeTextColor)}>{course.details.duration}</Badge>
                 </div>
 
                 <div className="flex-grow">
@@ -61,9 +74,9 @@ export const CourseCard = ({ course }: { course: Course }) => {
                 </div>
                 
                 <div className="mt-auto pt-6">
-                    <SmoothScrollLink to={course.id} className={`text-sm font-semibold ${course.cta.linkTextColor} hover:underline`}>
+                    <button className={cn("text-sm font-semibold hover:underline", course.cta.linkTextColor)}>
                        {course.cta.text}
-                    </SmoothScrollLink>
+                    </button>
                 </div>
             </div>
         </div>
