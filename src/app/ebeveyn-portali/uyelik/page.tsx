@@ -4,7 +4,7 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
-import { Loader2, Crown, Calendar, RefreshCw, CreditCard, AlertCircle, Sparkles } from 'lucide-react';
+import { Loader2, Crown, Calendar, RefreshCw, CreditCard, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { format } from 'date-fns';
@@ -37,10 +37,11 @@ function UyelikContent({ userData }: { userData: any }) {
             await updateDoc(userDocRef, {
                 isPremium: false,
                 premiumEndDate: null,
+                premiumStartDate: null,
             });
             toast({
                 title: 'Üyelik İptal Edildi',
-                description: 'Premium üyeliğiniz bir sonraki yenileme tarihinde sona erecektir.',
+                description: 'Premium üyeliğiniz sona erdirildi.',
                 className: 'bg-green-500 text-white',
             });
             router.push('/ebeveyn-portali');
@@ -154,7 +155,6 @@ function UyelikContent({ userData }: { userData: any }) {
     );
 }
 
-
 // This is the main page component that handles loading and redirection.
 export default function UyelikYonetimiPage() {
     const { user, loading: isUserLoading } = useUser();
@@ -167,20 +167,26 @@ export default function UyelikYonetimiPage() {
     }, [user, db]);
 
     const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
-    
-    // This effect handles redirection after data has been loaded.
+
+    // This effect handles redirection AFTER data has been loaded.
     useEffect(() => {
         // Don't do anything while user or user data is loading.
         if (isUserLoading || isUserDataLoading) {
             return;
         }
+
+        // If loading is finished and user is not logged in, redirect to login
+        if (!user) {
+            router.replace('/login');
+            return;
+        }
         
-        // If loading is finished and user is not premium, redirect.
+        // If loading is finished and user is not premium, redirect to portal
         if (!userData?.isPremium) {
             router.replace('/ebeveyn-portali');
         }
 
-    }, [isUserLoading, isUserDataLoading, userData, router]);
+    }, [isUserLoading, isUserDataLoading, user, userData, router]);
 
 
     // While loading any data, show a spinner.
@@ -199,6 +205,7 @@ export default function UyelikYonetimiPage() {
        return <UyelikContent userData={userData} />;
     }
 
+    // This also acts as a fallback loading/redirecting state.
     return (
        <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
           <Loader2 className="h-16 w-16 animate-spin text-primary" />
