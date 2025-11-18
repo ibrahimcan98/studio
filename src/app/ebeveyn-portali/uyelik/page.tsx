@@ -165,16 +165,8 @@ export default function UyelikYonetimiPage() {
                 </Card>
             </div>
             
-            {/* Üyelik İptali / Dondurma */}
+            {/* Üyelik İptali */}
             <Card className="bg-red-50 border-red-200">
-                <CardContent className="p-6 grid sm:grid-cols-2 gap-6 items-center">
-                    <div>
-                        <h3 className="font-bold flex items-center gap-2"><Snowflake/> Üyeliği Dondur</h3>
-                        <p className="text-sm text-muted-foreground mt-1">En fazla 3 ay dondurabilirsiniz. Bu sürede yenileme durur.</p>
-                    </div>
-                     <Button variant="outline" className="w-full sm:w-auto sm:justify-self-end">Üyeliği Dondur</Button>
-                </CardContent>
-                <div className="border-t border-red-200"></div>
                  <CardContent className="p-6 grid sm:grid-cols-2 gap-6 items-center">
                     <div>
                         <h3 className="font-bold flex items-center gap-2 text-destructive"><AlertTriangle/> Premium Üyeliği İptal Et</h3>
