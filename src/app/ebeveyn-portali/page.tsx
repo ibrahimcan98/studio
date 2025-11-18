@@ -289,7 +289,7 @@ export default function EbeveynPortaliPage() {
 
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Kalan Ders" value={isPremium ? "Sınırsız" : "0"} icon={BookOpen} />
+        <StatCard title="Kalan Ders" value={"0"} icon={BookOpen} />
         <StatCard title="Toplam Çocuk" value={childCount} icon={Users} />
         <StatCard title="Toplam Rozet" value={totalRozet} icon={Star} />
         <Card>
