@@ -1,6 +1,6 @@
 'use client';
 
-import { Crown, Check, Mail, CreditCard, Download, AlertTriangle, Snowflake, X, Star } from "lucide-react";
+import { Crown, Check, Mail, CreditCard, Download, AlertTriangle, X, Star, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -15,13 +15,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useState } from 'react';
-import { useUser, useFirestore } from '@/firebase';
+import { useState, useMemo, useEffect } from 'react';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from "lucide-react";
-
 
 const paymentHistory = [
     { date: "15 Kasım 2025", amount: "14 €", status: "Başarılı" },
@@ -44,15 +42,23 @@ const premiumFeatures = [
     "Sınırsız can",
 ];
 
-export default function UyelikYonetimiPage() {
-    const { user } = useUser();
+function UyelikContent({ user, userData }: { user: NonNullable<ReturnType<typeof useUser>['user']>, userData: any }) {
     const db = useFirestore();
     const router = useRouter();
     const { toast } = useToast();
     const [isCancelling, setIsCancelling] = useState(false);
 
-    const staticPremiumStartDate = "15 Kasım 2024";
-    const staticPremiumEndDate = "15 Aralık 2024";
+    const formatDate = (isoString: string) => {
+        if (!isoString) return '';
+        return new Date(isoString).toLocaleDateString('tr-TR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+        });
+    }
+
+    const premiumStartDate = formatDate(userData?.premiumStartDate);
+    const premiumEndDate = formatDate(userData?.premiumEndDate);
 
     const handleCancelSubscription = async () => {
         if (!user || !db) {
@@ -88,10 +94,10 @@ export default function UyelikYonetimiPage() {
                 title: "Hata",
                 description: "Üyelik iptal edilirken bir sorun oluştu.",
             });
+        } finally {
             setIsCancelling(false);
         }
     };
-
 
     return (
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20">
@@ -103,8 +109,8 @@ export default function UyelikYonetimiPage() {
                 </CardHeader>
                 <CardContent className="p-6 grid md:grid-cols-2 gap-6">
                     <div className="space-y-4">
-                        <p><strong>Başlangıç Tarihi:</strong> {staticPremiumStartDate}</p>
-                        <p><strong>Yenileme Tarihi:</strong> {staticPremiumEndDate} (Her ay 14 € otomatik yenilenir)</p>
+                        <p><strong>Başlangıç Tarihi:</strong> {premiumStartDate}</p>
+                        <p><strong>Yenileme Tarihi:</strong> {premiumEndDate} (Her ay 14 € otomatik yenilenir)</p>
                         <p><strong>Plan Tipi:</strong> Aylık • Sınırsız Can • Tüm Konular Açık • Özel Rozetler</p>
                     </div>
                     <div className="space-y-4 md:text-right">
@@ -122,7 +128,7 @@ export default function UyelikYonetimiPage() {
                     <CardContent>
                         <div className="mb-6 p-4 bg-muted rounded-lg">
                             <p className="text-sm text-muted-foreground">Sonraki Ödeme</p>
-                            <p className="font-semibold">{staticPremiumEndDate}</p>
+                            <p className="font-semibold">{premiumEndDate}</p>
                             <p className="text-2xl font-bold">14 €</p>
                         </div>
                         <h3 className="font-semibold mb-2">Ödeme Geçmişi</h3>
@@ -251,4 +257,41 @@ export default function UyelikYonetimiPage() {
     );
 }
 
+export default function UyelikYonetimiPage() {
+    const { user, isUserLoading } = useUser();
+    const db = useFirestore();
+    const router = useRouter();
+
+    const userDocRef = useMemoFirebase(() => {
+        if (!user || !db) return null;
+        return doc(db, 'users', user.uid);
+    }, [user, db]);
+
+    const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
+
+    const isLoading = isUserLoading || isUserDataLoading;
+
+    useEffect(() => {
+        if (!isLoading) {
+            if (!user || !userData?.isPremium) {
+                router.replace('/ebeveyn-portali');
+            }
+        }
+    }, [isLoading, user, userData, router]);
+
+    if (isLoading) {
+        return (
+            <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
+                <Loader2 className="h-16 w-16 animate-spin text-primary" />
+            </div>
+        );
+    }
     
+    // Only render content if the user is logged in and premium
+    if (user && userData?.isPremium) {
+        return <UyelikContent user={user} userData={userData} />;
+    }
+
+    // Otherwise, render nothing while redirecting
+    return null;
+}
