@@ -62,7 +62,7 @@ export default function TopicPage() {
                 </div>
             </header>
             <div className="flex-1 flex items-center justify-center min-h-0">
-               <WordCard wordList={topic.wordList} />
+               <WordCard wordList={topic.wordList} childId={childId as string} />
             </div>
         </div>
     );

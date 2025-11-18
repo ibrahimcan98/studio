@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Volume2, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Volume2, ArrowLeft, ArrowRight, Gamepad2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 type Word = {
     word: string;
@@ -14,6 +15,7 @@ type Word = {
 
 type WordCardProps = {
     wordList: Word[];
+    childId: string;
 };
 
 const backgroundGradients = [
@@ -24,11 +26,15 @@ const backgroundGradients = [
     'from-red-200 to-yellow-200',
 ];
 
-export function WordCard({ wordList }: WordCardProps) {
+export function WordCard({ wordList, childId }: WordCardProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [gradient, setGradient] = useState(backgroundGradients[0]);
     const audioRef = useRef<HTMLAudioElement>(null);
+    const router = useRouter();
     const currentWord = wordList[currentIndex];
+
+    const isFirstWord = currentIndex === 0;
+    const isLastWord = currentIndex === wordList.length - 1;
 
     useEffect(() => {
         setGradient(backgroundGradients[currentIndex % backgroundGradients.length]);
@@ -47,11 +53,19 @@ export function WordCard({ wordList }: WordCardProps) {
     };
 
     const goToNext = () => {
-        setCurrentIndex((prevIndex) => (prevIndex + 1) % wordList.length);
+        if (!isLastWord) {
+            setCurrentIndex((prevIndex) => prevIndex + 1);
+        }
     };
 
     const goToPrevious = () => {
-        setCurrentIndex((prevIndex) => (prevIndex - 1 + wordList.length) % wordList.length);
+        if (!isFirstWord) {
+            setCurrentIndex((prevIndex) => prevIndex - 1);
+        }
+    };
+    
+    const goToGames = () => {
+        router.push(`/cocuk-modu/${childId}`);
     };
 
     return (
@@ -84,17 +98,28 @@ export function WordCard({ wordList }: WordCardProps) {
                         variant="outline"
                         className="rounded-full py-6 px-8 font-semibold text-lg"
                         onClick={goToPrevious}
+                        disabled={isFirstWord}
                     >
                         <ArrowLeft className="mr-2" />
                         Önceki
                     </Button>
-                    <Button
-                        className="rounded-full py-6 px-8 font-semibold text-lg bg-primary hover:bg-primary/90"
-                        onClick={goToNext}
-                    >
-                        Sonraki
-                        <ArrowRight className="ml-2" />
-                    </Button>
+                    {isLastWord ? (
+                         <Button
+                            className="rounded-full py-6 px-8 font-semibold text-lg bg-green-500 hover:bg-green-600"
+                            onClick={goToGames}
+                        >
+                            Oyunlara Geç
+                            <Gamepad2 className="ml-2" />
+                        </Button>
+                    ) : (
+                        <Button
+                            className="rounded-full py-6 px-8 font-semibold text-lg bg-primary hover:bg-primary/90"
+                            onClick={goToNext}
+                        >
+                            Sonraki
+                            <ArrowRight className="ml-2" />
+                        </Button>
+                    )}
                 </div>
             </div>
         </Card>
