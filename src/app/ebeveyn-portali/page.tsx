@@ -3,7 +3,7 @@
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
-import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield } from 'lucide-react';
+import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -18,10 +18,21 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useCollection, useFirestore, addDocumentNonBlocking, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useCollection, useFirestore, addDocumentNonBlocking, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 
 function AddChildDialog({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false);
@@ -146,6 +157,12 @@ export default function EbeveynPortaliPage() {
   }, [db, user?.uid]);
 
   const { data: children, isLoading: childrenLoading } = useCollection(childrenRef);
+
+  const handleDeleteChild = (childId: string) => {
+    if (!db || !user?.uid) return;
+    const childDocRef = doc(db, 'users', user.uid, 'children', childId);
+    deleteDocumentNonBlocking(childDocRef);
+  };
 
 
   useEffect(() => {
@@ -278,7 +295,28 @@ export default function EbeveynPortaliPage() {
                 <CardContent className="p-6 grid gap-6">
                     {children && children.length > 0 ? (
                         children.map(child => (
-                           <div key={child.id} className="flex flex-col sm:flex-row items-center gap-4 p-4 border rounded-lg">
+                           <div key={child.id} className="relative flex flex-col sm:flex-row items-center gap-4 p-4 border rounded-lg">
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-destructive">
+                                      <X className="w-4 h-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        "{child.firstName}" isimli çocuğu silmek üzeresiniz. Bu işlem geri alınamaz.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>İptal</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDeleteChild(child.id)} className="bg-destructive hover:bg-destructive/90">
+                                        Sil
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                                 <div className="flex items-center gap-4 flex-1">
                                     <Avatar className="h-12 w-12">
                                         <AvatarFallback className="bg-primary/20 text-primary font-bold">{child.firstName?.charAt(0)}</AvatarFallback>
@@ -288,7 +326,7 @@ export default function EbeveynPortaliPage() {
                                         <p className="text-sm text-muted-foreground">{new Date().getFullYear() - new Date(child.dateOfBirth).getFullYear()} yaş</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-6 flex-none justify-center">
+                                <div className="flex-none flex items-center gap-6 justify-center">
                                      <div className="text-center">
                                         <p className="font-bold text-xl">{child.rozet || 0}</p>
                                         <p className="text-xs text-muted-foreground">Rozet</p>
