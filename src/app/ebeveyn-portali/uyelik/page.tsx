@@ -272,7 +272,9 @@ export default function UyelikYonetimiPage() {
     const isLoading = isUserLoading || isUserDataLoading;
 
     useEffect(() => {
+        // Only redirect when loading is completely finished
         if (!isLoading) {
+            // If there's no user or the user is not premium, redirect
             if (!user || !userData?.isPremium) {
                 router.replace('/ebeveyn-portali');
             }
