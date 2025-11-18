@@ -1,9 +1,6 @@
 'use client';
 
-import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { Loader2, Crown, Calendar, Check, Star, RefreshCw, Snowflake, Mail, CreditCard, Download, AlertTriangle } from "lucide-react";
+import { Crown, Calendar, Check, Star, RefreshCw, Snowflake, Mail, CreditCard, Download, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -18,10 +15,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { format } from 'date-fns';
-import { tr } from 'date-fns/locale';
-import { useToast } from "@/hooks/use-toast";
-import { doc, setDoc } from "firebase/firestore";
 
 const paymentHistory = [
     { date: "15 Kasım 2025", amount: "14 €", status: "Başarılı" },
@@ -45,64 +38,12 @@ const premiumFeatures = [
 ];
 
 export default function UyelikYonetimiPage() {
-    const { user, isUserLoading } = useUser();
-    const db = useFirestore();
-    const router = useRouter();
-    const { toast } = useToast();
+    // Note: All dynamic logic has been removed to prevent infinite loops.
+    // This component is now static.
 
-    const userDocRef = useMemoFirebase(() => {
-        if (!user || !db) return null;
-        return doc(db, 'users', user.uid);
-    }, [user, db]);
+    const staticPremiumStartDate = "15 Kasım 2024";
+    const staticPremiumEndDate = "15 Aralık 2024";
 
-    const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
-
-    const isLoading = isUserLoading || isUserDataLoading;
-
-    useEffect(() => {
-        if (!isLoading) {
-            if (!user) {
-                router.push('/login');
-            } else if (!userData?.isPremium) {
-                router.push('/premium');
-            }
-        }
-    }, [isLoading, user, userData, router]);
-    
-    const handleCancelSubscription = async () => {
-        if (!user || !db) return;
-
-        const userDocRef = doc(db, 'users', user.uid);
-        await setDoc(userDocRef, { 
-            isPremium: false,
-            premiumEndDate: null,
-         }, { merge: true });
-
-        toast({
-            title: 'Üyelik İptal Edildi',
-            description: 'Premium üyeliğiniz bir sonraki yenileme tarihinde sona erecektir.',
-        });
-        router.push('/ebeveyn-portali');
-    };
-    
-    const formatDate = (dateString: string | undefined) => {
-        if (!dateString) return 'N/A';
-        return format(new Date(dateString), 'dd MMMM yyyy', { locale: tr });
-    };
-
-    if (isLoading) {
-        return (
-            <div className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-muted/20">
-                <Loader2 className="h-16 w-16 animate-spin text-primary" />
-            </div>
-        );
-    }
-    
-    if (!user || !userData?.isPremium) {
-      // We are about to redirect, so render nothing to avoid flicker.
-      return null;
-    }
-    
     return (
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20">
             <h2 className="text-3xl font-bold tracking-tight">Üyelik Yönetimi</h2>
@@ -114,8 +55,8 @@ export default function UyelikYonetimiPage() {
                 </CardHeader>
                 <CardContent className="p-6 grid md:grid-cols-2 gap-6">
                     <div className="space-y-4">
-                        <p><strong>Başlangıç Tarihi:</strong> {formatDate(userData?.premiumStartDate)}</p>
-                        <p><strong>Yenileme Tarihi:</strong> {formatDate(userData?.premiumEndDate)} (Her ay 14 € otomatik yenilenir)</p>
+                        <p><strong>Başlangıç Tarihi:</strong> {staticPremiumStartDate}</p>
+                        <p><strong>Yenileme Tarihi:</strong> {staticPremiumEndDate} (Her ay 14 € otomatik yenilenir)</p>
                         <p><strong>Plan Tipi:</strong> Aylık • Sınırsız Can • Tüm Konular Açık • Özel Rozetler</p>
                     </div>
                     <div className="space-y-4 md:text-right">
@@ -135,7 +76,7 @@ export default function UyelikYonetimiPage() {
                     <CardContent>
                         <div className="mb-6 p-4 bg-muted rounded-lg">
                             <p className="text-sm text-muted-foreground">Sonraki Ödeme</p>
-                            <p className="font-semibold">{formatDate(userData?.premiumEndDate)}</p>
+                            <p className="font-semibold">{staticPremiumEndDate}</p>
                             <p className="text-2xl font-bold">14 €</p>
                         </div>
                         <h3 className="font-semibold mb-2">Ödeme Geçmişi</h3>
@@ -259,7 +200,7 @@ export default function UyelikYonetimiPage() {
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogCancel>Vazgeç</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleCancelSubscription} className="bg-destructive hover:bg-destructive/90">
+                                <AlertDialogAction className="bg-destructive hover:bg-destructive/90">
                                     Evet, İptal Et
                                 </AlertDialogAction>
                             </AlertDialogFooter>
@@ -268,7 +209,6 @@ export default function UyelikYonetimiPage() {
 
                 </CardContent>
             </Card>
-
         </div>
     );
 }
