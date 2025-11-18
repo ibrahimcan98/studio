@@ -85,7 +85,7 @@ export const COURSES: Course[] = [
             iconBgColor: "bg-teal-100",
             iconTextColor: "text-teal-500",
             badgeColor: "bg-[#C9CBCB]",
-            badgeTextColor: "text-gray-800",
+            badgeTextColor: "text-white",
             linkTextColor: "text-orange-500",
         },
         details: {
