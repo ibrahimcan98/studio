@@ -1,0 +1,227 @@
+
+[
+    {
+      "id": "hayvanlar",
+      "name": "Hayvanlar",
+      "icon": "🦁",
+      "words": 10,
+      "unlocked": true,
+      "wordList": [
+        { "word": "inek", "image": "/placeholders/animals/cow.png", "audio": "/placeholders/audio/cow.mp3" },
+        { "word": "kurbağa", "image": "/placeholders/animals/frog.png", "audio": "/placeholders/audio/frog.mp3" },
+        { "word": "köpek", "image": "/placeholders/animals/dog.png", "audio": "/placeholders/audio/dog.mp3" },
+        { "word": "zürafa", "image": "/placeholders/animals/giraffe.png", "audio": "/placeholders/audio/giraffe.mp3" },
+        { "word": "panda", "image": "/placeholders/animals/panda.png", "audio": "/placeholders/audio/panda.mp3" },
+        { "word": "kedi", "image": "/placeholders/animals/cat.png", "audio": "/placeholders/audio/cat.mp3" },
+        { "word": "fil", "image": "/placeholders/animals/elephant.png", "audio": "/placeholders/audio/elephant.mp3" },
+        { "word": "kuş", "image": "/placeholders/animals/bird.png", "audio": "/placeholders/audio/bird.mp3" },
+        { "word": "maymun", "image": "/placeholders/animals/monkey.png", "audio": "/placeholders/audio/monkey.mp3" },
+        { "word": "aslan", "image": "/placeholders/animals/lion.png", "audio": "/placeholders/audio/lion.mp3" }
+      ]
+    },
+    {
+      "id": "renkler",
+      "name": "Renkler",
+      "icon": "🎨",
+      "words": 7,
+      "unlocked": true,
+      "wordList": [
+        { "word": "pembe", "image": "/placeholders/colors/pink.png", "audio": "/placeholders/audio/pink.mp3" },
+        { "word": "kahverengi", "image": "/placeholders/colors/brown.png", "audio": "/placeholders/audio/brown.mp3" },
+        { "word": "yeşil", "image": "/placeholders/colors/green.png", "audio": "/placeholders/audio/green.mp3" },
+        { "word": "beyaz", "image": "/placeholders/colors/white.png", "audio": "/placeholders/audio/white.mp3" },
+        { "word": "sarı", "image": "/placeholders/colors/yellow.png", "audio": "/placeholders/audio/yellow.mp3" },
+        { "word": "turuncu", "image": "/placeholders/colors/orange.png", "audio": "/placeholders/audio/orange.mp3" },
+        { "word": "mavi", "image": "/placeholders/colors/blue.png", "audio": "/placeholders/audio/blue.mp3" }
+      ]
+    },
+    {
+      "id": "aile-uyeleri",
+      "name": "Aile Üyeleri",
+      "icon": "❤️",
+      "words": 10,
+      "unlocked": true,
+      "wordList": [
+        { "word": "anne", "image": "/placeholders/family/mother.png", "audio": "/placeholders/audio/mother.mp3" },
+        { "word": "baba", "image": "/placeholders/family/father.png", "audio": "/placeholders/audio/father.mp3" },
+        { "word": "kardeş", "image": "/placeholders/family/sibling.png", "audio": "/placeholders/audio/sibling.mp3" },
+        { "word": "dede", "image": "/placeholders/family/grandfather.png", "audio": "/placeholders/audio/grandfather.mp3" },
+        { "word": "nine", "image": "/placeholders/family/grandmother.png", "audio": "/placeholders/audio/grandmother.mp3" },
+        { "word": "amca", "image": "/placeholders/family/uncle.png", "audio": "/placeholders/audio/uncle.mp3" },
+        { "word": "hala", "image": "/placeholders/family/aunt.png", "audio": "/placeholders/audio/aunt.mp3" },
+        { "word": "teyze", "image": "/placeholders/family/aunt2.png", "audio": "/placeholders/audio/aunt2.mp3" },
+        { "word": "kuzen", "image": "/placeholders/family/cousin.png", "audio": "/placeholders/audio/cousin.mp3" },
+        { "word": "bebek", "image": "/placeholders/family/baby.png", "audio": "/placeholders/audio/baby.mp3" }
+      ]
+    },
+    {
+      "id": "vucudumuz",
+      "name": "Vücudumuz",
+      "icon": "💪",
+      "words": 19,
+      "unlocked": false,
+      "wordList": [
+        { "word": "saç", "image": "/placeholders/body/hair.png", "audio": "/placeholders/audio/hair.mp3" },
+        { "word": "alın", "image": "/placeholders/body/forehead.png", "audio": "/placeholders/audio/forehead.mp3" },
+        { "word": "kaş", "image": "/placeholders/body/eyebrow.png", "audio": "/placeholders/audio/eyebrow.mp3" },
+        { "word": "göz", "image": "/placeholders/body/eye.png", "audio": "/placeholders/audio/eye.mp3" },
+        { "word": "yanak", "image": "/placeholders/body/cheek.png", "audio": "/placeholders/audio/cheek.mp3" },
+        { "word": "kulak", "image": "/placeholders/body/ear.png", "audio": "/placeholders/audio/ear.mp3" },
+        { "word": "burun", "image": "/placeholders/body/nose.png", "audio": "/placeholders/audio/nose.mp3" },
+        { "word": "ağız", "image": "/placeholders/body/mouth.png", "audio": "/placeholders/audio/mouth.mp3" },
+        { "word": "diş", "image": "/placeholders/body/tooth.png", "audio": "/placeholders/audio/tooth.mp3" },
+        { "word": "dil", "image": "/placeholders/body/tongue.png", "audio": "/placeholders/audio/tongue.mp3" },
+        { "word": "dudak", "image": "/placeholders/body/lip.png", "audio": "/placeholders/audio/lip.mp3" },
+        { "word": "boyun", "image": "/placeholders/body/neck.png", "audio": "/placeholders/audio/neck.mp3" },
+        { "word": "omuz", "image": "/placeholders/body/shoulder.png", "audio": "/placeholders/audio/shoulder.mp3" },
+        { "word": "kol", "image": "/placeholders/body/arm.png", "audio": "/placeholders/audio/arm.mp3" },
+        { "word": "el", "image": "/placeholders/body/hand.png", "audio": "/placeholders/audio/hand.mp3" },
+        { "word": "parmak", "image": "/placeholders/body/finger.png", "audio": "/placeholders/audio/finger.mp3" },
+        { "word": "karın", "image": "/placeholders/body/stomach.png", "audio": "/placeholders/audio/stomach.mp3" },
+        { "word": "bacak", "image": "/placeholders/body/leg.png", "audio": "/placeholders/audio/leg.mp3" },
+        { "word": "ayak parmağı", "image": "/placeholders/body/toe.png", "audio": "/placeholders/audio/toe.mp3" }
+      ]
+    },
+    {
+      "id": "meyveler",
+      "name": "Meyveler",
+      "icon": "🍎",
+      "words": 8,
+      "unlocked": false,
+      "wordList": [
+        { "word": "muz", "image": "/placeholders/fruits/banana.png", "audio": "/placeholders/audio/banana.mp3" },
+        { "word": "portakal", "image": "/placeholders/fruits/orange.png", "audio": "/placeholders/audio/orange.mp3" },
+        { "word": "elma", "image": "/placeholders/fruits/apple.png", "audio": "/placeholders/audio/apple.mp3" },
+        { "word": "çilek", "image": "/placeholders/fruits/strawberry.png", "audio": "/placeholders/audio/strawberry.mp3" },
+        { "word": "kiraz", "image": "/placeholders/fruits/cherry.png", "audio": "/placeholders/audio/cherry.mp3" },
+        { "word": "üzüm", "image": "/placeholders/fruits/grapes.png", "audio": "/placeholders/audio/grapes.mp3" },
+        { "word": "kivi", "image": "/placeholders/fruits/kiwi.png", "audio": "/placeholders/audio/kiwi.mp3" },
+        { "word": "armut", "image": "/placeholders/fruits/pear.png", "audio": "/placeholders/audio/pear.mp3" }
+      ]
+    },
+    {
+      "id": "sebzeler",
+      "name": "Sebzeler",
+      "icon": "🥕",
+      "words": 6,
+      "unlocked": false,
+      "wordList": [
+        { "word": "havuç", "image": "/placeholders/vegetables/carrot.png", "audio": "/placeholders/audio/carrot.mp3" },
+        { "word": "salatalık", "image": "/placeholders/vegetables/cucumber.png", "audio": "/placeholders/audio/cucumber.mp3" },
+        { "word": "domates", "image": "/placeholders/vegetables/tomato.png", "audio": "/placeholders/audio/tomato.mp3" },
+        { "word": "brokoli", "image": "/placeholders/vegetables/broccoli.png", "audio": "/placeholders/audio/broccoli.mp3" },
+        { "word": "soğan", "image": "/placeholders/vegetables/onion.png", "audio": "/placeholders/audio/onion.mp3" },
+        { "word": "biber", "image": "/placeholders/vegetables/pepper.png", "audio": "/placeholders/audio/pepper.mp3" }
+      ]
+    },
+    {
+      "id": "sekiller",
+      "name": "Şekiller",
+      "icon": "🔷",
+      "words": 4,
+      "unlocked": false,
+      "wordList": [
+        { "word": "üçgen", "image": "/placeholders/shapes/triangle.png", "audio": "/placeholders/audio/triangle.mp3" },
+        { "word": "dikdörtgen", "image": "/placeholders/shapes/rectangle.png", "audio": "/placeholders/audio/rectangle.mp3" },
+        { "word": "kare", "image": "/placeholders/shapes/square.png", "audio": "/placeholders/audio/square.mp3" },
+        { "word": "daire", "image": "/placeholders/shapes/circle.png", "audio": "/placeholders/audio/circle.mp3" }
+      ]
+    },
+    {
+      "id": "duygular",
+      "name": "Duygular",
+      "icon": "😊",
+      "words": 5,
+      "unlocked": false,
+      "wordList": [
+        { "word": "mutlu", "image": "/placeholders/emotions/happy.png", "audio": "/placeholders/audio/happy.mp3" },
+        { "word": "üzgün", "image": "/placeholders/emotions/sad.png", "audio": "/placeholders/audio/sad.mp3" },
+        { "word": "şaşırmış", "image": "/placeholders/emotions/surprised.png", "audio": "/placeholders/audio/surprised.mp3" },
+        { "word": "korkmuş", "image": "/placeholders/emotions/scared.png", "audio": "/placeholders/audio/scared.mp3" },
+        { "word": "sinirli", "image": "/placeholders/emotions/angry.png", "audio": "/placeholders/audio/angry.mp3" }
+      ]
+    },
+    {
+      "id": "doga",
+      "name": "Doğa",
+      "icon": "🌳",
+      "words": 8,
+      "unlocked": false,
+      "wordList": [
+        { "word": "orman", "image": "/placeholders/nature/forest.png", "audio": "/placeholders/audio/forest.mp3" },
+        { "word": "çiçek", "image": "/placeholders/nature/flower.png", "audio": "/placeholders/audio/flower.mp3" },
+        { "word": "kaya", "image": "/placeholders/nature/rock.png", "audio": "/placeholders/audio/rock.mp3" },
+        { "word": "ağaç", "image": "/placeholders/nature/tree.png", "audio": "/placeholders/audio/tree.mp3" },
+        { "word": "dere", "image": "/placeholders/nature/stream.png", "audio": "/placeholders/audio/stream.mp3" },
+        { "word": "dağ", "image": "/placeholders/nature/mountain.png", "audio": "/placeholders/audio/mountain.mp3" },
+        { "word": "yaprak", "image": "/placeholders/nature/leaf.png", "audio": "/placeholders/audio/leaf.mp3" },
+        { "word": "bulut", "image": "/placeholders/nature/cloud.png", "audio": "/placeholders/audio/cloud.mp3" }
+      ]
+    },
+    {
+      "id": "kahvalti",
+      "name": "Kahvaltı",
+      "icon": "🍳",
+      "words": 7,
+      "unlocked": false,
+      "wordList": [
+        { "word": "yumurta", "image": "/placeholders/breakfast/egg.png", "audio": "/placeholders/audio/egg.mp3" },
+        { "word": "zeytin", "image": "/placeholders/breakfast/olive.png", "audio": "/placeholders/audio/olive.mp3" },
+        { "word": "peynir", "image": "/placeholders/breakfast/cheese.png", "audio": "/placeholders/audio/cheese.mp3" },
+        { "word": "ekmek", "image": "/placeholders/breakfast/bread.png", "audio": "/placeholders/audio/bread.mp3" },
+        { "word": "reçel", "image": "/placeholders/breakfast/jam.png", "audio": "/placeholders/audio/jam.mp3" },
+        { "word": "bal", "image": "/placeholders/breakfast/honey.png", "audio": "/placeholders/audio/honey.mp3" },
+        { "word": "tereyağ", "image": "/placeholders/breakfast/butter.png", "audio": "/placeholders/audio/butter.mp3" }
+      ]
+    },
+    {
+      "id": "aksam-yemegi",
+      "name": "Akşam Yemeği",
+      "icon": "🍲",
+      "words": 8,
+      "unlocked": false,
+      "wordList": [
+        { "word": "çorba", "image": "/placeholders/dinner/soup.png", "audio": "/placeholders/audio/soup.mp3" },
+        { "word": "pilav", "image": "/placeholders/dinner/rice.png", "audio": "/placeholders/audio/rice.mp3" },
+        { "word": "makarna", "image": "/placeholders/dinner/pasta.png", "audio": "/placeholders/audio/pasta.mp3" },
+        { "word": "köfte", "image": "/placeholders/dinner/meatball.png", "audio": "/placeholders/audio/meatball.mp3" },
+        { "word": "balık", "image": "/placeholders/dinner/fish.png", "audio": "/placeholders/audio/fish.mp3" },
+        { "word": "tavuk", "image": "/placeholders/dinner/chicken.png", "audio": "/placeholders/audio/chicken.mp3" },
+        { "word": "salata", "image": "/placeholders/dinner/salad.png", "audio": "/placeholders/audio/salad.mp3" },
+        { "word": "patates kızartması", "image": "/placeholders/dinner/fries.png", "audio": "/placeholders/audio/fries.mp3" }
+      ]
+    },
+    {
+      "id": "tatlilar",
+      "name": "Tatlılar",
+      "icon": "🍰",
+      "words": 5,
+      "unlocked": false,
+      "wordList": [
+        { "word": "kek", "image": "/placeholders/desserts/cake.png", "audio": "/placeholders/audio/cake.mp3" },
+        { "word": "kurabiye", "image": "/placeholders/desserts/cookie.png", "audio": "/placeholders/audio/cookie.mp3" },
+        { "word": "dondurma", "image": "/placeholders/desserts/icecream.png", "audio": "/placeholders/audio/icecream.mp3" },
+        { "word": "pasta", "image": "/placeholders/desserts/pie.png", "audio": "/placeholders/audio/pie.mp3" },
+        { "word": "baklava", "image": "/placeholders/desserts/baklava.png", "audio": "/placeholders/audio/baklava.mp3" }
+      ]
+    },
+    {
+      "id": "meslekler",
+      "name": "Meslekler",
+      "icon": "👩‍⚕️",
+      "words": 10,
+      "unlocked": false,
+      "wordList": [
+        { "word": "manav", "image": "/placeholders/jobs/greengrocer.png", "audio": "/placeholders/audio/greengrocer.mp3" },
+        { "word": "veteriner", "image": "/placeholders/jobs/vet.png", "audio": "/placeholders/audio/vet.mp3" },
+        { "word": "kuaför", "image": "/placeholders/jobs/hairdresser.png", "audio": "/placeholders/audio/hairdresser.mp3" },
+        { "word": "ressam", "image": "/placeholders/jobs/painter.png", "audio": "/placeholders/audio/painter.mp3" },
+        { "word": "aşçı", "image": "/placeholders/jobs/chef.png", "audio": "/placeholders/audio/chef.mp3" },
+        { "word": "pilot", "image": "/placeholders/jobs/pilot.png", "audio": "/placeholders/audio/pilot.mp3" },
+        { "word": "çiftçi", "image": "/placeholders/jobs/farmer.png", "audio": "/placeholders/audio/farmer.mp3" },
+        { "word": "doktor", "image": "/placeholders/jobs/doctor.png", "audio": "/placeholders/audio/doctor.mp3" },
+        { "word": "tamirci", "image": "/placeholders/jobs/mechanic.png", "audio": "/placeholders/audio/mechanic.mp3" },
+        { "word": "öğretmen", "image": "/placeholders/jobs/teacher.png", "audio": "/placeholders/audio/teacher.mp3" }
+      ]
+    }
+  ]
