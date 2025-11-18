@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
@@ -31,7 +32,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useCollection, useFirestore, addDocumentNonBlocking, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
+import { useCollection, useFirestore, addDocumentNonBlocking, useMemoFirebase, deleteDocumentNonBlocking, useDoc } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 
 function AddChildDialog({ userId }: { userId: string }) {
@@ -151,6 +152,14 @@ export default function EbeveynPortaliPage() {
   const router = useRouter();
   const db = useFirestore();
 
+  const userDocRef = useMemoFirebase(() => {
+    if (!db || !user?.uid) return null;
+    return doc(db, 'users', user.uid);
+  }, [db, user?.uid]);
+
+  const { data: userData } = useDoc(userDocRef);
+  const isPremium = userData?.isPremium || false;
+
   const childrenRef = useMemoFirebase(() => {
     if (!db || !user?.uid) return null;
     return collection(db, 'users', user.uid, 'children');
@@ -199,6 +208,19 @@ export default function EbeveynPortaliPage() {
       </div>
 
       {/* Premium Card */}
+      {isPremium ? (
+         <Card className="bg-gradient-to-r from-green-400 to-teal-500 text-white shadow-lg border-none">
+          <div className="p-6 flex items-center justify-between">
+            <div className='space-y-2'>
+              <h3 className="text-2xl font-bold flex items-center gap-2"><Crown /> Premium Üyelik Aktif</h3>
+              <p className="text-white/80">Tüm premium özelliklerin tadını çıkarın!</p>
+            </div>
+            <Button variant="outline" className="bg-white/20 border-white/50 text-white hover:bg-white/30">
+                Üyeliği Yönet
+            </Button>
+          </div>
+        </Card>
+      ) : (
       <Card className="bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg border-none">
         <div className="grid md:grid-cols-3 items-center p-6 gap-6">
           <div className="md:col-span-2 space-y-4">
@@ -226,16 +248,19 @@ export default function EbeveynPortaliPage() {
               <p className="text-4xl font-extrabold">14 €</p>
               <p className="text-sm text-muted-foreground -mt-1">/ ay</p>
             </div>
-            <Button variant="outline" className="w-full bg-white text-amber-600 hover:bg-white/90 font-bold">
-                <Crown className="w-4 h-4 mr-2"/> Premium Satın Al
+            <Button asChild variant="outline" className="w-full bg-white text-amber-600 hover:bg-white/90 font-bold">
+                <Link href="/premium">
+                    <Crown className="w-4 h-4 mr-2"/> Premium Satın Al
+                </Link>
             </Button>
           </div>
         </div>
       </Card>
+      )}
 
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Kalan Ders" value={0} icon={BookOpen} />
+        <StatCard title="Kalan Ders" value={isPremium ? 'Sınırsız' : 0} icon={BookOpen} />
         <StatCard title="Toplam Çocuk" value={childCount} icon={Users} />
         <StatCard title="Toplam Rozet" value={totalRozet} icon={Star} />
         <Card>
@@ -244,7 +269,7 @@ export default function EbeveynPortaliPage() {
                 <Crown className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <PremiumBadge />
+              {isPremium ? <PremiumBadge /> : <Badge variant="destructive">Değil</Badge>}
             </CardContent>
         </Card>
       </div>
@@ -340,7 +365,7 @@ export default function EbeveynPortaliPage() {
                                             <Heart className="h-4 w-4 fill-current"/>
                                             <Heart className="h-4 w-4 fill-current"/>
                                             <Heart className="h-4 w-4 fill-current"/>
-                                            <Shield className="h-4 w-4 fill-current text-sky-400"/>
+                                            {isPremium ? <Shield className="h-4 w-4 fill-current text-sky-400"/> : null}
                                         </div>
                                         <p className="text-xs text-muted-foreground">Kalan Can</p>
                                     </div>
