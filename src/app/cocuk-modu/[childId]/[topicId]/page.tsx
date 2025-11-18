@@ -1,9 +1,10 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import topicsData from '@/data/topics.json';
-import { Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
 
 type Word = {
     word: string;
@@ -23,7 +24,8 @@ type Topic = {
 
 export default function TopicPage() {
     const params = useParams();
-    const { topicId } = params;
+    const router = useRouter();
+    const { childId, topicId } = params;
     const [topic, setTopic] = useState<Topic | null>(null);
 
     useEffect(() => {
@@ -45,8 +47,18 @@ export default function TopicPage() {
     }
 
     return (
-        <div className="bg-amber-50 min-h-screen p-8">
-            <h1 className="text-4xl font-bold text-center mb-8">{topic.name}</h1>
+        <div className="bg-amber-50 min-h-screen p-4 sm:p-8">
+             <div className="relative mb-8 flex items-center justify-center">
+                <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="absolute left-0 top-1/2 -translate-y-1/2 rounded-full h-12 w-12"
+                    onClick={() => router.push(`/cocuk-modu/${childId}`)}
+                >
+                    <ArrowLeft className="w-6 h-6" />
+                </Button>
+                <h1 className="text-3xl sm:text-4xl font-bold text-center">{topic.name}</h1>
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {topic.wordList.map((word, index) => (
                     <div key={index} className="border p-4 rounded-lg bg-white shadow-md">
