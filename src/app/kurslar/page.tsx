@@ -3,7 +3,7 @@ import { COURSES } from "@/data/courses";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { Button } from "@/components/ui/button";
 import { CourseCard } from "@/components/courses/course-card";
-import { CheckCircle, Info, BookOpen, ShoppingCart } from "lucide-react";
+import { CheckCircle, Info, BookOpen, ShoppingCart, ShieldCheck, Lock as LockIcon, Heart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export default function KurslarPage() {
@@ -322,7 +322,36 @@ export default function KurslarPage() {
                         </div>
                     </section>
                 )}
+
+                <section className="py-20 md:py-28 text-center">
+                    <div className="container max-w-4xl mx-auto">
+                        <div className="inline-block p-1 rounded-full bg-gradient-to-r from-teal-400 to-green-500 mb-8">
+                             <Button asChild size="lg" className="bg-[#25D366] hover:bg-[#25D366]/90 text-white rounded-full text-lg font-bold px-8 py-6 h-auto">
+                                <a href="https://wa.me/yourwhatsappnumber" target="_blank" rel="noopener noreferrer">
+                                    <WhatsAppIcon className="w-6 h-6 mr-3 fill-white" />
+                                    WhatsApp üzerinden ücretsiz deneme dersi planlayalım!
+                                </a>
+                            </Button>
+                        </div>
+                        <div className="flex flex-col sm:flex-row justify-center items-center gap-8 text-gray-600">
+                            <div className="flex items-center gap-2">
+                                <ShieldCheck className="w-5 h-5 text-green-500" />
+                                <span>Güvenli Ödeme</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <LockIcon className="w-5 h-5 text-green-500" />
+                                <span>Reklamsız</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Heart className="w-5 h-5 text-green-500" />
+                                <span>Ebeveyn Onaylı</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </main>
         </div>
     );
 }
+
+    
