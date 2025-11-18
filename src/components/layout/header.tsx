@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Logo } from '@/components/logo';
 import { Menu, Loader2, LayoutDashboard, User, Package, History, Settings, LogOut, Crown } from 'lucide-react';
-import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader } from '@/components/ui/sheet';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { getAuth, signOut } from 'firebase/auth';
 import { useRouter, usePathname } from 'next/navigation';
@@ -52,7 +52,7 @@ export default function Header() {
 
   const navLinks = [
     { href: '#teachers', label: 'Öğretmen Portalı' },
-    { href: '', label: 'Kurslar' },
+    { href: '/kurslar', label: 'Kurslar' },
   ];
 
   const handleLogout = async () => {
@@ -76,7 +76,11 @@ export default function Header() {
       return <div className="h-10 w-10 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
     }
     if (!isLoggedIn) {
-      return null;
+       return (
+        <Button variant="ghost" className="font-semibold" asChild>
+            <Link href="/login">Giriş Yap</Link>
+        </Button>
+      )
     }
     return (
        <DropdownMenu>
@@ -145,7 +149,7 @@ export default function Header() {
           <Logo />
         </Link>
         
-        <div className="flex items-center justify-end gap-2 md:gap-6">
+        <div className="flex items-center justify-end gap-2 md:gap-4">
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
               <button onClick={() => router.push(isLoggedIn ? '/ebeveyn-portali' : '/login')} className="transition-colors hover:text-foreground/80 text-foreground/60">
               Ebeveyn Portalı
@@ -168,18 +172,10 @@ export default function Header() {
             <Button variant="secondary" className="font-semibold hidden md:inline-flex">Ücretsiz Deneme</Button>
 
             <div className="hidden md:flex items-center gap-2">
-             {userLoading ? (
-                  <div className="h-10 w-10 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>
-              ) : isLoggedIn ? (
-                  <UserMenu />
-              ) : (
-                  <Button variant="ghost" className="font-semibold" asChild>
-                      <Link href="/login">Giriş Yap</Link>
-                  </Button>
-              )}
+              <UserMenu />
            </div>
 
-          <div className="md:hidden flex items-center">
+          <div className="md:hidden flex items-center gap-2">
              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
                     <Button variant="ghost" size="icon">
@@ -210,11 +206,11 @@ export default function Header() {
                                     {link.label}
                                 </button>
                             ))}
-                            <Button variant="secondary" className="w-full justify-start p-0 h-auto font-medium text-lg" onClick={() => {}}>
+                            <Button variant="secondary" className="w-full justify-center p-2 h-auto font-medium text-lg" onClick={() => {}}>
                                 Ücretsiz Deneme
                             </Button>
                              {!isLoggedIn && (
-                                 <Button variant="outline" className="w-full justify-start p-0 h-auto font-medium text-lg" onClick={() => handleLinkClick("/login")}>
+                                 <Button variant="outline" className="w-full justify-center p-2 h-auto font-medium text-lg" onClick={() => handleLinkClick("/login")}>
                                     Giriş Yap
                                  </Button>
                             )}
@@ -222,13 +218,8 @@ export default function Header() {
                     </div>
                 </SheetContent>
             </Sheet>
-             {userLoading ? (
-                  <div className="h-10 w-10 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>
-              ) : isLoggedIn ? (
-                  <UserMenu />
-              ) : null}
+            <UserMenu />
            </div>
-
         </div>
       </div>
     </header>
