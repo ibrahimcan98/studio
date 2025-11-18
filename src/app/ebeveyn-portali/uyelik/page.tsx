@@ -3,12 +3,12 @@
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from 'react';
-import { Loader2, Crown, Calendar, CreditCard, ChevronRight, Settings, Star } from 'lucide-react';
+import { Loader2, Crown, Calendar, CreditCard, ChevronRight, Settings } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { tr } from 'date-ns/locale';
+import { tr } from 'date-fns/locale';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,7 +40,6 @@ function UyelikContent({ userData, onCancel }: { userData: any, onCancel: () => 
             setIsCancelling(false);
         }
     };
-
 
     return (
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20">
