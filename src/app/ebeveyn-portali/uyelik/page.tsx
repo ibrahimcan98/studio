@@ -4,7 +4,7 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
-import { Loader2, Crown, Calendar, RefreshCw, CreditCard, AlertCircle } from 'lucide-react';
+import { Loader2, Crown, Calendar, RefreshCw, CreditCard, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { format } from 'date-fns';
@@ -62,11 +62,17 @@ function UyelikContent({ userData, user }: { userData: any, user: any }) {
 
     return (
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20">
-            <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tight">Üyelik Yönetimi</h2>
-                <p className="text-muted-foreground">
-                    Premium abonelik detaylarınızı buradan görüntüleyebilir ve yönetebilirsiniz.
-                </p>
+             <div className="space-y-4">
+                <Button variant="ghost" onClick={() => router.back()} className="text-muted-foreground hover:text-foreground">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Geri Dön
+                </Button>
+                <div>
+                    <h2 className="text-3xl font-bold tracking-tight">Üyelik Yönetimi</h2>
+                    <p className="text-muted-foreground">
+                        Premium abonelik detaylarınızı buradan görüntüleyebilir ve yönetebilirsiniz.
+                    </p>
+                </div>
             </div>
 
             <Card className="bg-gradient-to-br from-green-500 to-teal-600 text-white shadow-lg">
