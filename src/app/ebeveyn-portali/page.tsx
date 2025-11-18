@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock, Infinity as InfinityIcon, Settings, Target } from 'lucide-react';
+import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock, Infinity as InfinityIcon, Settings, Target, CreditCard } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -33,6 +33,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { collection, doc, addDoc, deleteDoc } from 'firebase/firestore';
+import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
 
 
 function AddChildDialog({ userId }: { userId: string }) {
@@ -192,6 +194,7 @@ export default function EbeveynPortaliPage() {
 
   const childCount = children ? children.length : 0;
   const totalRozet = children ? children.reduce((acc, child) => acc + (child.rozet || 0), 0) : 0;
+  const premiumStartDate = userData?.premiumStartDate?.toDate ? userData.premiumStartDate.toDate() : (userData?.premiumStartDate ? new Date(userData.premiumStartDate) : null);
 
 
   return (
@@ -210,8 +213,18 @@ export default function EbeveynPortaliPage() {
           <div className="p-6 flex items-center justify-between">
               <div className='space-y-4'>
                 <h3 className="text-2xl font-bold flex items-center gap-2"><Crown /> Premium Üyelik Aktif</h3>
-                <p className="text-white/80">Sınırsız can, tüm kategoriler ve daha fazlası!</p>
+                <p className="text-white/80">Tüm premium özelliklerin tadını çıkarın!</p>
                 <ul className="space-y-2 text-white/90 text-sm">
+                   {premiumStartDate && (
+                       <li className="flex items-center gap-2">
+                          <Calendar className="w-5 h-5"/> 
+                          <span>Başlangıç Tarihi: {format(premiumStartDate, 'dd MMMM yyyy', { locale: tr })}</span>
+                       </li>
+                    )}
+                    <li className="flex items-center gap-2">
+                        <CreditCard className="w-5 h-5"/>
+                        <span>Aylık Ücret: 14 €</span>
+                    </li>
                     <li className="flex items-center gap-2">
                         <InfinityIcon className="w-5 h-5"/> Sınırsız can - hiç bekleme!
                     </li>
@@ -424,5 +437,3 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
-
-    
