@@ -16,6 +16,7 @@ type Word = {
 type WordCardProps = {
     wordList: Word[];
     childId: string;
+    topicId: string;
 };
 
 const backgroundGradients = [
@@ -26,7 +27,7 @@ const backgroundGradients = [
     'from-red-200 to-yellow-200',
 ];
 
-export function WordCard({ wordList, childId }: WordCardProps) {
+export function WordCard({ wordList, childId, topicId }: WordCardProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [gradient, setGradient] = useState(backgroundGradients[0]);
     const audioRef = useRef<HTMLAudioElement>(null);
@@ -35,7 +36,6 @@ export function WordCard({ wordList, childId }: WordCardProps) {
 
     const isFirstWord = currentIndex === 0;
     const isLastWord = currentIndex === wordList.length - 1;
-    const topicId = useRouter().asPath.split('/')[3];
 
 
     useEffect(() => {
