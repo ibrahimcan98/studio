@@ -51,56 +51,41 @@ export default function Header() {
     router.push('/');
   };
 
-  const UserMenu = () => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-          <Avatar className="h-10 w-10">
-            <AvatarFallback>{user?.displayName?.charAt(0) || 'U'}</AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user?.displayName}</p>
-          </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => router.push('/ebeveyn-portali')}>Ebeveyn Sayfası</DropdownMenuItem>
-        <DropdownMenuItem>Profil Ayarları</DropdownMenuItem>
-        <DropdownMenuItem>Paketlerim</DropdownMenuItem>
-        <DropdownMenuItem>Ders Geçmişi</DropdownMenuItem>
-        <DropdownMenuItem>Hesap Ayarları</DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout}>Çıkış Yap</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-
-  const renderAuthButtons = () => {
+  const UserMenu = () => {
     if (loading) {
-        return <div className="h-10 w-40 flex items-center justify-end"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+      return <div className="h-10 w-10 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
     }
-
-    if (isLoggedIn) {
-        return (
-            <>
-                <Button className="font-semibold hidden sm:inline-flex">Ücretsiz Deneme</Button>
-                <UserMenu />
-            </>
-        );
+    if (!isLoggedIn) {
+      return null;
     }
-
     return (
-        <>
-             <Button variant="ghost" className="font-semibold hidden sm:inline-flex" asChild>
-              <Link href="/login">Giriş Yap</Link>
-            </Button>
-            <Button className="font-semibold">Ücretsiz Deneme</Button>
-        </>
-    );
-  }
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+            <Avatar className="h-10 w-10">
+              <AvatarFallback>{user?.displayName?.charAt(0) || 'U'}</AvatarFallback>
+            </Avatar>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56" align="end" forceMount>
+          <DropdownMenuLabel className="font-normal">
+            <div className="flex flex-col space-y-1">
+              <p className="text-sm font-medium leading-none">{user?.displayName}</p>
+            </div>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => router.push('/ebeveyn-portali')}>Ebeveyn Sayfası</DropdownMenuItem>
+          <DropdownMenuItem>Profil Ayarları</DropdownMenuItem>
+          <DropdownMenuItem>Paketlerim</DropdownMenuItem>
+          <DropdownMenuItem>Ders Geçmişi</DropdownMenuItem>
+          <DropdownMenuItem>Hesap Ayarları</DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleLogout}>Çıkış Yap</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    )
+  };
+
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -109,76 +94,87 @@ export default function Header() {
           <Logo />
         </Link>
 
-        <div className="flex flex-1 items-center justify-end gap-6">
-          <nav className="hidden items-center space-x-6 text-sm font-medium md:flex">
-             <button onClick={() => router.push(isLoggedIn ? '/ebeveyn-portali' : '/login')} className="transition-colors hover:text-foreground/80 text-foreground/60">
-              Ebeveyn Portalı
-            </button>
-            {navLinks.map((link) => (
-              <Link
-                key={link.label}
-                href={link.href}
-                className="transition-colors hover:text-foreground/80 text-foreground/60"
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
+        <nav className="hidden md:flex flex-1 items-center gap-6 text-sm font-medium">
+            <button onClick={() => router.push(isLoggedIn ? '/ebeveyn-portali' : '/login')} className="transition-colors hover:text-foreground/80 text-foreground/60">
+            Ebeveyn Portalı
+          </button>
+          {navLinks.map((link) => (
+            <Link
+              key={link.label}
+              href={link.href}
+              className="transition-colors hover:text-foreground/80 text-foreground/60"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
 
-          <div className="flex items-center gap-2 md:gap-4">
-            <div className="hidden md:flex items-center gap-2">
-              {renderAuthButtons()}
-            </div>
+        <div className="flex flex-1 md:flex-none items-center justify-end gap-2 md:gap-4">
+          {loading ? (
+             <div className="h-10 w-40 flex items-center justify-end md:hidden"><Loader2 className="h-6 w-6 animate-spin" /></div>
+          ) : isLoggedIn ? (
+            <>
+              <Button className="font-semibold hidden sm:inline-flex">Ücretsiz Deneme</Button>
+              <UserMenu />
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" className="font-semibold hidden sm:inline-flex" asChild>
+                <Link href="/login">Giriş Yap</Link>
+              </Button>
+              <Button className="font-semibold hidden sm:inline-flex">Ücretsiz Deneme</Button>
+            </>
+          )}
             
-            <div className="md:hidden">
-              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-                  <SheetTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                          <Menu className="h-6 w-6" />
-                          <span className="sr-only">Menüyü aç</span>
-                      </Button>
-                  </SheetTrigger>
-                  <SheetContent side="right">
-                      <div className="flex flex-col gap-y-6 pt-10">
-                          <SheetClose asChild>
-                            <Link href="/" className="flex items-center space-x-2">
-                              <Logo />
-                            </Link>
-                          </SheetClose>
-                          <nav className="flex flex-col gap-4">
-                              <button onClick={handlePortalClick} className="text-lg font-medium transition-colors hover:text-foreground/80 text-left">
-                                  Ebeveyn Portalı
-                              </button>
-                              {navLinks.map((link) => (
-                                  <button
-                                      key={link.label}
-                                      onClick={() => handleLinkClick(link.href)}
-                                      className="text-lg font-medium transition-colors hover:text-foreground/80 text-left"
-                                  >
-                                      {link.label}
-                                  </button>
-                              ))}
-                          </nav>
-                          {isLoggedIn ? (
-                            <>
-                              <Button className="w-full font-semibold" onClick={() => handleLinkClick("#")}>Ücretsiz Deneme</Button>
-                              <Button variant="outline" className="w-full font-semibold" onClick={handleLogout}>Çıkış Yap</Button>
-                            </>
+          <div className="md:hidden">
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                        <Menu className="h-6 w-6" />
+                        <span className="sr-only">Menüyü aç</span>
+                    </Button>
+                </SheetTrigger>
+                <SheetContent side="right">
+                    <div className="flex flex-col gap-y-6 pt-10">
+                        <SheetClose asChild>
+                          <Link href="/" className="flex items-center space-x-2">
+                            <Logo />
+                          </Link>
+                        </SheetClose>
+                        <nav className="flex flex-col gap-4">
+                            <button onClick={handlePortalClick} className="text-lg font-medium transition-colors hover:text-foreground/80 text-left">
+                                Ebeveyn Portalı
+                            </button>
+                            {navLinks.map((link) => (
+                                <button
+                                    key={link.label}
+                                    onClick={() => handleLinkClick(link.href)}
+                                    className="text-lg font-medium transition-colors hover:text-foreground/80 text-left"
+                                >
+                                    {link.label}
+                                </button>
+                            ))}
+                        </nav>
+                        <div className="flex flex-col gap-4">
+                          {!isLoggedIn ? (
+                              <>
+                                <Button className="w-full font-semibold text-lg" onClick={() => handleLinkClick("#")}>Ücretsiz Deneme</Button>
+                                <Button variant="outline" className="w-full font-semibold text-lg" onClick={() => handleLinkClick("/login")}>
+                                  Giriş Yap
+                                </Button>
+                              </>
                           ) : (
-                            <>
-                              <Button className="w-full font-semibold" onClick={() => handleLinkClick("#")}>Ücretsiz Deneme</Button>
-                              <Button variant="outline" className="w-full font-semibold" onClick={() => handleLinkClick("/login")}>
-                                Giriş Yap
-                              </Button>
-                           </>
+                             <>
+                               <Button className="w-full font-semibold text-lg" onClick={() => handleLinkClick("#")}>Ücretsiz Deneme</Button>
+                               <Button variant="outline" className="w-full font-semibold text-lg" onClick={handleLogout}>Çıkış Yap</Button>
+                             </>
                           )}
-
-                      </div>
-                  </SheetContent>
-              </Sheet>
-            </div>
-
+                        </div>
+                    </div>
+                </SheetContent>
+            </Sheet>
           </div>
+
         </div>
       </div>
     </header>
