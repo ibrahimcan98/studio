@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CourseCard } from "@/components/courses/course-card";
 import { CheckCircle, Info, BookOpen, ShoppingCart, ShieldCheck, Lock as LockIcon, Heart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import Footer from "@/components/layout/footer";
 
 export default function KurslarPage() {
     const baslangicKursu = COURSES.find(c => c.id === 'baslangic');
@@ -350,8 +351,7 @@ export default function KurslarPage() {
                     </div>
                 </section>
             </main>
+            <Footer />
         </div>
     );
 }
-
-    
