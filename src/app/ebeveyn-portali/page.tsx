@@ -209,28 +209,37 @@ export default function EbeveynPortaliPage() {
       </div>
 
       {isPremium ? (
-        <Card className="bg-gradient-to-r from-green-400 to-teal-500 text-white shadow-lg border-none">
-          <div className="p-6 max-w-4xl mx-auto w-full">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className='space-y-4 text-center md:text-left'>
-                <h3 className="text-2xl font-bold flex items-center justify-center md:justify-start gap-2"><Crown /> Premium Üyelik Aktif</h3>
-                <p className="text-white/80">Sınırsız can, tüm kategoriler ve daha fazlası!</p>
-                  {premiumStartDate && (
-                       <div className="flex items-center gap-2 text-sm justify-center md:justify-start">
-                          <Calendar className="w-5 h-5"/> 
-                          <span>Başlangıç Tarihi: {format(premiumStartDate, 'dd MMMM yyyy', { locale: tr })}</span>
-                       </div>
-                  )}
-              </div>
-              <div className="text-center md:text-right space-y-3">
-                 <div className="flex items-center gap-2 justify-center md:justify-end">
-                    <CreditCard className="w-5 h-5"/>
-                    <span className="font-semibold">Aylık Ücret: 14 €</span>
+        <Card className="bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg border-none">
+          <div className="grid md:grid-cols-3 items-center p-6 gap-6">
+            <div className="md:col-span-2 space-y-4">
+              <div className="flex items-center gap-3">
+                <Crown className="w-8 h-8" />
+                <div>
+                  <h3 className="text-2xl font-bold">Premium Üye</h3>
+                   <Badge className="bg-white/30 text-white hover:bg-white/40 mt-1">Aktif</Badge>
                 </div>
-                <Button asChild variant="outline" className="bg-white/20 text-white hover:bg-white/30 border-white/50">
+              </div>
+              <ul className="space-y-2 text-white/90">
+                <li className="flex items-center gap-2">
+                  <Zap className="w-5 h-5"/> Sınırsız can aktif
+                </li>
+                <li className="flex items-center gap-2">
+                  <Star className="w-5 h-5"/> <Lock className="w-4 h-4 inline-block mr-1"/> Tüm kategorilere erişim
+                </li>
+                <li className="flex items-center gap-2">
+                  <Award className="w-5 h-5"/> <Rocket className="w-4 h-4 inline-block mr-1"/> Özel rozetler ve ödüller
+                </li>
+              </ul>
+            </div>
+            <div className="space-y-4 flex flex-col items-center md:items-end">
+                <Card className="bg-white/90 text-gray-800 rounded-lg p-4 text-center shadow-inner w-48">
+                    <p className="text-sm text-muted-foreground">Aylık Ücret</p>
+                    <p className="text-4xl font-extrabold text-orange-600">14 €</p>
+                    <p className="text-xs text-muted-foreground -mt-1">/ ay</p>
+                </Card>
+                <Button asChild variant="outline" className="w-48 bg-white/20 text-white hover:bg-white/30 border-white/50 font-bold">
                     <Link href="/ebeveyn-portali/uyelik">Üyeliği Yönet</Link>
                 </Button>
-              </div>
             </div>
           </div>
         </Card>
@@ -257,12 +266,13 @@ export default function EbeveynPortaliPage() {
               </li>
             </ul>
           </div>
-          <div className="space-y-4 flex flex-col">
-            <div className="bg-white/90 text-primary-foreground rounded-lg p-4 text-center shadow-inner">
-              <p className="text-4xl font-extrabold">14 €</p>
-              <p className="text-sm text-muted-foreground -mt-1">/ ay</p>
-            </div>
-            <Button asChild variant="outline" className="w-full bg-white text-amber-600 hover:bg-white/90 font-bold">
+          <div className="space-y-4 flex flex-col items-center md:items-end">
+            <Card className="bg-white/90 text-gray-800 rounded-lg p-4 text-center shadow-inner w-48">
+              <p className="text-sm text-muted-foreground">Aylık Ücret</p>
+              <p className="text-4xl font-extrabold text-orange-600">14 €</p>
+              <p className="text-xs text-muted-foreground -mt-1">/ ay</p>
+            </Card>
+            <Button asChild variant="outline" className="w-48 bg-white text-amber-600 hover:bg-white/90 font-bold">
                 <Link href="/premium">
                     <Crown className="w-4 h-4 mr-2"/> Premium Satın Al
                 </Link>
@@ -430,3 +440,5 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
+
+    
