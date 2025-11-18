@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock, InfinityIcon } from 'lucide-react';
@@ -32,8 +32,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useCollection, useFirestore, addDocumentNonBlocking, useMemoFirebase, deleteDocumentNonBlocking, useDoc } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, addDoc, deleteDoc } from 'firebase/firestore';
+
 
 function AddChildDialog({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false);
@@ -47,18 +47,16 @@ function AddChildDialog({ userId }: { userId: string }) {
     
     const childrenRef = collection(db, 'users', userId, 'children');
     
-    // Convert age to a number.
     const ageNumber = parseInt(age, 10);
     if (isNaN(ageNumber)) {
-        // Handle invalid age input
         console.error("Invalid age input");
         return;
     }
 
-    addDocumentNonBlocking(childrenRef, {
+    await addDoc(childrenRef, {
       firstName: name,
       dateOfBirth: new Date(new Date().setFullYear(new Date().getFullYear() - ageNumber)).toISOString(),
-      level: 'beginner', // default level
+      level: 'beginner',
       userId: userId,
       rozet: 0,
     });
@@ -148,7 +146,7 @@ function PremiumBadge() {
 }
 
 export default function EbeveynPortaliPage() {
-  const { user, loading } = useUser();
+  const { user, loading: userLoading } = useUser();
   const router = useRouter();
   const db = useFirestore();
 
@@ -156,10 +154,10 @@ export default function EbeveynPortaliPage() {
     if (!db || !user?.uid) return null;
     return doc(db, 'users', user.uid);
   }, [db, user?.uid]);
-
-  const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
+  
+  const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
   const isPremium = userData?.isPremium || false;
-
+  
   const childrenRef = useMemoFirebase(() => {
     if (!db || !user?.uid) return null;
     return collection(db, 'users', user.uid, 'children');
@@ -168,19 +166,19 @@ export default function EbeveynPortaliPage() {
   const { data: children, isLoading: childrenLoading } = useCollection(childrenRef);
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!userLoading && !user) {
       router.push('/login');
     }
-  }, [user, loading, router]);
+  }, [user, userLoading, router]);
 
-  const handleDeleteChild = (childId: string) => {
+  const handleDeleteChild = async (childId: string) => {
       if (!db || !user?.uid) return;
       const childDocRef = doc(db, 'users', user.uid, 'children', childId);
-      deleteDocumentNonBlocking(childDocRef);
+      await deleteDoc(childDocRef);
   };
 
 
-  if (loading || childrenLoading || isUserDataLoading) {
+  if (userLoading || childrenLoading || userDataLoading) {
     return (
       <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -207,7 +205,6 @@ export default function EbeveynPortaliPage() {
         </div>
       </div>
 
-      {/* Premium Card */}
       {isPremium ? (
          <Card className="bg-gradient-to-r from-green-400 to-teal-500 text-white shadow-lg border-none">
           <div className="p-6 flex items-center justify-between">
@@ -215,6 +212,11 @@ export default function EbeveynPortaliPage() {
               <h3 className="text-2xl font-bold flex items-center gap-2"><Crown /> Premium Üyelik Aktif</h3>
               <p className="text-white/80">Tüm premium özelliklerin tadını çıkarın!</p>
             </div>
+             <Button asChild variant="outline" className="bg-white/20 text-white hover:bg-white/30 font-bold border-white/50">
+                <Link href="/ebeveyn-portali/uyelik">
+                   Üyeliği Yönet <ArrowRight className="ml-2 h-4 w-4"/>
+                </Link>
+            </Button>
           </div>
         </Card>
       ) : (
@@ -325,7 +327,7 @@ export default function EbeveynPortaliPage() {
                                <Card key={child.id} className="relative flex flex-col items-center text-center p-6 space-y-4 hover:shadow-lg transition-shadow group">
                                      <AlertDialog>
                                         <AlertDialogTrigger asChild>
-                                             <Button variant="ghost" size="icon" className="absolute top-2 left-2 h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive">
+                                            <Button variant="ghost" size="icon" className="absolute top-2 left-2 h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive">
                                                 <X className="w-4 h-4"/>
                                             </Button>
                                         </AlertDialogTrigger>
