@@ -2,7 +2,7 @@
 
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { Loader2, Crown, Calendar, CreditCard, ChevronRight, Settings } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +23,9 @@ import {
 import { doc, updateDoc } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 
+// ##################################
+// 3. Content Component
+// ##################################
 function UyelikContent({ userData, onCancel }: { userData: any, onCancel: () => Promise<void> }) {
     
     const [isCancelling, setIsCancelling] = useState(false);
@@ -48,7 +51,6 @@ function UyelikContent({ userData, onCancel }: { userData: any, onCancel: () => 
                 <p className="text-muted-foreground">Premium aboneliğinizi ve ödeme detaylarınızı buradan yönetin.</p>
             </div>
 
-            {/* Üyelik Durumu Kartı */}
             <Card className="overflow-hidden">
                 <CardHeader className="bg-gradient-to-r from-green-400 to-teal-500 text-white p-6">
                     <CardTitle className="flex items-center gap-3 text-2xl">
@@ -83,7 +85,6 @@ function UyelikContent({ userData, onCancel }: { userData: any, onCancel: () => 
                 </CardContent>
             </Card>
 
-            {/* Ödeme Yöntemi Kartı */}
             <Card>
                 <CardHeader>
                     <CardTitle>Ödeme Yöntemi</CardTitle>
@@ -105,6 +106,7 @@ function UyelikContent({ userData, onCancel }: { userData: any, onCancel: () => 
                     </div>
                 </CardContent>
             </Card>
+
              <Card className="border-destructive/50">
                 <CardHeader>
                     <CardTitle className="text-destructive">Tehlikeli Alan</CardTitle>
@@ -142,11 +144,39 @@ function UyelikContent({ userData, onCancel }: { userData: any, onCancel: () => 
     );
 }
 
+// ##################################
+// 2. Redirect Component
+// ##################################
+function PremiumRedirect({ userData, children }: { userData: any, children: ReactNode }) {
+    const router = useRouter();
+    
+    useEffect(() => {
+        // This effect runs ONLY after loading is complete.
+        if (!userData?.isPremium) {
+            router.replace('/ebeveyn-portali');
+        }
+    }, [userData, router]);
 
+    // If user is premium, render the children. Otherwise, this will be null while redirecting.
+    if (userData?.isPremium) {
+        return <>{children}</>;
+    }
+
+    // Render a loader while redirecting to prevent showing a blank page
+    return (
+      <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+}
+
+// ##################################
+// 1. Page / Data Loading Component
+// ##################################
 export default function UyelikYonetimiPage() {
     const { user, loading: isUserLoading } = useUser();
-    const router = useRouter();
     const db = useFirestore();
+    const router = useRouter();
     const { toast } = useToast();
 
     const userDocRef = useMemoFirebase(() => {
@@ -157,13 +187,6 @@ export default function UyelikYonetimiPage() {
     const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
     
     const isLoading = isUserLoading || isUserDataLoading;
-
-    useEffect(() => {
-        // Yönlendirmeyi sadece yükleme tamamlandıktan ve premium olmadığı kesinleştikten sonra yap
-        if (!isLoading && !userData?.isPremium) {
-            router.replace('/ebeveyn-portali');
-        }
-    }, [isLoading, userData, router]);
 
     const handleCancelSubscription = async () => {
         if (!userDocRef) return;
@@ -181,6 +204,7 @@ export default function UyelikYonetimiPage() {
         router.push('/ebeveyn-portali');
     };
 
+    // STEP 1: Wait for data to load
     if (isLoading) {
         return (
             <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
@@ -189,15 +213,11 @@ export default function UyelikYonetimiPage() {
         );
     }
     
-    if (!userData?.isPremium) {
-        // Yükleme tamamlandı ve premium değilse, yönlendirme gerçekleşirken bir şey gösterme
-        // veya alternatif bir yükleme ekranı göster
-        return (
-             <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
-                <Loader2 className="h-16 w-16 animate-spin text-primary" />
-            </div>
-        );
-    }
-
-    return <UyelikContent userData={userData} onCancel={handleCancelSubscription} />;
+    // STEP 2: Data has loaded. Check for premium status and redirect if necessary.
+    // The PremiumRedirect component handles this logic cleanly.
+    return (
+        <PremiumRedirect userData={userData}>
+            <UyelikContent userData={userData} onCancel={handleCancelSubscription} />
+        </PremiumRedirect>
+    );
 }
