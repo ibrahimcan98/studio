@@ -35,6 +35,7 @@ import { Label } from "@/components/ui/label"
 import { collection, doc, addDoc, deleteDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { SetPinDialog } from '@/components/child-mode/set-pin-dialog';
 
 
 function AddChildDialog({ userId }: { userId: string }) {
@@ -399,9 +400,11 @@ export default function EbeveynPortaliPage() {
                                         </div>
                                       </div>
                                     </div>
-                                    <Button className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold mt-auto">
-                                        Öğrenmeye Başla
-                                    </Button>
+                                    <SetPinDialog childId={child.id}>
+                                      <Button className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold mt-auto">
+                                          Öğrenmeye Başla
+                                      </Button>
+                                    </SetPinDialog>
                                </Card>
                             ))}
                         </div>
@@ -445,5 +448,3 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
-
-    
