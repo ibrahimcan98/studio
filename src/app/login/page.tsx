@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
   createUserWithEmailAndPassword,
   updateProfile,
+  signInWithEmailAndPassword,
 } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 
@@ -19,10 +20,9 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Logo } from '@/components/logo';
 import { LoginIllustration } from '@/components/illustrations/login-illustration';
 import { SignUpIllustration } from '@/components/illustrations/signup-illustration';
-import { useAuth, useFirestore, setDocumentNonBlocking, initiateEmailSignIn } from '@/firebase';
+import { useAuth, useFirestore, setDocumentNonBlocking, useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 function LoginForm({
@@ -39,29 +39,27 @@ function LoginForm({
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!auth) return;
 
     setIsSubmitting(true);
-    initiateEmailSignIn(auth, email, password)
-      .then(() => {
-        toast({
-          title: 'Başarılı!',
-          description: 'Giriş yaptınız. Yönlendiriliyorsunuz...',
-        });
-        router.push('/');
-      })
-      .catch((error) => {
-        toast({
-          variant: 'destructive',
-          title: 'Hata',
-          description: 'E-posta veya şifre hatalı.',
-        });
-      })
-      .finally(() => {
-        setIsSubmitting(false);
+    try {
+      await signInWithEmailAndPassword(auth, email, password)
+      toast({
+        title: 'Başarılı!',
+        description: 'Giriş yaptınız. Yönlendiriliyorsunuz...',
       });
+      router.push('/');
+    } catch (error) {
+       toast({
+        variant: 'destructive',
+        title: 'Hata',
+        description: 'E-posta veya şifre hatalı.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -259,21 +257,26 @@ function SignUpForm({
 export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const { user, loading } = useUser();
+  const router = useRouter();
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  if (!isClient) {
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/');
+    }
+  }, [user, loading, router]);
+
+  if (!isClient || loading) {
     return null; // or a loading spinner
   }
 
   return (
     <div className="relative flex min-h-screen flex-col items-center bg-gradient-to-br from-cyan-50 via-amber-50 to-white p-4 overflow-hidden">
-      <div className="absolute top-8 left-8">
-        <Logo />
-      </div>
-
+      
       <div className="container relative z-10 w-full max-w-6xl">
         <div className={`transition-transform duration-700 ease-in-out ${isSignUp ? '-translate-x-full' : 'translate-x-0'}`}>
           <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-16 absolute w-full">
