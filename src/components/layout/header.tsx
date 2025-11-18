@@ -48,7 +48,7 @@ export default function Header() {
           <Avatar className="h-10 w-10">
             <AvatarImage
               data-ai-hint="woman smiling"
-              src={user?.photoURL || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHx3b21hbiUyMHNtaWxpbmd8ZW58MHx8fHwxNzYzMzk3NDM0fDA&ixlib=rb-4.1.0&q=80&w=1080"}
+              src={user?.photoURL || "https://images.unsplash.com/photo-1580489944761-15a19d654956?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHNtaWxpbmd8ZW58MHx8fHwxNzYzMzk3NDM0fDA&ixlib=rb-4.1.0&q=80&w=1080"}
               alt={user?.displayName || 'Kullanıcı'}
             />
             <AvatarFallback>{user?.displayName?.charAt(0) || 'U'}</AvatarFallback>
@@ -105,10 +105,10 @@ export default function Header() {
                 </>
               ) : (
                 <>
-                  <Button className="font-semibold">Ücretsiz Deneme</Button>
-                  <Button variant="ghost" className="font-semibold" asChild>
+                   <Button variant="ghost" className="font-semibold" asChild>
                     <Link href="/login">Giriş Yap</Link>
                   </Button>
+                  <Button className="font-semibold">Ücretsiz Deneme</Button>
                 </>
               )}
             </div>
