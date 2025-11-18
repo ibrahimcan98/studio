@@ -42,7 +42,7 @@ service cloud.firestore {
       allow get: if request.auth.uid == userId;
       allow list: if false; // User listing is disabled for privacy.
       allow create: if request.auth.uid == userId && request.resource.data.id == userId;
-      allow update: if request.auth.uid == userId && resource != null;
+      allow update: if request.auth.uid == userId;
       allow delete: if request.auth.uid == userId && resource != null;
     }
 
