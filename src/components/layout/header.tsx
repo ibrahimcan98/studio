@@ -163,7 +163,6 @@ export default function Header() {
                 </Comp>
               );
             })}
-             <Button variant="secondary" className="font-semibold">Ücretsiz Deneme</Button>
           </nav>
           
            {userLoading ? (
@@ -177,6 +176,7 @@ export default function Header() {
                     </Button>
                 </div>
             )}
+            <Button variant="secondary" className="font-semibold hidden md:inline-flex">Ücretsiz Deneme</Button>
 
 
           <div className="md:hidden">
@@ -210,7 +210,7 @@ export default function Header() {
                                     {link.label}
                                 </button>
                             ))}
-                            <Button variant="secondary" className="w-full font-semibold text-lg mt-2">
+                             <Button variant="secondary" className="w-full font-semibold text-lg mt-2">
                                 Ücretsiz Deneme
                             </Button>
                              {!isLoggedIn && (
