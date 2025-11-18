@@ -1,15 +1,15 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Volume2, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Volume2, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
+import { ttsFlow } from '@/ai/flows/tts-flow';
 
 type Word = {
     word: string;
     image: string;
-    audio: string;
 };
 
 type WordCardProps = {
@@ -27,17 +27,43 @@ const backgroundGradients = [
 export function WordCard({ wordList }: WordCardProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [gradient, setGradient] = useState(backgroundGradients[0]);
+    const [audioSrc, setAudioSrc] = useState<string | null>(null);
+    const [isAudioLoading, setIsAudioLoading] = useState(false);
     const audioRef = useRef<HTMLAudioElement>(null);
 
     const currentWord = wordList[currentIndex];
 
+    const generateAudio = useCallback(async (text: string) => {
+        setIsAudioLoading(true);
+        setAudioSrc(null);
+        try {
+            const { media } = await ttsFlow(text);
+            setAudioSrc(media);
+        } catch (error) {
+            console.error("Audio generation failed:", error);
+        } finally {
+            setIsAudioLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         setGradient(backgroundGradients[currentIndex % backgroundGradients.length]);
-    }, [currentIndex]);
+        generateAudio(currentWord.word);
+    }, [currentIndex, currentWord.word, generateAudio]);
+    
+    useEffect(() => {
+        if (audioSrc && audioRef.current) {
+            audioRef.current.load();
+            audioRef.current.play().catch(e => console.error("Audio play failed:", e));
+        }
+    }, [audioSrc]);
+
 
     const playAudio = () => {
-        if (audioRef.current) {
-            audioRef.current.play();
+        if (audioRef.current && audioSrc) {
+            audioRef.current.play().catch(e => console.error("Audio play failed:", e));
+        } else if (!isAudioLoading) {
+            generateAudio(currentWord.word);
         }
     };
 
@@ -67,11 +93,12 @@ export function WordCard({ wordList }: WordCardProps) {
                         variant="outline"
                         className="rounded-full w-16 h-16 bg-green-100 hover:bg-green-200 text-green-600 border-none shadow-md"
                         onClick={playAudio}
+                        disabled={isAudioLoading}
                     >
-                        <Volume2 className="w-8 h-8" />
+                        {isAudioLoading ? <Loader2 className="w-8 h-8 animate-spin" /> : <Volume2 className="w-8 h-8" />}
                     </Button>
                     <h2 className="text-5xl font-bold text-gray-800">{currentWord.word}</h2>
-                    <audio ref={audioRef} src={currentWord.audio} />
+                    {audioSrc && <audio ref={audioRef} src={audioSrc} />}
                 </div>
                 <div className="flex justify-between items-center">
                     <Button

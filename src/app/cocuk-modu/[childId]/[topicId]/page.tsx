@@ -10,7 +10,6 @@ import { WordCard } from '@/components/child-mode/word-card';
 type Word = {
     word: string;
     image: string;
-    audio: string;
 };
 
 type Topic = {
