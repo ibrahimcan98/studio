@@ -86,7 +86,10 @@ export default function Header() {
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-4">
               {loading ? null : isLoggedIn ? (
-                <UserMenu />
+                <>
+                  <Button className="font-semibold">Ücretsiz Deneme</Button>
+                  <UserMenu />
+                </>
               ) : (
                 <>
                   <Button variant="ghost" className="font-semibold" asChild>
@@ -98,7 +101,10 @@ export default function Header() {
             </div>
             <div className="md:hidden">
               {loading ? null : isLoggedIn ? (
-                <UserMenu />
+                 <>
+                  <Button className="font-semibold">Ücretsiz Deneme</Button>
+                  <UserMenu />
+                </>
               ) : (
                 <Sheet>
                   <SheetTrigger asChild>
