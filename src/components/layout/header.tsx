@@ -111,10 +111,9 @@ export default function Header() {
 
         <div className="flex flex-1 md:flex-none items-center justify-end gap-2 md:gap-4">
           {loading ? (
-             <div className="h-10 w-40 flex items-center justify-end md:hidden"><Loader2 className="h-6 w-6 animate-spin" /></div>
+             <div className="h-10 w-10 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>
           ) : isLoggedIn ? (
             <>
-              <Button className="font-semibold hidden sm:inline-flex">Ücretsiz Deneme</Button>
               <UserMenu />
             </>
           ) : (
@@ -122,7 +121,6 @@ export default function Header() {
               <Button variant="ghost" className="font-semibold hidden sm:inline-flex" asChild>
                 <Link href="/login">Giriş Yap</Link>
               </Button>
-              <Button className="font-semibold hidden sm:inline-flex">Ücretsiz Deneme</Button>
             </>
           )}
             
@@ -158,14 +156,12 @@ export default function Header() {
                         <div className="flex flex-col gap-4">
                           {!isLoggedIn ? (
                               <>
-                                <Button className="w-full font-semibold text-lg" onClick={() => handleLinkClick("#")}>Ücretsiz Deneme</Button>
                                 <Button variant="outline" className="w-full font-semibold text-lg" onClick={() => handleLinkClick("/login")}>
                                   Giriş Yap
                                 </Button>
                               </>
                           ) : (
                              <>
-                               <Button className="w-full font-semibold text-lg" onClick={() => handleLinkClick("#")}>Ücretsiz Deneme</Button>
                                <Button variant="outline" className="w-full font-semibold text-lg" onClick={handleLogout}>Çıkış Yap</Button>
                              </>
                           )}
