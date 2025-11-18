@@ -12,7 +12,7 @@ export default function KurslarPage() {
     const gelisimKursu = COURSES.find(c => c.id === 'gelisim');
 
     return (
-        <div className="bg-[#f0fafa] min-h-screen text-[#243B53]">
+        <div className="bg-white min-h-screen text-[#243B53]">
             <header className="py-16 md:py-24 text-center">
                  <h1 className="text-5xl md:text-6xl font-bold mb-6">KURSLAR</h1>
                  <Button asChild variant="outline" className="bg-white rounded-full py-6 px-8 shadow-lg hover:shadow-xl transition-shadow border-gray-200">
