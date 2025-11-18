@@ -19,6 +19,10 @@ const topics = [
   { name: 'Şekiller', icon: '🔷', words: 4, unlocked: false },
   { name: 'Duygular', icon: '😊', words: 5, unlocked: false },
   { name: 'Doğa', icon: '🌳', words: 8, unlocked: false },
+  { name: 'Kahvaltı', icon: '🍳', words: 9, unlocked: false },
+  { name: 'Akşam Yemeği', icon: '🍲', words: 12, unlocked: false },
+  { name: 'Tatlılar', icon: '🍰', words: 7, unlocked: false },
+  { name: 'Meslekler', icon: '👩‍⚕️', words: 15, unlocked: false },
 ];
 
 export default function CocukModuPage() {
