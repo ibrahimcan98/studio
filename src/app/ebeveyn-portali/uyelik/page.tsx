@@ -57,15 +57,17 @@ export default function UyelikYonetimiPage() {
 
     const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
 
-    useEffect(() => {
-        if (isUserLoading || isUserDataLoading) return;
+    const isLoading = isUserLoading || isUserDataLoading;
 
-        if (!user) {
-            router.push('/login');
-        } else if (!userData?.isPremium) {
-            router.push('/premium');
+    useEffect(() => {
+        if (!isLoading) {
+            if (!user) {
+                router.push('/login');
+            } else if (!userData?.isPremium) {
+                router.push('/premium');
+            }
         }
-    }, [isUserLoading, isUserDataLoading, user, userData, router]);
+    }, [isLoading, user, userData, router]);
     
     const handleCancelSubscription = async () => {
         if (!user || !db) return;
@@ -88,12 +90,17 @@ export default function UyelikYonetimiPage() {
         return format(new Date(dateString), 'dd MMMM yyyy', { locale: tr });
     };
 
-    if (isUserLoading || isUserDataLoading) {
+    if (isLoading) {
         return (
             <div className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-muted/20">
                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
             </div>
         );
+    }
+    
+    if (!user || !userData?.isPremium) {
+      // We are about to redirect, so render nothing to avoid flicker.
+      return null;
     }
     
     return (
