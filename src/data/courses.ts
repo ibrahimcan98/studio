@@ -12,7 +12,7 @@ export type Course = {
     ageGroup: string;
     shortDescription: string;
     cta: {
-        text: string;
+        backgroundColor: string;
         iconBgColor: string;
         iconTextColor: string;
         badgeColor: string;
@@ -45,10 +45,10 @@ export const COURSES: Course[] = [
         ageGroup: "3-4 yaş",
         shortDescription: "3–4 yaşındaki çocuğunuz için çevrim içi bir Türkçe oyun saati!\n* Yaş grubu tahmindir. Çocuğunuzun hazır bulunuşluğu ve sizin beklentilerinize göre başlayacağınız kurs belirlenir.",
         cta: {
-            text: "Detaylı bilgi için tıkla >",
+            backgroundColor: "bg-[#FFF8E7]",
             iconBgColor: "bg-yellow-100",
             iconTextColor: "text-yellow-500",
-            badgeColor: "bg-yellow-400",
+            badgeColor: "bg-[#FFD166]",
             badgeTextColor: "text-yellow-900",
             linkTextColor: "text-orange-500",
         },
@@ -76,7 +76,7 @@ export const COURSES: Course[] = [
         ageGroup: "Okul öncesi",
         shortDescription: "5 yaşındaki çocuğunuz için keyifli bir ısınma turu!\n* Yaş grubu tahmindir. Çocuğunuzun hazır bulunuşluğu ve sizin beklentilerinize göre başlayacağınız kurs belirlenir.",
         cta: {
-            text: "Detaylı bilgi için tıkla >",
+            backgroundColor: "bg-[#F0FAF8]",
             iconBgColor: "bg-teal-100",
             iconTextColor: "text-teal-500",
             badgeColor: "bg-[#FF9A76]",
@@ -110,10 +110,10 @@ export const COURSES: Course[] = [
         ageGroup: "İlkokul ve ortaokul",
         shortDescription: "Çocuğunuz için etkili, genel kültür dersleri.",
         cta: { 
-            text: "Detaylı bilgi için tıkla >",
-            iconBgColor: "bg-teal-100",
-            iconTextColor: "text-teal-500",
-            badgeColor: "bg-green-500",
+            backgroundColor: "bg-[#F0F2F2]",
+            iconBgColor: "bg-gray-200",
+            iconTextColor: "text-gray-500",
+            badgeColor: "bg-[#C9CBCB]",
             badgeTextColor: "text-white",
             linkTextColor: "text-orange-500",
         },
@@ -140,10 +140,10 @@ export const COURSES: Course[] = [
         ageGroup: "İlkokul ve ortaokul",
         shortDescription: "Okuma yazma bilen her öğrencinin alabileceği Akademik Kurs, 4 adımdan oluşur.",
         cta: { 
-            text: "Detaylı bilgi için tıkla >",
-            iconBgColor: "bg-teal-100",
-            iconTextColor: "text-teal-500",
-            badgeColor: "bg-green-500",
+            backgroundColor: "bg-[#DFF2EC]",
+            iconBgColor: "bg-green-100",
+            iconTextColor: "text-green-500",
+            badgeColor: "bg-[#43B581]",
             badgeTextColor: "text-white",
             linkTextColor: "text-orange-500",
         },
