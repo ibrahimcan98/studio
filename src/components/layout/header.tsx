@@ -220,7 +220,8 @@ export default function Header() {
             {userLoading ? (
               <div className="h-10 w-10 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>
             ) : isLoggedIn ? (
-              <div className='flex items-center gap-2'>
+              <div className='hidden md:flex items-center gap-2'>
+                <Button variant="secondary" className="font-semibold">Ücretsiz Deneme</Button>
                 <UserMenu />
               </div>
             ) : (
