@@ -44,18 +44,29 @@ function LoginForm({
     if (!auth) return;
 
     setIsSubmitting(true);
-    initiateEmailSignIn(auth, email, password);
-    toast({
-      title: 'Başarılı!',
-      description: 'Giriş yaptınız. Yönlendiriliyorsunuz...',
-    });
-    router.push('/');
+    initiateEmailSignIn(auth, email, password)
+      .then(() => {
+        toast({
+          title: 'Başarılı!',
+          description: 'Giriş yaptınız. Yönlendiriliyorsunuz...',
+        });
+        router.push('/');
+      })
+      .catch((error) => {
+        toast({
+          variant: 'destructive',
+          title: 'Hata',
+          description: 'E-posta veya şifre hatalı.',
+        });
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+      });
   };
 
   return (
     <Card className="w-full max-w-md shadow-2xl bg-white/80 backdrop-blur-lg border-white/50">
       <CardHeader className="text-center space-y-4">
-        <Logo className="justify-center" />
         <CardTitle className="text-3xl font-bold">Giriş Yap</CardTitle>
         <CardDescription>
           Hesabınıza giriş yaparak öğrenmeye devam edin.
@@ -139,7 +150,6 @@ function SignUpForm({
       await updateProfile(user, { displayName: name });
 
       const userDocRef = doc(db, 'users', user.uid);
-      // Non-blocking update
       setDocumentNonBlocking(userDocRef, {
         id: user.uid,
         firstName: name.split(' ')[0] || '',
@@ -177,7 +187,6 @@ function SignUpForm({
   return (
     <Card className="w-full max-w-md shadow-2xl bg-white/80 backdrop-blur-lg border-white/50">
       <CardHeader className="text-center space-y-4">
-        <Logo className="justify-center" />
         <CardTitle className="text-3xl font-bold">Hesap Oluştur</CardTitle>
         <CardDescription>
           Aramıza katıl ve Türkçe öğrenmeye başla!
