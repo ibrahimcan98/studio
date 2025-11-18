@@ -1,3 +1,4 @@
+
 export type AcademicStep = {
     id: string;
     title: string;
@@ -61,7 +62,7 @@ export const COURSES: Course[] = [
                 "Türkçe şarkılar dinler ve anlar.",
                 "Sorulara Türkçe cevaplar verebilir.",
             ],
-            gainsColor: "bg-orange-100 text-orange-800",
+            gainsColor: "bg-[#FFF8E7]",
         },
         pricing: {
             perLesson: { '4': 24.75, '8': 22.38, '12': 20.75, '24': 12.46 },
@@ -97,7 +98,7 @@ export const COURSES: Course[] = [
                 "Türkçe şarkılar dinler ve anlar.",
                 "Türkçe hikâye dinler / çizgi film izler ve yorumlar.",
             ],
-            gainsColor: "bg-green-100 text-green-800",
+            gainsColor: "bg-[#FFF0CC]",
         },
         pricing: {
             perLesson: { '4': 18, '8': 17.5, '12': 16.5, '24': 15 },
@@ -129,7 +130,7 @@ export const COURSES: Course[] = [
                 "Fen, sanat, sosyal bilimler gibi konuları Türkçe olarak ifade edebilir.",
                 "Bu konularda yeterli kelime bilgisine sahiptir.",
             ],
-            gainsColor: "bg-green-100 text-green-800",
+            gainsColor: "bg-[#F0FAF8]",
         },
         pricing: {
              perLesson: { '4': 25.25, '8': 26.31, '12': 22.88, '24': 21.06 },
@@ -163,7 +164,7 @@ export const COURSES: Course[] = [
             {
                 id: "akademik-1",
                 title: "1. adım",
-                color: "bg-green-200",
+                color: "bg-[#D4EDE3]",
                 gains: [
                     "Türkçe harfleri telaffuz edebilir.",
                     "Türkçe yazma becerileri gelişmiştir.",
@@ -175,7 +176,7 @@ export const COURSES: Course[] = [
             {
                 id: "akademik-2",
                 title: "2. adım",
-                color: "bg-green-300",
+                color: "bg-[#D4EDE3]",
                 gains: [
                     "Okuduğunu anlama becerileri gelişmiştir.",
                     "Zıt anlam / eş anlam kavramını algılar.",
@@ -188,7 +189,7 @@ export const COURSES: Course[] = [
             {
                 id: "akademik-3",
                 title: "3. adım",
-                color: "bg-green-400",
+                color: "bg-[#D4EDE3]",
                 gains: [
                     "Anlamlı cümleler kurar.",
                     "Noktalama işaretlerini düzgün kullanır.",
@@ -201,7 +202,7 @@ export const COURSES: Course[] = [
             {
                 id: "akademik-4",
                 title: "4. adım",
-                color: "bg-green-500",
+                color: "bg-[#D4EDE3]",
                 gains: [
                     "İfadelerinde aynı kelimeleri kullanmaz; aynı anlama gelen farklı kelimeleri etkin kullanır.",
                     "Sayıt ifadeleri anlar ve kullanır.",
