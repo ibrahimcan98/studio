@@ -14,6 +14,7 @@ import {
   Zap,
   X,
   Snowflake,
+  Loader2,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -44,6 +45,11 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
+import { useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { addMonths, format, parseISO } from 'date-fns';
+import { tr } from 'date-fns/locale';
+import { useRouter } from 'next/navigation';
 
 const paymentHistory = [
   { date: '15 Kasım 2025', amount: '14 €', status: 'Başarılı' },
@@ -66,6 +72,41 @@ const premiumPerks = [
 ]
 
 export default function UyelikYonetimiPage() {
+    const { user, isUserLoading } = useUser();
+    const db = useFirestore();
+    const router = useRouter();
+
+    const userDocRef = useMemoFirebase(() => {
+        if (!db || !user?.uid) return null;
+        return doc(db, 'users', user.uid);
+    }, [db, user?.uid]);
+
+    const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
+    const isPremium = userData?.isPremium || false;
+
+    if (isUserLoading || isUserDataLoading) {
+      return (
+        <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
+          <Loader2 className="h-16 w-16 animate-spin text-primary" />
+        </div>
+      );
+    }
+    
+    if (!user || !isPremium) {
+       router.push('/premium');
+       return null;
+    }
+
+
+    const formatDate = (dateString: string) => {
+        if (!dateString) return '';
+        return format(parseISO(dateString), 'd MMMM yyyy', { locale: tr });
+    };
+
+    const startDate = formatDate(userData?.premiumStartDate);
+    const renewalDate = formatDate(userData?.premiumEndDate);
+
+
   return (
     <div className="bg-muted/30">
       <div className="container max-w-5xl mx-auto py-12 px-4 space-y-12">
@@ -84,12 +125,12 @@ export default function UyelikYonetimiPage() {
                         <Crown className="text-primary" /> Premium Üyeliğiniz Aktif
                     </CardTitle>
                     <CardDescription className="mt-2">
-                        Başlangıç Tarihi: 15 Eylül 2025
+                        Başlangıç Tarihi: {startDate}
                     </CardDescription>
                 </div>
                 <div className="text-left md:text-right">
                     <p className="font-semibold text-foreground">Her ay 14 € otomatik yenilenir</p>
-                    <p className="text-sm text-muted-foreground">Sonraki yenileme: 15 Aralık 2025</p>
+                    <p className="text-sm text-muted-foreground">Sonraki yenileme: {renewalDate}</p>
                 </div>
             </div>
           </CardHeader>
@@ -131,7 +172,7 @@ export default function UyelikYonetimiPage() {
                     </div>
                     <div className="text-right">
                          <p className="text-sm font-medium">Tarih</p>
-                         <p className="font-semibold">15 Aralık 2025</p>
+                         <p className="font-semibold">{renewalDate}</p>
                     </div>
                 </div>
                 <h4 className="font-semibold mb-4">Ödeme Geçmişi</h4>

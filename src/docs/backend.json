@@ -36,6 +36,16 @@
         "isPremium": {
           "type": "boolean",
           "description": "Indicates if the user has a premium subscription."
+        },
+        "premiumStartDate": {
+          "type": "string",
+          "description": "The start date of the premium subscription.",
+          "format": "date-time"
+        },
+        "premiumEndDate": {
+          "type": "string",
+          "description": "The end date (renewal date) of the premium subscription.",
+          "format": "date-time"
         }
       },
       "required": [

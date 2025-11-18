@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import Link from 'next/link';
+import { addMonths } from "date-fns";
 
 const premiumFeatures = [
     {
@@ -67,7 +68,14 @@ export default function PremiumPage() {
             // Simulate payment processing
             await new Promise(resolve => setTimeout(resolve, 1500));
 
-            setDocumentNonBlocking(userDocRef, { isPremium: true }, { merge: true });
+            const now = new Date();
+            const endDate = addMonths(now, 1);
+
+            setDocumentNonBlocking(userDocRef, { 
+                isPremium: true,
+                premiumStartDate: now.toISOString(),
+                premiumEndDate: endDate.toISOString(),
+            }, { merge: true });
 
             toast({
                 title: 'Tebrikler! 🎉',
