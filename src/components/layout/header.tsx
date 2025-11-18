@@ -200,8 +200,8 @@ export default function Header() {
                                  <Button variant="outline" className="w-full font-semibold text-lg" onClick={() => handleLinkClick("/login")}>
                                     Giriş Yap
                                  </Button>
-                                 <Button className="w-full font-semibold text-lg" asChild>
-                                     <Link href="/login">Ücretsiz Kayıt Ol</Link>
+                                 <Button className="w-full font-semibold text-lg">
+                                     Ücretsiz Deneme
                                  </Button>
                                 </>
                             )}
@@ -223,9 +223,7 @@ export default function Header() {
                 <Button variant="ghost" className="font-semibold" asChild>
                   <Link href="/login">Giriş Yap</Link>
                 </Button>
-                <Button asChild className="font-semibold">
-                  <Link href="/login">Ücretsiz Kayıt Ol</Link>
-                </Button>
+                <Button className="font-semibold">Ücretsiz Deneme</Button>
               </div>
             )}
           </div>
