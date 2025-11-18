@@ -3,7 +3,7 @@
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
-import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X } from 'lucide-react';
+import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -200,32 +200,36 @@ export default function EbeveynPortaliPage() {
 
       {/* Premium Card */}
       <Card className="bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg border-none">
-        <div className="grid md:grid-cols-3 items-center p-6">
-            <div className="md:col-span-2 space-y-4">
-                <div className="flex items-center gap-3">
-                    <Crown className="w-8 h-8" />
-                    <h3 className="text-2xl font-bold">Premium Üye</h3>
-                    <Badge variant="outline" className="bg-white/20 text-white border-none">Aktif</Badge>
-                </div>
-                <ul className="space-y-2 text-white/90">
-                    <li className="flex items-center gap-2">
-                        <Zap className="w-5 h-5"/> Sınırsız can aktif
-                    </li>
-                     <li className="flex items-center gap-2">
-                        <Star className="w-5 h-5"/> Tüm kategorilere erişim
-                    </li>
-                     <li className="flex items-center gap-2">
-                        <Award className="w-5 h-5"/> Özel rozetler ve ödüller
-                    </li>
-                </ul>
-                <p className="text-xs text-white/70">Başlangıç: 15.11.2025</p>
+        <div className="grid md:grid-cols-3 items-center p-6 gap-6">
+          <div className="md:col-span-2 space-y-4">
+            <div className="flex items-center gap-3">
+              <Crown className="w-8 h-8" />
+              <div>
+                <h3 className="text-2xl font-bold">Premium Üyelik</h3>
+                <p className="text-white/80">Sınırsız can, tüm kategoriler ve daha fazlası!</p>
+              </div>
             </div>
-             <div className="mt-6 md:mt-0 bg-white/90 text-primary-foreground rounded-lg p-6 text-center flex flex-col justify-center shadow-inner">
-                <p className="font-semibold text-muted-foreground">Aylık Ücret</p>
-                <p className="text-4xl font-extrabold my-1">14 €</p>
-                <p className="text-sm text-muted-foreground -mt-1">/ ay</p>
-                <Button variant="outline" className="mt-4 text-sm font-semibold">Premium'u İptal Et</Button>
+            <ul className="space-y-2 text-white/90">
+              <li className="flex items-center gap-2">
+                <Zap className="w-5 h-5"/> Sınırsız can - hiç bekleme!
+              </li>
+              <li className="flex items-center gap-2">
+                <Star className="w-5 h-5"/> <Lock className="w-4 h-4 inline-block mr-1"/> Tüm kategorilere erişim
+              </li>
+              <li className="flex items-center gap-2">
+                <Award className="w-5 h-5"/> Özel rozetler ve ödüller
+              </li>
+            </ul>
+          </div>
+          <div className="space-y-4 flex flex-col">
+            <div className="bg-white/90 text-primary-foreground rounded-lg p-4 text-center shadow-inner">
+              <p className="text-4xl font-extrabold">14 €</p>
+              <p className="text-sm text-muted-foreground -mt-1">/ ay</p>
             </div>
+            <Button variant="outline" className="w-full bg-white text-amber-600 hover:bg-white/90 font-bold">
+                <Crown className="w-4 h-4 mr-2"/> Premium Satın Al
+            </Button>
+          </div>
         </div>
       </Card>
 
