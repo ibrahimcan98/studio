@@ -3,6 +3,7 @@ import { Course } from "@/data/courses";
 import { Button } from "@/components/ui/button";
 import { BookOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 const SmoothScrollLink = ({ to, children, className }: { to: string, children: React.ReactNode, className?: string }) => {
     const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -25,7 +26,10 @@ const SmoothScrollLink = ({ to, children, className }: { to: string, children: R
 
 export const CourseCard = ({ course }: { course: Course }) => {
     return (
-        <div className="relative p-8 rounded-3xl overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:scale-[1.03] bg-white">
+        <div className={cn(
+            "relative p-8 rounded-3xl overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:scale-[1.03]",
+            course.id === 'konusma' ? 'bg-[#FFF0CC]' : 'bg-white'
+        )}>
             <div className={`absolute inset-0 ${course.blobColor} opacity-20 rounded-full filter blur-3xl`}></div>
             <div className="relative z-10 flex flex-col h-full">
                  <div className="flex justify-between items-start mb-4">
