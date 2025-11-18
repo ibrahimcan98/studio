@@ -62,7 +62,7 @@ export default function PremiumPage() {
 
     useEffect(() => {
         if (!isUserDataLoading && userData?.isPremium) {
-            router.replace('/ebeveyn-portali/uyelik');
+            router.replace('/ebeveyn-portali');
         }
     }, [isUserDataLoading, userData, router]);
 

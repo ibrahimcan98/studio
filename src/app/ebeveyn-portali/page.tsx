@@ -222,6 +222,9 @@ export default function EbeveynPortaliPage() {
                         <Target className="w-5 h-5"/> Özel rozetler ve ödüller
                     </li>
                 </ul>
+                <Button asChild variant="outline" className="bg-white/20 text-white hover:bg-white/30 border-white/50">
+                    <Link href="/ebeveyn-portali/uyelik">Üyeliği Yönet</Link>
+                </Button>
               </div>
           </div>
         </Card>
