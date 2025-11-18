@@ -1,11 +1,11 @@
 'use client';
 
-import { useUser, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
+import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Loader2, Crown, Calendar, Check, Star, RefreshCw, Snowflake, Mail, CreditCard, Download, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   AlertDialog,
@@ -21,6 +21,7 @@ import {
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useToast } from "@/hooks/use-toast";
+import { doc, setDoc } from "firebase/firestore";
 
 const paymentHistory = [
     { date: "15 Kasım 2025", amount: "14 €", status: "Başarılı" },
@@ -57,12 +58,12 @@ export default function UyelikYonetimiPage() {
     const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
 
     useEffect(() => {
-        if (!isUserLoading && !isUserDataLoading) {
-            if (!user) {
-                router.push('/login');
-            } else if (!userData?.isPremium) {
-                router.push('/premium');
-            }
+        if (isUserLoading || isUserDataLoading) return;
+
+        if (!user) {
+            router.push('/login');
+        } else if (!userData?.isPremium) {
+            router.push('/premium');
         }
     }, [isUserLoading, isUserDataLoading, user, userData, router]);
     
@@ -70,7 +71,7 @@ export default function UyelikYonetimiPage() {
         if (!user || !db) return;
 
         const userDocRef = doc(db, 'users', user.uid);
-        setDocumentNonBlocking(userDocRef, { 
+        await setDoc(userDocRef, { 
             isPremium: false,
             premiumEndDate: null,
          }, { merge: true });
@@ -81,8 +82,13 @@ export default function UyelikYonetimiPage() {
         });
         router.push('/ebeveyn-portali');
     };
+    
+    const formatDate = (dateString: string | undefined) => {
+        if (!dateString) return 'N/A';
+        return format(new Date(dateString), 'dd MMMM yyyy', { locale: tr });
+    };
 
-    if (isUserLoading || isUserDataLoading || !userData?.isPremium) {
+    if (isUserLoading || isUserDataLoading) {
         return (
             <div className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-muted/20">
                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -90,11 +96,6 @@ export default function UyelikYonetimiPage() {
         );
     }
     
-    const formatDate = (dateString: string) => {
-        if (!dateString) return 'N/A';
-        return format(new Date(dateString), 'dd MMMM yyyy', { locale: tr });
-    };
-
     return (
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20">
             <h2 className="text-3xl font-bold tracking-tight">Üyelik Yönetimi</h2>
@@ -106,8 +107,8 @@ export default function UyelikYonetimiPage() {
                 </CardHeader>
                 <CardContent className="p-6 grid md:grid-cols-2 gap-6">
                     <div className="space-y-4">
-                        <p><strong>Başlangıç Tarihi:</strong> {formatDate(userData.premiumStartDate)}</p>
-                        <p><strong>Yenileme Tarihi:</strong> {formatDate(userData.premiumEndDate)} (Her ay 14 € otomatik yenilenir)</p>
+                        <p><strong>Başlangıç Tarihi:</strong> {formatDate(userData?.premiumStartDate)}</p>
+                        <p><strong>Yenileme Tarihi:</strong> {formatDate(userData?.premiumEndDate)} (Her ay 14 € otomatik yenilenir)</p>
                         <p><strong>Plan Tipi:</strong> Aylık • Sınırsız Can • Tüm Konular Açık • Özel Rozetler</p>
                     </div>
                     <div className="space-y-4 md:text-right">
@@ -127,7 +128,7 @@ export default function UyelikYonetimiPage() {
                     <CardContent>
                         <div className="mb-6 p-4 bg-muted rounded-lg">
                             <p className="text-sm text-muted-foreground">Sonraki Ödeme</p>
-                            <p className="font-semibold">{formatDate(userData.premiumEndDate)}</p>
+                            <p className="font-semibold">{formatDate(userData?.premiumEndDate)}</p>
                             <p className="text-2xl font-bold">14 €</p>
                         </div>
                         <h3 className="font-semibold mb-2">Ödeme Geçmişi</h3>
