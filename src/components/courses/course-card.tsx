@@ -30,7 +30,7 @@ export const CourseCard = ({ course }: { course: Course }) => {
             "relative p-8 rounded-3xl overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:scale-[1.03]",
             course.id === 'konusma' ? 'bg-[#FFF0CC]' : 'bg-white'
         )}>
-            <div className={`absolute inset-0 ${course.blobColor} opacity-20 rounded-full filter blur-3xl`}></div>
+            
             <div className="relative z-10 flex flex-col h-full">
                  <div className="flex justify-between items-start mb-4">
                     <div className={`w-14 h-14 rounded-2xl flex-shrink-0 flex items-center justify-center ${course.cta.iconBgColor}`}>
