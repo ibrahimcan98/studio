@@ -24,6 +24,7 @@ import { LoginIllustration } from '@/components/illustrations/login-illustration
 import { SignUpIllustration } from '@/components/illustrations/signup-illustration';
 import { useAuth, useFirestore, setDocumentNonBlocking, useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
 function LoginForm({
   onSignUpClick,
@@ -256,13 +257,8 @@ function SignUpForm({
 
 export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
-  const [isClient, setIsClient] = useState(false);
   const { user, loading } = useUser();
   const router = useRouter();
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   useEffect(() => {
     if (!loading && user) {
@@ -270,35 +266,46 @@ export default function LoginPage() {
     }
   }, [user, loading, router]);
 
-  if (!isClient || loading) {
-    return null; // or a loading spinner
+  if (loading) {
+     return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  if (user) {
+    return null;
   }
 
-  return (
-    <div className="relative flex min-h-screen flex-col items-center bg-gradient-to-br from-cyan-50 via-amber-50 to-white p-4 overflow-hidden">
-      
-      <div className="container relative z-10 w-full max-w-6xl">
-        <div className={`transition-transform duration-700 ease-in-out ${isSignUp ? '-translate-x-full' : 'translate-x-0'}`}>
-          <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-16 absolute w-full">
-            <div className="flex justify-center md:justify-end">
-              <LoginForm loading={false} onSignUpClick={() => setIsSignUp(true)} />
-            </div>
-            <div className="hidden md:block">
-              <LoginIllustration />
-            </div>
-          </div>
-        </div>
 
-        <div className={`transition-transform duration-700 ease-in-out absolute inset-0 ${isSignUp ? 'translate-x-0' : 'translate-x-full'}`}>
-           <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-16 w-full">
-              <div className="hidden md:block">
-                <SignUpIllustration />
-              </div>
-              <div className="flex justify-center md:justify-start">
-                <SignUpForm loading={false} onLoginClick={() => setIsSignUp(false)} />
-              </div>
-           </div>
-        </div>
+  return (
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-cyan-50 via-amber-50 to-white p-4 overflow-hidden">
+      
+      <div className="container relative z-10 w-full max-w-6xl flex items-center justify-center min-h-[80vh]">
+          {isSignUp ? (
+            <div className="w-full flex justify-center">
+               <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-16 w-full max-w-4xl">
+                  <div className="hidden md:block">
+                    <SignUpIllustration />
+                  </div>
+                  <div className="flex justify-center md:justify-start">
+                    <SignUpForm loading={false} onLoginClick={() => setIsSignUp(false)} />
+                  </div>
+               </div>
+            </div>
+          ) : (
+             <div className="w-full flex justify-center">
+                <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-16 w-full max-w-4xl">
+                  <div className="flex justify-center md:justify-end">
+                    <LoginForm loading={false} onSignUpClick={() => setIsSignUp(true)} />
+                  </div>
+                  <div className="hidden md:block">
+                    <LoginIllustration />
+                  </div>
+                </div>
+             </div>
+          )}
       </div>
     </div>
   );

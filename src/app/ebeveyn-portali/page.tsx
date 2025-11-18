@@ -213,7 +213,7 @@ export default function EbeveynPortaliPage() {
           <div className="p-6 flex items-center justify-between">
               <div className='space-y-4'>
                 <h3 className="text-2xl font-bold flex items-center gap-2"><Crown /> Premium Üyelik Aktif</h3>
-                <p className="text-white/80">Tüm premium özelliklerin tadını çıkarın!</p>
+                <p className="text-white/80">Sınırsız can, tüm kategoriler ve daha fazlası!</p>
                 <ul className="space-y-2 text-white/90 text-sm">
                    {premiumStartDate && (
                        <li className="flex items-center gap-2">
@@ -281,7 +281,7 @@ export default function EbeveynPortaliPage() {
 
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Kalan Ders" value={isPremium ? "0" : "0"} icon={BookOpen} />
+        <StatCard title="Kalan Ders" value={isPremium ? "Sınırsız" : "0"} icon={BookOpen} />
         <StatCard title="Toplam Çocuk" value={childCount} icon={Users} />
         <StatCard title="Toplam Rozet" value={totalRozet} icon={Star} />
         <Card>
@@ -418,19 +418,19 @@ export default function EbeveynPortaliPage() {
                 <div className="bg-muted p-3 rounded-lg">
                     <BarChart className="w-8 h-8"/>
                 </div>
-                <span className="font-semibold mt-2">İlerleme Raporları</span>
+                <span className="font-semibold mt-2 text-center">İlerleme Raporları</span>
             </div>
              <div className="flex flex-col items-center gap-2">
                 <div className="bg-muted p-3 rounded-lg">
                     <Calendar className="w-8 h-8"/>
                 </div>
-                <span className="font-semibold mt-2">Ders Takvimi</span>
+                <span className="font-semibold mt-2 text-center">Ders Takvimi</span>
             </div>
              <div className="flex flex-col items-center gap-2">
                 <div className="bg-muted p-3 rounded-lg">
                     <History className="w-8 h-8"/>
                 </div>
-                <span className="font-semibold mt-2">Ders Geçmişi</span>
+                <span className="font-semibold mt-2 text-center">Ders Geçmişi</span>
             </div>
         </div>
       </div>
