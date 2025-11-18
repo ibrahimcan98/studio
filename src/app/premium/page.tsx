@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Crown, Zap, Star, Award, CheckCircle, Shield, Lock, Infinity as InfinityIcon } from 'lucide-react';
-import { useUser, useFirestore, setDocumentNonBlocking } from "@/firebase";
+import { useUser, useFirestore, setDocumentNonBlocking, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from 'firebase/firestore';
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import Link from 'next/link';
 import { addMonths } from "date-fns";
+
 
 const premiumFeatures = [
     {
@@ -48,6 +49,13 @@ export default function PremiumPage() {
     const router = useRouter();
     const { toast } = useToast();
     const [isProcessing, setIsProcessing] = useState(false);
+
+    const userDocRef = useMemoFirebase(() => {
+        if (!user || !db) return null;
+        return doc(db, "users", user.uid);
+    }, [user, db]);
+
+    const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
 
     const handlePurchase = async () => {
         if (!user || !db) {
@@ -95,6 +103,72 @@ export default function PremiumPage() {
             setIsProcessing(false);
         }
     };
+
+    const handleCancel = async () => {
+        if (!user || !db) return;
+        setIsProcessing(true);
+        const userDocRef = doc(db, 'users', user.uid);
+        try {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            setDocumentNonBlocking(userDocRef, { isPremium: false }, { merge: true });
+            toast({
+                title: 'Üyelik İptal Edildi',
+                description: 'Premium üyeliğiniz iptal edildi.',
+            });
+            router.push('/ebeveyn-portali');
+        } catch (error) {
+            console.error("Premium cancel error: ", error);
+             toast({
+                variant: 'destructive',
+                title: 'Bir hata oluştu',
+                description: 'Üyelik iptal edilirken bir sorun yaşandı.',
+            });
+            setIsProcessing(false);
+        }
+    }
+
+
+    if (isUserDataLoading) {
+        return (
+            <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
+                <Loader2 className="h-16 w-16 animate-spin text-primary" />
+            </div>
+        );
+    }
+    
+    if (userData?.isPremium) {
+        return (
+             <div className="bg-sky-50/50 min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-xl mx-auto">
+                     <Card className="bg-white rounded-2xl shadow-xl p-8 text-center">
+                        <Crown className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
+                        <h1 className="text-3xl font-extrabold text-gray-800 mb-2">Mevcut Üyeliğiniz</h1>
+                        <p className="text-muted-foreground mb-6">Zaten premium üyesiniz. Aşağıdan üyeliğinizi yönetebilirsiniz.</p>
+                        
+                        <div className="space-y-4">
+                             <Button
+                                size="lg"
+                                className="w-full bg-primary text-primary-foreground font-bold hover:bg-primary/90"
+                                onClick={() => router.push('/ebeveyn-portali/uyelik')}
+                            >
+                                Üyeliği Yönet
+                            </Button>
+                            <Button
+                                size="lg"
+                                variant="destructive"
+                                className="w-full font-bold"
+                                onClick={handleCancel}
+                                disabled={isProcessing}
+                            >
+                                {isProcessing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+                                {isProcessing ? 'İptal Ediliyor...' : 'Premium Üyeliği İptal Et'}
+                            </Button>
+                        </div>
+                    </Card>
+                </div>
+            </div>
+        )
+    }
 
 
     return (
