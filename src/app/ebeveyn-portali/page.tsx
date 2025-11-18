@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock, Infinity as InfinityIcon, Settings, Target, CreditCard } from 'lucide-react';
@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { collection, doc, addDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { SetPinDialog } from '@/components/child-mode/set-pin-dialog';
@@ -62,6 +62,7 @@ function AddChildDialog({ userId }: { userId: string }) {
       level: 'beginner',
       userId: userId,
       rozet: 0,
+      completedTopics: [],
     });
     
     setName('');

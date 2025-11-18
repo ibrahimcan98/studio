@@ -35,6 +35,8 @@ export function WordCard({ wordList, childId }: WordCardProps) {
 
     const isFirstWord = currentIndex === 0;
     const isLastWord = currentIndex === wordList.length - 1;
+    const topicId = useRouter().asPath.split('/')[3];
+
 
     useEffect(() => {
         setGradient(backgroundGradients[currentIndex % backgroundGradients.length]);
@@ -65,7 +67,7 @@ export function WordCard({ wordList, childId }: WordCardProps) {
     };
     
     const goToGames = () => {
-        router.push(`/cocuk-modu/${childId}`);
+        router.push(`/cocuk-modu/${childId}/${topicId}/oyunlar`);
     };
 
     return (
