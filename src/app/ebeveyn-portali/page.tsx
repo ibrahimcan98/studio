@@ -210,35 +210,28 @@ export default function EbeveynPortaliPage() {
 
       {isPremium ? (
         <Card className="bg-gradient-to-r from-green-400 to-teal-500 text-white shadow-lg border-none">
-          <div className="p-6 flex items-center justify-between">
-              <div className='space-y-4'>
-                <h3 className="text-2xl font-bold flex items-center gap-2"><Crown /> Premium Üyelik Aktif</h3>
+          <div className="p-6 max-w-4xl mx-auto w-full">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className='space-y-4 text-center md:text-left'>
+                <h3 className="text-2xl font-bold flex items-center justify-center md:justify-start gap-2"><Crown /> Premium Üyelik Aktif</h3>
                 <p className="text-white/80">Sınırsız can, tüm kategoriler ve daha fazlası!</p>
-                <ul className="space-y-2 text-white/90 text-sm">
-                   {premiumStartDate && (
-                       <li className="flex items-center gap-2">
+                  {premiumStartDate && (
+                       <div className="flex items-center gap-2 text-sm justify-center md:justify-start">
                           <Calendar className="w-5 h-5"/> 
                           <span>Başlangıç Tarihi: {format(premiumStartDate, 'dd MMMM yyyy', { locale: tr })}</span>
-                       </li>
-                    )}
-                    <li className="flex items-center gap-2">
-                        <CreditCard className="w-5 h-5"/>
-                        <span>Aylık Ücret: 14 €</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                        <InfinityIcon className="w-5 h-5"/> Sınırsız can - hiç bekleme!
-                    </li>
-                    <li className="flex items-center gap-2">
-                        <Lock className="w-5 h-5"/> Tüm kategorilere erişim
-                    </li>
-                    <li className="flex items-center gap-2">
-                        <Target className="w-5 h-5"/> Özel rozetler ve ödüller
-                    </li>
-                </ul>
+                       </div>
+                  )}
               </div>
-              <Button asChild variant="outline" className="bg-white/20 text-white hover:bg-white/30 border-white/50">
-                  <Link href="/ebeveyn-portali/uyelik">Üyeliği Yönet</Link>
-              </Button>
+              <div className="text-center md:text-right space-y-3">
+                 <div className="flex items-center gap-2 justify-center md:justify-end">
+                    <CreditCard className="w-5 h-5"/>
+                    <span className="font-semibold">Aylık Ücret: 14 €</span>
+                </div>
+                <Button asChild variant="outline" className="bg-white/20 text-white hover:bg-white/30 border-white/50">
+                    <Link href="/ebeveyn-portali/uyelik">Üyeliği Yönet</Link>
+                </Button>
+              </div>
+            </div>
           </div>
         </Card>
       ) : (
