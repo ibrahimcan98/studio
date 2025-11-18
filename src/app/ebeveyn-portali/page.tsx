@@ -2,7 +2,7 @@
 
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useCollection, useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { useCollection, useFirestore, addDocumentNonBlocking, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 
 function AddChildDialog({ userId }: { userId: string }) {
@@ -140,7 +140,11 @@ export default function EbeveynPortaliPage() {
   const router = useRouter();
   const db = useFirestore();
 
-  const childrenRef = user ? collection(db, 'users', user.uid, 'children') : null;
+  const childrenRef = useMemoFirebase(() => {
+    if (!db || !user?.uid) return null;
+    return collection(db, 'users', user.uid, 'children');
+  }, [db, user?.uid]);
+
   const { data: children, isLoading: childrenLoading } = useCollection(childrenRef);
 
 
