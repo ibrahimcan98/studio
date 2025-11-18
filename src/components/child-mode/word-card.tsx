@@ -17,6 +17,13 @@ type WordCardProps = {
     wordList: Word[];
 };
 
+type WordCache = {
+    [key: string]: {
+        audio: string | null;
+        image: string | null;
+    }
+}
+
 const backgroundGradients = [
     'from-green-200 to-cyan-200',
     'from-yellow-200 to-orange-200',
@@ -35,42 +42,56 @@ export function WordCard({ wordList }: WordCardProps) {
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const [isImageLoading, setIsImageLoading] = useState(false);
 
-    const audioRef = useRef<HTMLAudioElement>(null);
+    const [wordCache, setWordCache] = useState<WordCache>({});
 
+    const audioRef = useRef<HTMLAudioElement>(null);
     const currentWord = wordList[currentIndex];
 
-    const generateAudio = useCallback(async (text: string) => {
-        setIsAudioLoading(true);
-        setAudioSrc(null);
-        try {
-            const { media } = await ttsFlow(text);
-            setAudioSrc(media);
-        } catch (error) {
-            console.error("Audio generation failed:", error);
-        } finally {
-            setIsAudioLoading(false);
+    const generateAndCacheContent = useCallback(async (word: Word) => {
+        if (wordCache[word.word]) {
+            setImageSrc(wordCache[word.word].image);
+            setAudioSrc(wordCache[word.word].audio);
+            return;
         }
-    }, []);
 
-    const generateImage = useCallback(async (word: Word) => {
         setIsImageLoading(true);
+        setIsAudioLoading(true);
         setImageSrc(null);
-        try {
-            const prompt = `A clear, simple, child-friendly cartoon image of a single '${word.word}' on a plain white background.`;
-            const { dataUri } = await textToImageFlow(prompt);
-            setImageSrc(dataUri);
-        } catch (error) {
-            console.error("Image generation failed:", error);
-        } finally {
-            setIsImageLoading(false);
-        }
-    }, []);
+        setAudioSrc(null);
+
+        const imagePromise = textToImageFlow(`A clear, simple, child-friendly cartoon image of a single '${word.word}' on a plain white background.`)
+            .then(result => result.dataUri)
+            .catch(err => {
+                console.error("Image generation failed:", err);
+                return null;
+            });
+        
+        const audioPromise = ttsFlow(word.word)
+            .then(result => result.media)
+            .catch(err => {
+                console.error("Audio generation failed:", err);
+                return null;
+            });
+
+        const [imageData, audioData] = await Promise.all([imagePromise, audioPromise]);
+
+        setWordCache(prev => ({
+            ...prev,
+            [word.word]: { image: imageData, audio: audioData }
+        }));
+
+        setImageSrc(imageData);
+        setAudioSrc(audioData);
+        setIsImageLoading(false);
+        setIsAudioLoading(false);
+
+    }, [wordCache]);
 
     useEffect(() => {
         setGradient(backgroundGradients[currentIndex % backgroundGradients.length]);
-        generateAudio(currentWord.word);
-        generateImage(currentWord);
-    }, [currentIndex, currentWord, generateAudio, generateImage]);
+        generateAndCacheContent(currentWord);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentIndex, currentWord]);
     
     useEffect(() => {
         if (audioSrc && audioRef.current) {
@@ -83,8 +104,17 @@ export function WordCard({ wordList }: WordCardProps) {
     const playAudio = () => {
         if (audioRef.current && audioSrc) {
             audioRef.current.play().catch(e => console.error("Audio play failed:", e));
-        } else if (!isAudioLoading) {
-            generateAudio(currentWord.word);
+        } else if (!isAudioLoading && currentWord) {
+            // Regenerate only audio if it failed previously
+            setIsAudioLoading(true);
+            ttsFlow(currentWord.word)
+                .then(result => {
+                    const newAudio = result.media;
+                    setAudioSrc(newAudio);
+                    setWordCache(prev => ({ ...prev, [currentWord.word]: { ...prev[currentWord.word], audio: newAudio }}));
+                })
+                .catch(e => console.error("Audio generation failed:", e))
+                .finally(() => setIsAudioLoading(false));
         }
     };
 
@@ -95,6 +125,8 @@ export function WordCard({ wordList }: WordCardProps) {
     const goToPrevious = () => {
         setCurrentIndex((prevIndex) => (prevIndex - 1 + wordList.length) % wordList.length);
     };
+
+    const isLoading = isImageLoading || isAudioLoading;
 
     return (
         <Card className={`w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col bg-gradient-to-br ${gradient}`}>
@@ -137,7 +169,7 @@ export function WordCard({ wordList }: WordCardProps) {
                         variant="outline"
                         className="rounded-full py-6 px-8 font-semibold text-lg"
                         onClick={goToPrevious}
-                        disabled={isAudioLoading || isImageLoading}
+                        disabled={isLoading}
                     >
                         <ArrowLeft className="mr-2" />
                         Önceki
@@ -145,7 +177,7 @@ export function WordCard({ wordList }: WordCardProps) {
                     <Button
                         className="rounded-full py-6 px-8 font-semibold text-lg bg-primary hover:bg-primary/90"
                         onClick={goToNext}
-                        disabled={isAudioLoading || isImageLoading}
+                        disabled={isLoading}
                     >
                         Sonraki
                         <ArrowRight className="ml-2" />
