@@ -87,7 +87,7 @@ export default function Header() {
                 <div className='flex justify-between items-center'>
                     <p className="text-sm font-medium leading-none">{user?.displayName}</p>
                     {isPremium && (
-                        <Badge variant="secondary" className="bg-yellow-400 text-yellow-900 hover:bg-yellow-400/90 text-xs">
+                        <Badge variant="secondary" className="bg-yellow-400 text-yellow-900 hover:bg-yellow-400/90 text-xs cursor-default">
                             <Crown className="mr-1 h-3 w-3" />
                             Premium
                         </Badge>
@@ -138,23 +138,23 @@ export default function Header() {
         <Link href="/" className="flex items-center space-x-2 mr-6">
           <Logo />
         </Link>
-
-        <nav className="hidden md:flex flex-1 items-center gap-6 text-sm font-medium">
-            <button onClick={() => router.push(isLoggedIn ? '/ebeveyn-portali' : '/login')} className="transition-colors hover:text-foreground/80 text-foreground/60">
-            Ebeveyn Portalı
-          </button>
-          {navLinks.map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              className="transition-colors hover:text-foreground/80 text-foreground/60"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="flex flex-1 md:flex-none items-center justify-end gap-2 md:gap-4">
+        
+        <div className="flex flex-1 items-center justify-end gap-2 md:gap-6">
+          <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+              <button onClick={() => router.push(isLoggedIn ? '/ebeveyn-portali' : '/login')} className="transition-colors hover:text-foreground/80 text-foreground/60">
+              Ebeveyn Portalı
+            </button>
+            {navLinks.map((link) => (
+              <Link
+                key={link.label}
+                href={link.href}
+                className="transition-colors hover:text-foreground/80 text-foreground/60"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+          
           <div className="md:hidden">
              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
