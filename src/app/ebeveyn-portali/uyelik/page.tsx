@@ -2,20 +2,45 @@
 
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { useRouter } from "next/navigation";
-import { useEffect } from 'react';
-import { Loader2, Crown, Calendar, CreditCard, ChevronRight, Settings } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Loader2, Crown, Calendar, CreditCard, ChevronRight, Settings, Star } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { tr } from 'date-fns/locale';
+import { tr } from 'date-ns/locale';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { doc, updateDoc } from 'firebase/firestore';
+import { useToast } from "@/hooks/use-toast";
 
-function UyelikContent({ userData }: { userData: any }) {
+function UyelikContent({ userData, onCancel }: { userData: any, onCancel: () => Promise<void> }) {
     
+    const [isCancelling, setIsCancelling] = useState(false);
+
     const formatDate = (dateString: string) => {
         if (!dateString) return "N/A";
         return format(new Date(dateString), "dd MMMM yyyy, HH:mm", { locale: tr });
     };
+
+    const handleCancelClick = async () => {
+        setIsCancelling(true);
+        try {
+            await onCancel();
+        } finally {
+            setIsCancelling(false);
+        }
+    };
+
 
     return (
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20">
@@ -86,17 +111,32 @@ function UyelikContent({ userData }: { userData: any }) {
                     <CardTitle className="text-destructive">Tehlikeli Alan</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex items-center justify-between">
-                         <div>
-                            <p className="font-semibold">Üyeliği İptal Et</p>
-                            <p className="text-sm text-muted-foreground">
-                                Premium üyeliğinizi bir sonraki yenileme tarihinde sonlandırır.
-                            </p>
-                        </div>
-                        <Button variant="destructive">
-                            <Settings className="w-4 h-4 mr-2" /> Üyeliği İptal Et
-                        </Button>
-                    </div>
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive">
+                                 <Settings className="w-4 h-4 mr-2" /> Üyeliği İptal Et
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                   Premium üyeliğinizi bir sonraki yenileme tarihinde sonlandırmak istediğinizden emin misiniz?
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel disabled={isCancelling}>Vazgeç</AlertDialogCancel>
+                                <AlertDialogAction
+                                    disabled={isCancelling}
+                                    onClick={handleCancelClick}
+                                    className="bg-destructive hover:bg-destructive/90"
+                                >
+                                    {isCancelling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Evet, İptal Et
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </CardContent>
             </Card>
         </div>
@@ -108,6 +148,7 @@ export default function UyelikYonetimiPage() {
     const { user, loading: isUserLoading } = useUser();
     const router = useRouter();
     const db = useFirestore();
+    const { toast } = useToast();
 
     const userDocRef = useMemoFirebase(() => {
         if (!user || !db) return null;
@@ -123,6 +164,22 @@ export default function UyelikYonetimiPage() {
         }
     }, [isUserLoading, isUserDataLoading, userData, router]);
 
+    const handleCancelSubscription = async () => {
+        if (!userDocRef) return;
+        await updateDoc(userDocRef, {
+            isPremium: false,
+            premiumStartDate: null,
+            premiumEndDate: null,
+        });
+
+        toast({
+            title: 'Üyelik İptal Edildi',
+            description: 'Premium üyeliğiniz sonlandırıldı.',
+        });
+
+        router.push('/ebeveyn-portali');
+    };
+
     const isLoading = isUserLoading || isUserDataLoading;
 
     if (isLoading) {
@@ -137,5 +194,5 @@ export default function UyelikYonetimiPage() {
         return null;
     }
 
-    return <UyelikContent userData={userData} />;
+    return <UyelikContent userData={userData} onCancel={handleCancelSubscription} />;
 }
