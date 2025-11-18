@@ -15,13 +15,22 @@ import { Menu } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useUser } from '@/firebase';
 import { getAuth, signOut } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 
 export default function Header() {
   const { user, loading } = useUser();
+  const router = useRouter();
   const isLoggedIn = !!user;
 
+  const handlePortalClick = () => {
+    if (isLoggedIn) {
+      router.push('/ebeveyn-portali');
+    } else {
+      router.push('/login');
+    }
+  };
+
   const navLinks = [
-    { href: '#parents', label: 'Ebeveyn Portalı' },
     { href: '#teachers', label: 'Öğretmen Portalı' },
     { href: '#pricing', label: 'Paketler' },
   ];
@@ -52,7 +61,7 @@ export default function Header() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>Ebeveyn Sayfası</DropdownMenuItem>
+        <DropdownMenuItem onClick={handlePortalClick}>Ebeveyn Sayfası</DropdownMenuItem>
         <DropdownMenuItem>Profil Ayarları</DropdownMenuItem>
         <DropdownMenuItem>Paketlerim</DropdownMenuItem>
         <DropdownMenuItem>Ders Geçmişi</DropdownMenuItem>
@@ -72,6 +81,9 @@ export default function Header() {
 
         <div className="flex flex-1 items-center justify-end gap-6">
           <nav className="hidden items-center space-x-6 text-sm font-medium md:flex">
+             <button onClick={handlePortalClick} className="transition-colors hover:text-foreground/80 text-foreground/60">
+              Ebeveyn Portalı
+            </button>
             {navLinks.map((link) => (
               <Link
                 key={link.label}
@@ -87,12 +99,15 @@ export default function Header() {
             <div className="hidden md:flex items-center gap-4">
               {loading ? null : isLoggedIn ? (
                 <>
+                  <Button variant="ghost" className="font-semibold" asChild>
+                    <Link href="/login">Giriş Yap</Link>
+                  </Button>
                   <Button className="font-semibold">Ücretsiz Deneme</Button>
                   <UserMenu />
                 </>
               ) : (
                 <>
-                  <Button variant="ghost" className="font-semibold" asChild>
+                   <Button variant="ghost" className="font-semibold" asChild>
                     <Link href="/login">Giriş Yap</Link>
                   </Button>
                   <Button className="font-semibold">Ücretsiz Deneme</Button>
@@ -117,6 +132,9 @@ export default function Header() {
                     <div className="flex flex-col gap-y-6 pt-10">
                       <Logo />
                       <nav className="flex flex-col gap-4">
+                        <button onClick={handlePortalClick} className="text-lg font-medium transition-colors hover:text-foreground/80 text-left">
+                          Ebeveyn Portalı
+                        </button>
                         {navLinks.map((link) => (
                           <Link
                             key={link.label}

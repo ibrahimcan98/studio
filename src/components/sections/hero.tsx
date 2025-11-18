@@ -1,11 +1,25 @@
+'use client';
+
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { PartyPopper } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { useUser } from '@/firebase';
+import { useRouter } from 'next/navigation';
 
 export default function Hero() {
   const heroImage = PlaceHolderImages.find(img => img.id === 'hero-child');
+  const { user } = useUser();
+  const router = useRouter();
+
+  const handleStartClick = () => {
+    if (user) {
+      router.push('/ebeveyn-portali');
+    } else {
+      router.push('/login');
+    }
+  };
 
   return (
     <section className="relative w-full bg-amber-50/50 overflow-hidden">
@@ -18,7 +32,7 @@ export default function Hero() {
             Duolingo tarzı harita, canlı dersler ve aile paneliyle güvenli, eğlenceli ve etkili.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-            <Button size="lg" className="font-bold">Hemen Başla</Button>
+            <Button size="lg" className="font-bold" onClick={handleStartClick}>Hemen Başla</Button>
             <Button size="lg" variant="secondary" className="font-bold">Ücretsiz Deneme</Button>
           </div>
         </div>

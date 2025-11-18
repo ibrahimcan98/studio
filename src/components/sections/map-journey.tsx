@@ -1,6 +1,10 @@
+'use client';
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CheckCircle2, Lock, Cat, Palette, Home, Users, Utensils, MapPin, Sparkles } from 'lucide-react';
+import { useUser } from '@/firebase';
+import { useRouter } from 'next/navigation';
 
 const topics = [
   { name: "Hayvanlar", icon: <Cat className="w-6 h-6"/>, unlocked: true },
@@ -12,6 +16,17 @@ const topics = [
 ];
 
 export default function MapJourney() {
+  const { user } = useUser();
+  const router = useRouter();
+
+  const handleChildModeClick = () => {
+    if (user) {
+      router.push('/ebeveyn-portali');
+    } else {
+      router.push('/login');
+    }
+  };
+
   return (
     <section id="map-journey" className="py-20 md:py-28">
       <div className="container grid lg:grid-cols-2 gap-16 items-center">
@@ -34,7 +49,7 @@ export default function MapJourney() {
               <span>Hikâye ve şarkılar ilerledikçe açılır</span>
             </li>
           </ul>
-          <Button size="lg" className="font-bold">
+          <Button size="lg" className="font-bold" onClick={handleChildModeClick}>
             <Sparkles className="mr-2 h-5 w-5"/>
             Çocuk Modunu Gör
           </Button>
