@@ -3,8 +3,8 @@
     {
       "id": "hero-child",
       "description": "Happy child learning with a tablet",
-      "imageUrl": "https://images.unsplash.com/photo-1527352672432-b7b502013892?q=80&w=1080&auto=format&fit=crop&ixlib=rb-4.0.3",
-      "imageHint": "child tablet"
+      "imageUrl": "/anasayfa.png",
+      "imageHint": "child learning turkish"
     },
     {
       "id": "avatar-1",
