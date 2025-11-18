@@ -229,6 +229,11 @@ export default function EbeveynPortaliPage() {
                 <li className="flex items-center gap-2">
                   <Award className="w-5 h-5"/> <Rocket className="w-4 h-4 inline-block mr-1"/> Özel rozetler ve ödüller
                 </li>
+                {premiumStartDate && (
+                  <li className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5"/> Başlangıç: {format(premiumStartDate, 'dd MMMM yyyy', { locale: tr })}
+                  </li>
+                )}
               </ul>
             </div>
             <div className="space-y-4 flex flex-col items-center md:items-end">
@@ -440,3 +445,5 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
+
+    
