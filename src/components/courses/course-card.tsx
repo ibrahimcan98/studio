@@ -1,7 +1,8 @@
 "use client"
-import Image from "next/image";
 import { Course } from "@/data/courses";
 import { Button } from "@/components/ui/button";
+import { BookOpen } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const SmoothScrollLink = ({ to, children, className }: { to: string, children: React.ReactNode, className?: string }) => {
     const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -24,35 +25,39 @@ const SmoothScrollLink = ({ to, children, className }: { to: string, children: R
 
 export const CourseCard = ({ course }: { course: Course }) => {
     return (
-        <div className="relative p-8 rounded-3xl overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:scale-[1.03]">
+        <div className="relative p-8 rounded-3xl overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:scale-[1.03] bg-white">
             <div className={`absolute inset-0 ${course.blobColor} opacity-20 rounded-full filter blur-3xl`}></div>
             <div className="relative z-10 flex flex-col h-full">
-                <div className="flex-grow">
-                    <h2 className="text-2xl md:text-3xl font-bold mb-4 text-gray-800">{course.title}</h2>
-                    <div className="flex items-start gap-4 mb-4">
-                        <div className="w-16 h-16 rounded-2xl bg-white flex-shrink-0 shadow-sm">
-                           <Image src="https://picsum.photos/seed/1/100/100" alt={course.title} width={64} height={64} className="rounded-2xl object-cover" data-ai-hint="child learning" />
-                        </div>
-                        <p className="text-gray-600 whitespace-pre-line text-sm">{course.shortDescription}</p>
+                 <div className="flex justify-between items-start mb-4">
+                    <div className={`w-14 h-14 rounded-2xl flex-shrink-0 flex items-center justify-center ${course.cta.color} bg-opacity-20`}>
+                        <BookOpen className="w-7 h-7 text-gray-700" />
                     </div>
+                     <Badge className={`${course.cta.color} text-white`}>{course.details.duration}</Badge>
+                </div>
+
+                <div className="flex-grow">
+                    <h2 className="text-2xl md:text-3xl font-bold mb-1 text-gray-800">{course.title}</h2>
+                    <p className="text-sm text-gray-500 mb-4">{course.ageGroup}</p>
+                    <p className="text-gray-600 whitespace-pre-line text-sm">{course.shortDescription}</p>
 
                     {course.id === 'akademik' && (
-                         <div className="grid grid-cols-2 gap-2 mt-4">
+                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-6">
                             {course.academicSteps?.map(step => (
                                 <SmoothScrollLink key={step.id} to={step.id}>
-                                    <Button size="sm" variant="outline" className="w-full justify-start border-gray-300 hover:bg-gray-100">{step.title}</Button>
+                                    <Button size="sm" variant="outline" className="w-full justify-center border-gray-300 hover:bg-gray-100 text-xs sm:text-sm">
+                                        {step.title}
+                                    </Button>
                                 </SmoothScrollLink>
                             ))}
                         </div>
                     )}
                 </div>
-                {course.cta.text && (
-                    <div className="mt-auto pt-4">
-                        <SmoothScrollLink to={course.id} className={`inline-block text-sm font-semibold p-2 rounded-lg ${course.cta.color}`}>
-                           {course.cta.text}
-                        </SmoothScrollLink>
-                    </div>
-                )}
+                
+                <div className="mt-auto pt-6">
+                    <SmoothScrollLink to={course.id} className={`text-sm font-semibold p-2 rounded-lg text-primary hover:underline`}>
+                       {course.cta.text}
+                    </SmoothScrollLink>
+                </div>
             </div>
         </div>
     );
