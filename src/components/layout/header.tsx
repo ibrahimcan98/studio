@@ -165,19 +165,19 @@ export default function Header() {
             })}
           </nav>
           
-           {userLoading ? (
-                <div className="h-10 w-10 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>
-            ) : isLoggedIn ? (
-                <UserMenu />
-            ) : (
-                <div className="hidden md:flex items-center gap-2">
-                    <Button variant="ghost" className="font-semibold" asChild>
-                        <Link href="/login">Giriş Yap</Link>
-                    </Button>
-                </div>
-            )}
+           <div className="hidden md:flex items-center gap-2">
+             {userLoading ? (
+                  <div className="h-10 w-10 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>
+              ) : isLoggedIn ? (
+                  <UserMenu />
+              ) : (
+                  <Button variant="ghost" className="font-semibold" asChild>
+                      <Link href="/login">Giriş Yap</Link>
+                  </Button>
+              )}
+           </div>
+           
             <Button variant="secondary" className="font-semibold hidden md:inline-flex">Ücretsiz Deneme</Button>
-
 
           <div className="md:hidden">
              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -210,7 +210,9 @@ export default function Header() {
                                     {link.label}
                                 </button>
                             ))}
-                             <Button variant="secondary" className="w-full font-semibold text-lg mt-2">
+                        </nav>
+                         <div className="mt-auto flex flex-col gap-4">
+                             <Button variant="secondary" className="w-full font-semibold text-lg" onClick={() => {}}>
                                 Ücretsiz Deneme
                             </Button>
                              {!isLoggedIn && (
@@ -218,11 +220,19 @@ export default function Header() {
                                     Giriş Yap
                                  </Button>
                             )}
-                        </nav>
+                        </div>
                     </div>
                 </SheetContent>
             </Sheet>
           </div>
+          
+          <div className="md:hidden">
+             {userLoading ? (
+                  <div className="h-10 w-10 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>
+              ) : isLoggedIn ? (
+                  <UserMenu />
+              ) : null}
+           </div>
 
         </div>
       </div>
