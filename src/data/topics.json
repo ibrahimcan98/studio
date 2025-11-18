@@ -7,17 +7,17 @@
       "words": 11,
       "unlocked": true,
       "wordList": [
-        { "word": "inek", "image": "/images/words/inek.png", "audio": "/audio/words/inek.mp3" },
-        { "word": "kurbağa", "image": "/images/words/kurbaga.png", "audio": "/audio/words/kurbaga.mp3" },
-        { "word": "köpek", "image": "/images/words/kopek.png", "audio": "/audio/words/kopek.mp3" },
-        { "word": "zürafa", "image": "/images/words/zurafa.png", "audio": "/audio/words/zurafa.mp3" },
-        { "word": "panda", "image": "/images/words/panda.png", "audio": "/audio/words/panda.mp3" },
-        { "word": "kedi", "image": "/images/words/kedi.png", "audio": "/audio/words/kedi.mp3" },
-        { "word": "fil", "image": "/images/words/fil.png", "audio": "/audio/words/fil.mp3" },
-        { "word": "kuş", "image": "/images/words/kus.png", "audio": "/audio/words/kus.mp3" },
-        { "word": "maymun", "image": "/images/words/maymun.png", "audio": "/audio/words/maymun.mp3" },
-        { "word": "aslan", "image": "/images/words/aslan.png", "audio": "/audio/words/aslan.mp3" },
-        { "word": "koala", "image": "/images/words/inek.png", "audio": "/audio/words/inek.mp3" }
+        { "word": "inek", "image": "/images/hayvanlar/inek.png", "audio": "/audio/hayvanlar/inek.mp3" },
+        { "word": "kurbağa", "image": "/images/hayvanlar/kurbaga.png", "audio": "/audio/hayvanlar/kurbaga.mp3" },
+        { "word": "köpek", "image": "/images/hayvanlar/kopek.png", "audio": "/audio/hayvanlar/kopek.mp3" },
+        { "word": "zürafa", "image": "/images/hayvanlar/zurafa.png", "audio": "/audio/hayvanlar/zurafa.mp3" },
+        { "word": "panda", "image": "/images/hayvanlar/panda.png", "audio": "/audio/hayvanlar/panda.mp3" },
+        { "word": "kedi", "image": "/images/hayvanlar/kedi.png", "audio": "/audio/hayvanlar/kedi.mp3" },
+        { "word": "fil", "image": "/images/hayvanlar/fil.png", "audio": "/audio/hayvanlar/fil.mp3" },
+        { "word": "kuş", "image": "/images/hayvanlar/kus.png", "audio": "/audio/hayvanlar/kus.mp3" },
+        { "word": "maymun", "image": "/images/hayvanlar/maymun.png", "audio": "/audio/hayvanlar/maymun.mp3" },
+        { "word": "aslan", "image": "/images/hayvanlar/aslan.png", "audio": "/audio/hayvanlar/aslan.mp3" },
+        { "word": "koala", "image": "/images/hayvanlar/koala.png", "audio": "/audio/hayvanlar/koala.mp3" }
       ]
     },
     {
@@ -27,13 +27,13 @@
       "words": 7,
       "unlocked": true,
       "wordList": [
-        { "word": "pembe", "image": "/images/words/pembe.png", "audio": "/audio/words/pembe.mp3" },
-        { "word": "kahverengi", "image": "/images/words/kahverengi.png", "audio": "/audio/words/kahverengi.mp3" },
-        { "word": "yeşil", "image": "/images/words/yesil.png", "audio": "/audio/words/yesil.mp3" },
-        { "word": "beyaz", "image": "/images/words/beyaz.png", "audio": "/audio/words/beyaz.mp3" },
-        { "word": "sarı", "image": "/images/words/sari.png", "audio": "/audio/words/sari.mp3" },
-        { "word": "turuncu", "image": "/images/words/turuncu.png", "audio": "/audio/words/turuncu.mp3" },
-        { "word": "mavi", "image": "/images/words/mavi.png", "audio": "/audio/words/mavi.mp3" }
+        { "word": "pembe", "image": "/images/renkler/pembe.png", "audio": "/audio/renkler/pembe.mp3" },
+        { "word": "kahverengi", "image": "/images/renkler/kahverengi.png", "audio": "/audio/renkler/kahverengi.mp3" },
+        { "word": "yeşil", "image": "/images/renkler/yesil.png", "audio": "/audio/renkler/yesil.mp3" },
+        { "word": "beyaz", "image": "/images/renkler/beyaz.png", "audio": "/audio/renkler/beyaz.mp3" },
+        { "word": "sarı", "image": "/images/renkler/sari.png", "audio": "/audio/renkler/sari.mp3" },
+        { "word": "turuncu", "image": "/images/renkler/turuncu.png", "audio": "/audio/renkler/turuncu.mp3" },
+        { "word": "mavi", "image": "/images/renkler/mavi.png", "audio": "/audio/renkler/mavi.mp3" }
       ]
     },
     {
@@ -43,16 +43,16 @@
       "words": 10,
       "unlocked": true,
       "wordList": [
-        { "word": "anne", "image": "/images/words/anne.png", "audio": "/audio/words/anne.mp3" },
-        { "word": "baba", "image": "/images/words/baba.png", "audio": "/audio/words/baba.mp3" },
-        { "word": "kardeş", "image": "/images/words/kardes.png", "audio": "/audio/words/kardes.mp3" },
-        { "word": "dede", "image": "/images/words/dede.png", "audio": "/audio/words/dede.mp3" },
-        { "word": "nine", "image": "/images/words/nine.png", "audio": "/audio/words/nine.mp3" },
-        { "word": "amca", "image": "/images/words/amca.png", "audio": "/audio/words/amca.mp3" },
-        { "word": "hala", "image": "/images/words/hala.png", "audio": "/audio/words/hala.mp3" },
-        { "word": "teyze", "image": "/images/words/teyze.png", "audio": "/audio/words/teyze.mp3" },
-        { "word": "kuzen", "image": "/images/words/kuzen.png", "audio": "/audio/words/kuzen.mp3" },
-        { "word": "bebek", "image": "/images/words/bebek.png", "audio": "/audio/words/bebek.mp3" }
+        { "word": "anne", "image": "/images/aile-uyeleri/anne.png", "audio": "/audio/aile-uyeleri/anne.mp3" },
+        { "word": "baba", "image": "/images/aile-uyeleri/baba.png", "audio": "/audio/aile-uyeleri/baba.mp3" },
+        { "word": "kardeş", "image": "/images/aile-uyeleri/kardes.png", "audio": "/audio/aile-uyeleri/kardes.mp3" },
+        { "word": "dede", "image": "/images/aile-uyeleri/dede.png", "audio": "/audio/aile-uyeleri/dede.mp3" },
+        { "word": "nine", "image": "/images/aile-uyeleri/nine.png", "audio": "/audio/aile-uyeleri/nine.mp3" },
+        { "word": "amca", "image": "/images/aile-uyeleri/amca.png", "audio": "/audio/aile-uyeleri/amca.mp3" },
+        { "word": "hala", "image": "/images/aile-uyeleri/hala.png", "audio": "/audio/aile-uyeleri/hala.mp3" },
+        { "word": "teyze", "image": "/images/aile-uyeleri/teyze.png", "audio": "/audio/aile-uyeleri/teyze.mp3" },
+        { "word": "kuzen", "image": "/images/aile-uyeleri/kuzen.png", "audio": "/audio/aile-uyeleri/kuzen.mp3" },
+        { "word": "bebek", "image": "/images/aile-uyeleri/bebek.png", "audio": "/audio/aile-uyeleri/bebek.mp3" }
       ]
     },
     {
@@ -62,25 +62,25 @@
       "words": 19,
       "unlocked": false,
       "wordList": [
-        { "word": "saç", "image": "/images/words/sac.png", "audio": "/audio/words/sac.mp3" },
-        { "word": "alın", "image": "/images/words/alin.png", "audio": "/audio/words/alin.mp3" },
-        { "word": "kaş", "image": "/images/words/kas.png", "audio": "/audio/words/kas.mp3" },
-        { "word": "göz", "image": "/images/words/goz.png", "audio": "/audio/words/goz.mp3" },
-        { "word": "yanak", "image": "/images/words/yanak.png", "audio": "/audio/words/yanak.mp3" },
-        { "word": "kulak", "image": "/images/words/kulak.png", "audio": "/audio/words/kulak.mp3" },
-        { "word": "burun", "image": "/images/words/burun.png", "audio": "/audio/words/burun.mp3" },
-        { "word": "ağız", "image": "/images/words/agiz.png", "audio": "/audio/words/agiz.mp3" },
-        { "word": "diş", "image": "/images/words/dis.png", "audio": "/audio/words/dis.mp3" },
-        { "word": "dil", "image": "/images/words/dil.png", "audio": "/audio/words/dil.mp3" },
-        { "word": "dudak", "image": "/images/words/dudak.png", "audio": "/audio/words/dudak.mp3" },
-        { "word": "boyun", "image": "/images/words/boyun.png", "audio": "/audio/words/boyun.mp3" },
-        { "word": "omuz", "image": "/images/words/omuz.png", "audio": "/audio/words/omuz.mp3" },
-        { "word": "kol", "image": "/images/words/kol.png", "audio": "/audio/words/kol.mp3" },
-        { "word": "el", "image": "/images/words/el.png", "audio": "/audio/words/el.mp3" },
-        { "word": "parmak", "image": "/images/words/parmak.png", "audio": "/audio/words/parmak.mp3" },
-        { "word": "karın", "image": "/images/words/karin.png", "audio": "/audio/words/karin.mp3" },
-        { "word": "bacak", "image": "/images/words/bacak.png", "audio": "/audio/words/bacak.mp3" },
-        { "word": "ayak parmağı", "image": "/images/words/ayak-parmagi.png", "audio": "/audio/words/ayak-parmagi.mp3" }
+        { "word": "saç", "image": "/images/vucudumuz/sac.png", "audio": "/audio/vucudumuz/sac.mp3" },
+        { "word": "alın", "image": "/images/vucudumuz/alin.png", "audio": "/audio/vucudumuz/alin.mp3" },
+        { "word": "kaş", "image": "/images/vucudumuz/kas.png", "audio": "/audio/vucudumuz/kas.mp3" },
+        { "word": "göz", "image": "/images/vucudumuz/goz.png", "audio": "/audio/vucudumuz/goz.mp3" },
+        { "word": "yanak", "image": "/images/vucudumuz/yanak.png", "audio": "/audio/vucudumuz/yanak.mp3" },
+        { "word": "kulak", "image": "/images/vucudumuz/kulak.png", "audio": "/audio/vucudumuz/kulak.mp3" },
+        { "word": "burun", "image": "/images/vucudumuz/burun.png", "audio": "/audio/vucudumuz/burun.mp3" },
+        { "word": "ağız", "image": "/images/vucudumuz/agiz.png", "audio": "/audio/vucudumuz/agiz.mp3" },
+        { "word": "diş", "image": "/images/vucudumuz/dis.png", "audio": "/audio/vucudumuz/dis.mp3" },
+        { "word": "dil", "image": "/images/vucudumuz/dil.png", "audio": "/audio/vucudumuz/dil.mp3" },
+        { "word": "dudak", "image": "/images/vucudumuz/dudak.png", "audio": "/audio/vucudumuz/dudak.mp3" },
+        { "word": "boyun", "image": "/images/vucudumuz/boyun.png", "audio": "/audio/vucudumuz/boyun.mp3" },
+        { "word": "omuz", "image": "/images/vucudumuz/omuz.png", "audio": "/audio/vucudumuz/omuz.mp3" },
+        { "word": "kol", "image": "/images/vucudumuz/kol.png", "audio": "/audio/vucudumuz/kol.mp3" },
+        { "word": "el", "image": "/images/vucudumuz/el.png", "audio": "/audio/vucudumuz/el.mp3" },
+        { "word": "parmak", "image": "/images/vucudumuz/parmak.png", "audio": "/audio/vucudumuz/parmak.mp3" },
+        { "word": "karın", "image": "/images/vucudumuz/karin.png", "audio": "/audio/vucudumuz/karin.mp3" },
+        { "word": "bacak", "image": "/images/vucudumuz/bacak.png", "audio": "/audio/vucudumuz/bacak.mp3" },
+        { "word": "ayak parmağı", "image": "/images/vucudumuz/ayak-parmagi.png", "audio": "/audio/vucudumuz/ayak-parmagi.mp3" }
       ]
     },
     {
@@ -90,14 +90,14 @@
       "words": 8,
       "unlocked": false,
       "wordList": [
-        { "word": "muz", "image": "/images/words/muz.png", "audio": "/audio/words/muz.mp3" },
-        { "word": "portakal", "image": "/images/words/portakal.png", "audio": "/audio/words/portakal.mp3" },
-        { "word": "elma", "image": "/images/words/elma.png", "audio": "/audio/words/elma.mp3" },
-        { "word": "çilek", "image": "/images/words/cilek.png", "audio": "/audio/words/cilek.mp3" },
-        { "word": "kiraz", "image": "/images/words/kiraz.png", "audio": "/audio/words/kiraz.mp3" },
-        { "word": "üzüm", "image": "/images/words/uzum.png", "audio": "/audio/words/uzum.mp3" },
-        { "word": "kivi", "image": "/images/words/kivi.png", "audio": "/audio/words/kivi.mp3" },
-        { "word": "armut", "image": "/images/words/armut.png", "audio": "/audio/words/armut.mp3" }
+        { "word": "muz", "image": "/images/meyveler/muz.png", "audio": "/audio/meyveler/muz.mp3" },
+        { "word": "portakal", "image": "/images/meyveler/portakal.png", "audio": "/audio/meyveler/portakal.mp3" },
+        { "word": "elma", "image": "/images/meyveler/elma.png", "audio": "/audio/meyveler/elma.mp3" },
+        { "word": "çilek", "image": "/images/meyveler/cilek.png", "audio": "/audio/meyveler/cilek.mp3" },
+        { "word": "kiraz", "image": "/images/meyveler/kiraz.png", "audio": "/audio/meyveler/kiraz.mp3" },
+        { "word": "üzüm", "image": "/images/meyveler/uzum.png", "audio": "/audio/meyveler/uzum.mp3" },
+        { "word": "kivi", "image": "/images/meyveler/kivi.png", "audio": "/audio/meyveler/kivi.mp3" },
+        { "word": "armut", "image": "/images/meyveler/armut.png", "audio": "/audio/meyveler/armut.mp3" }
       ]
     },
     {
@@ -107,12 +107,12 @@
       "words": 6,
       "unlocked": false,
       "wordList": [
-        { "word": "havuç", "image": "/images/words/havuc.png", "audio": "/audio/words/havuc.mp3" },
-        { "word": "salatalık", "image": "/images/words/salatalik.png", "audio": "/audio/words/salatalik.mp3" },
-        { "word": "domates", "image": "/images/words/domates.png", "audio": "/audio/words/domates.mp3" },
-        { "word": "brokoli", "image": "/images/words/brokoli.png", "audio": "/audio/words/brokoli.mp3" },
-        { "word": "soğan", "image": "/images/words/sogan.png", "audio": "/audio/words/sogan.mp3" },
-        { "word": "biber", "image": "/images/words/biber.png", "audio": "/audio/words/biber.mp3" }
+        { "word": "havuç", "image": "/images/sebzeler/havuc.png", "audio": "/audio/sebzeler/havuc.mp3" },
+        { "word": "salatalık", "image": "/images/sebzeler/salatalik.png", "audio": "/audio/sebzeler/salatalik.mp3" },
+        { "word": "domates", "image": "/images/sebzeler/domates.png", "audio": "/audio/sebzeler/domates.mp3" },
+        { "word": "brokoli", "image": "/images/sebzeler/brokoli.png", "audio": "/audio/sebzeler/brokoli.mp3" },
+        { "word": "soğan", "image": "/images/sebzeler/sogan.png", "audio": "/audio/sebzeler/sogan.mp3" },
+        { "word": "biber", "image": "/images/sebzeler/biber.png", "audio": "/audio/sebzeler/biber.mp3" }
       ]
     },
     {
@@ -122,10 +122,10 @@
       "words": 4,
       "unlocked": false,
       "wordList": [
-        { "word": "üçgen", "image": "/images/words/ucgen.png", "audio": "/audio/words/ucgen.mp3" },
-        { "word": "dikdörtgen", "image": "/images/words/dikdortgen.png", "audio": "/audio/words/dikdortgen.mp3" },
-        { "word": "kare", "image": "/images/words/kare.png", "audio": "/audio/words/kare.mp3" },
-        { "word": "daire", "image": "/images/words/daire.png", "audio": "/audio/words/daire.mp3" }
+        { "word": "üçgen", "image": "/images/sekiller/ucgen.png", "audio": "/audio/sekiller/ucgen.mp3" },
+        { "word": "dikdörtgen", "image": "/images/sekiller/dikdortgen.png", "audio": "/audio/sekiller/dikdortgen.mp3" },
+        { "word": "kare", "image": "/images/sekiller/kare.png", "audio": "/audio/sekiller/kare.mp3" },
+        { "word": "daire", "image": "/images/sekiller/daire.png", "audio": "/audio/sekiller/daire.mp3" }
       ]
     },
     {
@@ -135,11 +135,11 @@
       "words": 5,
       "unlocked": false,
       "wordList": [
-        { "word": "mutlu", "image": "/images/words/mutlu.png", "audio": "/audio/words/mutlu.mp3" },
-        { "word": "üzgün", "image": "/images/words/uzgun.png", "audio": "/audio/words/uzgun.mp3" },
-        { "word": "şaşırmış", "image": "/images/words/sasirmis.png", "audio": "/audio/words/sasirmis.mp3" },
-        { "word": "korkmuş", "image": "/images/words/korkmus.png", "audio": "/audio/words/korkmus.mp3" },
-        { "word": "sinirli", "image": "/images/words/sinirli.png", "audio": "/audio/words/sinirli.mp3" }
+        { "word": "mutlu", "image": "/images/duygular/mutlu.png", "audio": "/audio/duygular/mutlu.mp3" },
+        { "word": "üzgün", "image": "/images/duygular/uzgun.png", "audio": "/audio/duygular/uzgun.mp3" },
+        { "word": "şaşırmış", "image": "/images/duygular/sasirmis.png", "audio": "/audio/duygular/sasirmis.mp3" },
+        { "word": "korkmuş", "image": "/images/duygular/korkmus.png", "audio": "/audio/duygular/korkmus.mp3" },
+        { "word": "sinirli", "image": "/images/duygular/sinirli.png", "audio": "/audio/duygular/sinirli.mp3" }
       ]
     },
     {
@@ -149,14 +149,14 @@
       "words": 8,
       "unlocked": false,
       "wordList": [
-        { "word": "orman", "image": "/images/words/orman.png", "audio": "/audio/words/orman.mp3" },
-        { "word": "çiçek", "image": "/images/words/cicek.png", "audio": "/audio/words/cicek.mp3" },
-        { "word": "kaya", "image": "/images/words/kaya.png", "audio": "/audio/words/kaya.mp3" },
-        { "word": "ağaç", "image": "/images/words/agac.png", "audio": "/audio/words/agac.mp3" },
-        { "word": "dere", "image": "/images/words/dere.png", "audio": "/audio/words/dere.mp3" },
-        { "word": "dağ", "image": "/images/words/dag.png", "audio": "/audio/words/dag.mp3" },
-        { "word": "yaprak", "image": "/images/words/yaprak.png", "audio": "/audio/words/yaprak.mp3" },
-        { "word": "bulut", "image": "/images/words/bulut.png", "audio": "/audio/words/bulut.mp3" }
+        { "word": "orman", "image": "/images/doga/orman.png", "audio": "/audio/doga/orman.mp3" },
+        { "word": "çiçek", "image": "/images/doga/cicek.png", "audio": "/audio/doga/cicek.mp3" },
+        { "word": "kaya", "image": "/images/doga/kaya.png", "audio": "/audio/doga/kaya.mp3" },
+        { "word": "ağaç", "image": "/images/doga/agac.png", "audio": "/audio/doga/agac.mp3" },
+        { "word": "dere", "image": "/images/doga/dere.png", "audio": "/audio/doga/dere.mp3" },
+        { "word": "dağ", "image": "/images/doga/dag.png", "audio": "/audio/doga/dag.mp3" },
+        { "word": "yaprak", "image": "/images/doga/yaprak.png", "audio": "/audio/doga/yaprak.mp3" },
+        { "word": "bulut", "image": "/images/doga/bulut.png", "audio": "/audio/doga/bulut.mp3" }
       ]
     },
     {
@@ -166,13 +166,13 @@
       "words": 7,
       "unlocked": false,
       "wordList": [
-        { "word": "yumurta", "image": "/images/words/yumurta.png", "audio": "/audio/words/yumurta.mp3" },
-        { "word": "zeytin", "image": "/images/words/zeytin.png", "audio": "/audio/words/zeytin.mp3" },
-        { "word": "peynir", "image": "/images/words/peynir.png", "audio": "/audio/words/peynir.mp3" },
-        { "word": "ekmek", "image": "/images/words/ekmek.png", "audio": "/audio/words/ekmek.mp3" },
-        { "word": "reçel", "image": "/images/words/recel.png", "audio": "/audio/words/recel.mp3" },
-        { "word": "bal", "image": "/images/words/bal.png", "audio": "/audio/words/bal.mp3" },
-        { "word": "tereyağ", "image": "/images/words/tereyag.png", "audio": "/audio/words/tereyag.mp3" }
+        { "word": "yumurta", "image": "/images/kahvalti/yumurta.png", "audio": "/audio/kahvalti/yumurta.mp3" },
+        { "word": "zeytin", "image": "/images/kahvalti/zeytin.png", "audio": "/audio/kahvalti/zeytin.mp3" },
+        { "word": "peynir", "image": "/images/kahvalti/peynir.png", "audio": "/audio/kahvalti/peynir.mp3" },
+        { "word": "ekmek", "image": "/images/kahvalti/ekmek.png", "audio": "/audio/kahvalti/ekmek.mp3" },
+        { "word": "reçel", "image": "/images/kahvalti/recel.png", "audio": "/audio/kahvalti/recel.mp3" },
+        { "word": "bal", "image": "/images/kahvalti/bal.png", "audio": "/audio/kahvalti/bal.mp3" },
+        { "word": "tereyağ", "image": "/images/kahvalti/tereyag.png", "audio": "/audio/kahvalti/tereyag.mp3" }
       ]
     },
     {
@@ -182,14 +182,14 @@
       "words": 8,
       "unlocked": false,
       "wordList": [
-        { "word": "çorba", "image": "/images/words/corba.png", "audio": "/audio/words/corba.mp3" },
-        { "word": "pilav", "image": "/images/words/pilav.png", "audio": "/audio/words/pilav.mp3" },
-        { "word": "makarna", "image": "/images/words/makarna.png", "audio": "/audio/words/makarna.mp3" },
-        { "word": "köfte", "image": "/images/words/kofte.png", "audio": "/audio/words/kofte.mp3" },
-        { "word": "balık", "image": "/images/words/balik.png", "audio": "/audio/words/balik.mp3" },
-        { "word": "tavuk", "image": "/images/words/tavuk.png", "audio": "/audio/words/tavuk.mp3" },
-        { "word": "salata", "image": "/images/words/salata.png", "audio": "/audio/words/salata.mp3" },
-        { "word": "patates kızartması", "image": "/images/words/patates-kizartmasi.png", "audio": "/audio/words/patates-kizartmasi.mp3" }
+        { "word": "çorba", "image": "/images/aksam-yemegi/corba.png", "audio": "/audio/aksam-yemegi/corba.mp3" },
+        { "word": "pilav", "image": "/images/aksam-yemegi/pilav.png", "audio": "/audio/aksam-yemegi/pilav.mp3" },
+        { "word": "makarna", "image": "/images/aksam-yemegi/makarna.png", "audio": "/audio/aksam-yemegi/makarna.mp3" },
+        { "word": "köfte", "image": "/images/aksam-yemegi/kofte.png", "audio": "/audio/aksam-yemegi/kofte.mp3" },
+        { "word": "balık", "image": "/images/aksam-yemegi/balik.png", "audio": "/audio/aksam-yemegi/balik.mp3" },
+        { "word": "tavuk", "image": "/images/aksam-yemegi/tavuk.png", "audio": "/audio/aksam-yemegi/tavuk.mp3" },
+        { "word": "salata", "image": "/images/aksam-yemegi/salata.png", "audio": "/audio/aksam-yemegi/salata.mp3" },
+        { "word": "patates kızartması", "image": "/images/aksam-yemegi/patates-kizartmasi.png", "audio": "/audio/aksam-yemegi/patates-kizartmasi.mp3" }
       ]
     },
     {
@@ -199,11 +199,11 @@
       "words": 5,
       "unlocked": false,
       "wordList": [
-        { "word": "kek", "image": "/images/words/kek.png", "audio": "/audio/words/kek.mp3" },
-        { "word": "kurabiye", "image": "/images/words/kurabiye.png", "audio": "/audio/words/kurabiye.mp3" },
-        { "word": "dondurma", "image": "/images/words/dondurma.png", "audio": "/audio/words/dondurma.mp3" },
-        { "word": "pasta", "image": "/images/words/pasta.png", "audio": "/audio/words/pasta.mp3" },
-        { "word": "baklava", "image": "/images/words/baklava.png", "audio": "/audio/words/baklava.mp3" }
+        { "word": "kek", "image": "/images/tatlilar/kek.png", "audio": "/audio/tatlilar/kek.mp3" },
+        { "word": "kurabiye", "image": "/images/tatlilar/kurabiye.png", "audio": "/audio/tatlilar/kurabiye.mp3" },
+        { "word": "dondurma", "image": "/images/tatlilar/dondurma.png", "audio": "/audio/tatlilar/dondurma.mp3" },
+        { "word": "pasta", "image": "/images/tatlilar/pasta.png", "audio": "/audio/tatlilar/pasta.mp3" },
+        { "word": "baklava", "image": "/images/tatlilar/baklava.png", "audio": "/audio/tatlilar/baklava.mp3" }
       ]
     },
     {
@@ -213,18 +213,16 @@
       "words": 10,
       "unlocked": false,
       "wordList": [
-        { "word": "manav", "image": "/images/words/manav.png", "audio": "/audio/words/manav.mp3" },
-        { "word": "veteriner", "image": "/images/words/veteriner.png", "audio": "/audio/words/veteriner.mp3" },
-        { "word": "kuaför", "image": "/images/words/kuafor.png", "audio": "/audio/words/kuafor.mp3" },
-        { "word": "ressam", "image": "/images/words/ressam.png", "audio": "/audio/words/ressam.mp3" },
-        { "word": "aşçı", "image": "/images/words/asci.png", "audio": "/audio/words/asci.mp3" },
-        { "word": "pilot", "image": "/images/words/pilot.png", "audio": "/audio/words/pilot.mp3" },
-        { "word": "çiftçi", "image": "/images/words/ciftci.png", "audio": "/audio/words/ciftci.mp3" },
-        { "word": "doktor", "image": "/images/words/doktor.png", "audio": "/audio/words/doktor.mp3" },
-        { "word": "tamirci", "image": "/images/words/tamirci.png", "audio": "/audio/words/tamirci.mp3" },
-        { "word": "öğretmen", "image": "/images/words/ogretmen.png", "audio": "/audio/words/ogretmen.mp3" }
+        { "word": "manav", "image": "/images/meslekler/manav.png", "audio": "/audio/meslekler/manav.mp3" },
+        { "word": "veteriner", "image": "/images/meslekler/veteriner.png", "audio": "/audio/meslekler/veteriner.mp3" },
+        { "word": "kuaför", "image": "/images/meslekler/kuafor.png", "audio": "/audio/meslekler/kuafor.mp3" },
+        { "word": "ressam", "image": "/images/meslekler/ressam.png", "audio": "/audio/meslekler/ressam.mp3" },
+        { "word": "aşçı", "image": "/images/meslekler/asci.png", "audio": "/audio/meslekler/asci.mp3" },
+        { "word": "pilot", "image": "/images/meslekler/pilot.png", "audio": "/audio/meslekler/pilot.mp3" },
+        { "word": "çiftçi", "image": "/images/meslekler/ciftci.png", "audio": "/audio/meslekler/ciftci.mp3" },
+        { "word": "doktor", "image": "/images/meslekler/doktor.png", "audio": "/audio/meslekler/doktor.mp3" },
+        { "word": "tamirci", "image": "/images/meslekler/tamirci.png", "audio": "/audio/meslekler/tamirci.mp3" },
+        { "word": "öğretmen", "image": "/images/meslekler/ogretmen.png", "audio": "/audio/meslekler/ogretmen.mp3" }
       ]
     }
   ]
-
-    
