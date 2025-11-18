@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Logo } from '@/components/logo';
 import { Menu, Loader2, LayoutDashboard, User, Package, History, Settings, LogOut, Crown } from 'lucide-react';
-import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { getAuth, signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -164,6 +164,12 @@ export default function Header() {
                     </Button>
                 </SheetTrigger>
                 <SheetContent side="right">
+                    <SheetHeader className="sr-only">
+                      <SheetTitle>Mobil Menü</SheetTitle>
+                      <SheetDescription>
+                        Uygulama içi gezinme linkleri.
+                      </SheetDescription>
+                    </SheetHeader>
                     <div className="flex flex-col gap-y-6 pt-10">
                         <SheetClose asChild>
                           <Link href="/" className="flex items-center space-x-2">
@@ -194,8 +200,8 @@ export default function Header() {
                                  <Button variant="outline" className="w-full font-semibold text-lg" onClick={() => handleLinkClick("/login")}>
                                     Giriş Yap
                                  </Button>
-                                 <Button className="w-full font-semibold text-lg bg-green-600 hover:bg-green-700 text-white" onClick={() => handleLinkClick("/login")}>
-                                     Ücretsiz Kayıt Ol
+                                 <Button className="w-full font-semibold text-lg" asChild>
+                                     <Link href="/login">Ücretsiz Kayıt Ol</Link>
                                  </Button>
                                 </>
                             )}
@@ -205,22 +211,24 @@ export default function Header() {
             </Sheet>
           </div>
 
-          {userLoading ? (
-             <div className="h-10 w-10 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>
-          ) : isLoggedIn ? (
-            <div className='hidden md:flex items-center gap-2'>
-              <UserMenu />
-            </div>
-          ) : (
-            <div className="hidden md:flex items-center gap-2">
-              <Button variant="ghost" className="font-semibold" asChild>
-                <Link href="/login">Giriş Yap</Link>
-              </Button>
-               <Button asChild className="bg-green-600 hover:bg-green-700 text-white font-semibold">
-                 <Link href="/login">Ücretsiz Kayıt Ol</Link>
-              </Button>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {userLoading ? (
+              <div className="h-10 w-10 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>
+            ) : isLoggedIn ? (
+              <div className='flex items-center gap-2'>
+                <UserMenu />
+              </div>
+            ) : (
+              <div className="hidden md:flex items-center gap-2">
+                <Button variant="ghost" className="font-semibold" asChild>
+                  <Link href="/login">Giriş Yap</Link>
+                </Button>
+                <Button asChild className="font-semibold">
+                  <Link href="/login">Ücretsiz Kayıt Ol</Link>
+                </Button>
+              </div>
+            )}
+          </div>
 
         </div>
       </div>

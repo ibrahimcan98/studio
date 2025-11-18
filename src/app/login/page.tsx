@@ -22,7 +22,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoginIllustration } from '@/components/illustrations/login-illustration';
 import { SignUpIllustration } from '@/components/illustrations/signup-illustration';
-import { useAuth, useFirestore, setDocumentNonBlocking, useUser } from '@/firebase';
+import { useAuth, useFirestore, useUser } from '@/firebase';
+import { setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
@@ -101,7 +102,7 @@ function LoginForm({
           </div>
           <Button
             type="submit"
-            className="w-full font-bold text-lg py-6 bg-gradient-to-r from-teal-400 to-green-500 hover:from-teal-500 hover:to-green-600 text-white shadow-lg"
+            className="w-full font-bold text-lg py-6"
             disabled={loading || isSubmitting}
           >
             {isSubmitting ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
@@ -149,7 +150,8 @@ function SignUpForm({
       await updateProfile(user, { displayName: name });
 
       const userDocRef = doc(db, 'users', user.uid);
-      setDocumentNonBlocking(userDocRef, {
+      // Use await here to ensure data is set before redirecting.
+      await setDoc(userDocRef, {
         id: user.uid,
         firstName: name.split(' ')[0] || '',
         lastName: name.split(' ').slice(1).join(' ') || '',
@@ -234,7 +236,7 @@ function SignUpForm({
           </div>
           <Button
             type="submit"
-            className="w-full font-bold text-lg py-6 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg"
+            className="w-full font-bold text-lg py-6"
             disabled={loading || isSubmitting}
           >
             {isSubmitting ? 'Kayıt Olunuyor...' : 'Ücretsiz Kayıt Ol'}
@@ -282,7 +284,7 @@ export default function LoginPage() {
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-cyan-50 via-amber-50 to-white p-4 overflow-hidden">
       
-      <div className="container relative z-10 w-full max-w-6xl flex items-center justify-center min-h-[80vh]">
+      <div className="container relative z-10 w-full max-w-6xl flex items-center justify-center min-h-[calc(100vh-8rem)]">
           {isSignUp ? (
             <div className="w-full flex justify-center">
                <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-16 w-full max-w-4xl">
