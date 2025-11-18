@@ -45,30 +45,6 @@ const comparisonData = [
     { feature: "Reklamsız", free: false, premium: true, premiumIcon: true },
 ];
 
-const plans = [
-    {
-        name: "Aylık",
-        price: "14 €",
-        period: "/ ay",
-        discount: null,
-        popular: true,
-    },
-    {
-        name: "3 Aylık",
-        price: "36 €",
-        period: "/ 3 ay",
-        discount: "%15 indirim",
-        popular: false,
-    },
-    {
-        name: "Yıllık",
-        price: "129 €",
-        period: "/ yıl",
-        discount: "%25 indirim",
-        popular: false,
-    },
-];
-
 
 export default function PremiumPage() {
     const { user } = useUser();
@@ -157,42 +133,39 @@ export default function PremiumPage() {
                     <p className="text-lg text-muted-foreground">Sınırsız öğrenme, tüm kategoriler ve daha fazlası</p>
                 </div>
                 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start mb-16">
-                    {plans.map((plan) => (
-                        <Card key={plan.name} className={cn(`flex flex-col h-full transition-all shadow-lg`, plan.popular ? 'border-primary border-2 transform lg:-translate-y-4 bg-gradient-to-br from-yellow-300 to-orange-400 text-white' : 'bg-white hover:shadow-xl')}>
-                            <CardHeader className="items-center text-center">
-                                {plan.popular && <Badge className="mb-4 bg-white text-orange-500 hover:bg-white/90">En Popüler</Badge>}
-                                <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                                <div className="flex items-baseline gap-2 mt-4">
-                                <span className="text-4xl font-extrabold">{plan.price}</span>
-                                {plan.discount && <span className={cn("font-semibold", plan.popular ? "text-white/80" : "text-green-600")}>{plan.discount}</span>}
-                                </div>
-                                <CardDescription className={cn(plan.popular ? "text-white/80" : "")}>{plan.period}</CardDescription>
-                            </CardHeader>
-                            <CardContent className="flex-1">
-                                <ul className={cn("text-sm space-y-2 text-left px-4", plan.popular ? "text-white/90" : "text-muted-foreground")}>
-                                     <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400"/>Sınırsız can</li>
-                                     <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400"/>Tüm kategoriler açık</li>
-                                     <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400"/>Özel rozetler</li>
-                                     <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400"/>Reklamsız deneyim</li>
-                                </ul>
-                            </CardContent>
-                            <CardFooter>
-                                <Button
-                                    className={cn("w-full font-bold", plan.popular ? 'bg-white text-orange-500 hover:bg-gray-100' : 'bg-primary text-primary-foreground')}
-                                    onClick={handlePurchase}
-                                    disabled={isProcessing}
-                                >
-                                    {isProcessing ? (
-                                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                    ) : (
-                                        <Crown className="mr-2 h-5 w-5" />
-                                    )}
-                                    {isProcessing ? 'İşleniyor...' : 'Şimdi Premium Ol'}
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                    ))}
+                <div className="flex justify-center mb-16">
+                     <Card className={cn(`flex flex-col h-full transition-all shadow-lg w-full max-w-sm`, 'border-primary border-2 transform lg:-translate-y-4 bg-gradient-to-br from-yellow-300 to-orange-400 text-white' )}>
+                        <CardHeader className="items-center text-center">
+                            <Badge className="mb-4 bg-white text-orange-500 hover:bg-white/90">Aylık Plan</Badge>
+                            <CardTitle className="text-2xl">Premium</CardTitle>
+                            <div className="flex items-baseline gap-2 mt-4">
+                            <span className="text-4xl font-extrabold">14 €</span>
+                            <span className={cn("font-semibold", "text-white/80")}>/ ay</span>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="flex-1">
+                            <ul className={cn("text-sm space-y-2 text-left px-4", "text-white/90")}>
+                                    <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400"/>Sınırsız can</li>
+                                    <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400"/>Tüm kategoriler açık</li>
+                                    <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400"/>Özel rozetler</li>
+                                    <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400"/>Reklamsız deneyim</li>
+                            </ul>
+                        </CardContent>
+                        <CardFooter>
+                            <Button
+                                className={cn("w-full font-bold", 'bg-white text-orange-500 hover:bg-gray-100')}
+                                onClick={handlePurchase}
+                                disabled={isProcessing}
+                            >
+                                {isProcessing ? (
+                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                ) : (
+                                    <Crown className="mr-2 h-5 w-5" />
+                                )}
+                                {isProcessing ? 'İşleniyor...' : 'Şimdi Premium Ol'}
+                            </Button>
+                        </CardFooter>
+                    </Card>
                 </div>
 
 
@@ -262,5 +235,3 @@ export default function PremiumPage() {
         </div>
     );
 }
-
-    
