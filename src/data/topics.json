@@ -7,16 +7,16 @@
       "words": 10,
       "unlocked": true,
       "wordList": [
-        { "word": "inek", "image": "/placeholders/animals/cow.png" },
-        { "word": "kurbağa", "image": "/placeholders/animals/frog.png" },
-        { "word": "köpek", "image": "/placeholders/animals/dog.png" },
-        { "word": "zürafa", "image": "/placeholders/animals/giraffe.png" },
-        { "word": "panda", "image": "/placeholders/animals/panda.png" },
-        { "word": "kedi", "image": "/placeholders/animals/cat.png" },
-        { "word": "fil", "image": "/placeholders/animals/elephant.png" },
-        { "word": "kuş", "image": "/placeholders/animals/bird.png" },
-        { "word": "maymun", "image": "/placeholders/animals/monkey.png" },
-        { "word": "aslan", "image": "/placeholders/animals/lion.png" }
+        { "word": "inek", "image": "cow" },
+        { "word": "kurbağa", "image": "frog" },
+        { "word": "köpek", "image": "dog" },
+        { "word": "zürafa", "image": "giraffe" },
+        { "word": "panda", "image": "panda" },
+        { "word": "kedi", "image": "cat" },
+        { "word": "fil", "image": "elephant" },
+        { "word": "kuş", "image": "bird" },
+        { "word": "maymun", "image": "monkey" },
+        { "word": "aslan", "image": "lion" }
       ]
     },
     {
@@ -26,13 +26,13 @@
       "words": 7,
       "unlocked": true,
       "wordList": [
-        { "word": "pembe", "image": "/placeholders/colors/pink.png" },
-        { "word": "kahverengi", "image": "/placeholders/colors/brown.png" },
-        { "word": "yeşil", "image": "/placeholders/colors/green.png" },
-        { "word": "beyaz", "image": "/placeholders/colors/white.png" },
-        { "word": "sarı", "image": "/placeholders/colors/yellow.png" },
-        { "word": "turuncu", "image": "/placeholders/colors/orange.png" },
-        { "word": "mavi", "image": "/placeholders/colors/blue.png" }
+        { "word": "pembe", "image": "pink color swatch" },
+        { "word": "kahverengi", "image": "brown color swatch" },
+        { "word": "yeşil", "image": "green color swatch" },
+        { "word": "beyaz", "image": "white color swatch" },
+        { "word": "sarı", "image": "yellow color swatch" },
+        { "word": "turuncu", "image": "orange color swatch" },
+        { "word": "mavi", "image": "blue color swatch" }
       ]
     },
     {
@@ -42,16 +42,16 @@
       "words": 10,
       "unlocked": true,
       "wordList": [
-        { "word": "anne", "image": "/placeholders/family/mother.png" },
-        { "word": "baba", "image": "/placeholders/family/father.png" },
-        { "word": "kardeş", "image": "/placeholders/family/sibling.png" },
-        { "word": "dede", "image": "/placeholders/family/grandfather.png" },
-        { "word": "nine", "image": "/placeholders/family/grandmother.png" },
-        { "word": "amca", "image": "/placeholders/family/uncle.png" },
-        { "word": "hala", "image": "/placeholders/family/aunt.png" },
-        { "word": "teyze", "image": "/placeholders/family/aunt2.png" },
-        { "word": "kuzen", "image": "/placeholders/family/cousin.png" },
-        { "word": "bebek", "image": "/placeholders/family/baby.png" }
+        { "word": "anne", "image": "mother" },
+        { "word": "baba", "image": "father" },
+        { "word": "kardeş", "image": "sibling" },
+        { "word": "dede", "image": "grandfather" },
+        { "word": "nine", "image": "grandmother" },
+        { "word": "amca", "image": "uncle" },
+        { "word": "hala", "image": "aunt" },
+        { "word": "teyze", "image": "aunt" },
+        { "word": "kuzen", "image": "cousin" },
+        { "word": "bebek", "image": "baby" }
       ]
     },
     {
@@ -61,25 +61,25 @@
       "words": 19,
       "unlocked": false,
       "wordList": [
-        { "word": "saç", "image": "/placeholders/body/hair.png" },
-        { "word": "alın", "image": "/placeholders/body/forehead.png" },
-        { "word": "kaş", "image": "/placeholders/body/eyebrow.png" },
-        { "word": "göz", "image": "/placeholders/body/eye.png" },
-        { "word": "yanak", "image": "/placeholders/body/cheek.png" },
-        { "word": "kulak", "image": "/placeholders/body/ear.png" },
-        { "word": "burun", "image": "/placeholders/body/nose.png" },
-        { "word": "ağız", "image": "/placeholders/body/mouth.png" },
-        { "word": "diş", "image": "/placeholders/body/tooth.png" },
-        { "word": "dil", "image": "/placeholders/body/tongue.png" },
-        { "word": "dudak", "image": "/placeholders/body/lip.png" },
-        { "word": "boyun", "image": "/placeholders/body/neck.png" },
-        { "word": "omuz", "image": "/placeholders/body/shoulder.png" },
-        { "word": "kol", "image": "/placeholders/body/arm.png" },
-        { "word": "el", "image": "/placeholders/body/hand.png" },
-        { "word": "parmak", "image": "/placeholders/body/finger.png" },
-        { "word": "karın", "image": "/placeholders/body/stomach.png" },
-        { "word": "bacak", "image": "/placeholders/body/leg.png" },
-        { "word": "ayak parmağı", "image": "/placeholders/body/toe.png" }
+        { "word": "saç", "image": "hair" },
+        { "word": "alın", "image": "forehead" },
+        { "word": "kaş", "image": "eyebrow" },
+        { "word": "göz", "image": "eye" },
+        { "word": "yanak", "image": "cheek" },
+        { "word": "kulak", "image": "ear" },
+        { "word": "burun", "image": "nose" },
+        { "word": "ağız", "image": "mouth" },
+        { "word": "diş", "image": "tooth" },
+        { "word": "dil", "image": "tongue" },
+        { "word": "dudak", "image": "lip" },
+        { "word": "boyun", "image": "neck" },
+        { "word": "omuz", "image": "shoulder" },
+        { "word": "kol", "image": "arm" },
+        { "word": "el", "image": "hand" },
+        { "word": "parmak", "image": "finger" },
+        { "word": "karın", "image": "stomach" },
+        { "word": "bacak", "image": "leg" },
+        { "word": "ayak parmağı", "image": "toe" }
       ]
     },
     {
@@ -89,14 +89,14 @@
       "words": 8,
       "unlocked": false,
       "wordList": [
-        { "word": "muz", "image": "/placeholders/fruits/banana.png" },
-        { "word": "portakal", "image": "/placeholders/fruits/orange.png" },
-        { "word": "elma", "image": "/placeholders/fruits/apple.png" },
-        { "word": "çilek", "image": "/placeholders/fruits/strawberry.png" },
-        { "word": "kiraz", "image": "/placeholders/fruits/cherry.png" },
-        { "word": "üzüm", "image": "/placeholders/fruits/grapes.png" },
-        { "word": "kivi", "image": "/placeholders/fruits/kiwi.png" },
-        { "word": "armut", "image": "/placeholders/fruits/pear.png" }
+        { "word": "muz", "image": "banana" },
+        { "word": "portakal", "image": "orange fruit" },
+        { "word": "elma", "image": "apple" },
+        { "word": "çilek", "image": "strawberry" },
+        { "word": "kiraz", "image": "cherry" },
+        { "word": "üzüm", "image": "grapes" },
+        { "word": "kivi", "image": "kiwi" },
+        { "word": "armut", "image": "pear" }
       ]
     },
     {
@@ -106,12 +106,12 @@
       "words": 6,
       "unlocked": false,
       "wordList": [
-        { "word": "havuç", "image": "/placeholders/vegetables/carrot.png" },
-        { "word": "salatalık", "image": "/placeholders/vegetables/cucumber.png" },
-        { "word": "domates", "image": "/placeholders/vegetables/tomato.png" },
-        { "word": "brokoli", "image": "/placeholders/vegetables/broccoli.png" },
-        { "word": "soğan", "image": "/placeholders/vegetables/onion.png" },
-        { "word": "biber", "image": "/placeholders/vegetables/pepper.png" }
+        { "word": "havuç", "image": "carrot" },
+        { "word": "salatalık", "image": "cucumber" },
+        { "word": "domates", "image": "tomato" },
+        { "word": "brokoli", "image": "broccoli" },
+        { "word": "soğan", "image": "onion" },
+        { "word": "biber", "image": "pepper" }
       ]
     },
     {
@@ -121,10 +121,10 @@
       "words": 4,
       "unlocked": false,
       "wordList": [
-        { "word": "üçgen", "image": "/placeholders/shapes/triangle.png" },
-        { "word": "dikdörtgen", "image": "/placeholders/shapes/rectangle.png" },
-        { "word": "kare", "image": "/placeholders/shapes/square.png" },
-        { "word": "daire", "image": "/placeholders/shapes/circle.png" }
+        { "word": "üçgen", "image": "triangle shape" },
+        { "word": "dikdörtgen", "image": "rectangle shape" },
+        { "word": "kare", "image": "square shape" },
+        { "word": "daire", "image": "circle shape" }
       ]
     },
     {
@@ -134,11 +134,11 @@
       "words": 5,
       "unlocked": false,
       "wordList": [
-        { "word": "mutlu", "image": "/placeholders/emotions/happy.png" },
-        { "word": "üzgün", "image": "/placeholders/emotions/sad.png" },
-        { "word": "şaşırmış", "image": "/placeholders/emotions/surprised.png" },
-        { "word": "korkmuş", "image": "/placeholders/emotions/scared.png" },
-        { "word": "sinirli", "image": "/placeholders/emotions/angry.png" }
+        { "word": "mutlu", "image": "happy face" },
+        { "word": "üzgün", "image": "sad face" },
+        { "word": "şaşırmış", "image": "surprised face" },
+        { "word": "korkmuş", "image": "scared face" },
+        { "word": "sinirli", "image": "angry face" }
       ]
     },
     {
@@ -148,14 +148,14 @@
       "words": 8,
       "unlocked": false,
       "wordList": [
-        { "word": "orman", "image": "/placeholders/nature/forest.png" },
-        { "word": "çiçek", "image": "/placeholders/nature/flower.png" },
-        { "word": "kaya", "image": "/placeholders/nature/rock.png" },
-        { "word": "ağaç", "image": "/placeholders/nature/tree.png" },
-        { "word": "dere", "image": "/placeholders/nature/stream.png" },
-        { "word": "dağ", "image": "/placeholders/nature/mountain.png" },
-        { "word": "yaprak", "image": "/placeholders/nature/leaf.png" },
-        { "word": "bulut", "image": "/placeholders/nature/cloud.png" }
+        { "word": "orman", "image": "forest" },
+        { "word": "çiçek", "image": "flower" },
+        { "word": "kaya", "image": "rock" },
+        { "word": "ağaç", "image": "tree" },
+        { "word": "dere", "image": "stream" },
+        { "word": "dağ", "image": "mountain" },
+        { "word": "yaprak", "image": "leaf" },
+        { "word": "bulut", "image": "cloud" }
       ]
     },
     {
@@ -165,13 +165,13 @@
       "words": 7,
       "unlocked": false,
       "wordList": [
-        { "word": "yumurta", "image": "/placeholders/breakfast/egg.png" },
-        { "word": "zeytin", "image": "/placeholders/breakfast/olive.png" },
-        { "word": "peynir", "image": "/placeholders/breakfast/cheese.png" },
-        { "word": "ekmek", "image": "/placeholders/breakfast/bread.png" },
-        { "word": "reçel", "image": "/placeholders/breakfast/jam.png" },
-        { "word": "bal", "image": "/placeholders/breakfast/honey.png" },
-        { "word": "tereyağ", "image": "/placeholders/breakfast/butter.png" }
+        { "word": "yumurta", "image": "egg" },
+        { "word": "zeytin", "image": "olive" },
+        { "word": "peynir", "image": "cheese" },
+        { "word": "ekmek", "image": "bread" },
+        { "word": "reçel", "image": "jam" },
+        { "word": "bal", "image": "honey" },
+        { "word": "tereyağ", "image": "butter" }
       ]
     },
     {
@@ -181,14 +181,14 @@
       "words": 8,
       "unlocked": false,
       "wordList": [
-        { "word": "çorba", "image": "/placeholders/dinner/soup.png" },
-        { "word": "pilav", "image": "/placeholders/dinner/rice.png" },
-        { "word": "makarna", "image": "/placeholders/dinner/pasta.png" },
-        { "word": "köfte", "image": "/placeholders/dinner/meatball.png" },
-        { "word": "balık", "image": "/placeholders/dinner/fish.png" },
-        { "word": "tavuk", "image": "/placeholders/dinner/chicken.png" },
-        { "word": "salata", "image": "/placeholders/dinner/salad.png" },
-        { "word": "patates kızartması", "image": "/placeholders/dinner/fries.png" }
+        { "word": "çorba", "image": "soup" },
+        { "word": "pilav", "image": "rice" },
+        { "word": "makarna", "image": "pasta" },
+        { "word": "köfte", "image": "meatball" },
+        { "word": "balık", "image": "fish" },
+        { "word": "tavuk", "image": "chicken" },
+        { "word": "salata", "image": "salad" },
+        { "word": "patates kızartması", "image": "fries" }
       ]
     },
     {
@@ -198,11 +198,11 @@
       "words": 5,
       "unlocked": false,
       "wordList": [
-        { "word": "kek", "image": "/placeholders/desserts/cake.png" },
-        { "word": "kurabiye", "image": "/placeholders/desserts/cookie.png" },
-        { "word": "dondurma", "image": "/placeholders/desserts/icecream.png" },
-        { "word": "pasta", "image": "/placeholders/desserts/pie.png" },
-        { "word": "baklava", "image": "/placeholders/desserts/baklava.png" }
+        { "word": "kek", "image": "cake" },
+        { "word": "kurabiye", "image": "cookie" },
+        { "word": "dondurma", "image": "ice cream" },
+        { "word": "pasta", "image": "pie" },
+        { "word": "baklava", "image": "baklava" }
       ]
     },
     {
@@ -212,16 +212,16 @@
       "words": 10,
       "unlocked": false,
       "wordList": [
-        { "word": "manav", "image": "/placeholders/jobs/greengrocer.png" },
-        { "word": "veteriner", "image": "/placeholders/jobs/vet.png" },
-        { "word": "kuaför", "image": "/placeholders/jobs/hairdresser.png" },
-        { "word": "ressam", "image": "/placeholders/jobs/painter.png" },
-        { "word": "aşçı", "image": "/placeholders/jobs/chef.png" },
-        { "word": "pilot", "image": "/placeholders/jobs/pilot.png" },
-        { "word": "çiftçi", "image": "/placeholders/jobs/farmer.png" },
-        { "word": "doktor", "image": "/placeholders/jobs/doctor.png" },
-        { "word": "tamirci", "image": "/placeholders/jobs/mechanic.png" },
-        { "word": "öğretmen", "image": "/placeholders/jobs/teacher.png" }
+        { "word": "manav", "image": "greengrocer" },
+        { "word": "veteriner", "image": "veterinarian" },
+        { "word": "kuaför", "image": "hairdresser" },
+        { "word": "ressam", "image": "painter" },
+        { "word": "aşçı", "image": "chef" },
+        { "word": "pilot", "image": "pilot" },
+        { "word": "çiftçi", "image": "farmer" },
+        { "word": "doktor", "image": "doctor" },
+        { "word": "tamirci", "image": "mechanic" },
+        { "word": "öğretmen", "image": "teacher" }
       ]
     }
   ]
