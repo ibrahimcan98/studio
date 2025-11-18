@@ -101,7 +101,7 @@ export default function KurslarPage() {
                 )}
 
                 {konusmaKursu && (
-                    <section id="konusma-detay" className="mt-16 py-16 md:py-24">
+                    <section id="konusma-detay" className="mt-16 py-16 md:py-24 rounded-3xl bg-[#FFF0CC]">
                         <div className="container max-w-6xl mx-auto">
                             <div className="text-center mb-12">
                                 <h2 className="text-4xl md:text-5xl font-bold mb-4">Konuşma Kursu</h2>
