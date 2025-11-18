@@ -156,12 +156,14 @@ export default function UyelikYonetimiPage() {
 
     const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
     
+    const isLoading = isUserLoading || isUserDataLoading;
+
     useEffect(() => {
-        const isDataReady = !isUserLoading && !isUserDataLoading;
-        if (isDataReady && !userData?.isPremium) {
+        // Yönlendirmeyi sadece yükleme tamamlandıktan ve premium olmadığı kesinleştikten sonra yap
+        if (!isLoading && !userData?.isPremium) {
             router.replace('/ebeveyn-portali');
         }
-    }, [isUserLoading, isUserDataLoading, userData, router]);
+    }, [isLoading, userData, router]);
 
     const handleCancelSubscription = async () => {
         if (!userDocRef) return;
@@ -179,8 +181,6 @@ export default function UyelikYonetimiPage() {
         router.push('/ebeveyn-portali');
     };
 
-    const isLoading = isUserLoading || isUserDataLoading;
-
     if (isLoading) {
         return (
             <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
@@ -190,7 +190,13 @@ export default function UyelikYonetimiPage() {
     }
     
     if (!userData?.isPremium) {
-        return null;
+        // Yükleme tamamlandı ve premium değilse, yönlendirme gerçekleşirken bir şey gösterme
+        // veya alternatif bir yükleme ekranı göster
+        return (
+             <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
+                <Loader2 className="h-16 w-16 animate-spin text-primary" />
+            </div>
+        );
     }
 
     return <UyelikContent userData={userData} onCancel={handleCancelSubscription} />;
