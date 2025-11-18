@@ -79,7 +79,7 @@ export const COURSES: Course[] = [
         title: "Konuşma Kursu",
         ageGroup: "Okul öncesi",
         shortDescription: "5 yaşındaki çocuğunuz için keyifli bir ısınma turu!\n* Yaş grubu tahmindir. Çocuğunuzun hazır bulunuşluğu ve sizin beklentilerinize göre başlayacağınız kurs belirlenir.",
-        blobColor: "bg-cyan-300", // #4ECDC4
+        blobColor: "bg-[#FFF0CC]", // #FFF0CC
         cta: {
             text: "Detaylı bilgi için tıkla >",
             iconBgColor: "bg-teal-100",
