@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
-import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock } from 'lucide-react';
+import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock, InfinityIcon } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -71,7 +71,7 @@ function AddChildDialog({ userId }: { userId: string }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button className="bg-gradient-to-r from-green-400 to-cyan-400 text-white font-semibold">
           <Plus className="mr-2 h-4 w-4" /> Çocuk Ekle
         </Button>
       </DialogTrigger>
@@ -166,13 +166,6 @@ export default function EbeveynPortaliPage() {
   }, [db, user?.uid]);
 
   const { data: children, isLoading: childrenLoading } = useCollection(childrenRef);
-
-  const handleDeleteChild = (childId: string) => {
-    if (!db || !user?.uid) return;
-    const childDocRef = doc(db, 'users', user.uid, 'children', childId);
-    deleteDocumentNonBlocking(childDocRef);
-  };
-
 
   useEffect(() => {
     if (!loading && !user) {
@@ -321,60 +314,40 @@ export default function EbeveynPortaliPage() {
                 {user && <AddChildDialog userId={user.uid} />}
             </div>
             <Card>
-                <CardContent className="p-6 grid gap-6">
+                <CardContent className="p-6">
                     {children && children.length > 0 ? (
-                        children.map(child => (
-                           <div key={child.id} className="relative flex flex-col sm:flex-row items-center gap-4 p-4 border rounded-lg">
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive">
-                                      <X className="w-4 h-4" />
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        "{child.firstName}" isimli çocuğu silmek üzeresiniz. Bu işlem geri alınamaz.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>İptal</AlertDialogCancel>
-                                      <AlertDialogAction onClick={() => handleDeleteChild(child.id)} className="bg-destructive hover:bg-destructive/90">
-                                        Sil
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                                <div className="flex items-center gap-4 flex-1">
-                                    <Avatar className="h-12 w-12">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                            {children.map(child => (
+                               <Card key={child.id} className="flex flex-col items-center text-center p-6 space-y-4 hover:shadow-lg transition-shadow">
+                                    <Avatar className="h-20 w-20 text-3xl">
                                         <AvatarFallback className="bg-primary/20 text-primary font-bold">{child.firstName?.charAt(0)}</AvatarFallback>
                                     </Avatar>
-                                    <div>
+                                    <div className="flex-1">
                                         <p className="font-semibold text-lg">{child.firstName}</p>
                                         <p className="text-sm text-muted-foreground">{new Date().getFullYear() - new Date(child.dateOfBirth).getFullYear()} yaş</p>
                                     </div>
-                                </div>
-                                <div className="flex-none flex items-center gap-6 justify-center">
-                                     <div className="text-center">
-                                        <p className="font-bold text-xl">{child.rozet || 0}</p>
-                                        <p className="text-xs text-muted-foreground">Rozet</p>
-                                    </div>
-                                    <div className="text-center">
-                                        <div className="flex justify-center items-center gap-1 text-red-500">
-                                            <Heart className="h-4 w-4 fill-current"/>
-                                            <Heart className="h-4 w-4 fill-current"/>
-                                            <Heart className="h-4 w-4 fill-current"/>
-                                            {isPremium ? <Shield className="h-4 w-4 fill-current text-sky-400"/> : null}
+                                    <div className='w-full space-y-3 pt-4'>
+                                      <div className='flex justify-between items-center text-sm'>
+                                        <span className='text-muted-foreground'>Rozetler:</span>
+                                        <div className='flex items-center gap-1 font-bold bg-yellow-100 text-yellow-800 px-2 py-1 rounded-md'>
+                                          <span>{child.rozet || 0}</span>
+                                          <Award className='w-4 h-4'/>
                                         </div>
-                                        <p className="text-xs text-muted-foreground">Kalan Can</p>
+                                      </div>
+                                       <div className='flex justify-between items-center text-sm'>
+                                        <span className='text-muted-foreground'>Kalan Can:</span>
+                                        <div className='flex items-center gap-1 font-bold bg-red-100 text-red-800 px-2 py-1 rounded-md'>
+                                          {isPremium ? <InfinityIcon className='w-4 h-4' /> : <span>3</span>}
+                                           <Heart className='w-4 h-4 fill-current'/>
+                                        </div>
+                                      </div>
                                     </div>
-                                </div>
-                                <div className="flex-1 flex justify-end">
-                                    <Button className="w-full sm:w-auto bg-cyan-500 hover:bg-cyan-600">Öğrenmeye Başla</Button>
-                               </div>
-                           </div>
-                        ))
+                                    <Button className="w-full bg-gradient-to-r from-green-400 to-cyan-400 text-white font-semibold mt-auto">
+                                        Öğrenmeye Başla
+                                    </Button>
+                               </Card>
+                            ))}
+                        </div>
                     ) : (
                         <div className="text-center py-10">
                             <p className="text-muted-foreground">Henüz bir çocuk eklemediniz.</p>
