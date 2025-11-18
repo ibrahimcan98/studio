@@ -10,6 +10,7 @@ export default function KurslarPage() {
     const baslangicKursu = COURSES.find(c => c.id === 'baslangic');
     const konusmaKursu = COURSES.find(c => c.id === 'konusma');
     const gelisimKursu = COURSES.find(c => c.id === 'gelisim');
+    const akademikKursu = COURSES.find(c => c.id === 'akademik');
 
     return (
         <div className="bg-white min-h-screen text-[#243B53]">
@@ -173,7 +174,7 @@ export default function KurslarPage() {
                     </section>
                 )}
 
-                {gelisimKursu && (
+                 {gelisimKursu && (
                     <section id="gelisim-detay" className="mt-16 py-16 md:py-24 rounded-3xl bg-[#F0FAF8]">
                         <div className="container max-w-6xl mx-auto">
                             <div className="text-center mb-12">
@@ -230,6 +231,83 @@ export default function KurslarPage() {
                                                 </div>
                                                 <h4 className="font-bold text-gray-800">{gelisimKursu.title}</h4>
                                                 <p className="text-sm text-gray-500">({gelisimKursu.details.duration})</p>
+                                                <p className="text-gray-600 mt-2">{pkg.lessons} derslik paket</p>
+                                                <p className="text-3xl font-bold text-gray-900 my-4">€{pkg.price.toFixed(2)}</p>
+                                                <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90">
+                                                    <ShoppingCart className="w-4 h-4 mr-2" />
+                                                    Sepete Ekle
+                                                </Button>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                )}
+
+                 {akademikKursu && (
+                    <section id="akademik-detay" className="mt-16 py-16 md:py-24 rounded-3xl bg-[#D4EDE3]">
+                        <div className="container max-w-6xl mx-auto">
+                            <div className="text-center mb-12">
+                                <h2 className="text-4xl md:text-5xl font-bold mb-4">Akademik Kurs</h2>
+                                <div className="flex items-center justify-center gap-4 text-gray-500 mb-4">
+                                    <span>Süre: {akademikKursu.details.duration}</span>
+                                    <span>|</span>
+                                    <span>Yaş grubu: {akademikKursu.ageGroup}</span>
+                                </div>
+                                <p className="text-gray-600 max-w-3xl mx-auto">Okuma yazma bilen her öğrencinin alabileceği Akademik Kurs, 4 adımdan oluşur.</p>
+                            </div>
+
+                            <div className="space-y-12 mb-16">
+                                {akademikKursu.academicSteps?.map((step, index) => (
+                                    <div key={step.id} className={`grid md:grid-cols-2 gap-8 items-center ${index % 2 !== 0 ? 'md:grid-flow-row-dense' : ''}`}>
+                                        <div className={`bg-white p-8 rounded-2xl shadow-md ${index % 2 !== 0 ? 'md:col-start-2' : ''}`}>
+                                            <h3 className="font-bold text-xl mb-4 flex items-center gap-3">
+                                                <span className="w-8 h-8 flex items-center justify-center bg-primary text-white rounded-full">{index + 1}</span>
+                                                {step.title}
+                                            </h3>
+                                            <h4 className="font-semibold text-md mb-3 text-gray-700">KAZANIMLAR</h4>
+                                            <ul className="space-y-3 text-gray-600">
+                                                {step.gains.map((gain, index) => (
+                                                    <li key={index} className="flex items-start gap-3">
+                                                        <CheckCircle className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" />
+                                                        <span>{gain}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                        <div className={`bg-gradient-to-br from-orange-300 to-amber-400 p-8 rounded-2xl shadow-md text-center text-white flex flex-col items-center justify-center h-full ${index % 2 !== 0 ? 'md:col-start-1' : ''}`}>
+                                            <Button asChild className="bg-white text-orange-500 hover:bg-gray-100 font-bold px-8 py-6 text-lg">
+                                                <a href="#akademik-paketler">Ücretleri Görüntüle</a>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            
+                            <div className="text-center mb-12">
+                                <div className="inline-flex items-center gap-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-full px-6 py-3">
+                                    <Info className="w-5 h-5"/>
+                                    <p>İndirim fırsatını kaçırmayın! Bizimle iletişime geçin, promosyon kodu ile indirim kazanın.</p>
+                                </div>
+                            </div>
+
+                            <div id="akademik-paketler">
+                                <h3 className="text-3xl md:text-4xl font-bold mb-8 text-center">Akademik Kurs - Paket Seçenekleri</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    {akademikKursu.pricing.packages.map((pkg) => {
+                                        const perLessonPrice = akademikKursu.pricing.perLesson[pkg.lessons as keyof typeof akademikKursu.pricing.perLesson];
+                                        return (
+                                            <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
+                                                <Badge variant="secondary" className="mb-4 bg-teal-100 text-teal-800">
+                                                    ders başına €{perLessonPrice.toFixed(2)}
+                                                </Badge>
+                                                <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gray-100 mb-4">
+                                                    <BookOpen className="w-8 h-8 text-gray-500"/>
+                                                </div>
+                                                <h4 className="font-bold text-gray-800">{akademikKursu.title}</h4>
+                                                <p className="text-sm text-gray-500">({akademikKursu.details.duration})</p>
                                                 <p className="text-gray-600 mt-2">{pkg.lessons} derslik paket</p>
                                                 <p className="text-3xl font-bold text-gray-900 my-4">€{pkg.price.toFixed(2)}</p>
                                                 <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90">
