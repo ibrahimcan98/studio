@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock, InfinityIcon } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -215,8 +215,8 @@ export default function EbeveynPortaliPage() {
               <h3 className="text-2xl font-bold flex items-center gap-2"><Crown /> Premium Üyelik Aktif</h3>
               <p className="text-white/80">Tüm premium özelliklerin tadını çıkarın!</p>
             </div>
-            <Button variant="outline" className="bg-white/20 border-white/50 text-white hover:bg-white/30">
-                Üyeliği Yönet
+            <Button asChild variant="outline" className="bg-white/20 border-white/50 text-white hover:bg-white/30">
+                <Link href="/ebeveyn-portali/uyelik">Üyeliği Yönet</Link>
             </Button>
           </div>
         </Card>
