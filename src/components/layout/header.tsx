@@ -9,9 +9,10 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuGroup,
 } from '@/components/ui/dropdown-menu';
 import { Logo } from '@/components/logo';
-import { Menu, Loader2 } from 'lucide-react';
+import { Menu, Loader2, LayoutDashboard, User, Package, History, Settings, LogOut } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { useUser } from '@/firebase';
 import { getAuth, signOut } from 'firebase/auth';
@@ -59,7 +60,7 @@ export default function Header() {
       return null;
     }
     return (
-      <DropdownMenu>
+       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-10 w-10 rounded-full">
             <Avatar className="h-10 w-10">
@@ -71,16 +72,39 @@ export default function Header() {
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
               <p className="text-sm font-medium leading-none">{user?.displayName}</p>
+              <p className="text-xs leading-none text-muted-foreground">
+                {user?.email}
+              </p>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => router.push('/ebeveyn-portali')}>Ebeveyn Sayfası</DropdownMenuItem>
-          <DropdownMenuItem>Profil Ayarları</DropdownMenuItem>
-          <DropdownMenuItem>Paketlerim</DropdownMenuItem>
-          <DropdownMenuItem>Ders Geçmişi</DropdownMenuItem>
-          <DropdownMenuItem>Hesap Ayarları</DropdownMenuItem>
+          <DropdownMenuGroup>
+            <DropdownMenuItem onClick={() => router.push('/ebeveyn-portali')}>
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              <span>Ebeveyn Sayfası</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <User className="mr-2 h-4 w-4" />
+              <span>Profil Ayarları</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Package className="mr-2 h-4 w-4" />
+              <span>Paketlerim</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <History className="mr-2 h-4 w-4" />
+              <span>Ders Geçmişi</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Hesap Ayarları</span>
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleLogout}>Çıkış Yap</DropdownMenuItem>
+          <DropdownMenuItem onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Çıkış Yap</span>
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     )
@@ -121,6 +145,9 @@ export default function Header() {
               <Button variant="ghost" className="font-semibold hidden sm:inline-flex" asChild>
                 <Link href="/login">Giriş Yap</Link>
               </Button>
+               <Button asChild className="bg-green-600 hover:bg-green-700 text-white font-semibold hidden sm:inline-flex">
+                <Link href="/login">Ücretsiz Deneme</Link>
+              </Button>
             </>
           )}
             
@@ -159,12 +186,11 @@ export default function Header() {
                                 <Button variant="outline" className="w-full font-semibold text-lg" onClick={() => handleLinkClick("/login")}>
                                   Giriş Yap
                                 </Button>
+                                <Button className="w-full font-semibold text-lg bg-green-600 hover:bg-green-700 text-white" onClick={() => handleLinkClick("/login")}>
+                                  Ücretsiz Deneme
+                                </Button>
                               </>
-                          ) : (
-                             <>
-                               <Button variant="outline" className="w-full font-semibold text-lg" onClick={handleLogout}>Çıkış Yap</Button>
-                             </>
-                          )}
+                          ) : null }
                         </div>
                     </div>
                 </SheetContent>
