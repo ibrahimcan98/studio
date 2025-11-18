@@ -260,29 +260,22 @@ export default function KurslarPage() {
                                 <p className="text-gray-600 max-w-3xl mx-auto">Okuma yazma bilen her öğrencinin alabileceği Akademik Kurs, 4 adımdan oluşur.</p>
                             </div>
 
-                            <div className="space-y-12 mb-16">
+                            <div className="grid md:grid-cols-2 gap-8 mb-16">
                                 {akademikKursu.academicSteps?.map((step, index) => (
-                                    <div key={step.id} className={`grid md:grid-cols-2 gap-8 items-center ${index % 2 !== 0 ? 'md:grid-flow-row-dense' : ''}`}>
-                                        <div className={`bg-white p-8 rounded-2xl shadow-md ${index % 2 !== 0 ? 'md:col-start-2' : ''}`}>
-                                            <h3 className="font-bold text-xl mb-4 flex items-center gap-3">
-                                                <span className="w-8 h-8 flex items-center justify-center bg-primary text-white rounded-full">{index + 1}</span>
-                                                {step.title}
-                                            </h3>
-                                            <h4 className="font-semibold text-md mb-3 text-gray-700">KAZANIMLAR</h4>
-                                            <ul className="space-y-3 text-gray-600">
-                                                {step.gains.map((gain, index) => (
-                                                    <li key={index} className="flex items-start gap-3">
-                                                        <CheckCircle className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" />
-                                                        <span>{gain}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                        <div className={`bg-gradient-to-br from-orange-300 to-amber-400 p-8 rounded-2xl shadow-md text-center text-white flex flex-col items-center justify-center h-full ${index % 2 !== 0 ? 'md:col-start-1' : ''}`}>
-                                            <Button asChild className="bg-white text-orange-500 hover:bg-gray-100 font-bold px-8 py-6 text-lg">
-                                                <a href="#akademik-paketler">Ücretleri Görüntüle</a>
-                                            </Button>
-                                        </div>
+                                    <div key={step.id} className="bg-white p-8 rounded-2xl shadow-md h-full flex flex-col">
+                                        <h3 className="font-bold text-xl mb-4 flex items-center gap-3">
+                                            <span className="w-8 h-8 flex items-center justify-center bg-primary text-white rounded-full">{index + 1}</span>
+                                            {step.title}
+                                        </h3>
+                                        <h4 className="font-semibold text-md mb-3 text-gray-700">KAZANIMLAR</h4>
+                                        <ul className="space-y-3 text-gray-600 flex-1">
+                                            {step.gains.map((gain, index) => (
+                                                <li key={index} className="flex items-start gap-3">
+                                                    <CheckCircle className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" />
+                                                    <span>{gain}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
                                     </div>
                                 ))}
                             </div>
