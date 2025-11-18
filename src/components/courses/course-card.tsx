@@ -57,15 +57,9 @@ export const CourseCard = ({ course }: { course: Course }) => {
                 </div>
                 
                 <div className="mt-auto pt-6">
-                    {course.id === 'baslangic' ? (
-                        <SmoothScrollLink to="baslangic-detay" className={cn("text-sm font-semibold hover:underline", course.cta.linkTextColor)}>
-                           Detaylı bilgi için tıkla &gt;
-                        </SmoothScrollLink>
-                    ) : (
-                       <a href="#" className={cn("text-sm font-semibold hover:underline", course.cta.linkTextColor)}>
-                           Detaylı bilgi için tıkla &gt;
-                        </a>
-                    )}
+                    <SmoothScrollLink to={`${course.id}-detay`} className={cn("text-sm font-semibold hover:underline", course.cta.linkTextColor)}>
+                       Detaylı bilgi için tıkla &gt;
+                    </SmoothScrollLink>
                 </div>
             </div>
         </div>

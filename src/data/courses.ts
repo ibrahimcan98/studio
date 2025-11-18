@@ -76,7 +76,7 @@ export const COURSES: Course[] = [
         ageGroup: "Okul öncesi",
         shortDescription: "5 yaşındaki çocuğunuz için keyifli bir ısınma turu!\n* Yaş grubu tahmindir. Çocuğunuzun hazır bulunuşluğu ve sizin beklentilerinize göre başlayacağınız kurs belirlenir.",
         cta: {
-            backgroundColor: "bg-[#F0FAF8]",
+            backgroundColor: "bg-[#FFF0CC]",
             iconBgColor: "bg-teal-100",
             iconTextColor: "text-teal-500",
             badgeColor: "bg-[#FF9A76]",
@@ -110,7 +110,7 @@ export const COURSES: Course[] = [
         ageGroup: "İlkokul ve ortaokul",
         shortDescription: "Çocuğunuz için etkili, genel kültür dersleri.",
         cta: { 
-            backgroundColor: "bg-[#F0F2F2]",
+            backgroundColor: "bg-[#F0FAF8]",
             iconBgColor: "bg-gray-200",
             iconTextColor: "text-gray-500",
             badgeColor: "bg-[#C9CBCB]",
