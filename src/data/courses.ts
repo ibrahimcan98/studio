@@ -140,7 +140,7 @@ export const COURSES: Course[] = [
         ageGroup: "İlkokul ve ortaokul",
         shortDescription: "Okuma yazma bilen her öğrencinin alabileceği Akademik Kurs, 4 adımdan oluşur.",
         cta: { 
-            backgroundColor: "bg-[#DFF2EC]",
+            backgroundColor: "bg-[#D4EDE3]",
             iconBgColor: "bg-green-100",
             iconTextColor: "text-green-500",
             badgeColor: "bg-[#43B581]",
