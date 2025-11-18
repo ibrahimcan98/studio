@@ -7,16 +7,16 @@
       "words": 10,
       "unlocked": true,
       "wordList": [
-        { "word": "inek", "image": "cow" },
-        { "word": "kurbağa", "image": "frog" },
-        { "word": "köpek", "image": "dog" },
-        { "word": "zürafa", "image": "giraffe" },
-        { "word": "panda", "image": "panda" },
-        { "word": "kedi", "image": "cat" },
-        { "word": "fil", "image": "elephant" },
-        { "word": "kuş", "image": "bird" },
-        { "word": "maymun", "image": "monkey" },
-        { "word": "aslan", "image": "lion" }
+        { "word": "inek", "image": "/images/words/inek.png", "audio": "/audio/words/inek.mp3" },
+        { "word": "kurbağa", "image": "/images/words/kurbaga.png", "audio": "/audio/words/kurbaga.mp3" },
+        { "word": "köpek", "image": "/images/words/kopek.png", "audio": "/audio/words/kopek.mp3" },
+        { "word": "zürafa", "image": "/images/words/zurafa.png", "audio": "/audio/words/zurafa.mp3" },
+        { "word": "panda", "image": "/images/words/panda.png", "audio": "/audio/words/panda.mp3" },
+        { "word": "kedi", "image": "/images/words/kedi.png", "audio": "/audio/words/kedi.mp3" },
+        { "word": "fil", "image": "/images/words/fil.png", "audio": "/audio/words/fil.mp3" },
+        { "word": "kuş", "image": "/images/words/kus.png", "audio": "/audio/words/kus.mp3" },
+        { "word": "maymun", "image": "/images/words/maymun.png", "audio": "/audio/words/maymun.mp3" },
+        { "word": "aslan", "image": "/images/words/aslan.png", "audio": "/audio/words/aslan.mp3" }
       ]
     },
     {
@@ -26,13 +26,13 @@
       "words": 7,
       "unlocked": true,
       "wordList": [
-        { "word": "pembe", "image": "pink color swatch" },
-        { "word": "kahverengi", "image": "brown color swatch" },
-        { "word": "yeşil", "image": "green color swatch" },
-        { "word": "beyaz", "image": "white color swatch" },
-        { "word": "sarı", "image": "yellow color swatch" },
-        { "word": "turuncu", "image": "orange color swatch" },
-        { "word": "mavi", "image": "blue color swatch" }
+        { "word": "pembe", "image": "/images/words/pembe.png", "audio": "/audio/words/pembe.mp3" },
+        { "word": "kahverengi", "image": "/images/words/kahverengi.png", "audio": "/audio/words/kahverengi.mp3" },
+        { "word": "yeşil", "image": "/images/words/yesil.png", "audio": "/audio/words/yesil.mp3" },
+        { "word": "beyaz", "image": "/images/words/beyaz.png", "audio": "/audio/words/beyaz.mp3" },
+        { "word": "sarı", "image": "/images/words/sari.png", "audio": "/audio/words/sari.mp3" },
+        { "word": "turuncu", "image": "/images/words/turuncu.png", "audio": "/audio/words/turuncu.mp3" },
+        { "word": "mavi", "image": "/images/words/mavi.png", "audio": "/audio/words/mavi.mp3" }
       ]
     },
     {
@@ -42,16 +42,16 @@
       "words": 10,
       "unlocked": true,
       "wordList": [
-        { "word": "anne", "image": "mother" },
-        { "word": "baba", "image": "father" },
-        { "word": "kardeş", "image": "sibling" },
-        { "word": "dede", "image": "grandfather" },
-        { "word": "nine", "image": "grandmother" },
-        { "word": "amca", "image": "uncle" },
-        { "word": "hala", "image": "aunt" },
-        { "word": "teyze", "image": "aunt" },
-        { "word": "kuzen", "image": "cousin" },
-        { "word": "bebek", "image": "baby" }
+        { "word": "anne", "image": "/images/words/anne.png", "audio": "/audio/words/anne.mp3" },
+        { "word": "baba", "image": "/images/words/baba.png", "audio": "/audio/words/baba.mp3" },
+        { "word": "kardeş", "image": "/images/words/kardes.png", "audio": "/audio/words/kardes.mp3" },
+        { "word": "dede", "image": "/images/words/dede.png", "audio": "/audio/words/dede.mp3" },
+        { "word": "nine", "image": "/images/words/nine.png", "audio": "/audio/words/nine.mp3" },
+        { "word": "amca", "image": "/images/words/amca.png", "audio": "/audio/words/amca.mp3" },
+        { "word": "hala", "image": "/images/words/hala.png", "audio": "/audio/words/hala.mp3" },
+        { "word": "teyze", "image": "/images/words/teyze.png", "audio": "/audio/words/teyze.mp3" },
+        { "word": "kuzen", "image": "/images/words/kuzen.png", "audio": "/audio/words/kuzen.mp3" },
+        { "word": "bebek", "image": "/images/words/bebek.png", "audio": "/audio/words/bebek.mp3" }
       ]
     },
     {
@@ -61,25 +61,25 @@
       "words": 19,
       "unlocked": false,
       "wordList": [
-        { "word": "saç", "image": "hair" },
-        { "word": "alın", "image": "forehead" },
-        { "word": "kaş", "image": "eyebrow" },
-        { "word": "göz", "image": "eye" },
-        { "word": "yanak", "image": "cheek" },
-        { "word": "kulak", "image": "ear" },
-        { "word": "burun", "image": "nose" },
-        { "word": "ağız", "image": "mouth" },
-        { "word": "diş", "image": "tooth" },
-        { "word": "dil", "image": "tongue" },
-        { "word": "dudak", "image": "lip" },
-        { "word": "boyun", "image": "neck" },
-        { "word": "omuz", "image": "shoulder" },
-        { "word": "kol", "image": "arm" },
-        { "word": "el", "image": "hand" },
-        { "word": "parmak", "image": "finger" },
-        { "word": "karın", "image": "stomach" },
-        { "word": "bacak", "image": "leg" },
-        { "word": "ayak parmağı", "image": "toe" }
+        { "word": "saç", "image": "/images/words/sac.png", "audio": "/audio/words/sac.mp3" },
+        { "word": "alın", "image": "/images/words/alin.png", "audio": "/audio/words/alin.mp3" },
+        { "word": "kaş", "image": "/images/words/kas.png", "audio": "/audio/words/kas.mp3" },
+        { "word": "göz", "image": "/images/words/goz.png", "audio": "/audio/words/goz.mp3" },
+        { "word": "yanak", "image": "/images/words/yanak.png", "audio": "/audio/words/yanak.mp3" },
+        { "word": "kulak", "image": "/images/words/kulak.png", "audio": "/audio/words/kulak.mp3" },
+        { "word": "burun", "image": "/images/words/burun.png", "audio": "/audio/words/burun.mp3" },
+        { "word": "ağız", "image": "/images/words/agiz.png", "audio": "/audio/words/agiz.mp3" },
+        { "word": "diş", "image": "/images/words/dis.png", "audio": "/audio/words/dis.mp3" },
+        { "word": "dil", "image": "/images/words/dil.png", "audio": "/audio/words/dil.mp3" },
+        { "word": "dudak", "image": "/images/words/dudak.png", "audio": "/audio/words/dudak.mp3" },
+        { "word": "boyun", "image": "/images/words/boyun.png", "audio": "/audio/words/boyun.mp3" },
+        { "word": "omuz", "image": "/images/words/omuz.png", "audio": "/audio/words/omuz.mp3" },
+        { "word": "kol", "image": "/images/words/kol.png", "audio": "/audio/words/kol.mp3" },
+        { "word": "el", "image": "/images/words/el.png", "audio": "/audio/words/el.mp3" },
+        { "word": "parmak", "image": "/images/words/parmak.png", "audio": "/audio/words/parmak.mp3" },
+        { "word": "karın", "image": "/images/words/karin.png", "audio": "/audio/words/karin.mp3" },
+        { "word": "bacak", "image": "/images/words/bacak.png", "audio": "/audio/words/bacak.mp3" },
+        { "word": "ayak parmağı", "image": "/images/words/ayak-parmagi.png", "audio": "/audio/words/ayak-parmagi.mp3" }
       ]
     },
     {
@@ -89,14 +89,14 @@
       "words": 8,
       "unlocked": false,
       "wordList": [
-        { "word": "muz", "image": "banana" },
-        { "word": "portakal", "image": "orange fruit" },
-        { "word": "elma", "image": "apple" },
-        { "word": "çilek", "image": "strawberry" },
-        { "word": "kiraz", "image": "cherry" },
-        { "word": "üzüm", "image": "grapes" },
-        { "word": "kivi", "image": "kiwi" },
-        { "word": "armut", "image": "pear" }
+        { "word": "muz", "image": "/images/words/muz.png", "audio": "/audio/words/muz.mp3" },
+        { "word": "portakal", "image": "/images/words/portakal.png", "audio": "/audio/words/portakal.mp3" },
+        { "word": "elma", "image": "/images/words/elma.png", "audio": "/audio/words/elma.mp3" },
+        { "word": "çilek", "image": "/images/words/cilek.png", "audio": "/audio/words/cilek.mp3" },
+        { "word": "kiraz", "image": "/images/words/kiraz.png", "audio": "/audio/words/kiraz.mp3" },
+        { "word": "üzüm", "image": "/images/words/uzum.png", "audio": "/audio/words/uzum.mp3" },
+        { "word": "kivi", "image": "/images/words/kivi.png", "audio": "/audio/words/kivi.mp3" },
+        { "word": "armut", "image": "/images/words/armut.png", "audio": "/audio/words/armut.mp3" }
       ]
     },
     {
@@ -106,12 +106,12 @@
       "words": 6,
       "unlocked": false,
       "wordList": [
-        { "word": "havuç", "image": "carrot" },
-        { "word": "salatalık", "image": "cucumber" },
-        { "word": "domates", "image": "tomato" },
-        { "word": "brokoli", "image": "broccoli" },
-        { "word": "soğan", "image": "onion" },
-        { "word": "biber", "image": "pepper" }
+        { "word": "havuç", "image": "/images/words/havuc.png", "audio": "/audio/words/havuc.mp3" },
+        { "word": "salatalık", "image": "/images/words/salatalik.png", "audio": "/audio/words/salatalik.mp3" },
+        { "word": "domates", "image": "/images/words/domates.png", "audio": "/audio/words/domates.mp3" },
+        { "word": "brokoli", "image": "/images/words/brokoli.png", "audio": "/audio/words/brokoli.mp3" },
+        { "word": "soğan", "image": "/images/words/sogan.png", "audio": "/audio/words/sogan.mp3" },
+        { "word": "biber", "image": "/images/words/biber.png", "audio": "/audio/words/biber.mp3" }
       ]
     },
     {
@@ -121,10 +121,10 @@
       "words": 4,
       "unlocked": false,
       "wordList": [
-        { "word": "üçgen", "image": "triangle shape" },
-        { "word": "dikdörtgen", "image": "rectangle shape" },
-        { "word": "kare", "image": "square shape" },
-        { "word": "daire", "image": "circle shape" }
+        { "word": "üçgen", "image": "/images/words/ucgen.png", "audio": "/audio/words/ucgen.mp3" },
+        { "word": "dikdörtgen", "image": "/images/words/dikdortgen.png", "audio": "/audio/words/dikdortgen.mp3" },
+        { "word": "kare", "image": "/images/words/kare.png", "audio": "/audio/words/kare.mp3" },
+        { "word": "daire", "image": "/images/words/daire.png", "audio": "/audio/words/daire.mp3" }
       ]
     },
     {
@@ -134,11 +134,11 @@
       "words": 5,
       "unlocked": false,
       "wordList": [
-        { "word": "mutlu", "image": "happy face" },
-        { "word": "üzgün", "image": "sad face" },
-        { "word": "şaşırmış", "image": "surprised face" },
-        { "word": "korkmuş", "image": "scared face" },
-        { "word": "sinirli", "image": "angry face" }
+        { "word": "mutlu", "image": "/images/words/mutlu.png", "audio": "/audio/words/mutlu.mp3" },
+        { "word": "üzgün", "image": "/images/words/uzgun.png", "audio": "/audio/words/uzgun.mp3" },
+        { "word": "şaşırmış", "image": "/images/words/sasirmis.png", "audio": "/audio/words/sasirmis.mp3" },
+        { "word": "korkmuş", "image": "/images/words/korkmus.png", "audio": "/audio/words/korkmus.mp3" },
+        { "word": "sinirli", "image": "/images/words/sinirli.png", "audio": "/audio/words/sinirli.mp3" }
       ]
     },
     {
@@ -148,14 +148,14 @@
       "words": 8,
       "unlocked": false,
       "wordList": [
-        { "word": "orman", "image": "forest" },
-        { "word": "çiçek", "image": "flower" },
-        { "word": "kaya", "image": "rock" },
-        { "word": "ağaç", "image": "tree" },
-        { "word": "dere", "image": "stream" },
-        { "word": "dağ", "image": "mountain" },
-        { "word": "yaprak", "image": "leaf" },
-        { "word": "bulut", "image": "cloud" }
+        { "word": "orman", "image": "/images/words/orman.png", "audio": "/audio/words/orman.mp3" },
+        { "word": "çiçek", "image": "/images/words/cicek.png", "audio": "/audio/words/cicek.mp3" },
+        { "word": "kaya", "image": "/images/words/kaya.png", "audio": "/audio/words/kaya.mp3" },
+        { "word": "ağaç", "image": "/images/words/agac.png", "audio": "/audio/words/agac.mp3" },
+        { "word": "dere", "image": "/images/words/dere.png", "audio": "/audio/words/dere.mp3" },
+        { "word": "dağ", "image": "/images/words/dag.png", "audio": "/audio/words/dag.mp3" },
+        { "word": "yaprak", "image": "/images/words/yaprak.png", "audio": "/audio/words/yaprak.mp3" },
+        { "word": "bulut", "image": "/images/words/bulut.png", "audio": "/audio/words/bulut.mp3" }
       ]
     },
     {
@@ -165,13 +165,13 @@
       "words": 7,
       "unlocked": false,
       "wordList": [
-        { "word": "yumurta", "image": "egg" },
-        { "word": "zeytin", "image": "olive" },
-        { "word": "peynir", "image": "cheese" },
-        { "word": "ekmek", "image": "bread" },
-        { "word": "reçel", "image": "jam" },
-        { "word": "bal", "image": "honey" },
-        { "word": "tereyağ", "image": "butter" }
+        { "word": "yumurta", "image": "/images/words/yumurta.png", "audio": "/audio/words/yumurta.mp3" },
+        { "word": "zeytin", "image": "/images/words/zeytin.png", "audio": "/audio/words/zeytin.mp3" },
+        { "word": "peynir", "image": "/images/words/peynir.png", "audio": "/audio/words/peynir.mp3" },
+        { "word": "ekmek", "image": "/images/words/ekmek.png", "audio": "/audio/words/ekmek.mp3" },
+        { "word": "reçel", "image": "/images/words/recel.png", "audio": "/audio/words/recel.mp3" },
+        { "word": "bal", "image": "/images/words/bal.png", "audio": "/audio/words/bal.mp3" },
+        { "word": "tereyağ", "image": "/images/words/tereyag.png", "audio": "/audio/words/tereyag.mp3" }
       ]
     },
     {
@@ -181,14 +181,14 @@
       "words": 8,
       "unlocked": false,
       "wordList": [
-        { "word": "çorba", "image": "soup" },
-        { "word": "pilav", "image": "rice" },
-        { "word": "makarna", "image": "pasta" },
-        { "word": "köfte", "image": "meatball" },
-        { "word": "balık", "image": "fish" },
-        { "word": "tavuk", "image": "chicken" },
-        { "word": "salata", "image": "salad" },
-        { "word": "patates kızartması", "image": "fries" }
+        { "word": "çorba", "image": "/images/words/corba.png", "audio": "/audio/words/corba.mp3" },
+        { "word": "pilav", "image": "/images/words/pilav.png", "audio": "/audio/words/pilav.mp3" },
+        { "word": "makarna", "image": "/images/words/makarna.png", "audio": "/audio/words/makarna.mp3" },
+        { "word": "köfte", "image": "/images/words/kofte.png", "audio": "/audio/words/kofte.mp3" },
+        { "word": "balık", "image": "/images/words/balik.png", "audio": "/audio/words/balik.mp3" },
+        { "word": "tavuk", "image": "/images/words/tavuk.png", "audio": "/audio/words/tavuk.mp3" },
+        { "word": "salata", "image": "/images/words/salata.png", "audio": "/audio/words/salata.mp3" },
+        { "word": "patates kızartması", "image": "/images/words/patates-kizartmasi.png", "audio": "/audio/words/patates-kizartmasi.mp3" }
       ]
     },
     {
@@ -198,11 +198,11 @@
       "words": 5,
       "unlocked": false,
       "wordList": [
-        { "word": "kek", "image": "cake" },
-        { "word": "kurabiye", "image": "cookie" },
-        { "word": "dondurma", "image": "ice cream" },
-        { "word": "pasta", "image": "pie" },
-        { "word": "baklava", "image": "baklava" }
+        { "word": "kek", "image": "/images/words/kek.png", "audio": "/audio/words/kek.mp3" },
+        { "word": "kurabiye", "image": "/images/words/kurabiye.png", "audio": "/audio/words/kurabiye.mp3" },
+        { "word": "dondurma", "image": "/images/words/dondurma.png", "audio": "/audio/words/dondurma.mp3" },
+        { "word": "pasta", "image": "/images/words/pasta.png", "audio": "/audio/words/pasta.mp3" },
+        { "word": "baklava", "image": "/images/words/baklava.png", "audio": "/audio/words/baklava.mp3" }
       ]
     },
     {
@@ -212,16 +212,16 @@
       "words": 10,
       "unlocked": false,
       "wordList": [
-        { "word": "manav", "image": "greengrocer" },
-        { "word": "veteriner", "image": "veterinarian" },
-        { "word": "kuaför", "image": "hairdresser" },
-        { "word": "ressam", "image": "painter" },
-        { "word": "aşçı", "image": "chef" },
-        { "word": "pilot", "image": "pilot" },
-        { "word": "çiftçi", "image": "farmer" },
-        { "word": "doktor", "image": "doctor" },
-        { "word": "tamirci", "image": "mechanic" },
-        { "word": "öğretmen", "image": "teacher" }
+        { "word": "manav", "image": "/images/words/manav.png", "audio": "/audio/words/manav.mp3" },
+        { "word": "veteriner", "image": "/images/words/veteriner.png", "audio": "/audio/words/veteriner.mp3" },
+        { "word": "kuaför", "image": "/images/words/kuafor.png", "audio": "/audio/words/kuafor.mp3" },
+        { "word": "ressam", "image": "/images/words/ressam.png", "audio": "/audio/words/ressam.mp3" },
+        { "word": "aşçı", "image": "/images/words/asci.png", "audio": "/audio/words/asci.mp3" },
+        { "word": "pilot", "image": "/images/words/pilot.png", "audio": "/audio/words/pilot.mp3" },
+        { "word": "çiftçi", "image": "/images/words/ciftci.png", "audio": "/audio/words/ciftci.mp3" },
+        { "word": "doktor", "image": "/images/words/doktor.png", "audio": "/audio/words/doktor.mp3" },
+        { "word": "tamirci", "image": "/images/words/tamirci.png", "audio": "/audio/words/tamirci.mp3" },
+        { "word": "öğretmen", "image": "/images/words/ogretmen.png", "audio": "/audio/words/ogretmen.mp3" }
       ]
     }
   ]
