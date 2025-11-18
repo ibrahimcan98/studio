@@ -165,7 +165,9 @@ export default function Header() {
             })}
           </nav>
           
-           <div className="hidden md:flex items-center gap-2">
+            <Button variant="secondary" className="font-semibold hidden md:inline-flex">Ücretsiz Deneme</Button>
+
+            <div className="hidden md:flex items-center gap-2">
              {userLoading ? (
                   <div className="h-10 w-10 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>
               ) : isLoggedIn ? (
@@ -176,10 +178,8 @@ export default function Header() {
                   </Button>
               )}
            </div>
-           
-            <Button variant="secondary" className="font-semibold hidden md:inline-flex">Ücretsiz Deneme</Button>
 
-          <div className="md:hidden">
+          <div className="md:hidden flex items-center">
              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
                     <Button variant="ghost" size="icon">
@@ -210,23 +210,18 @@ export default function Header() {
                                     {link.label}
                                 </button>
                             ))}
-                        </nav>
-                         <div className="mt-auto flex flex-col gap-4">
-                             <Button variant="secondary" className="w-full font-semibold text-lg" onClick={() => {}}>
+                            <Button variant="secondary" className="w-full justify-start p-0 h-auto font-medium text-lg" onClick={() => {}}>
                                 Ücretsiz Deneme
                             </Button>
                              {!isLoggedIn && (
-                                 <Button variant="outline" className="w-full font-semibold text-lg" onClick={() => handleLinkClick("/login")}>
+                                 <Button variant="outline" className="w-full justify-start p-0 h-auto font-medium text-lg" onClick={() => handleLinkClick("/login")}>
                                     Giriş Yap
                                  </Button>
                             )}
-                        </div>
+                        </nav>
                     </div>
                 </SheetContent>
             </Sheet>
-          </div>
-          
-          <div className="md:hidden">
              {userLoading ? (
                   <div className="h-10 w-10 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>
               ) : isLoggedIn ? (
