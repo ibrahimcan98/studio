@@ -50,6 +50,7 @@ import { doc } from 'firebase/firestore';
 import { addMonths, format, parseISO } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 const paymentHistory = [
   { date: '15 Kasım 2025', amount: '14 €', status: 'Başarılı' },
@@ -82,9 +83,20 @@ export default function UyelikYonetimiPage() {
     }, [db, user?.uid]);
 
     const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
-    const isPremium = userData?.isPremium || false;
+    const isLoading = isUserLoading || isUserDataLoading;
 
-    if (isUserLoading || isUserDataLoading) {
+    useEffect(() => {
+      // Yükleme tamamlandıktan sonra ve kullanıcı premium değilse yönlendir
+      if (!isLoading && user && !userData?.isPremium) {
+        router.push('/premium');
+      }
+      // Kullanıcı yoksa ve yükleme bittiyse login'e yönlendir
+      if (!isLoading && !user) {
+        router.push('/login');
+      }
+    }, [user, userData, isLoading, router]);
+
+    if (isLoading) {
       return (
         <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
           <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -92,8 +104,8 @@ export default function UyelikYonetimiPage() {
       );
     }
     
-    if (!user || !isPremium) {
-       router.push('/premium');
+    // Yönlendirme gerçekleşene kadar veya kullanıcı premium ise null render etme
+    if (!user || !userData?.isPremium) {
        return null;
     }
 
