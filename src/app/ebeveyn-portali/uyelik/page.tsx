@@ -1,6 +1,6 @@
 'use client';
 
-import { Crown, Check, Mail, CreditCard, Download, AlertTriangle } from "lucide-react";
+import { Crown, Check, Mail, CreditCard, Download, AlertTriangle, Snowflake, X, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -21,6 +21,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from "lucide-react";
+
 
 const paymentHistory = [
     { date: "15 Kasım 2025", amount: "14 €", status: "Başarılı" },
@@ -249,3 +250,5 @@ export default function UyelikYonetimiPage() {
         </div>
     );
 }
+
+    
