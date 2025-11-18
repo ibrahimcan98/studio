@@ -327,7 +327,7 @@ export default function EbeveynPortaliPage() {
                            <div key={child.id} className="relative flex flex-col sm:flex-row items-center gap-4 p-4 border rounded-lg">
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-destructive">
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive">
                                       <X className="w-4 h-4" />
                                     </Button>
                                   </AlertDialogTrigger>
