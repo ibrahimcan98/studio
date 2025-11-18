@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock, Infinity as InfinityIcon, Settings } from 'lucide-react';
+import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock, Infinity as InfinityIcon, Settings, Target } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -206,12 +206,23 @@ export default function EbeveynPortaliPage() {
       </div>
 
       {isPremium ? (
-         <Card className="bg-gradient-to-r from-green-400 to-teal-500 text-white shadow-lg border-none">
-          <div className="p-6 flex items-center justify-between">
-            <div className='space-y-2'>
-              <h3 className="text-2xl font-bold flex items-center gap-2"><Crown /> Premium Üyelik Aktif</h3>
-              <p className="text-white/80">Tüm premium özelliklerin tadını çıkarın!</p>
-            </div>
+        <Card className="bg-gradient-to-r from-green-400 to-teal-500 text-white shadow-lg border-none">
+          <div className="p-6">
+              <div className='space-y-4'>
+                <h3 className="text-2xl font-bold flex items-center gap-2"><Crown /> Premium Üyelik Aktif</h3>
+                <p className="text-white/80">Sınırsız can, tüm kategoriler ve daha fazlası!</p>
+                <ul className="space-y-2 text-white/90 text-sm">
+                    <li className="flex items-center gap-2">
+                        <InfinityIcon className="w-5 h-5"/> Sınırsız can - hiç bekleme!
+                    </li>
+                    <li className="flex items-center gap-2">
+                        <Lock className="w-5 h-5"/> Tüm kategorilere erişim
+                    </li>
+                    <li className="flex items-center gap-2">
+                        <Target className="w-5 h-5"/> Özel rozetler ve ödüller
+                    </li>
+                </ul>
+              </div>
           </div>
         </Card>
       ) : (
