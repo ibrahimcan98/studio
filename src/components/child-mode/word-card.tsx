@@ -76,7 +76,7 @@ export function WordCard({ wordList }: WordCardProps) {
                     >
                         <Volume2 className="w-8 h-8" />
                     </Button>
-                    <h2 className="text-5xl font-bold text-gray-800 capitalize">{currentWord.word}</h2>
+                    <h2 className="text-5xl font-bold text-gray-800">{currentWord.word}</h2>
                     <audio ref={audioRef} src={currentWord.audio} preload="auto" />
                 </div>
                 <div className="flex justify-between items-center">
