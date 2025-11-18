@@ -22,8 +22,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 
-function UyelikContent({ userData }: { userData: any }) {
-    const { user } = useUser();
+// İçerik ve İptal Mantığı Bileşeni
+function UyelikContent({ userData, user }: { userData: any, user: any }) {
     const db = useFirestore();
     const router = useRouter();
     const { toast } = useToast();
@@ -57,8 +57,8 @@ function UyelikContent({ userData }: { userData: any }) {
         }
     };
 
-    const startDate = userData.premiumStartDate ? new Date(userData.premiumStartDate) : null;
-    const endDate = userData.premiumEndDate ? new Date(userData.premiumEndDate) : null;
+    const startDate = userData.premiumStartDate?.toDate ? userData.premiumStartDate.toDate() : new Date(userData.premiumStartDate);
+    const endDate = userData.premiumEndDate?.toDate ? userData.premiumEndDate.toDate() : new Date(userData.premiumEndDate);
 
     return (
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20">
@@ -155,11 +155,36 @@ function UyelikContent({ userData }: { userData: any }) {
     );
 }
 
-// This is the main page component that handles loading and redirection.
+// Yönlendirme ve İçerik Gösterme Mantığı
+function PremiumContent({ user, userData }: { user: any, userData: any }) {
+    const router = useRouter();
+
+    useEffect(() => {
+        // Bu etki sadece userData değiştiğinde çalışır.
+        // Yükleme tamamlandıktan sonra, eğer kullanıcı premium değilse yönlendir.
+        if (userData && !userData.isPremium) {
+            router.replace('/ebeveyn-portali');
+        }
+    }, [userData, router]);
+
+    // Eğer userData yüklendi ve kullanıcı premium ise, asıl içeriği göster.
+    if (userData?.isPremium) {
+        return <UyelikContent userData={userData} user={user} />;
+    }
+
+    // Yönlendirme gerçekleşene kadar veya bir hata durumunda yükleme göstergesi göster
+    return (
+        <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
+            <Loader2 className="h-16 w-16 animate-spin text-primary" />
+        </div>
+    );
+}
+
+
+// Ana Sayfa Bileşeni (Sadece Veri Yüklemeye Odaklanır)
 export default function UyelikYonetimiPage() {
     const { user, loading: isUserLoading } = useUser();
     const db = useFirestore();
-    const router = useRouter();
 
     const userDocRef = useMemoFirebase(() => {
         if (!user || !db) return null;
@@ -168,28 +193,7 @@ export default function UyelikYonetimiPage() {
 
     const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
 
-    // This effect handles redirection AFTER data has been loaded.
-    useEffect(() => {
-        // Don't do anything while user or user data is loading.
-        if (isUserLoading || isUserDataLoading) {
-            return;
-        }
-
-        // If loading is finished and user is not logged in, redirect to login
-        if (!user) {
-            router.replace('/login');
-            return;
-        }
-        
-        // If loading is finished and user is not premium, redirect to portal
-        if (!userData?.isPremium) {
-            router.replace('/ebeveyn-portali');
-        }
-
-    }, [isUserLoading, isUserDataLoading, user, userData, router]);
-
-
-    // While loading any data, show a spinner.
+    // Hem kullanıcı oturumu hem de Firestore verisi yüklenirken yükleme göstergesi göster.
     if (isUserLoading || isUserDataLoading) {
         return (
             <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
@@ -198,17 +202,6 @@ export default function UyelikYonetimiPage() {
         );
     }
     
-    // If loading is complete and user is premium, show the content.
-    // If they are not premium, the useEffect above will have already started the redirection.
-    // Rendering null here prevents a flash of content before redirection.
-    if (userData?.isPremium) {
-       return <UyelikContent userData={userData} />;
-    }
-
-    // This also acts as a fallback loading/redirecting state.
-    return (
-       <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
-          <Loader2 className="h-16 w-16 animate-spin text-primary" />
-       </div>
-    );
+    // Yükleme tamamlandığında, yönlendirme ve içerik mantığını yöneten bileşeni çağır.
+    return <PremiumContent user={user} userData={userData} />;
 }
