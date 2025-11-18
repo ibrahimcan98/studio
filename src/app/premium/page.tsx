@@ -9,6 +9,7 @@ import { doc } from 'firebase/firestore';
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import Link from 'next/link';
 
 const premiumFeatures = [
     {
