@@ -11,7 +11,7 @@ import { TopicCard } from '@/components/child-mode/topic-card';
 const topics = [
   { name: 'Hayvanlar', icon: '🦁', words: 10, unlocked: true },
   { name: 'Renkler', icon: '🎨', words: 7, unlocked: true },
-  { name: 'Aile Üyeleri', icon: '❤️', words: 10, unlocked: false },
+  { name: 'Aile Üyeleri', icon: '❤️', words: 10, unlocked: true },
   { name: 'Vücudumuz 1', icon: '👤', words: 11, unlocked: false },
   { name: 'Vücudumuz 2', icon: '💪', words: 8, unlocked: false },
   { name: 'Meyveler', icon: '🍎', words: 8, unlocked: false },
