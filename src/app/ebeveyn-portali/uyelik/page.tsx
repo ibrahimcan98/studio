@@ -86,15 +86,14 @@ export default function UyelikYonetimiPage() {
     const isLoading = isUserLoading || isUserDataLoading;
 
     useEffect(() => {
-      // Yükleme tamamlandıktan sonra ve kullanıcı premium değilse yönlendir
-      if (!isLoading && user && !userData?.isPremium) {
+      if (isLoading) return;
+
+      if (!user) {
+        router.push('/login');
+      } else if (!userData?.isPremium) {
         router.push('/premium');
       }
-      // Kullanıcı yoksa ve yükleme bittiyse login'e yönlendir
-      if (!isLoading && !user) {
-        router.push('/login');
-      }
-    }, [user, userData, isLoading, router]);
+    }, [user, userData, isLoading]);
 
     if (isLoading) {
       return (
@@ -104,7 +103,6 @@ export default function UyelikYonetimiPage() {
       );
     }
     
-    // Yönlendirme gerçekleşene kadar veya kullanıcı premium ise null render etme
     if (!user || !userData?.isPremium) {
        return null;
     }
