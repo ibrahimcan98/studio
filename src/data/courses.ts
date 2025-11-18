@@ -13,7 +13,11 @@ export type Course = {
     blobColor: string;
     cta: {
         text: string;
-        color: string;
+        iconBgColor: string;
+        iconTextColor: string;
+        badgeColor: string;
+        badgeTextColor: string;
+        linkTextColor: string;
     };
     details: {
         duration: string;
@@ -43,8 +47,12 @@ export const COURSES: Course[] = [
         shortDescription: "3–4 yaşındaki çocuğunuz için çevrim içi bir Türkçe oyun saati!\n* Yaş grubu tahmindir. Çocuğunuzun hazır bulunuşluğu ve sizin beklentilerinize göre başlayacağınız kurs belirlenir.",
         blobColor: "bg-accent", // #FFD166
         cta: {
-            text: "Detaylı bilgi için tıkla",
-            color: "bg-yellow-400 text-yellow-900",
+            text: "Detaylı bilgi için tıkla >",
+            iconBgColor: "bg-yellow-100",
+            iconTextColor: "text-yellow-500",
+            badgeColor: "bg-yellow-400",
+            badgeTextColor: "text-yellow-900",
+            linkTextColor: "text-orange-500",
         },
         details: {
             duration: "20 dakika",
@@ -72,8 +80,12 @@ export const COURSES: Course[] = [
         shortDescription: "5 yaşındaki çocuğunuz için keyifli bir ısınma turu!\n* Yaş grubu tahmindir. Çocuğunuzun hazır bulunuşluğu ve sizin beklentilerinize göre başlayacağınız kurs belirlenir.",
         blobColor: "bg-cyan-300", // #4ECDC4
         cta: {
-            text: "Detaylı bilgi için tıkla",
-            color: "bg-orange-400 text-orange-900",
+            text: "Detaylı bilgi için tıkla >",
+            iconBgColor: "bg-teal-100",
+            iconTextColor: "text-teal-500",
+            badgeColor: "bg-orange-400",
+            badgeTextColor: "text-white",
+            linkTextColor: "text-orange-500",
         },
         details: {
             duration: "30 dakika",
@@ -103,7 +115,14 @@ export const COURSES: Course[] = [
         ageGroup: "İlkokul ve ortaokul",
         shortDescription: "Çocuğunuz için etkili, genel kültür dersleri.",
         blobColor: "bg-green-200", // #C7EFCF
-        cta: { text: "", color: "" },
+        cta: { 
+            text: "Detaylı bilgi için tıkla >",
+            iconBgColor: "bg-teal-100",
+            iconTextColor: "text-teal-500",
+            badgeColor: "bg-green-500",
+            badgeTextColor: "text-white",
+            linkTextColor: "text-orange-500",
+        },
         details: {
             duration: "45 dakika",
             gains: [
@@ -128,7 +147,14 @@ export const COURSES: Course[] = [
         ageGroup: "İlkokul ve ortaokul",
         shortDescription: "Okuma yazma bilen her öğrencinin alabileceği Akademik Kurs, 4 adımdan oluşur.",
         blobColor: "bg-green-400", // #7BE495
-        cta: { text: "", color: "" },
+        cta: { 
+            text: "Detaylı bilgi için tıkla >",
+            iconBgColor: "bg-teal-100",
+            iconTextColor: "text-teal-500",
+            badgeColor: "bg-green-500",
+            badgeTextColor: "text-white",
+            linkTextColor: "text-orange-500",
+        },
         details: {
             duration: "45 dakika",
             gains: [], // Gains are in academicSteps

@@ -29,10 +29,10 @@ export const CourseCard = ({ course }: { course: Course }) => {
             <div className={`absolute inset-0 ${course.blobColor} opacity-20 rounded-full filter blur-3xl`}></div>
             <div className="relative z-10 flex flex-col h-full">
                  <div className="flex justify-between items-start mb-4">
-                    <div className={`w-14 h-14 rounded-2xl flex-shrink-0 flex items-center justify-center ${course.cta.color} bg-opacity-20`}>
-                        <BookOpen className="w-7 h-7 text-gray-700" />
+                    <div className={`w-14 h-14 rounded-2xl flex-shrink-0 flex items-center justify-center ${course.cta.iconBgColor}`}>
+                        <BookOpen className={`w-7 h-7 ${course.cta.iconTextColor}`} />
                     </div>
-                     <Badge className={`${course.cta.color} text-white`}>{course.details.duration}</Badge>
+                     <Badge className={`${course.cta.badgeColor} ${course.cta.badgeTextColor}`}>{course.details.duration}</Badge>
                 </div>
 
                 <div className="flex-grow">
@@ -54,7 +54,7 @@ export const CourseCard = ({ course }: { course: Course }) => {
                 </div>
                 
                 <div className="mt-auto pt-6">
-                    <SmoothScrollLink to={course.id} className={`text-sm font-semibold p-2 rounded-lg text-primary hover:underline`}>
+                    <SmoothScrollLink to={course.id} className={`text-sm font-semibold ${course.cta.linkTextColor} hover:underline`}>
                        {course.cta.text}
                     </SmoothScrollLink>
                 </div>
