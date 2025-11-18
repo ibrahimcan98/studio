@@ -71,7 +71,7 @@ function AddChildDialog({ userId }: { userId: string }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-gradient-to-r from-green-400 to-cyan-400 text-white font-semibold">
+        <Button className="bg-gradient-to-r from-secondary to-accent text-primary-foreground font-semibold">
           <Plus className="mr-2 h-4 w-4" /> Çocuk Ekle
         </Button>
       </DialogTrigger>
@@ -140,7 +140,7 @@ function StatCard({ title, value, icon: Icon, unit }: { title: string, value: st
 
 function PremiumBadge() {
   return (
-    <Badge className="bg-yellow-400 text-yellow-900 hover:bg-yellow-400/90">
+    <Badge className="bg-primary text-primary-foreground hover:bg-primary/90">
       <Crown className="mr-1 h-3 w-3" />
       Aktif
     </Badge>
@@ -172,6 +172,13 @@ export default function EbeveynPortaliPage() {
       router.push('/login');
     }
   }, [user, loading, router]);
+
+  const handleDeleteChild = (childId: string) => {
+      if (!db || !user?.uid) return;
+      const childDocRef = doc(db, 'users', user.uid, 'children', childId);
+      deleteDocumentNonBlocking(childDocRef);
+  };
+
 
   if (loading || childrenLoading) {
     return (
@@ -318,7 +325,28 @@ export default function EbeveynPortaliPage() {
                     {children && children.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                             {children.map(child => (
-                               <Card key={child.id} className="flex flex-col items-center text-center p-6 space-y-4 hover:shadow-lg transition-shadow">
+                               <Card key={child.id} className="relative flex flex-col items-center text-center p-6 space-y-4 hover:shadow-lg transition-shadow group">
+                                     <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                             <Button variant="ghost" size="icon" className="absolute top-2 left-2 h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive">
+                                                <X className="w-4 h-4"/>
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                   "{child.firstName}" isimli çocuğu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>İptal</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleDeleteChild(child.id)} className="bg-destructive hover:bg-destructive/90">
+                                                    Sil
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
                                     <Avatar className="h-20 w-20 text-3xl">
                                         <AvatarFallback className="bg-primary/20 text-primary font-bold">{child.firstName?.charAt(0)}</AvatarFallback>
                                     </Avatar>
@@ -329,20 +357,20 @@ export default function EbeveynPortaliPage() {
                                     <div className='w-full space-y-3 pt-4'>
                                       <div className='flex justify-between items-center text-sm'>
                                         <span className='text-muted-foreground'>Rozetler:</span>
-                                        <div className='flex items-center gap-1 font-bold bg-yellow-100 text-yellow-800 px-2 py-1 rounded-md'>
+                                        <div className='flex items-center gap-1 font-bold bg-primary/10 text-primary px-2 py-1 rounded-md'>
                                           <span>{child.rozet || 0}</span>
                                           <Award className='w-4 h-4'/>
                                         </div>
                                       </div>
                                        <div className='flex justify-between items-center text-sm'>
                                         <span className='text-muted-foreground'>Kalan Can:</span>
-                                        <div className='flex items-center gap-1 font-bold bg-red-100 text-red-800 px-2 py-1 rounded-md'>
+                                        <div className='flex items-center gap-1 font-bold bg-destructive/10 text-destructive px-2 py-1 rounded-md'>
                                           {isPremium ? <InfinityIcon className='w-4 h-4' /> : <span>3</span>}
                                            <Heart className='w-4 h-4 fill-current'/>
                                         </div>
                                       </div>
                                     </div>
-                                    <Button className="w-full bg-gradient-to-r from-green-400 to-cyan-400 text-white font-semibold mt-auto">
+                                    <Button className="w-full bg-gradient-to-r from-secondary to-accent text-primary-foreground font-semibold mt-auto">
                                         Öğrenmeye Başla
                                     </Button>
                                </Card>
