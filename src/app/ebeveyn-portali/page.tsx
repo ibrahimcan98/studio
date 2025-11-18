@@ -212,11 +212,6 @@ export default function EbeveynPortaliPage() {
               <h3 className="text-2xl font-bold flex items-center gap-2"><Crown /> Premium Üyelik Aktif</h3>
               <p className="text-white/80">Tüm premium özelliklerin tadını çıkarın!</p>
             </div>
-             <Button variant="outline" className="bg-white/20 text-white hover:bg-white/30" asChild>
-                <Link href="/ebeveyn-portali/uyelik" target="_blank">
-                    <Settings className="mr-2 h-4 w-4"/> Üyeliği Yönet
-                </Link>
-             </Button>
           </div>
         </Card>
       ) : (
@@ -259,7 +254,7 @@ export default function EbeveynPortaliPage() {
 
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Kalan Ders" value={isPremium ? "0" : "0"} icon={BookOpen} />
+        <StatCard title="Kalan Ders" value="0" icon={BookOpen} />
         <StatCard title="Toplam Çocuk" value={childCount} icon={Users} />
         <StatCard title="Toplam Rozet" value={totalRozet} icon={Star} />
         <Card>
