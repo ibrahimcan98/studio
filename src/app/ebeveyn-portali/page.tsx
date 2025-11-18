@@ -278,8 +278,8 @@ export default function EbeveynPortaliPage() {
                 <CardContent className="p-6 grid gap-6">
                     {children && children.length > 0 ? (
                         children.map(child => (
-                           <div key={child.id} className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0 p-4 border rounded-lg">
-                                <div className="flex items-center gap-4">
+                           <div key={child.id} className="flex flex-col sm:flex-row items-center gap-4 p-4 border rounded-lg">
+                                <div className="flex items-center gap-4 flex-1">
                                     <Avatar className="h-12 w-12">
                                         <AvatarFallback className="bg-primary/20 text-primary font-bold">{child.firstName?.charAt(0)}</AvatarFallback>
                                     </Avatar>
@@ -288,7 +288,7 @@ export default function EbeveynPortaliPage() {
                                         <p className="text-sm text-muted-foreground">{new Date().getFullYear() - new Date(child.dateOfBirth).getFullYear()} yaş</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-6">
+                                <div className="flex items-center gap-6 flex-none justify-center">
                                      <div className="text-center">
                                         <p className="font-bold text-xl">{child.rozet || 0}</p>
                                         <p className="text-xs text-muted-foreground">Rozet</p>
@@ -303,7 +303,9 @@ export default function EbeveynPortaliPage() {
                                         <p className="text-xs text-muted-foreground">Kalan Can</p>
                                     </div>
                                 </div>
-                                <Button className="w-full sm:w-auto bg-cyan-500 hover:bg-cyan-600">Öğrenmeye Başla</Button>
+                                <div className="flex-1 flex justify-end">
+                                    <Button className="w-full sm:w-auto bg-cyan-500 hover:bg-cyan-600">Öğrenmeye Başla</Button>
+                               </div>
                            </div>
                         ))
                     ) : (
