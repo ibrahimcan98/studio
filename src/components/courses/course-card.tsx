@@ -30,7 +30,8 @@ export const CourseCard = ({ course }: { course: Course }) => {
             "relative p-8 rounded-3xl overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:scale-[1.03]",
             course.id === 'konusma' ? 'bg-[#FFF0CC]' : 
             course.id === 'baslangic' ? 'bg-[#FFF8E7]' :
-            course.id === 'gelisim' ? 'bg-[#F0FAF8]' : 'bg-white'
+            course.id === 'gelisim' ? 'bg-[#F0FAF8]' :
+            course.id === 'akademik' ? 'bg-[#D4EDE3]' : 'bg-white'
         )}>
             
             <div className="relative z-10 flex flex-col h-full">
