@@ -37,6 +37,8 @@ export default function GameClient({ questions }: GameClientProps) {
     const router = useRouter();
     const params = useParams();
     const { childId, topicId } = params;
+    const { width, height } = useWindowSize();
+
 
     const { user: authUser } = useUser();
     const db = useFirestore();
@@ -50,7 +52,6 @@ export default function GameClient({ questions }: GameClientProps) {
 
 
     const currentQuestion = questions[currentIndex];
-    const { width, height } = useWindowSize();
 
     const playQuestionAudio = () => {
         if (audioRef.current) {
