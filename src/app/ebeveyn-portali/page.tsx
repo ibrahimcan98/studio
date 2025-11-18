@@ -71,7 +71,7 @@ function AddChildDialog({ userId }: { userId: string }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-gradient-to-r from-secondary to-accent text-primary-foreground font-semibold">
+        <Button className="bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold">
           <Plus className="mr-2 h-4 w-4" /> Çocuk Ekle
         </Button>
       </DialogTrigger>
@@ -157,7 +157,7 @@ export default function EbeveynPortaliPage() {
     return doc(db, 'users', user.uid);
   }, [db, user?.uid]);
 
-  const { data: userData } = useDoc(userDocRef);
+  const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
   const isPremium = userData?.isPremium || false;
 
   const childrenRef = useMemoFirebase(() => {
@@ -180,7 +180,7 @@ export default function EbeveynPortaliPage() {
   };
 
 
-  if (loading || childrenLoading) {
+  if (loading || childrenLoading || isUserDataLoading) {
     return (
       <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -215,9 +215,6 @@ export default function EbeveynPortaliPage() {
               <h3 className="text-2xl font-bold flex items-center gap-2"><Crown /> Premium Üyelik Aktif</h3>
               <p className="text-white/80">Tüm premium özelliklerin tadını çıkarın!</p>
             </div>
-            <Button asChild variant="outline" className="bg-white/20 border-white/50 text-white hover:bg-white/30">
-                <Link href="/ebeveyn-portali/uyelik">Üyeliği Yönet</Link>
-            </Button>
           </div>
         </Card>
       ) : (
@@ -370,7 +367,7 @@ export default function EbeveynPortaliPage() {
                                         </div>
                                       </div>
                                     </div>
-                                    <Button className="w-full bg-gradient-to-r from-secondary to-accent text-primary-foreground font-semibold mt-auto">
+                                    <Button className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold mt-auto">
                                         Öğrenmeye Başla
                                     </Button>
                                </Card>
