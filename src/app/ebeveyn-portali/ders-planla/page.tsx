@@ -8,11 +8,14 @@ import { collection, doc, updateDoc, where, query } from 'firebase/firestore';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { format, isSameDay } from 'date-fns';
+import { format as formatInTimeZone, toDate } from 'date-fns-tz';
+import { isSameDay, format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+
+const turkeyTimeZone = 'Europe/Istanbul';
 
 export default function DersPlanlaPage() {
     const router = useRouter();
@@ -39,14 +42,14 @@ export default function DersPlanlaPage() {
 
     const availableDays = useMemo(() => {
         if (!availableSlots) return [];
-        return availableSlots.map(slot => new Date(slot.startTime));
+        return availableSlots.map(slot => toDate(slot.startTime.seconds * 1000, { timeZone: turkeyTimeZone }));
     }, [availableSlots]);
 
     const slotsForSelectedDate = useMemo(() => {
         if (!availableSlots || !selectedDate) return [];
         return availableSlots
-            .filter(slot => isSameDay(new Date(slot.startTime), selectedDate))
-            .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+            .filter(slot => isSameDay(toDate(slot.startTime.seconds * 1000, { timeZone: turkeyTimeZone }), selectedDate))
+            .sort((a, b) => a.startTime.seconds - b.startTime.seconds);
     }, [availableSlots, selectedDate]);
     
     const handleBookLesson = async (slotId: string) => {
@@ -103,7 +106,7 @@ export default function DersPlanlaPage() {
                     </Button>
                     <h2 className="text-3xl font-bold tracking-tight">Ders Planla</h2>
                     <p className="text-muted-foreground">
-                        Öğretmenimizin müsait olduğu zamanlardan birini seçin.
+                        Öğretmenimizin müsait olduğu zamanlardan birini seçin (Türkiye saatine göre).
                     </p>
                 </div>
             </div>
@@ -145,7 +148,7 @@ export default function DersPlanlaPage() {
                                         onClick={() => handleBookLesson(slot.id)}
                                         disabled={isBooking}
                                     >
-                                        {isBooking ? <Loader2 className="animate-spin" /> : format(new Date(slot.startTime), 'HH:mm')}
+                                        {isBooking ? <Loader2 className="animate-spin" /> : format(toDate(slot.startTime.seconds * 1000, { timeZone: turkeyTimeZone }), 'HH:mm')}
                                     </Button>
                                 ))}
                             </div>
@@ -165,4 +168,3 @@ export default function DersPlanlaPage() {
         </div>
     );
 }
-
