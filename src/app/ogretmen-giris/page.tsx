@@ -26,21 +26,16 @@ export default function OgretmenGirisPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isPageLoading, setIsPageLoading] = useState(true);
   const auth = useAuth();
   const db = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
   const { user, loading: userLoading } = useUser();
 
+  // Redirect if a teacher is already logged in
   useEffect(() => {
-    if (!userLoading) {
-      const isTeacher = user && user.email && allowedTeacherEmails.includes(user.email);
-      if (isTeacher) {
-        router.replace('/ogretmen-portali');
-      } else {
-        setIsPageLoading(false);
-      }
+    if (!userLoading && user && user.email && allowedTeacherEmails.includes(user.email)) {
+      router.replace('/ogretmen-portali');
     }
   }, [user, userLoading, router]);
 
@@ -107,7 +102,7 @@ export default function OgretmenGirisPage() {
         title: 'Başarılı!',
         description: 'Öğretmen portalına yönlendiriliyorsunuz...',
       });
-      router.push('/ogretmen-portali');
+      router.push('/ogretmen-portali'); // Directly push to portal after successful login
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -119,7 +114,8 @@ export default function OgretmenGirisPage() {
     }
   };
 
-  if (isPageLoading) {
+  // Show a loading spinner while checking auth state, especially if a user is already logged in.
+  if (userLoading || (user && user.email && allowedTeacherEmails.includes(user.email))) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />

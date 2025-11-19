@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useUser } from '@/firebase';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Loader2, LogOut } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
@@ -15,14 +14,14 @@ const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisii.com', 'teacher@tur
 function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useUser();
   const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
+    // Wait until loading is finished
     if (loading) return;
 
-    const isTeacher = user && user.email && allowedTeacherEmails.includes(user.email);
-    
-    if (!isTeacher) {
+    // If there is no user, or the user is not an allowed teacher, redirect
+    const isAuthorizedTeacher = user && user.email && allowedTeacherEmails.includes(user.email);
+    if (!isAuthorizedTeacher) {
       router.replace('/ogretmen-giris');
     }
   }, [user, loading, router]);
@@ -33,7 +32,8 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
     router.push('/ogretmen-giris');
   };
   
-  if (loading || !user) {
+  // While loading, or if user is not yet determined to be a teacher, show loading screen
+  if (loading || !user || !(user.email && allowedTeacherEmails.includes(user.email))) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -41,6 +41,7 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
     );
   }
   
+  // If we reach here, user is an authorized teacher
   return (
     <div className="min-h-screen bg-muted/40">
         <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
