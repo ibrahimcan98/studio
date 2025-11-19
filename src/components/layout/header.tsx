@@ -130,7 +130,7 @@ export default function Header() {
               <Settings className="mr-2 h-4 w-4" />
               <span>Hesap Ayarları</span>
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem onClick={() => router.push('/sepet')} className="cursor-pointer">
               <ShoppingCart className="mr-2 h-4 w-4" />
               <span>Sepet</span>
             </DropdownMenuItem>
