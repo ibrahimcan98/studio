@@ -45,6 +45,65 @@ import { tr } from 'date-fns/locale';
 import { SetPinDialog } from '@/components/child-mode/set-pin-dialog';
 
 
+const LIFE_REGEN_HOURS = 2;
+const MAX_LIVES = 5;
+
+function formatTimeDifference(ms: number) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+    if (hours > 0) {
+        return `${hours} saat ${minutes} dakika içinde yenilenecek`;
+    }
+    if (minutes > 0) {
+        return `${minutes} dakika içinde yenilenecek`;
+    }
+    return `birkaç saniye içinde yenilenecek`;
+}
+
+
+function LivesTooltipContent({ lives, livesLastUpdatedAt }: { lives: number, livesLastUpdatedAt: any }) {
+    const [countdown, setCountdown] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (lives >= MAX_LIVES || !livesLastUpdatedAt) {
+            setCountdown("Canlar dolu!");
+            return;
+        }
+
+        const interval = setInterval(() => {
+            const lastUpdated = livesLastUpdatedAt.toDate();
+            const now = new Date();
+            const hoursPassed = (now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
+            const livesToRegen = Math.floor(hoursPassed / LIFE_REGEN_HOURS);
+
+            if (lives + livesToRegen >= MAX_LIVES) {
+                setCountdown("Canlar dolu!");
+                return;
+            }
+            
+            const nextRegenTime = new Date(lastUpdated.getTime() + (livesToRegen + 1) * LIFE_REGEN_HOURS * 60 * 60 * 1000);
+            const remainingMs = Math.max(0, nextRegenTime.getTime() - now.getTime());
+
+            if (remainingMs === 0) {
+                setCountdown("Can yenileniyor...");
+            } else {
+                setCountdown(formatTimeDifference(remainingMs));
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [lives, livesLastUpdatedAt]);
+
+
+    return (
+        <TooltipContent>
+            <p className="text-sm">{countdown}</p>
+        </TooltipContent>
+    )
+}
+
 function AddChildDialog({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
@@ -412,11 +471,7 @@ export default function EbeveynPortaliPage() {
                                                     </div>
                                                 </div>
                                             </TooltipTrigger>
-                                            {!isPremium && (
-                                            <TooltipContent>
-                                                <p>Her kalp 2 saatte bir yenilenir.</p>
-                                            </TooltipContent>
-                                            )}
+                                            {!isPremium && <LivesTooltipContent lives={child.lives ?? 5} livesLastUpdatedAt={child.livesLastUpdatedAt} />}
                                         </Tooltip>
                                        </TooltipProvider>
                                     </div>
@@ -468,3 +523,5 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
+
+    
