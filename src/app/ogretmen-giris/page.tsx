@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -34,7 +35,8 @@ export default function OgretmenGirisPage() {
 
   useEffect(() => {
     if (!userLoading) {
-      if (user && user.email && allowedTeacherEmails.includes(user.email)) {
+      const isTeacher = user && user.email && allowedTeacherEmails.includes(user.email);
+      if (isTeacher) {
         router.replace('/ogretmen-portali');
       } else {
         setIsPageLoading(false);
@@ -105,7 +107,7 @@ export default function OgretmenGirisPage() {
         title: 'Başarılı!',
         description: 'Öğretmen portalına yönlendiriliyorsunuz...',
       });
-      // The useEffect will handle the redirection
+      router.push('/ogretmen-portali');
     } catch (error) {
       toast({
         variant: 'destructive',

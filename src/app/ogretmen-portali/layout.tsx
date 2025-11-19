@@ -18,20 +18,22 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!loading && (!user || !user.email || !allowedTeacherEmails.includes(user.email))) {
-        if(pathname !== '/ogretmen-giris') {
-            router.replace('/ogretmen-giris');
-        }
+    if (loading) return; // Wait until user status is resolved
+
+    const isTeacher = user && user.email && allowedTeacherEmails.includes(user.email);
+
+    if (!isTeacher && pathname !== '/ogretmen-giris') {
+      router.replace('/ogretmen-giris');
     }
-  }, [user, loading, router, pathname]);
+  }, [user, loading, router]);
 
   const handleLogout = async () => {
     const auth = getAuth();
     await signOut(auth);
     router.push('/ogretmen-giris');
   };
-
-  if (loading || (!user && pathname !== '/ogretmen-giris')) {
+  
+  if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -39,35 +41,42 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!user && pathname === '/ogretmen-giris') {
+  // If user is not a teacher and is trying to access a non-login page, show loading while redirecting
+  if (!user && pathname !== '/ogretmen-giris') {
+      return (
+        <div className="flex h-screen items-center justify-center bg-gray-50">
+            <Loader2 className="h-16 w-16 animate-spin text-primary" />
+        </div>
+      )
+  }
+
+  // For the login page, render children directly without the layout wrapper
+  if (pathname === '/ogretmen-giris') {
       return <>{children}</>;
   }
   
-  if (user && user.email && allowedTeacherEmails.includes(user.email)) {
-     return (
-        <div className="min-h-screen bg-muted/40">
-            <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <div className="container flex h-20 items-center justify-between">
-                    <Link href="/ogretmen-portali" className="flex items-center space-x-2 mr-auto">
-                        <Logo />
-                    </Link>
-                    <div className="flex items-center gap-4">
-                        <span className="text-sm font-medium text-muted-foreground hidden sm:inline">
-                            {user.displayName || user.email}
-                        </span>
-                        <Button variant="outline" size="sm" onClick={handleLogout}>
-                            <LogOut className="mr-2 h-4 w-4" />
-                            Çıkış Yap
-                        </Button>
-                    </div>
+  // If we are here, user is an authenticated teacher
+  return (
+    <div className="min-h-screen bg-muted/40">
+        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="container flex h-20 items-center justify-between">
+                <Link href="/ogretmen-portali" className="flex items-center space-x-2 mr-auto">
+                    <Logo />
+                </Link>
+                <div className="flex items-center gap-4">
+                    <span className="text-sm font-medium text-muted-foreground hidden sm:inline">
+                        {user?.displayName || user?.email}
+                    </span>
+                    <Button variant="outline" size="sm" onClick={handleLogout}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Çıkış Yap
+                    </Button>
                 </div>
-            </header>
-            <main>{children}</main>
-        </div>
-    );
-  }
-
-  return null;
+            </div>
+        </header>
+        <main>{children}</main>
+    </div>
+  );
 }
 
 
@@ -84,5 +93,3 @@ export default function Layout({
   
   return <>{children}</>
 }
-
-    
