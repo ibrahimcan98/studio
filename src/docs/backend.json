@@ -67,6 +67,10 @@
         "remainingLessons": {
             "type": "number",
             "description": "The total number of lessons remaining from all purchased packages."
+        },
+        "hasUsedFreeTrial": {
+            "type": "boolean",
+            "description": "Indicates if the user has already used their free trial lesson."
         }
       },
       "required": [
@@ -112,6 +116,21 @@
         "dateOfBirth",
         "level"
       ]
+    },
+    "LessonSlot": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Lesson Slot",
+        "type": "object",
+        "description": "Represents a time slot for a lesson, which can be available or booked.",
+        "properties": {
+            "id": { "type": "string", "description": "Unique identifier for the lesson slot." },
+            "teacherId": { "type": "string", "description": "ID of the teacher who is available for this slot." },
+            "startTime": { "type": "string", "format": "date-time", "description": "The start time of the lesson slot." },
+            "endTime": { "type": "string", "format": "date-time", "description": "The end time of the lesson slot." },
+            "status": { "type": "string", "enum": ["available", "booked"], "description": "The current status of the slot." },
+            "bookedBy": { "type": "string", "description": "ID of the user (parent) who booked this slot." }
+        },
+        "required": ["id", "teacherId", "startTime", "endTime", "status"]
     },
     "Course": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -297,6 +316,17 @@
               "description": "The unique identifier for the child."
             }
           ]
+        }
+      },
+       {
+        "path": "/lesson-slots/{slotId}",
+        "definition": {
+            "entityName": "LessonSlot",
+            "schema": { "$ref": "#/backend/entities/LessonSlot" },
+            "description": "Stores available and booked lesson time slots. Publicly readable, but writes are restricted.",
+            "params": [
+                { "name": "slotId", "description": "The unique identifier for the lesson slot." }
+            ]
         }
       },
       {

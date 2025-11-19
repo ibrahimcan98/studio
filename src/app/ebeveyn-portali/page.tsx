@@ -315,6 +315,7 @@ export default function EbeveynPortaliPage() {
   const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
   const isPremium = userData?.isPremium || false;
   const currentLives = userData?.lives ?? 5;
+  const hasUsedFreeTrial = userData?.hasUsedFreeTrial || false;
   
   const purchasesRef = useMemoFirebase(() => {
     if (!db || !user?.uid) return null;
@@ -494,14 +495,18 @@ export default function EbeveynPortaliPage() {
                         <Video className="w-6 h-6 text-green-700"/>
                     </div>
                     <div>
-                        <CardTitle className="text-green-900">Ücretsiz Deneme Dersi</CardTitle>
-                        <CardDescription className="text-green-700">İlk canlı dersiniz ücretsiz!</CardDescription>
+                        <CardTitle className="text-green-900">{hasUsedFreeTrial ? 'Ders Planlayın' : 'Ücretsiz Deneme Dersi'}</CardTitle>
+                        <CardDescription className="text-green-700">Öğretmenimizle tanışın ve platformumuzu deneyimleyin.</CardDescription>
                     </div>
                 </div>
             </CardHeader>
             <CardContent>
-                <p className="mb-4 text-muted-foreground">Öğretmenimizle tanışın ve platformumuzu deneyimleyin.</p>
-                <Button className="bg-green-600 hover:bg-green-700 text-white">Hemen Planla <ArrowRight className="ml-2 h-4 w-4"/></Button>
+                {!hasUsedFreeTrial && <p className="mb-4 text-muted-foreground">İlk canlı dersiniz ücretsiz!</p>}
+                <Button asChild className="bg-green-600 hover:bg-green-700 text-white">
+                  <Link href="/ebeveyn-portali/ders-planla">
+                    Hemen Planla <ArrowRight className="ml-2 h-4 w-4"/>
+                  </Link>
+                </Button>
             </CardContent>
         </Card>
          <Card className="bg-amber-50 border-amber-200 hover:shadow-lg transition-shadow">
@@ -587,5 +592,3 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
-
-    
