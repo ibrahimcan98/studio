@@ -11,6 +11,7 @@ import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, arrayUnion, increment, serverTimestamp } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 type Word = {
     word: string;
@@ -37,6 +38,7 @@ export default function GameClient({ questions }: GameClientProps) {
     const audioRef = useRef<HTMLAudioElement>(null);
     const router = useRouter();
     const params = useParams();
+    const { toast } = useToast();
     const { childId, topicId } = params;
     const { width, height } = useWindowSize();
 
@@ -86,22 +88,25 @@ export default function GameClient({ questions }: GameClientProps) {
         setIsCorrect(correct);
 
         if (!correct && !isPremium) {
-            if (lives > 0) {
-                const newLives = lives - 1;
-                setLives(newLives);
-                if (childDocRef) {
-                    await updateDoc(childDocRef, { 
-                        lives: newLives,
-                        livesLastUpdatedAt: serverTimestamp()
-                    });
-                }
-                if (newLives <= 0) {
-                     setTimeout(() => {
-                        alert('Canların bitti! Ebeveyn portalına yönlendiriliyorsun.');
-                        router.push('/ebeveyn-portali');
-                    }, 1500);
-                    return;
-                }
+            const newLives = Math.max(0, lives - 1);
+            setLives(newLives);
+
+            if (childDocRef) {
+                await updateDoc(childDocRef, {
+                    lives: newLives,
+                    livesLastUpdatedAt: serverTimestamp()
+                });
+            }
+            if (newLives <= 0) {
+                toast({
+                    variant: "destructive",
+                    title: "Canların Bitti!",
+                    description: "Ebeveyn portalına yönlendiriliyorsun.",
+                });
+                setTimeout(() => {
+                    router.push('/ebeveyn-portali');
+                }, 1500);
+                return;
             }
         }
 

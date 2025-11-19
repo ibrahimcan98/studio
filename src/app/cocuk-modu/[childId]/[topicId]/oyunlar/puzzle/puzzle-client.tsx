@@ -12,6 +12,7 @@ import { useWindowSize } from 'react-use';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, arrayUnion, increment, serverTimestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 type Word = {
     word: string;
@@ -40,6 +41,7 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
 
     const router = useRouter();
     const params = useParams();
+    const { toast } = useToast();
     const { childId, topicId } = params;
     const { width, height } = useWindowSize();
     const audioRef = useRef<HTMLAudioElement>(null);
@@ -113,22 +115,26 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
         } else {
             // Incorrect placement
             if (!isPremium) {
-                if (lives > 0) {
-                    const newLives = lives - 1;
-                    setLives(newLives);
-                    if (childDocRef) {
-                        await updateDoc(childDocRef, { 
-                          lives: newLives,
-                          livesLastUpdatedAt: serverTimestamp()
-                        });
-                    }
-                    if (newLives <= 0) {
-                         setTimeout(() => {
-                            alert('Canların bitti! Ebeveyn portalına yönlendiriliyorsun.');
-                            router.push('/ebeveyn-portali');
-                        }, 1500);
-                        return;
-                    }
+                const newLives = Math.max(0, lives - 1);
+                setLives(newLives);
+
+                if (childDocRef) {
+                    await updateDoc(childDocRef, {
+                        lives: newLives,
+                        livesLastUpdatedAt: serverTimestamp()
+                    });
+                }
+
+                if (newLives <= 0) {
+                    toast({
+                        variant: "destructive",
+                        title: "Canların Bitti!",
+                        description: "Ebeveyn portalına yönlendiriliyorsun.",
+                    });
+                    setTimeout(() => {
+                        router.push('/ebeveyn-portali');
+                    }, 1500);
+                    return;
                 }
             }
             setSelectedPiece(null); // Deselect piece after wrong attempt
