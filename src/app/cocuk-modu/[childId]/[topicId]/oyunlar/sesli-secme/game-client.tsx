@@ -10,7 +10,7 @@ import { Volume2, CheckCircle, XCircle, ArrowLeft, Star, Heart } from 'lucide-re
 import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, increment, serverTimestamp } from 'firebase/firestore';
 
 type Word = {
     word: string;
@@ -76,7 +76,7 @@ export default function GameClient({ questions }: GameClientProps) {
 
     useEffect(() => {
         playQuestionAudio();
-    }, [currentIndex, playQuestionAudio]);
+    }, [currentIndex, currentQuestion.audio]);
 
     const handleAnswer = async (answer: Word) => {
         if (selectedAnswer) return; // Prevent multiple selections
@@ -89,7 +89,10 @@ export default function GameClient({ questions }: GameClientProps) {
             const newLives = lives - 1;
             setLives(newLives);
             if (childDocRef) {
-                await updateDoc(childDocRef, { lives: newLives });
+                await updateDoc(childDocRef, { 
+                    lives: newLives,
+                    livesLastUpdatedAt: serverTimestamp()
+                });
             }
             if (newLives <= 0) {
                  setTimeout(() => {

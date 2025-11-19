@@ -4,12 +4,12 @@
 import { useParams, useRouter } from 'next/navigation';
 import topicsData from '@/data/topics.json';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { WordCard } from '@/components/child-mode/word-card';
 import { ChildHeader } from '@/components/child-mode/child-header';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 
 type Word = {
@@ -52,6 +52,15 @@ export default function TopicPage() {
     const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
     const isPremium = userData?.isPremium || false;
 
+     const handleLivesUpdate = useCallback(async (newLives: number) => {
+        if (childDocRef) {
+            await updateDoc(childDocRef, {
+                lives: newLives,
+                livesLastUpdatedAt: serverTimestamp()
+            });
+        }
+    }, [childDocRef]);
+
     useEffect(() => {
         if(topicId) {
             const currentTopic = topicsData.find(t => t.id === topicId);
@@ -81,6 +90,8 @@ export default function TopicPage() {
                 badges={childData.rozet || 0}
                 isPremium={isPremium}
                 childId={childId as string}
+                livesLastUpdatedAt={childData.livesLastUpdatedAt}
+                onLivesUpdate={handleLivesUpdate}
             />
             <div className="p-4 sm:p-8 flex flex-col flex-1">
                 <header className="flex-shrink-0 mb-4">

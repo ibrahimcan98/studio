@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Loader2, Sparkles } from 'lucide-react';
 import { ChildHeader } from '@/components/child-mode/child-header';
 import { TopicCard } from '@/components/child-mode/topic-card';
@@ -42,6 +42,15 @@ export default function CocukModuPage() {
   const { data: userData } = useDoc(userDocRef);
   const isPremium = userData?.isPremium || false;
 
+  const handleLivesUpdate = useCallback(async (newLives: number) => {
+      if (childDocRef) {
+          await updateDoc(childDocRef, {
+              lives: newLives,
+              livesLastUpdatedAt: serverTimestamp()
+          });
+      }
+  }, [childDocRef]);
+
   if (authLoading || childLoading || isAuthenticated === null) {
     return (
       <div className="flex h-screen items-center justify-center bg-amber-50">
@@ -73,6 +82,8 @@ export default function CocukModuPage() {
         badges={childData.rozet || 0}
         isPremium={isPremium}
         childId={childId}
+        livesLastUpdatedAt={childData.livesLastUpdatedAt}
+        onLivesUpdate={handleLivesUpdate}
       />
       <main className="flex-1 container py-8 px-4 md:px-8 overflow-y-auto">
         <div className="text-center mb-10">

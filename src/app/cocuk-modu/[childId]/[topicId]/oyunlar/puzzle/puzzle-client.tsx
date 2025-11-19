@@ -10,7 +10,7 @@ import { ArrowLeft, Star, Heart, CheckCircle, RefreshCw, ArrowRight } from 'luci
 import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, increment, serverTimestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 
 type Word = {
@@ -116,7 +116,10 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
                 const newLives = lives - 1;
                 setLives(newLives);
                 if (childDocRef) {
-                    await updateDoc(childDocRef, { lives: newLives });
+                    await updateDoc(childDocRef, { 
+                      lives: newLives,
+                      livesLastUpdatedAt: serverTimestamp()
+                    });
                 }
                 if (newLives <= 0) {
                      setTimeout(() => {

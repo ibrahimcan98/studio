@@ -2,13 +2,13 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Gamepad2, Lock, Sparkles, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Gamepad2, Lock, Sparkles, CheckCircle, RefreshCw } from 'lucide-react';
 import topicsData from '@/data/topics.json';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { useEffect, useState, useCallback } from 'react';
 import { Loader2 } from 'lucide-react';
 import { ChildHeader } from '@/components/child-mode/child-header';
 
@@ -44,6 +44,15 @@ export default function GamesPage() {
 
     const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
     const isPremium = userData?.isPremium || false;
+
+    const handleLivesUpdate = useCallback(async (newLives: number) => {
+        if (childDocRef) {
+            await updateDoc(childDocRef, {
+                lives: newLives,
+                livesLastUpdatedAt: serverTimestamp()
+            });
+        }
+    }, [childDocRef]);
 
     useEffect(() => {
         const topic = topicsData.find(t => t.id === topicId);
@@ -100,6 +109,8 @@ export default function GamesPage() {
                 badges={childData.rozet || 0}
                 isPremium={isPremium}
                 childId={childId as string}
+                livesLastUpdatedAt={childData.livesLastUpdatedAt}
+                onLivesUpdate={handleLivesUpdate}
             />
             <div className="p-4 sm:p-8 flex flex-col flex-1">
                 <header className="flex-shrink-0 mb-8">
