@@ -39,39 +39,52 @@ import {
 } from "@/components/ui/tooltip"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { collection, doc, addDoc, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, addDoc, deleteDoc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { SetPinDialog } from '@/components/child-mode/set-pin-dialog';
 import { useToast } from '@/hooks/use-toast';
 
 
-const LIFE_REGEN_SECONDS = 5 * 60; // 5 minutes in seconds
+const LIFE_REGEN_SECONDS = 90 * 60; // 1 hour and 30 minutes in seconds
 const MAX_LIVES = 5;
 
 function LivesTooltipContent({ userDocRef }: { userDocRef: any }) {
     const { data: userData } = useDoc(userDocRef);
     const lives = userData?.lives;
     const livesLastUpdatedAt = userData?.livesLastUpdatedAt;
+    const isPremium = userData?.isPremium || false;
 
     useEffect(() => {
-        if (!userDocRef || userData?.isPremium || typeof lives !== 'number' || lives >= MAX_LIVES || !livesLastUpdatedAt?.toDate) {
+        if (!userDocRef || isPremium || typeof lives !== 'number' || lives >= MAX_LIVES || !livesLastUpdatedAt?.toDate) {
             return;
         }
 
         const interval = setInterval(async () => {
-            const lastUpdated = livesLastUpdatedAt.toDate();
+            const userSnap = await getDoc(userDocRef);
+            const latestUserData = userSnap.data();
+            
+            if (!latestUserData) return;
+
+            const currentLives = latestUserData.lives;
+            const lastUpdatedTimestamp = latestUserData.livesLastUpdatedAt;
+
+            if (currentLives >= MAX_LIVES || !lastUpdatedTimestamp?.toDate) {
+                return;
+            }
+
+            const lastUpdated = lastUpdatedTimestamp.toDate();
             const now = new Date();
             const diffSeconds = Math.floor((now.getTime() - lastUpdated.getTime()) / 1000);
+            
             const livesToRegen = Math.floor(diffSeconds / LIFE_REGEN_SECONDS);
 
             if (livesToRegen > 0) {
-                const currentLives = (await (await getDoc(userDocRef)).data() as any).lives;
                 const newLiveCount = Math.min(MAX_LIVES, currentLives + livesToRegen);
                 
                 if (newLiveCount > currentLives) {
-                    const secondsForLivesGained = (newLiveCount - currentLives) * LIFE_REGEN_SECONDS;
-                    const newTimestampDate = new Date(lastUpdated.getTime() + secondsForLivesGained * 1000);
+                     const secondsForLivesGained = (newLiveCount - currentLives) * LIFE_REGEN_SECONDS;
+                     const newTimestampDate = new Date(lastUpdated.getTime() + secondsForLivesGained * 1000);
 
                     await updateDoc(userDocRef, {
                         lives: newLiveCount,
@@ -82,12 +95,12 @@ function LivesTooltipContent({ userDocRef }: { userDocRef: any }) {
         }, 60000); // Check every minute
 
         return () => clearInterval(interval);
-    }, [lives, userData?.isPremium, livesLastUpdatedAt, userDocRef]);
+    }, [lives, isPremium, livesLastUpdatedAt, userDocRef]);
 
 
     return (
         <TooltipContent>
-            <p>Canlar 2 saatte bir yenilenir.</p>
+            <p>Canlar 1 saat 30 dakikada bir yenilenir.</p>
         </TooltipContent>
     );
 }

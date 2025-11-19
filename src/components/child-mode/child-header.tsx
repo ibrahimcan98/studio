@@ -15,7 +15,7 @@ import {
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 
 type ChildHeaderProps = {
@@ -23,7 +23,7 @@ type ChildHeaderProps = {
     childId: string;
 }
 
-const LIFE_REGEN_SECONDS = 5 * 60; // 5 minutes
+const LIFE_REGEN_SECONDS = 90 * 60; // 1 hour and 30 minutes
 const MAX_LIVES = 5;
 
 
@@ -55,24 +55,29 @@ export function ChildHeader({ childName, childId }: ChildHeaderProps) {
         }
 
         const interval = setInterval(async () => {
-            // Re-fetch the latest user data inside the interval to avoid stale data
             const userSnap = await getDoc(userDocRef);
             const latestUserData = userSnap.data();
-            const latestLives = latestUserData?.lives ?? 5;
-            const latestTimestamp = latestUserData?.livesLastUpdatedAt;
+            
+            if (!latestUserData) return;
 
-            if (latestLives >= MAX_LIVES || !latestTimestamp?.toDate) return;
+            const currentLives = latestUserData.lives;
+            const lastUpdatedTimestamp = latestUserData.livesLastUpdatedAt;
 
-            const lastUpdated = latestTimestamp.toDate();
+            if (currentLives >= MAX_LIVES || !lastUpdatedTimestamp?.toDate) {
+                return;
+            }
+
+            const lastUpdated = lastUpdatedTimestamp.toDate();
             const now = new Date();
             const diffSeconds = Math.floor((now.getTime() - lastUpdated.getTime()) / 1000);
             
-            if (diffSeconds >= LIFE_REGEN_SECONDS) {
-                const livesToRegen = Math.floor(diffSeconds / LIFE_REGEN_SECONDS);
-                const newLiveCount = Math.min(MAX_LIVES, latestLives + livesToRegen);
+            const livesToRegen = Math.floor(diffSeconds / LIFE_REGEN_SECONDS);
+
+            if (livesToRegen > 0) {
+                const newLiveCount = Math.min(MAX_LIVES, currentLives + livesToRegen);
                 
-                if (newLiveCount > latestLives) {
-                    const secondsForLivesGained = (newLiveCount - latestLives) * LIFE_REGEN_SECONDS;
+                if (newLiveCount > currentLives) {
+                    const secondsForLivesGained = (newLiveCount - currentLives) * LIFE_REGEN_SECONDS;
                     const newTimestampDate = new Date(lastUpdated.getTime() + secondsForLivesGained * 1000);
 
                     await updateDoc(userDocRef, {
@@ -81,7 +86,7 @@ export function ChildHeader({ childName, childId }: ChildHeaderProps) {
                     });
                 }
             }
-        }, 60000); // Check every minute for potential regeneration
+        }, 60000); // Check every minute
 
         return () => clearInterval(interval);
     }, [lives, isPremium, livesLastUpdatedAt, userDocRef]);
@@ -118,7 +123,7 @@ export function ChildHeader({ childName, childId }: ChildHeaderProps) {
                     {!isPremium && lives !== 'unlimited' && (
                         <TooltipContent>
                              <p>
-                                Canlar 2 saatte bir yenilenir.
+                                Canlar 1 saat 30 dakikada bir yenilenir.
                             </p>
                         </TooltipContent>
                     )}
