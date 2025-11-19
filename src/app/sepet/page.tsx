@@ -9,31 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Trash2, ShoppingCart, ArrowLeft, CreditCard, Tag, Minus, Plus } from "lucide-react";
 import Image from 'next/image';
 import Link from 'next/link';
-
-// Example item removed to make the cart empty by default
-// const initialCartItem = {
-//     id: 'konusma-12',
-//     name: 'Konuşma Kursu',
-//     description: '12 derslik paket',
-//     price: 198.00,
-//     quantity: 1,
-//     image: '/images/topics/family.png',
-// };
+import { useCart } from '@/context/cart-context';
 
 export default function SepetPage() {
-    const [cartItem, setCartItem] = useState(null);
+    const { cartItems, updateQuantity, removeFromCart, cartTotal } = useCart();
     const [coupon, setCoupon] = useState('');
-
-    const handleQuantityChange = (amount: number) => {
-        if (!cartItem) return;
-        setCartItem(prev => (prev ? {
-            ...prev,
-            quantity: Math.max(1, prev.quantity + amount)
-        } : null));
-    };
-
-    const total = cartItem ? cartItem.price * cartItem.quantity : 0;
-
 
     return (
         <div className="bg-muted/30 min-h-[calc(100vh-80px)] py-12 px-4 sm:px-6 lg:px-8">
@@ -48,43 +28,45 @@ export default function SepetPage() {
                     <div className="lg:col-span-2">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Sepetinizdeki Ürünler</CardTitle>
+                                <CardTitle>Sepetinizdeki Ürünler ({cartItems.length})</CardTitle>
                             </CardHeader>
-                            <CardContent>
-                                {cartItem ? (
-                                    <div className="flex flex-col sm:flex-row items-start gap-6 py-4">
-                                        <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                            <Image src={cartItem.image} alt={cartItem.name} width={60} height={60} className="object-contain" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <h3 className="font-semibold text-lg">{cartItem.name}</h3>
-                                            <p className="text-sm text-muted-foreground">{cartItem.description}</p>
-                                            <div className="flex items-center gap-2 mt-3">
-                                                <Label htmlFor="quantity">Miktar:</Label>
-                                                <div className="flex items-center gap-1 border rounded-md">
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(-1)}>
-                                                        <Minus className="h-4 w-4"/>
-                                                    </Button>
-                                                    <Input
-                                                        id="quantity"
-                                                        type="number"
-                                                        value={cartItem.quantity}
-                                                        readOnly
-                                                        className="h-8 w-12 text-center border-0 focus-visible:ring-0"
-                                                    />
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(1)}>
-                                                        <Plus className="h-4 w-4"/>
-                                                    </Button>
+                            <CardContent className="divide-y">
+                                {cartItems.length > 0 ? (
+                                    cartItems.map(item => (
+                                        <div key={item.id} className="flex flex-col sm:flex-row items-start gap-6 py-4">
+                                            <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <Image src={item.image} alt={item.name} width={60} height={60} className="object-contain" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <h3 className="font-semibold text-lg">{item.name}</h3>
+                                                <p className="text-sm text-muted-foreground">{item.description}</p>
+                                                <div className="flex items-center gap-2 mt-3">
+                                                    <Label htmlFor={`quantity-${item.id}`}>Miktar:</Label>
+                                                    <div className="flex items-center gap-1 border rounded-md">
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.id, item.quantity - 1)} disabled={item.quantity <= 1}>
+                                                            <Minus className="h-4 w-4"/>
+                                                        </Button>
+                                                        <Input
+                                                            id={`quantity-${item.id}`}
+                                                            type="number"
+                                                            value={item.quantity}
+                                                            readOnly
+                                                            className="h-8 w-12 text-center border-0 focus-visible:ring-0"
+                                                        />
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.id, item.quantity + 1)}>
+                                                            <Plus className="h-4 w-4"/>
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                             </div>
+                                            <div className="flex flex-col items-end gap-2 ml-auto">
+                                                <p className="font-bold text-lg">€{(item.price * item.quantity).toFixed(2)}</p>
+                                                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive h-8 w-8" onClick={() => removeFromCart(item.id)}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
                                         </div>
-                                        <div className="flex flex-col items-end gap-2 ml-auto">
-                                            <p className="font-bold text-lg">€{cartItem.price.toFixed(2)}</p>
-                                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive h-8 w-8" onClick={() => setCartItem(null)}>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
+                                    ))
                                 ) : (
                                     <div className="text-center py-12 text-muted-foreground">
                                         <ShoppingCart className="w-12 h-12 mx-auto mb-4" />
@@ -111,7 +93,7 @@ export default function SepetPage() {
                                 <div className="space-y-2">
                                     <div className="flex justify-between font-bold text-lg">
                                         <span>Toplam</span>
-                                        <span>€{total.toFixed(2)}</span>
+                                        <span>€{cartTotal.toFixed(2)}</span>
                                     </div>
                                 </div>
                                 <Separator />
@@ -124,7 +106,7 @@ export default function SepetPage() {
                                 </div>
                             </CardContent>
                             <CardFooter>
-                                <Button className="w-full text-lg h-12" disabled={!cartItem}>
+                                <Button className="w-full text-lg h-12" disabled={cartItems.length === 0}>
                                     <CreditCard className="mr-2" />
                                     Ödemeye Geç
                                 </Button>

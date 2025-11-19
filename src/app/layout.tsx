@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import Header from '@/components/layout/header';
+import { CartProvider } from '@/context/cart-context';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -26,12 +27,14 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <FirebaseClientProvider>
-          <div className="flex min-h-screen flex-col bg-background">
-            <Header />
-            <main className="flex-1">
-              {children}
-            </main>
-          </div>
+          <CartProvider>
+            <div className="flex min-h-screen flex-col bg-background">
+              <Header />
+              <main className="flex-1">
+                {children}
+              </main>
+            </div>
+          </CartProvider>
         </FirebaseClientProvider>
         <Toaster />
       </body>

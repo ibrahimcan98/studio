@@ -21,6 +21,7 @@ import { useState } from 'react';
 import { doc } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useCart } from '@/context/cart-context';
 
 
 export default function Header() {
@@ -29,6 +30,8 @@ export default function Header() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isLoggedIn = !!user;
+  const { cartItems } = useCart();
+  const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   if (pathname.startsWith('/cocuk-modu') || pathname.startsWith('/ogretmen-portali')) {
     return null;
@@ -126,7 +129,7 @@ export default function Header() {
               <History className="mr-2 h-4 w-4" />
               <span>Ders Geçmişi</span>
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem onClick={() => router.push('/ebeveyn-portali/uyelik')} className="cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />
               <span>Hesap Ayarları</span>
             </DropdownMenuItem>
@@ -171,6 +174,15 @@ export default function Header() {
                 </Comp>
               );
             })}
+             <Button variant="ghost" asChild className="relative">
+                <Link href="/sepet">
+                    <ShoppingCart className="h-5 w-5"/>
+                    {cartItemCount > 0 && (
+                        <Badge className="absolute -top-2 -right-2 h-5 w-5 justify-center p-0">{cartItemCount}</Badge>
+                    )}
+                    <span className="sr-only">Sepeti Görüntüle</span>
+                </Link>
+            </Button>
           </nav>
           
             <Button variant="secondary" className="font-semibold hidden md:inline-flex">Ücretsiz Deneme</Button>
@@ -210,6 +222,9 @@ export default function Header() {
                                     {link.label}
                                 </button>
                             ))}
+                             <button onClick={() => handleLinkClick('/sepet')} className="text-lg font-medium transition-colors hover:text-foreground/80 text-left">
+                                Sepet ({cartItemCount})
+                            </button>
                             <Button variant="secondary" className="w-full justify-center p-2 h-auto font-medium text-lg" onClick={() => {}}>
                                 Ücretsiz Deneme
                             </Button>

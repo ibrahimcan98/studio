@@ -6,12 +6,32 @@ import { CourseCard } from "@/components/courses/course-card";
 import { CheckCircle, Info, BookOpen, ShoppingCart, ShieldCheck, Lock as LockIcon, Heart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Footer from "@/components/layout/footer";
+import { useCart } from "@/context/cart-context";
+import { useToast } from "@/hooks/use-toast";
 
 export default function KurslarPage() {
+    const { toast } = useToast();
+    const { addToCart } = useCart();
+    
     const baslangicKursu = COURSES.find(c => c.id === 'baslangic');
     const konusmaKursu = COURSES.find(c => c.id === 'konusma');
     const gelisimKursu = COURSES.find(c => c.id === 'gelisim');
     const akademikKursu = COURSES.find(c => c.id === 'akademik');
+
+    const handleAddToCart = (course: any, pkg: any) => {
+        addToCart({
+            id: `${course.id}-${pkg.lessons}`,
+            name: course.title,
+            description: `${pkg.lessons} derslik paket`,
+            price: pkg.price,
+            quantity: 1,
+            image: `/images/topics/family.png` // Placeholder image
+        });
+        toast({
+            title: "Sepete Eklendi",
+            description: `${course.title} (${pkg.lessons} ders) sepetinize eklendi.`,
+        });
+    };
 
     return (
         <div className="bg-white min-h-screen text-[#243B53]">
@@ -90,7 +110,7 @@ export default function KurslarPage() {
                                                 <p className="text-sm text-gray-500">({baslangicKursu.details.duration})</p>
                                                 <p className="text-gray-600 mt-2">{pkg.lessons} derslik paket</p>
                                                 <p className="text-3xl font-bold text-gray-900 my-4">€{pkg.price.toFixed(2)}</p>
-                                                <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90">
+                                                <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleAddToCart(baslangicKursu, pkg)}>
                                                     <ShoppingCart className="w-4 h-4 mr-2" />
                                                     Sepete Ekle
                                                 </Button>
@@ -162,7 +182,7 @@ export default function KurslarPage() {
                                                 <p className="text-sm text-gray-500">({konusmaKursu.details.duration})</p>
                                                 <p className="text-gray-600 mt-2">{pkg.lessons} derslik paket</p>
                                                 <p className="text-3xl font-bold text-gray-900 my-4">€{pkg.price.toFixed(2)}</p>
-                                                <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90">
+                                                <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleAddToCart(konusmaKursu, pkg)}>
                                                     <ShoppingCart className="w-4 h-4 mr-2" />
                                                     Sepete Ekle
                                                 </Button>
@@ -234,7 +254,7 @@ export default function KurslarPage() {
                                                 <p className="text-sm text-gray-500">({gelisimKursu.details.duration})</p>
                                                 <p className="text-gray-600 mt-2">{pkg.lessons} derslik paket</p>
                                                 <p className="text-3xl font-bold text-gray-900 my-4">€{pkg.price.toFixed(2)}</p>
-                                                <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90">
+                                                <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleAddToCart(gelisimKursu, pkg)}>
                                                     <ShoppingCart className="w-4 h-4 mr-2" />
                                                     Sepete Ekle
                                                 </Button>
@@ -304,7 +324,7 @@ export default function KurslarPage() {
                                                 <p className="text-sm text-gray-500">({akademikKursu.details.duration})</p>
                                                 <p className="text-gray-600 mt-2">{pkg.lessons} derslik paket</p>
                                                 <p className="text-3xl font-bold text-gray-900 my-4">€{pkg.price.toFixed(2)}</p>
-                                                <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90">
+                                                <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleAddToCart(akademikKursu, pkg)}>
                                                     <ShoppingCart className="w-4 h-4 mr-2" />
                                                     Sepete Ekle
                                                 </Button>
