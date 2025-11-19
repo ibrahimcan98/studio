@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, query, where, addDoc, deleteDoc, Timestamp, doc } from 'firebase/firestore';
 import { ArrowLeft, Loader2, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,7 +32,6 @@ export default function TakvimYonetimiPage() {
 
     const lessonSlotsQuery = useMemoFirebase(() => {
         if (!db) return null;
-        // Fetch all slots to correctly manage the calendar display for all teachers and parents
         return query(collection(db, 'lesson-slots'));
     }, [db]);
 
@@ -40,9 +39,8 @@ export default function TakvimYonetimiPage() {
 
     const activeDays = useMemo(() => {
         if (!lessonSlots || !user) return [];
-        // A day is active if the current teacher has at least one available or booked slot
         return lessonSlots
-            .filter(slot => slot.teacherId === user.uid)
+            .filter(slot => slot.teacherId === user.uid && slot.status === 'available')
             .map(slot => toDate(slot.startTime.seconds * 1000, { timeZone: turkeyTimeZone }));
     }, [lessonSlots, user]);
     
@@ -61,7 +59,7 @@ export default function TakvimYonetimiPage() {
         return slotsMap;
     }, [lessonSlots, selectedDate]);
     
-    const handleTimeSlotClick = async (time: string) => {
+    const handleTimeSlotClick = (time: string) => {
         if (!selectedDate || !user || !db) return;
 
         const [hours, minutes] = time.split(':').map(Number);
@@ -71,40 +69,61 @@ export default function TakvimYonetimiPage() {
         setIsSubmitting(prevState => ({ ...prevState, [time]: true }));
 
         const existingSlot = slotsForSelectedDate.get(time);
-
-        try {
-            if (existingSlot) {
-                // Slot exists, so we might need to delete it (remove availability)
-                if (existingSlot.teacherId !== user.uid) {
-                    toast({ variant: 'destructive', title: 'Hata', description: 'Bu ders aralığı başka bir öğretmen tarafından yönetiliyor.' });
-                    return;
-                }
-                if (existingSlot.status === 'booked') {
-                    toast({ variant: 'destructive', title: 'Hata', description: 'Bu ders aralığı bir öğrenci tarafından rezerve edildiği için kaldırılamaz.' });
-                    return;
-                }
-                // If it's available and belongs to the current teacher, delete it.
-                const slotDocRef = doc(db, 'lesson-slots', existingSlot.id);
-                await deleteDoc(slotDocRef);
-                toast({ title: 'Kapatıldı', description: `${time} saati müsaitlikten kaldırıldı.` });
-            } else {
-                // Slot doesn't exist, so create it (add availability)
-                await addDoc(collection(db, 'lesson-slots'), {
-                    teacherId: user.uid,
-                    startTime: startTime,
-                    endTime: Timestamp.fromDate(new Date(startTime.toMillis() + 45 * 60 * 1000)),
-                    status: 'available',
-                    bookedBy: null,
-                });
-                toast({ title: 'Açıldı', description: `${time} saati müsait olarak eklendi.`, className: 'bg-green-500 text-white' });
+        
+        if (existingSlot) {
+            if (existingSlot.status === 'booked') {
+                toast({ variant: 'destructive', title: 'Hata', description: 'Bu ders aralığı bir öğrenci tarafından rezerve edildiği için kaldırılamaz.' });
+                setIsSubmitting(prevState => ({ ...prevState, [time]: false }));
+                return;
             }
-        } catch (error) {
-            console.error("Error managing time slot:", error);
-            toast({ variant: 'destructive', title: 'Hata', description: 'İşlem sırasında bir sorun oluştu.' });
-        } finally {
-            setIsSubmitting(prevState => ({ ...prevState, [time]: false }));
+             if (existingSlot.teacherId !== user.uid) {
+                toast({ variant: 'destructive', title: 'Hata', description: 'Bu aralık başka bir öğretmene ait.' });
+                setIsSubmitting(prevState => ({ ...prevState, [time]: false }));
+                return;
+            }
+            
+            const slotDocRef = doc(db, 'lesson-slots', existingSlot.id);
+            deleteDoc(slotDocRef)
+                .then(() => {
+                    toast({ title: 'Kapatıldı', description: `${time} saati müsaitlikten kaldırıldı.` });
+                })
+                .catch(() => {
+                    const contextualError = new FirestorePermissionError({
+                        operation: 'delete',
+                        path: slotDocRef.path,
+                    });
+                    errorEmitter.emit('permission-error', contextualError);
+                })
+                .finally(() => {
+                    setIsSubmitting(prevState => ({ ...prevState, [time]: false }));
+                });
+
+        } else {
+             const newSlotData = {
+                teacherId: user.uid,
+                startTime: startTime,
+                endTime: Timestamp.fromDate(new Date(startTime.toMillis() + 45 * 60 * 1000)),
+                status: 'available',
+                bookedBy: null,
+            };
+            addDoc(collection(db, 'lesson-slots'), newSlotData)
+                .then(() => {
+                     toast({ title: 'Açıldı', description: `${time} saati müsait olarak eklendi.`, className: 'bg-green-500 text-white' });
+                })
+                .catch(() => {
+                    const contextualError = new FirestorePermissionError({
+                        operation: 'create',
+                        path: 'lesson-slots',
+                        requestResourceData: newSlotData
+                    });
+                    errorEmitter.emit('permission-error', contextualError);
+                })
+                .finally(() => {
+                    setIsSubmitting(prevState => ({ ...prevState, [time]: false }));
+                });
         }
     };
+
 
     if (areSlotsLoading) {
         return <div className="flex h-screen items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
@@ -148,20 +167,38 @@ export default function TakvimYonetimiPage() {
                                 {timeSlots.map(time => {
                                     const slot = slotsForSelectedDate.get(time);
                                     const isBookedByStudent = slot?.status === 'booked';
-                                    const isBookedByOtherTeacher = slot && slot.teacherId !== user?.uid;
                                     const isAvailableForMe = slot?.status === 'available' && slot.teacherId === user?.uid;
+                                    const isClosed = !slot; // No slot document means it's "closed" or "off"
 
+                                    let variant: "default" | "destructive" | "outline" = 'outline';
+                                    let disabled = false;
+                                    let content: React.ReactNode = time;
+
+                                    if (isSubmitting[time]) {
+                                        disabled = true;
+                                        content = <Loader2 className="animate-spin" />;
+                                    } else if (isBookedByStudent) {
+                                        variant = 'destructive';
+                                        disabled = true;
+                                    } else if (isAvailableForMe) {
+                                        variant = 'default';
+                                    } else if (isClosed) {
+                                        variant = 'outline';
+                                    } else { // Available but belongs to another teacher
+                                        variant = 'destructive';
+                                        disabled = true;
+                                    }
+                                    
                                     return (
                                         <Button
                                             key={time}
-                                            variant={isBookedByStudent || isBookedByOtherTeacher ? 'destructive' : isAvailableForMe ? 'default' : 'outline'}
+                                            variant={variant}
                                             className="h-12 text-base relative"
                                             onClick={() => handleTimeSlotClick(time)}
-                                            disabled={isSubmitting[time] || isBookedByStudent || isBookedByOtherTeacher}
+                                            disabled={disabled}
                                         >
-                                            {isSubmitting[time] && <Loader2 className="animate-spin absolute" />}
-                                            <span className={isSubmitting[time] ? 'opacity-0' : ''}>{time}</span>
-                                             {isBookedByStudent && <CheckCircle className="w-4 h-4 absolute top-1 right-1 text-white"/>}
+                                            {content}
+                                            {isBookedByStudent && <CheckCircle className="w-4 h-4 absolute top-1 right-1 text-white"/>}
                                         </Button>
                                     );
                                 })}
@@ -173,8 +210,13 @@ export default function TakvimYonetimiPage() {
                         )}
                         <div className="flex flex-col gap-2 mt-6 text-sm text-muted-foreground">
                             <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-sm bg-primary"></div> Müsait (Açık)</div>
-                            <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-sm bg-destructive"></div> Dolu (Rezerve Edilmiş veya Başkasına Ait)</div>
                             <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-sm border bg-background"></div> Kapalı</div>
+                             <div className="flex items-center gap-2">
+                                <div className="relative w-4 h-4 rounded-sm bg-destructive">
+                                    <CheckCircle className="w-3 h-3 absolute top-0.5 right-0.5 text-white"/>
+                                </div> 
+                                Rezerve Edilmiş
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -182,3 +224,4 @@ export default function TakvimYonetimiPage() {
         </div>
     );
 }
+
