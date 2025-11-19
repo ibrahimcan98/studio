@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -14,7 +15,7 @@ import { TeacherIllustration } from '@/components/illustrations/teacher-illustra
 
 export default function OgretmenGirisPage() {
   const [email, setEmail] = useState('ibrahimcan@turkcocukakademisi.com');
-  const [password, setPassword] = useState('ibocan_98');
+  const [password, setPassword] = useState('ibocan_9898');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const auth = useAuth();
   const router = useRouter();
