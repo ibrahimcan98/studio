@@ -38,21 +38,27 @@ export function ChildHeader({ childName, lives, badges, isPremium, childId, live
   const [countdown, setCountdown] = useState<string | null>(null);
 
    useEffect(() => {
-    if (isPremium || lives === 'unlimited' || lives >= MAX_LIVES || !livesLastUpdatedAt) {
+    if (isPremium || lives === 'unlimited' || (typeof lives === 'number' && lives >= MAX_LIVES) || !livesLastUpdatedAt) {
         setCountdown(null);
         return;
     }
 
     const checkAndRegenerateLives = () => {
+        const currentLives = typeof lives === 'number' ? lives : 0;
+        if (currentLives >= MAX_LIVES) return;
+
         const lastUpdated = livesLastUpdatedAt.toDate();
         const now = new Date();
         const hoursPassed = (now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
+        
+        // This logic should be on how many lives have been generated since the last update
+        // not just adding one.
         const livesToRegen = Math.floor(hoursPassed / LIFE_REGEN_HOURS);
 
         if (livesToRegen > 0) {
-            const currentLives = typeof lives === 'number' ? lives : 0;
             const newLives = Math.min(MAX_LIVES, currentLives + livesToRegen);
             if (newLives > currentLives) {
+                // We only update if there's a change to avoid unnecessary writes
                 onLivesUpdate(newLives);
             }
         }
@@ -61,13 +67,23 @@ export function ChildHeader({ childName, lives, badges, isPremium, childId, live
     checkAndRegenerateLives();
 
     const interval = setInterval(() => {
-        if (typeof lives !== 'number' || lives >= MAX_LIVES || !livesLastUpdatedAt) {
+        const currentLives = typeof lives === 'number' ? lives : 0;
+        if (isPremium || currentLives >= MAX_LIVES || !livesLastUpdatedAt) {
             setCountdown(null);
             return;
         }
 
         const lastUpdated = livesLastUpdatedAt.toDate();
-        const nextRegenTime = new Date(lastUpdated.getTime() + LIFE_REGEN_HOURS * 60 * 60 * 1000);
+        // Calculate the regen time for the *next* life after the last known update
+        const livesAlreadyRegened = Math.floor((new Date().getTime() - lastUpdated.getTime()) / (1000 * 60 * 60 * LIFE_REGEN_HOURS));
+        const numMissingLives = MAX_LIVES - (currentLives + livesAlreadyRegened);
+        if (numMissingLives <= 0) {
+             checkAndRegenerateLives();
+             return;
+        }
+
+        const nextRegenTime = new Date(lastUpdated.getTime() + (livesAlreadyRegened + 1) * LIFE_REGEN_HOURS * 60 * 60 * 1000);
+
         const now = new Date();
         const secondsRemaining = Math.max(0, (nextRegenTime.getTime() - now.getTime()) / 1000);
 
@@ -99,27 +115,29 @@ export function ChildHeader({ childName, lives, badges, isPremium, childId, live
         </div>
 
         <div className="flex items-center gap-4">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-2 font-semibold text-destructive">
-                  <Heart className="w-5 h-5 fill-current" />
-                  <span>{lives === 'unlimited' ? 'Sınırsız' : lives}</span>
-                </div>
-              </TooltipTrigger>
-              {!isPremium && (
-                <TooltipContent>
-                  <p>Canlar 2 saatte bir yenilenir.</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
+          <div className="flex items-center gap-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-2 font-semibold text-destructive">
+                    <Heart className="w-5 h-5 fill-current" />
+                    <span>{lives === 'unlimited' ? 'Sınırsız' : lives}</span>
+                  </div>
+                </TooltipTrigger>
+                {!isPremium && (
+                  <TooltipContent>
+                    <p>Canlar 2 saatte bir yenilenir.</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
 
-          {countdown && (
-            <Badge variant="outline" className="text-xs font-mono text-muted-foreground">
-              {countdown}
-            </Badge>
-          )}
+            {countdown && (
+              <Badge variant="outline" className="text-xs font-mono text-muted-foreground">
+                {countdown}
+              </Badge>
+            )}
+          </div>
 
           <div className="flex items-center gap-2 font-semibold text-yellow-500">
             <Award className="w-5 h-5 fill-current" />
