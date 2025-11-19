@@ -30,9 +30,7 @@ export default function SepetPage() {
         }));
     };
 
-    const subtotal = cartItem.price * cartItem.quantity;
-    const kdv = subtotal * 0.18; // %18 KDV
-    const total = subtotal + kdv;
+    const total = cartItem ? cartItem.price * cartItem.quantity : 0;
 
 
     return (
@@ -109,19 +107,10 @@ export default function SepetPage() {
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
-                                    <div className="flex justify-between">
-                                        <span>Ara Toplam</span>
-                                        <span className="font-medium">€{subtotal.toFixed(2)}</span>
+                                    <div className="flex justify-between font-bold text-lg">
+                                        <span>Toplam</span>
+                                        <span>€{total.toFixed(2)}</span>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span>KDV (%18)</span>
-                                        <span className="font-medium">€{kdv.toFixed(2)}</span>
-                                    </div>
-                                </div>
-                                <Separator />
-                                <div className="flex justify-between font-bold text-lg">
-                                    <span>Toplam</span>
-                                    <span>€{total.toFixed(2)}</span>
                                 </div>
                                 <Separator />
                                 <div className="space-y-2">
