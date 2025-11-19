@@ -12,7 +12,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { format as formatInTimeZone, toDate } from 'date-fns-tz';
-import { isSameDay, format } from 'date-fns';
+import { isSameDay } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
 export default function DersPlanlaPage() {
@@ -139,8 +139,8 @@ export default function DersPlanlaPage() {
                     </div>
                     <div className="h-full">
                         <h3 className="text-lg font-semibold mb-4 text-center lg:text-left">
-                            {selectedDate ? format(selectedDate, 'dd MMMM yyyy', { locale: tr }) : 'Bir tarih seçin'} için Müsait Saatler
-                            {selectedDate && <span className="text-sm text-muted-foreground ml-2">({format(selectedDate, 'zzz', { timeZone: localTimeZone })})</span>}
+                            {selectedDate ? formatInTimeZone(selectedDate, 'dd MMMM yyyy', { locale: tr }) : 'Bir tarih seçin'} için Müsait Saatler
+                            {selectedDate && <span className="text-sm text-muted-foreground ml-2">({formatInTimeZone(selectedDate, 'zzz', { timeZone: localTimeZone })})</span>}
                         </h3>
                         {selectedDate && slotsForSelectedDate.length > 0 ? (
                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
