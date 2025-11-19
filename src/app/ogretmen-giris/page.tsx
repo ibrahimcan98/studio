@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword, User } from 'firebase/auth';
+import { signInWithEmailAndPassword, User, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { useAuth, useUser, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +14,7 @@ import { Loader2 } from 'lucide-react';
 import { TeacherIllustration } from '@/components/illustrations/teacher-illustration';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
-const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisii.com', 'teacher@turkcocukakademisi.com'];
+const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisii.com'];
 
 export default function OgretmenGirisPage() {
   const [email, setEmail] = useState('');
@@ -38,20 +38,27 @@ export default function OgretmenGirisPage() {
       const userDocRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
 
+      const isSpecialTeacher = user.email === 'ibrahimcan@turkcocukakademisii.com';
+
       if (!userDoc.exists()) {
           // Create a new teacher profile if it doesn't exist
           await setDoc(userDocRef, {
               id: user.uid,
               email: user.email,
-              firstName: user.email.split('@')[0],
-              lastName: '',
+              firstName: isSpecialTeacher ? 'İbrahim' : user.displayName?.split(' ')[0] || user.email.split('@')[0],
+              lastName: isSpecialTeacher ? 'Can' : user.displayName?.split(' ').slice(1).join(' ') || '',
               role: 'teacher',
               createdAt: serverTimestamp(),
           });
       } else {
-          // If user exists but isn't a teacher, update them
-          if(userDoc.data()?.role !== 'teacher') {
-            await setDoc(userDocRef, { role: 'teacher' }, { merge: true });
+          // If user exists but isn't a teacher or needs name update, update them
+          const currentData = userDoc.data();
+          if(currentData?.role !== 'teacher' || (isSpecialTeacher && (currentData?.firstName !== 'İbrahim' || currentData?.lastName !== 'Can'))) {
+            await setDoc(userDocRef, { 
+                role: 'teacher',
+                firstName: isSpecialTeacher ? 'İbrahim' : currentData?.firstName,
+                lastName: isSpecialTeacher ? 'Can' : currentData?.lastName,
+            }, { merge: true });
           }
       }
   };
@@ -89,6 +96,43 @@ export default function OgretmenGirisPage() {
       setIsSubmitting(false);
     }
   };
+
+  const handleGoogleSignIn = async () => {
+    if (!auth) return;
+    
+    setIsSubmitting(true);
+    const provider = new GoogleAuthProvider();
+    
+    try {
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+
+        if (user.email && allowedTeacherEmails.includes(user.email)) {
+             await ensureTeacherProfile(user);
+              toast({
+                title: 'Başarılı!',
+                description: 'Öğretmen portalına yönlendiriliyorsunuz...',
+            });
+            router.push('/ogretmen-portali');
+        } else {
+            // Sign out the user if their email is not allowed
+            await auth.signOut();
+            toast({
+                variant: 'destructive',
+                title: 'Giriş Reddedildi',
+                description: 'Bu Google hesabı ile öğretmen portalına giriş yapma yetkiniz yok.',
+            });
+        }
+    } catch (error) {
+         toast({
+            variant: 'destructive',
+            title: 'Hata',
+            description: 'Google ile giriş yaparken bir sorun oluştu.',
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
   
     if (loading) {
      return (
@@ -116,39 +160,55 @@ export default function OgretmenGirisPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <form onSubmit={handleLogin} className="space-y-6">
-                            <div className="space-y-2">
-                                <Label htmlFor="email">Email</Label>
-                                <Input
-                                id="email"
-                                type="email"
-                                required
-                                autoComplete="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                disabled={isSubmitting}
-                                />
+                            <div className="space-y-4">
+                                <Button onClick={handleGoogleSignIn} variant="outline" className="w-full font-semibold text-lg py-6" disabled={isSubmitting}>
+                                    {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <svg className="mr-2 h-5 w-5" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 381.5 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 23.4 172.9 61.9l-76.2 64.5C308 106.9 280.7 96 248 96c-88.3 0-160 71.7-160 160s71.7 160 160 160c98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>}
+                                    Google ile Giriş Yap
+                                </Button>
+
+                                <div className="relative">
+                                    <div className="absolute inset-0 flex items-center">
+                                        <span className="w-full border-t" />
+                                    </div>
+                                    <div className="relative flex justify-center text-xs uppercase">
+                                        <span className="bg-background px-2 text-muted-foreground">Veya e-posta ile devam et</span>
+                                    </div>
+                                </div>
+
+                                <form onSubmit={handleLogin} className="space-y-6">
+                                <div className="space-y-2">
+                                    <Label htmlFor="email">Email</Label>
+                                    <Input
+                                    id="email"
+                                    type="email"
+                                    required
+                                    autoComplete="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    disabled={isSubmitting}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="password">Şifre</Label>
+                                    <Input
+                                    id="password"
+                                    type="password"
+                                    required
+                                    autoComplete="current-password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    disabled={isSubmitting}
+                                    />
+                                </div>
+                                <Button
+                                    type="submit"
+                                    className="w-full font-bold text-lg py-6"
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
+                                </Button>
+                                </form>
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="password">Şifre</Label>
-                                <Input
-                                id="password"
-                                type="password"
-                                required
-                                autoComplete="current-password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                disabled={isSubmitting}
-                                />
-                            </div>
-                            <Button
-                                type="submit"
-                                className="w-full font-bold text-lg py-6"
-                                disabled={isSubmitting}
-                            >
-                                {isSubmitting ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
-                            </Button>
-                            </form>
                         </CardContent>
                     </Card>
                   </div>
@@ -161,5 +221,3 @@ export default function OgretmenGirisPage() {
     </div>
   );
 }
-
-    

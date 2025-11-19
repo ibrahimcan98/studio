@@ -7,7 +7,7 @@ import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { doc } from 'firebase/firestore';
 
-const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisii.com', 'teacher@turkcocukakademisi.com'];
+const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisii.com'];
 
 export default function OgretmenPortaliPage() {
   const { user, loading: userLoading } = useUser();
@@ -36,11 +36,14 @@ export default function OgretmenPortaliPage() {
   }
 
   const getTeacherName = () => {
-    if (userData?.firstName) {
+    if (userData?.firstName && userData?.lastName) {
+      return `${userData.firstName} ${userData.lastName}`;
+    }
+     if (userData?.firstName) {
       return userData.firstName;
     }
     if (user.displayName) {
-      return user.displayName.split(' ')[0];
+      return user.displayName;
     }
     if (user.email) {
       const emailName = user.email.split('@')[0];
@@ -57,5 +60,3 @@ export default function OgretmenPortaliPage() {
     </div>
   );
 }
-
-    
