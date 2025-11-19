@@ -54,14 +54,12 @@ function formatTimeDifference(ms: number) {
     const totalSeconds = Math.floor(ms / 1000);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-
 
     let parts = [];
     if (hours > 0) parts.push(`${hours} saat`);
     if (minutes > 0) parts.push(`${minutes} dakika`);
 
-    if (parts.length === 0 && seconds > 0) {
+    if (parts.length === 0 && totalSeconds > 0) {
         return "birkaç saniye içinde yenilenecek";
     }
     
@@ -86,33 +84,39 @@ function LivesTooltipContent({ lives, livesLastUpdatedAt }: { lives: number, liv
             setCountdown("Yeni can için bekleniyor...");
             return;
         }
+        
+        const lastUpdatedDate = livesLastUpdatedAt.toDate();
 
         const interval = setInterval(() => {
             const now = new Date();
-            const lastUpdatedDate = livesLastUpdatedAt.toDate();
-
-            const livesToRegen = MAX_LIVES - lives;
-            const timeSinceUpdate = now.getTime() - lastUpdatedDate.getTime();
             
-            // How many lives should have been generated since last update
-            const generatedLives = Math.floor(timeSinceUpdate / (LIFE_REGEN_HOURS * 60 * 60 * 1000));
+            // Calculate how many lives should have regenerated since the last update.
+            const timeDiffMs = now.getTime() - lastUpdatedDate.getTime();
+            const livesRegenerated = Math.floor(timeDiffMs / (LIFE_REGEN_HOURS * 60 * 60 * 1000));
+            
+            const effectiveLives = Math.min(MAX_LIVES, lives + livesRegenerated);
 
-            const currentEffectiveLives = Math.min(MAX_LIVES, lives + generatedLives);
-
-            if (currentEffectiveLives >= MAX_LIVES) {
+            if (effectiveLives >= MAX_LIVES) {
                 setCountdown("Canlar dolu!");
                 clearInterval(interval);
                 return;
             }
 
-            // Calculate the time when the *next* single life will be regenerated.
-            // This is based on when the last life was spent, plus an increment for each life that has *already* regenerated.
-            const timeOfLastRegenEvent = lastUpdatedDate.getTime() + (generatedLives * LIFE_REGEN_HOURS * 60 * 60 * 1000);
-            const nextRegenTime = new Date(timeOfLastRegenEvent + LIFE_REGEN_HOURS * 60 * 60 * 1000);
+            // Calculate when the *next* single life will be regenerated.
+            // This is based on the timestamp of the last update that *did not result in full lives*.
+            // We find the time of the last regeneration event that *already happened*.
+            const lastRegenEventTime = lastUpdatedDate.getTime() + (livesRegenerated * LIFE_REGEN_HOURS * 60 * 60 * 1000);
+            
+            // The next regeneration time is simply the last event plus the regeneration interval.
+            const nextRegenTime = new Date(lastRegenEventTime + LIFE_REGEN_HOURS * 60 * 60 * 1000);
             
             const remainingMs = Math.max(0, nextRegenTime.getTime() - now.getTime());
             
-            setCountdown(formatTimeDifference(remainingMs));
+            if (remainingMs === 0) {
+                 setCountdown("Canlar yenileniyor...");
+            } else {
+                 setCountdown(formatTimeDifference(remainingMs));
+            }
 
         }, 1000);
 
@@ -547,3 +551,5 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
+
+    
