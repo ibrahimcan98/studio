@@ -99,7 +99,11 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
             setPlacedPieces(newPlacedPieces);
 
             const newShuffledPieces = [...shuffledPieces];
-            newShuffledPieces[newShuffledPieces.findIndex(p => p === draggedPiece.piece)] = -1; // Mark as placed
+            // Find the index of the piece in the shuffled array and mark it as placed (-1)
+            const indexInShuffled = newShuffledPieces.findIndex(p => p === draggedPiece.piece);
+            if (indexInShuffled > -1) {
+                newShuffledPieces[indexInShuffled] = -1; 
+            }
             setShuffledPieces(newShuffledPieces);
             
             // Check if all pieces are placed
@@ -247,7 +251,7 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
                                     key={index}
                                     draggable={!isSolved}
                                     onDragStart={() => handleDragStart(piece, index)}
-                                    className={cn("w-24 h-24 md:w-32 md:h-32 rounded-lg cursor-grab active:cursor-grabbing", isSolved && "cursor-not-allowed")}
+                                    className={cn("w-24 h-24 md:w-32 md:h-32 rounded-lg", !isSolved ? "cursor-grab active:cursor-grabbing" : "cursor-not-allowed")}
                                     style={{
                                         backgroundImage: `url(${currentWord.image})`,
                                         backgroundSize: '200% 200%',
