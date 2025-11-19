@@ -337,7 +337,7 @@ export default function EbeveynPortaliPage() {
             </CardHeader>
             <CardContent>
                 <p className="mb-4 text-muted-foreground">Esnek paketlerle Türkçe öğrenmeye devam edin.</p>
-                <Button className="bg-amber-500 hover:bg-amber-600 text-white">Paketleri Gör <ArrowRight className="ml-2 h-4 w-4"/></Button>
+                <Button asChild className="bg-amber-500 hover:bg-amber-600 text-white"><Link href="/kurslar">Kurslari Gor <ArrowRight className="ml-2 h-4 w-4"/></Link></Button>
             </CardContent>
         </Card>
       </div>
