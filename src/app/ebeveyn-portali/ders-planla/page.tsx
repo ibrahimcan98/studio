@@ -155,7 +155,7 @@ export default function DersPlanlaPage() {
                                         onClick={() => handleBookLesson(slot.id)}
                                         disabled={isBooking}
                                     >
-                                        {isBooking ? <Loader2 className="animate-spin" /> : formatInTimeZone(toDate(slot.startTime.seconds * 1000), localTimeZone, 'HH:mm')}
+                                        {isBooking ? <Loader2 className="animate-spin" /> : formatInTimeZone(toDate(slot.startTime.seconds * 1000), localTimeZone, 'HH:mm', { locale: tr })}
                                     </Button>
                                 ))}
                             </div>
