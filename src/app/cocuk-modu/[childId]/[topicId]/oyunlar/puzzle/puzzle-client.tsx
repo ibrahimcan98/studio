@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Card } from '@/components/ui/card';
@@ -42,6 +41,7 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
     const params = useParams();
     const { childId, topicId } = params;
     const { width, height } = useWindowSize();
+    const audioRef = useRef<HTMLAudioElement>(null);
 
     const { user: authUser } = useUser();
     const db = useFirestore();
@@ -105,6 +105,9 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
             const allPlaced = newPlacedPieces.every(p => p !== null);
             if (allPlaced) {
                 setIsSolved(true);
+                if (audioRef.current) {
+                    audioRef.current.play().catch(e => console.error("Audio play failed:", e));
+                }
             }
         } else {
             // Incorrect placement
@@ -174,6 +177,7 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
 
     return (
         <div className="bg-blue-50 h-screen p-4 sm:p-8 flex flex-col">
+             <audio ref={audioRef} src={currentWord.audio} />
             <header className="flex-shrink-0 mb-4">
                 <div className="w-full max-w-4xl mx-auto flex items-center justify-between relative">
                      <Button
