@@ -245,7 +245,7 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
                 </div>
 
                 <div className="w-full lg:w-auto flex lg:flex-col items-center justify-center gap-4">
-                    <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
+                    <div className="grid grid-cols-2 lg:grid-cols-2 gap-2">
                         {shuffledPieces.map((piece, index) => {
                             if (piece === null) return <div key={index} className="w-[150px] h-[150px] md:w-[200px] md:h-[200px] rounded-lg bg-gray-300/50" />;
                             const row = Math.floor(piece / 2);
