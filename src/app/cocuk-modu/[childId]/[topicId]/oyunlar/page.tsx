@@ -2,7 +2,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Gamepad2, Lock, Sparkles, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Gamepad2, Lock, Sparkles, CheckCircle } from 'lucide-react';
 import topicsData from '@/data/topics.json';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -70,8 +70,9 @@ export default function GamesPage() {
     ];
 
     const isGameCompleted = (gameId: string) => {
+        if (!childData?.completedTopics) return false;
         const completedKey = `${topicId}-${gameId}`;
-        return childData?.completedTopics?.includes(completedKey);
+        return childData.completedTopics.includes(completedKey);
     };
 
     const isGameUnlocked = (gameIndex: number) => {
@@ -141,8 +142,9 @@ export default function GamesPage() {
                                         {!unlocked ? (
                                             <Lock className="w-6 h-6 text-gray-400" />
                                         ) : completed ? (
-                                            <div className="text-blue-500 flex items-center gap-1">
-                                                <RefreshCw className="w-5 h-5"/>
+                                            <div className="text-green-500 flex items-center gap-1 font-semibold text-sm">
+                                                <CheckCircle className="w-5 h-5"/>
+                                                <span>Tamamlandı</span>
                                             </div>
                                         ): null}
                                     </div>
