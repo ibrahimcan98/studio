@@ -17,8 +17,8 @@ import { TeacherIllustration } from '@/components/illustrations/teacher-illustra
 const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisi.com'];
 
 export default function OgretmenGirisPage() {
-  const [email, setEmail] = useState('ibrahimcan@turkcocukakademisi.com');
-  const [password, setPassword] = useState('ibocan_9898');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const auth = useAuth();
   const router = useRouter();
