@@ -53,8 +53,10 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
         if (!db || !authUser?.uid) return null;
         return doc(db, 'users', authUser.uid);
     }, [db, authUser?.uid]);
+
     const { data: userData } = useDoc(userDocRef);
     const isPremium = userData?.isPremium || false;
+    const [lives, setLives] = useState(5);
 
     const childDocRef = useMemoFirebase(() => {
         if (!db || !authUser?.uid || !childId) return null;
@@ -62,15 +64,14 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
     }, [db, authUser?.uid, childId]);
 
     const { data: childData } = useDoc(childDocRef);
-    const [lives, setLives] = useState(5);
-
+    
     const currentWord = words[currentWordIndex];
 
     useEffect(() => {
-        if (childData) {
-            setLives(childData.lives ?? 5);
+        if (userData) {
+            setLives(userData.lives ?? 5);
         }
-    }, [childData]);
+    }, [userData]);
 
      useEffect(() => {
         startNewPuzzle();
@@ -126,8 +127,8 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
                 const newLives = Math.max(0, lives - 1);
                 setLives(newLives);
 
-                if (childDocRef) {
-                    await updateDoc(childDocRef, {
+                if (userDocRef) {
+                    await updateDoc(userDocRef, {
                         lives: newLives,
                         livesLastUpdatedAt: serverTimestamp()
                     });
