@@ -266,3 +266,5 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
         </div>
     );
 }
+
+    
