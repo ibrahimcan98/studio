@@ -98,12 +98,8 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
             newPlacedPieces[dropIndex] = draggedPiece.piece;
             setPlacedPieces(newPlacedPieces);
 
-            const newShuffledPieces = shuffledPieces.map((p, i) => {
-                 if (p === draggedPiece.piece) {
-                    return -1; // Mark as placed
-                }
-                return p;
-            });
+            const newShuffledPieces = [...shuffledPieces];
+            newShuffledPieces[draggedPiece.index] = -1; // Mark as placed
             setShuffledPieces(newShuffledPieces);
             
             // Check if all pieces are placed
@@ -205,15 +201,13 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
 
                     {pieceIndices.map((index) => {
                         const placedPiece = placedPieces[index];
-                        const row = Math.floor(index / 2);
-                        const col = index % 2;
 
                         return (
                             <div
                                 key={index}
                                 onDrop={() => handleDrop(index)}
                                 onDragOver={handleDragOver}
-                                className={cn("transition-colors", placedPiece === null && "bg-transparent hover:bg-black/10")}
+                                className={cn("transition-colors", placedPieces[index] === null && "bg-transparent hover:bg-black/10")}
                             >
                                 {placedPiece !== null && (
                                      <div
@@ -269,4 +263,3 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
         </div>
     );
 }
-
