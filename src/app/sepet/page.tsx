@@ -10,24 +10,26 @@ import { Trash2, ShoppingCart, ArrowLeft, CreditCard, Tag, Minus, Plus } from "l
 import Image from 'next/image';
 import Link from 'next/link';
 
-const initialCartItem = {
-    id: 'konusma-12',
-    name: 'Konuşma Kursu',
-    description: '12 derslik paket',
-    price: 198.00,
-    quantity: 1,
-    image: '/images/topics/family.png', // Placeholder image
-};
+// Example item removed to make the cart empty by default
+// const initialCartItem = {
+//     id: 'konusma-12',
+//     name: 'Konuşma Kursu',
+//     description: '12 derslik paket',
+//     price: 198.00,
+//     quantity: 1,
+//     image: '/images/topics/family.png',
+// };
 
 export default function SepetPage() {
-    const [cartItem, setCartItem] = useState(initialCartItem);
+    const [cartItem, setCartItem] = useState(null);
     const [coupon, setCoupon] = useState('');
 
     const handleQuantityChange = (amount: number) => {
-        setCartItem(prev => ({
+        if (!cartItem) return;
+        setCartItem(prev => (prev ? {
             ...prev,
             quantity: Math.max(1, prev.quantity + amount)
-        }));
+        } : null));
     };
 
     const total = cartItem ? cartItem.price * cartItem.quantity : 0;
@@ -78,7 +80,7 @@ export default function SepetPage() {
                                         </div>
                                         <div className="flex flex-col items-end gap-2 ml-auto">
                                             <p className="font-bold text-lg">€{cartItem.price.toFixed(2)}</p>
-                                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive h-8 w-8" onClick={() => setCartItem(initialCartItem)}>
+                                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive h-8 w-8" onClick={() => setCartItem(null)}>
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </div>
