@@ -89,7 +89,7 @@ export function ChildHeader({ childName, lives, badges, isPremium, childId, live
         // Cleanup function
         return () => {
             isMounted = false;
-            clearInterval(intervalId);
+            clearInterval(timer);
         };
 
     }, [lives, isPremium, livesLastUpdatedAt, onLivesUpdate]);
