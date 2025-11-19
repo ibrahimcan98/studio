@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -6,14 +7,35 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trash2, ShoppingCart, ArrowLeft, CreditCard, Tag, Minus, Plus } from "lucide-react";
+import { Trash2, ShoppingCart, ArrowLeft, CreditCard, Tag, Minus, Plus, XCircle } from "lucide-react";
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/context/cart-context';
+import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 export default function SepetPage() {
-    const { cartItems, updateQuantity, removeFromCart, cartTotal } = useCart();
+    const { cartItems, updateQuantity, removeFromCart, cartTotal, applyCoupon, discountAmount, finalTotal, appliedCoupon, removeCoupon } = useCart();
     const [coupon, setCoupon] = useState('');
+    const { toast } = useToast();
+
+    const handleApplyCoupon = () => {
+        if (!coupon) return;
+        const success = applyCoupon(coupon);
+        if (success) {
+            toast({
+                title: 'Kupon Uygulandı!',
+                description: `"${coupon.toUpperCase()}" koduyla %20 indirim kazandınız.`,
+                className: 'bg-green-500 text-white'
+            })
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Geçersiz Kupon',
+                description: 'Girdiğiniz kupon kodu geçerli değil.',
+            })
+        }
+    }
 
     return (
         <div className="bg-muted/30 min-h-[calc(100vh-80px)] py-12 px-4 sm:px-6 lg:px-8">
@@ -91,19 +113,42 @@ export default function SepetPage() {
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
+                                     <div className="flex justify-between">
+                                        <span>Ara Toplam</span>
+                                        <span>€{cartTotal.toFixed(2)}</span>
+                                    </div>
+                                    {appliedCoupon && (
+                                        <div className="flex justify-between text-green-600">
+                                            <span>İndirim (%20)</span>
+                                            <span>-€{discountAmount.toFixed(2)}</span>
+                                        </div>
+                                    )}
+                                    <Separator />
                                     <div className="flex justify-between font-bold text-lg">
                                         <span>Toplam</span>
-                                        <span>€{cartTotal.toFixed(2)}</span>
+                                        <span>€{finalTotal.toFixed(2)}</span>
                                     </div>
                                 </div>
                                 <Separator />
-                                <div className="space-y-2">
-                                    <Label htmlFor="coupon">Kupon Kodu</Label>
-                                    <div className="flex gap-2">
-                                        <Input id="coupon" placeholder="İndirim kodu girin" value={coupon} onChange={(e) => setCoupon(e.target.value)} />
-                                        <Button variant="outline">Uygula</Button>
+                                {appliedCoupon ? (
+                                    <div className="flex items-center justify-between gap-2">
+                                        <Badge>
+                                            <Tag className="w-3 h-3 mr-1"/>
+                                            {appliedCoupon}
+                                        </Badge>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={removeCoupon}>
+                                            <XCircle className="w-4 h-4"/>
+                                        </Button>
                                     </div>
-                                </div>
+                                ): (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="coupon">Kupon Kodu</Label>
+                                        <div className="flex gap-2">
+                                            <Input id="coupon" placeholder="İndirim kodu girin" value={coupon} onChange={(e) => setCoupon(e.target.value)} />
+                                            <Button variant="outline" onClick={handleApplyCoupon}>Uygula</Button>
+                                        </div>
+                                    </div>
+                                )}
                             </CardContent>
                             <CardFooter>
                                 <Button className="w-full text-lg h-12" disabled={cartItems.length === 0}>

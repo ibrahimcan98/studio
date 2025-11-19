@@ -2,6 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 export type CartItem = {
     id: string;
@@ -19,6 +20,11 @@ interface CartContextType {
     updateQuantity: (id: string, quantity: number) => void;
     clearCart: () => void;
     cartTotal: number;
+    applyCoupon: (code: string) => boolean;
+    discountAmount: number;
+    finalTotal: number;
+    appliedCoupon: string | null;
+    removeCoupon: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -36,6 +42,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             return [];
         }
     });
+
+    const [discount, setDiscount] = useState(0); // discount percentage
+    const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
 
     useEffect(() => {
         try {
@@ -75,13 +84,33 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         setCartItems([]);
     }
 
+    const applyCoupon = (code: string): boolean => {
+        if (code.toUpperCase() === 'ISVICRE') {
+            setDiscount(0.20); // 20% discount
+            setAppliedCoupon(code.toUpperCase());
+            return true;
+        }
+        setDiscount(0);
+        setAppliedCoupon(null);
+        return false;
+    };
+    
+    const removeCoupon = () => {
+        setDiscount(0);
+        setAppliedCoupon(null);
+    }
+
+
     const cartTotal = cartItems.reduce(
         (total, item) => total + item.price * item.quantity,
         0
     );
 
+    const discountAmount = cartTotal * discount;
+    const finalTotal = cartTotal - discountAmount;
+
     return (
-        <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal }}>
+        <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal, applyCoupon, discountAmount, finalTotal, appliedCoupon, removeCoupon }}>
             {children}
         </CartContext.Provider>
     );
