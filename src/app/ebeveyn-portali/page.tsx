@@ -48,44 +48,14 @@ import { SetPinDialog } from '@/components/child-mode/set-pin-dialog';
 const LIFE_REGEN_SECONDS = 2 * 60 * 60; // 2 hours in seconds
 const MAX_LIVES = 5;
 
-function formatTimeDifference(ms: number) {
-    if (ms <= 0) {
-        return "şimdi yenileniyor";
-    }
-    const totalSeconds = Math.floor(ms / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-
-    let parts = [];
-    if (hours > 0) parts.push(`${hours} saat`);
-    if (minutes > 0) parts.push(`${minutes} dakika`);
-
-    if (parts.length === 0) {
-      if (totalSeconds > 0) return "birkaç saniye içinde";
-      return "şimdi yenileniyor";
-    }
-
-    return `${parts.join(' ')} içinde yenilenecek`;
-}
-
-
 function LivesTooltipContent({ lives, livesLastUpdatedAt, onUpdate, childId }: { lives: number, livesLastUpdatedAt: any, onUpdate: (childId: string, newLives: number) => void, childId: string }) {
-    const [countdown, setCountdown] = useState<string>("Hesaplanıyor...");
 
     useEffect(() => {
-        let timer: NodeJS.Timeout;
-
-        const updateCountdown = () => {
-            if (lives >= MAX_LIVES) {
-                setCountdown("Canlar dolu!");
+        const updateLives = () => {
+            if (lives >= MAX_LIVES || !livesLastUpdatedAt?.toDate) {
                 return;
             }
 
-            if (!livesLastUpdatedAt?.toDate) {
-                setCountdown("Can bilgisi bekleniyor...");
-                return;
-            }
-            
             const lastUpdatedDate = livesLastUpdatedAt.toDate();
             const now = new Date();
             const timePassedSeconds = Math.floor((now.getTime() - lastUpdatedDate.getTime()) / 1000);
@@ -96,26 +66,27 @@ function LivesTooltipContent({ lives, livesLastUpdatedAt, onUpdate, childId }: {
                 const newLiveCount = Math.min(MAX_LIVES, lives + livesToRegen);
                  if (newLiveCount > lives) {
                     onUpdate(childId, newLiveCount);
-                    return; 
                 }
             }
-            
-            const secondsSinceLastPossibleRegen = timePassedSeconds % LIFE_REGEN_SECONDS;
-            const remainingSecondsForNextLife = LIFE_REGEN_SECONDS - secondsSinceLastPossibleRegen;
-            
-            setCountdown(formatTimeDifference(remainingSecondsForNextLife * 1000));
         };
         
-        updateCountdown();
-        timer = setInterval(updateCountdown, 1000);
+        updateLives();
+        const interval = setInterval(updateLives, 60000); // Check every minute
 
-        return () => clearInterval(timer);
+        return () => clearInterval(interval);
     }, [lives, livesLastUpdatedAt, onUpdate, childId]);
+
+    if (lives >= MAX_LIVES) {
+      return (
+        <TooltipContent>
+            <p>Canlar dolu!</p>
+        </TooltipContent>
+      )
+    }
 
     return (
         <TooltipContent>
-            <p className="text-sm">{countdown}</p>
-             {lives < MAX_LIVES && <p className="text-xs text-muted-foreground mt-1">Canlar 2 saatte bir yenilenir.</p>}
+            <p>Canlar 2 saatte bir yenilenir.</p>
         </TooltipContent>
     );
 }
