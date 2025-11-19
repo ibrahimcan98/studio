@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -59,13 +60,13 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
     }, [db, authUser?.uid, childId]);
 
     const { data: childData } = useDoc(childDocRef);
-    const [lives, setLives] = useState(3);
+    const [lives, setLives] = useState(5);
 
     const currentWord = words[currentWordIndex];
 
     useEffect(() => {
         if (childData) {
-            setLives(childData.lives ?? 3);
+            setLives(childData.lives ?? 5);
         }
     }, [childData]);
 

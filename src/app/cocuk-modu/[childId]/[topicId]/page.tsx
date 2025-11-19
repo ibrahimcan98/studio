@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -70,7 +71,7 @@ export default function TopicPage() {
         );
     }
     
-    const currentLives = childData.lives ?? 3;
+    const currentLives = childData.lives ?? 5;
 
     return (
         <div className="bg-amber-50 h-screen flex flex-col">

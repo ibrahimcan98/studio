@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -30,6 +31,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { collection, doc, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
@@ -63,6 +70,7 @@ function AddChildDialog({ userId }: { userId: string }) {
       userId: userId,
       rozet: 0,
       completedTopics: [],
+      lives: 5,
     });
     
     setName('');
@@ -393,13 +401,24 @@ export default function EbeveynPortaliPage() {
                                           <Award className='w-4 h-4'/>
                                         </div>
                                       </div>
-                                       <div className='flex justify-between items-center text-sm'>
-                                        <span className='text-muted-foreground'>Kalan Can:</span>
-                                        <div className='flex items-center gap-1 font-bold bg-destructive/10 text-destructive px-2 py-1 rounded-md'>
-                                          {isPremium ? <InfinityIcon className='w-4 h-4' /> : <span>{child.lives ?? 3}</span>}
-                                           <Heart className='w-4 h-4 fill-current'/>
-                                        </div>
-                                      </div>
+                                       <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <div className='flex justify-between items-center text-sm'>
+                                                    <span className='text-muted-foreground'>Kalan Can:</span>
+                                                    <div className='flex items-center gap-1 font-bold bg-destructive/10 text-destructive px-2 py-1 rounded-md'>
+                                                    {isPremium ? <InfinityIcon className='w-4 h-4' /> : <span>{child.lives ?? 5}</span>}
+                                                    <Heart className='w-4 h-4 fill-current'/>
+                                                    </div>
+                                                </div>
+                                            </TooltipTrigger>
+                                            {!isPremium && (
+                                            <TooltipContent>
+                                                <p>Her kalp 2 saatte bir yenilenir.</p>
+                                            </TooltipContent>
+                                            )}
+                                        </Tooltip>
+                                       </TooltipProvider>
                                     </div>
                                     <SetPinDialog childId={child.id}>
                                       <Button className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold mt-auto">

@@ -89,7 +89,7 @@ export default function GamesPage() {
         )
     }
     
-    const currentLives = childData.lives ?? 3;
+    const currentLives = childData.lives ?? 5;
 
 
     return (

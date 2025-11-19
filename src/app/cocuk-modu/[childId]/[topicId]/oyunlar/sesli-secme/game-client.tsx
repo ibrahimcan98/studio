@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -55,11 +56,11 @@ export default function GameClient({ questions }: GameClientProps) {
     }, [db, authUser?.uid, childId]);
     
     const { data: childData } = useDoc(childDocRef);
-    const [lives, setLives] = useState(3);
+    const [lives, setLives] = useState(5);
 
      useEffect(() => {
         if (childData) {
-            setLives(childData.lives ?? 3);
+            setLives(childData.lives ?? 5);
         }
     }, [childData]);
 
