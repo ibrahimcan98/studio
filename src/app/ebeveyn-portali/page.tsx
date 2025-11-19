@@ -46,7 +46,7 @@ import { SetPinDialog } from '@/components/child-mode/set-pin-dialog';
 import { useToast } from '@/hooks/use-toast';
 
 
-const LIFE_REGEN_SECONDS = 2 * 60 * 60; // 2 hours in seconds
+const LIFE_REGEN_SECONDS = 5 * 60; // 5 minutes in seconds
 const MAX_LIVES = 5;
 
 function LivesTooltipContent({ lives, livesLastUpdatedAt, onUpdate, childId }: { lives: number, livesLastUpdatedAt: any, onUpdate: (childId: string, newLives: number) => void, childId: string }) {
@@ -79,7 +79,7 @@ function LivesTooltipContent({ lives, livesLastUpdatedAt, onUpdate, childId }: {
 
     return (
         <TooltipContent>
-            <p>Canlar 2 saatte bir yenilenir.</p>
+            <p>Canlar 5 dakikada bir yenilenir.</p>
         </TooltipContent>
     );
 }
@@ -211,6 +211,8 @@ function ChildCard({ child, isPremium, onDelete, onUpdateLives }: { child: any, 
             });
         }
     };
+    
+    const displayLives = Math.max(0, child.lives ?? 5);
 
     return (
         <Card className="relative flex flex-col items-center text-center p-6 space-y-4 hover:shadow-lg transition-shadow group">
@@ -256,7 +258,7 @@ function ChildCard({ child, isPremium, onDelete, onUpdateLives }: { child: any, 
                         <div className='flex justify-between items-center text-sm cursor-help'>
                             <span className='text-muted-foreground'>Kalan Can:</span>
                             <div className='flex items-center gap-1 font-bold bg-red-100 text-red-600 px-2 py-1 rounded-md'>
-                            {isPremium ? <InfinityIcon className='w-4 h-4' /> : <span>{child.lives ?? 5}/{MAX_LIVES}</span>}
+                            {isPremium ? <InfinityIcon className='w-4 h-4' /> : <span>{displayLives}/{MAX_LIVES}</span>}
                             <Heart className='w-4 h-4 fill-current'/>
                             </div>
                         </div>
@@ -541,3 +543,5 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
+
+    

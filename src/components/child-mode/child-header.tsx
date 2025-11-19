@@ -26,19 +26,20 @@ type ChildHeaderProps = {
     onLivesUpdate: (newLives: number) => void;
 }
 
-const LIFE_REGEN_SECONDS = 2 * 60 * 60; // 2 hours in seconds
+const LIFE_REGEN_SECONDS = 5 * 60; // 5 minutes in seconds
 const MAX_LIVES = 5;
 
 
 export function ChildHeader({ childName, lives, badges, isPremium, childId, livesLastUpdatedAt, onLivesUpdate }: ChildHeaderProps) {
     const [isMounted, setIsMounted] = useState(false);
+    let timer: NodeJS.Timeout | null = null;
 
     useEffect(() => {
         setIsMounted(true);
-        let intervalId: NodeJS.Timeout;
+        let isMountedInEffect = true;
 
         const updateLives = () => {
-            if (isPremium || typeof lives !== 'number' || lives >= MAX_LIVES || !livesLastUpdatedAt?.toDate) {
+            if (!isMountedInEffect || isPremium || typeof lives !== 'number' || lives >= MAX_LIVES || !livesLastUpdatedAt?.toDate) {
                 return;
             }
 
@@ -58,12 +59,13 @@ export function ChildHeader({ childName, lives, badges, isPremium, childId, live
         
         if (isMounted) {
             updateLives(); // Initial check
-            intervalId = setInterval(updateLives, 60000); // Check every minute
+            timer = setInterval(updateLives, 60000); // Check every minute
         }
 
         return () => {
-             if (intervalId) {
-                clearInterval(intervalId);
+            isMountedInEffect = false;
+            if (timer) {
+                clearInterval(timer);
             }
         };
 
@@ -94,17 +96,14 @@ export function ChildHeader({ childName, lives, badges, isPremium, childId, live
                             {lives === 'unlimited' ? (
                                 <InfinityIcon className="w-5 h-5" />
                             ) : (
-                                <span className="text-lg font-bold">{lives}</span>
+                                <span className="text-lg font-bold">{Math.max(0, lives)}</span>
                             )}
                         </div>
                     </TooltipTrigger>
                     {!isPremium && lives !== 'unlimited' && (
                         <TooltipContent>
                              <p>
-                                { (typeof lives === 'number' && lives < MAX_LIVES)
-                                    ? `Canlar 2 saatte bir yenilenir.`
-                                    : "Canlar dolu!"
-                                }
+                                Canlar 5 dakikada bir yenilenir.
                             </p>
                         </TooltipContent>
                     )}
@@ -134,3 +133,5 @@ export function ChildHeader({ childName, lives, badges, isPremium, childId, live
     </header>
   );
 }
+
+    
