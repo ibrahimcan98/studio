@@ -201,7 +201,7 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
                     className="relative w-[300px] h-[300px] md:w-[400px] md:h-[400px] grid grid-cols-2 grid-rows-2 gap-1 rounded-lg overflow-hidden shadow-lg bg-gray-200"
                 >
                     {/* Background silhouette */}
-                    <Image src={currentWord.image} layout="fill" objectFit="cover" className="opacity-20" alt="Puzzle silhouette"/>
+                    <Image src={currentWord.image} layout="fill" objectFit="cover" className="opacity-20 pointer-events-none" alt="Puzzle silhouette"/>
 
                     {pieceIndices.map((index) => {
                         const placedPiece = placedPieces[index];
@@ -211,7 +211,7 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
                                 key={index}
                                 onClick={() => handlePlacePiece(index)}
                                 className={cn(
-                                    "transition-colors border-2",
+                                    "transition-colors border-2 z-10",
                                     placedPieces[index] === null ? "border-dashed border-gray-400/50 cursor-pointer hover:bg-black/10" : "border-transparent"
                                 )}
                             >
@@ -230,7 +230,7 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
                     })}
 
                     {isSolved && (
-                        <div className="absolute inset-0 bg-green-500/70 flex flex-col items-center justify-center gap-4">
+                        <div className="absolute inset-0 bg-green-500/70 flex flex-col items-center justify-center gap-4 z-20">
                             <CheckCircle className="w-24 h-24 text-white" />
                              <Button onClick={goToNextWord} size="lg">
                                 {currentWordIndex === words.length - 1 ? 'Bitir' : 'İleri'}
@@ -271,5 +271,3 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
         </div>
     );
 }
-
-    
