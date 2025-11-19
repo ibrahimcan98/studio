@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
@@ -63,10 +64,6 @@ function UyelikContent({ userData, user }: { userData: any, user: any }) {
     return (
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20">
              <div className="space-y-4">
-                <Button variant="ghost" onClick={() => router.back()} className="text-muted-foreground hover:text-foreground">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Geri Dön
-                </Button>
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight">Üyelik Yönetimi</h2>
                     <p className="text-muted-foreground">

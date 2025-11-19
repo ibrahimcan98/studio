@@ -106,10 +106,6 @@ export default function DersPlanlaPage() {
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen">
             <div className="flex items-center justify-between">
                 <div>
-                    <Button variant="ghost" onClick={() => router.back()} className="-ml-4 text-muted-foreground hover:text-foreground">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Geri Dön
-                    </Button>
                     <h2 className="text-3xl font-bold tracking-tight">Ders Planla</h2>
                     <p className="text-muted-foreground">
                         Öğretmenimizin müsait olduğu zamanlardan birini seçin.
