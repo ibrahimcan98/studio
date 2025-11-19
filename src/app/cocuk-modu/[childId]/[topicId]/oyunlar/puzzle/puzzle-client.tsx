@@ -113,20 +113,22 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
         } else {
             // Incorrect placement
             if (!isPremium) {
-                const newLives = lives - 1;
-                setLives(newLives);
-                if (childDocRef) {
-                    await updateDoc(childDocRef, { 
-                      lives: newLives,
-                      livesLastUpdatedAt: serverTimestamp()
-                    });
-                }
-                if (newLives <= 0) {
-                     setTimeout(() => {
-                        alert('Canların bitti! Ebeveyn portalına yönlendiriliyorsun.');
-                        router.push('/ebeveyn-portali');
-                    }, 1500);
-                    return;
+                if (lives > 0) {
+                    const newLives = lives - 1;
+                    setLives(newLives);
+                    if (childDocRef) {
+                        await updateDoc(childDocRef, { 
+                          lives: newLives,
+                          livesLastUpdatedAt: serverTimestamp()
+                        });
+                    }
+                    if (newLives <= 0) {
+                         setTimeout(() => {
+                            alert('Canların bitti! Ebeveyn portalına yönlendiriliyorsun.');
+                            router.push('/ebeveyn-portali');
+                        }, 1500);
+                        return;
+                    }
                 }
             }
             setSelectedPiece(null); // Deselect piece after wrong attempt
@@ -199,7 +201,7 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
                     </div>
                     <div className="w-auto flex items-center gap-2 font-semibold text-destructive px-4">
                         <Heart className="w-7 h-7 fill-current" />
-                        <span className="text-2xl">{isPremium ? 'Sınırsız' : lives}</span>
+                        <span className="text-2xl">{isPremium ? 'Sınırsız' : (lives < 0 ? 0 : lives)}</span>
                     </div>
                 </div>
             </header>

@@ -43,6 +43,7 @@ import { collection, doc, addDoc, deleteDoc, updateDoc, serverTimestamp } from '
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { SetPinDialog } from '@/components/child-mode/set-pin-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 
 const LIFE_REGEN_SECONDS = 2 * 60 * 60; // 2 hours in seconds
@@ -75,14 +76,6 @@ function LivesTooltipContent({ lives, livesLastUpdatedAt, onUpdate, childId }: {
 
         return () => clearInterval(interval);
     }, [lives, livesLastUpdatedAt, onUpdate, childId]);
-
-    if (lives >= MAX_LIVES) {
-      return (
-        <TooltipContent>
-            <p>Canlar dolu!</p>
-        </TooltipContent>
-      )
-    }
 
     return (
         <TooltipContent>
@@ -203,6 +196,84 @@ function PremiumBadge() {
       Aktif
     </Badge>
   );
+}
+
+function ChildCard({ child, isPremium, onDelete, onUpdateLives }: { child: any, isPremium: boolean, onDelete: (id: string) => void, onUpdateLives: (id: string, lives: number) => void }) {
+    const { toast } = useToast();
+
+    const handleStartLearning = (e: React.MouseEvent) => {
+        if (!isPremium && (child.lives ?? 0) <= 0) {
+            e.preventDefault(); // Prevent Dialog from opening
+            toast({
+                variant: "destructive",
+                title: "Can Kalmadı!",
+                description: "Lütfen canların dolmasını bekleyiniz.",
+            });
+        }
+    };
+
+    return (
+        <Card className="relative flex flex-col items-center text-center p-6 space-y-4 hover:shadow-lg transition-shadow group">
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="absolute top-2 left-2 h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive">
+                        <X className="w-4 h-4"/>
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                           "{child.firstName}" isimli çocuğu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>İptal</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => onDelete(child.id)} className="bg-destructive hover:bg-destructive/90">
+                            Sil
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <Avatar className="h-20 w-20 text-3xl">
+                <AvatarFallback className="bg-primary/20 text-primary font-bold">{child.firstName?.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+                <p className="font-semibold text-lg">{child.firstName}</p>
+                <p className="text-sm text-muted-foreground">{new Date().getFullYear() - new Date(child.dateOfBirth).getFullYear()} yaş</p>
+            </div>
+            <div className='w-full space-y-3 pt-4'>
+              <div className='flex justify-between items-center text-sm'>
+                <span className='text-muted-foreground'>Rozetler:</span>
+                <div className='flex items-center gap-1 font-bold bg-primary/10 text-primary px-2 py-1 rounded-md'>
+                  <span>{child.rozet || 0}</span>
+                  <Award className='w-4 h-4'/>
+                </div>
+              </div>
+               <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <div className='flex justify-between items-center text-sm cursor-help'>
+                            <span className='text-muted-foreground'>Kalan Can:</span>
+                            <div className='flex items-center gap-1 font-bold bg-red-100 text-red-600 px-2 py-1 rounded-md'>
+                            {isPremium ? <InfinityIcon className='w-4 h-4' /> : <span>{child.lives ?? 5}/{MAX_LIVES}</span>}
+                            <Heart className='w-4 h-4 fill-current'/>
+                            </div>
+                        </div>
+                    </TooltipTrigger>
+                    {!isPremium && <LivesTooltipContent lives={child.lives ?? 5} livesLastUpdatedAt={child.livesLastUpdatedAt} onUpdate={onUpdateLives} childId={child.id} />}
+                </Tooltip>
+               </TooltipProvider>
+            </div>
+            <div onClickCapture={handleStartLearning} className="w-full mt-auto">
+                 <SetPinDialog childId={child.id}>
+                  <Button className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold">
+                      Öğrenmeye Başla
+                  </Button>
+                </SetPinDialog>
+            </div>
+       </Card>
+    );
 }
 
 export default function EbeveynPortaliPage() {
@@ -421,64 +492,13 @@ export default function EbeveynPortaliPage() {
                     {children && children.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                             {children.map(child => (
-                               <Card key={child.id} className="relative flex flex-col items-center text-center p-6 space-y-4 hover:shadow-lg transition-shadow group">
-                                     <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="absolute top-2 left-2 h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive">
-                                                <X className="w-4 h-4"/>
-                                            </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                   "{child.firstName}" isimli çocuğu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>İptal</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleDeleteChild(child.id)} className="bg-destructive hover:bg-destructive/90">
-                                                    Sil
-                                                </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                    <Avatar className="h-20 w-20 text-3xl">
-                                        <AvatarFallback className="bg-primary/20 text-primary font-bold">{child.firstName?.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex-1">
-                                        <p className="font-semibold text-lg">{child.firstName}</p>
-                                        <p className="text-sm text-muted-foreground">{new Date().getFullYear() - new Date(child.dateOfBirth).getFullYear()} yaş</p>
-                                    </div>
-                                    <div className='w-full space-y-3 pt-4'>
-                                      <div className='flex justify-between items-center text-sm'>
-                                        <span className='text-muted-foreground'>Rozetler:</span>
-                                        <div className='flex items-center gap-1 font-bold bg-primary/10 text-primary px-2 py-1 rounded-md'>
-                                          <span>{child.rozet || 0}</span>
-                                          <Award className='w-4 h-4'/>
-                                        </div>
-                                      </div>
-                                       <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <div className='flex justify-between items-center text-sm cursor-help'>
-                                                    <span className='text-muted-foreground'>Kalan Can:</span>
-                                                    <div className='flex items-center gap-1 font-bold bg-red-100 text-red-600 px-2 py-1 rounded-md'>
-                                                    {isPremium ? <InfinityIcon className='w-4 h-4' /> : <span>{child.lives ?? 5}/{MAX_LIVES}</span>}
-                                                    <Heart className='w-4 h-4 fill-current'/>
-                                                    </div>
-                                                </div>
-                                            </TooltipTrigger>
-                                            {!isPremium && <LivesTooltipContent lives={child.lives ?? 5} livesLastUpdatedAt={child.livesLastUpdatedAt} onUpdate={handleUpdateLives} childId={child.id} />}
-                                        </Tooltip>
-                                       </TooltipProvider>
-                                    </div>
-                                    <SetPinDialog childId={child.id}>
-                                      <Button className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold mt-auto">
-                                          Öğrenmeye Başla
-                                      </Button>
-                                    </SetPinDialog>
-                               </Card>
+                               <ChildCard 
+                                    key={child.id}
+                                    child={child}
+                                    isPremium={isPremium}
+                                    onDelete={handleDeleteChild}
+                                    onUpdateLives={handleUpdateLives}
+                               />
                             ))}
                         </div>
                     ) : (
