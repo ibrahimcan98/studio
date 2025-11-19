@@ -29,9 +29,9 @@
           "description": "URL of the user's profile image.",
           "format": "uri"
         },
-        "userType": {
+        "role": {
           "type": "string",
-          "description": "Type of user (e.g., parent, teacher).",
+          "description": "The role of the user (e.g., parent, teacher).",
           "enum": ["parent", "teacher"]
         },
         "isPremium": {
@@ -78,7 +78,7 @@
         "firstName",
         "lastName",
         "email",
-        "userType"
+        "role"
       ]
     },
     "Child": {

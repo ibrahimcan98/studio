@@ -45,13 +45,13 @@ export default function OgretmenGirisPage() {
               email: user.email,
               firstName: user.email.split('@')[0],
               lastName: '',
-              userType: 'teacher',
+              role: 'teacher',
               createdAt: serverTimestamp(),
           });
       } else {
           // If user exists but isn't a teacher, update them
-          if(userDoc.data()?.userType !== 'teacher') {
-            await setDoc(userDocRef, { userType: 'teacher' }, { merge: true });
+          if(userDoc.data()?.role !== 'teacher') {
+            await setDoc(userDocRef, { role: 'teacher' }, { merge: true });
           }
       }
   };
@@ -161,5 +161,3 @@ export default function OgretmenGirisPage() {
     </div>
   );
 }
-
-    

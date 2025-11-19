@@ -157,7 +157,7 @@ function SignUpForm({
         firstName: name.split(' ')[0] || '',
         lastName: name.split(' ').slice(1).join(' ') || '',
         email: user.email,
-        userType: 'parent',
+        role: 'parent',
         lives: 5,
         livesLastUpdatedAt: serverTimestamp(),
       }, { merge: true });
@@ -315,5 +315,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    

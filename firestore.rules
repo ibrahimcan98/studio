@@ -65,13 +65,13 @@ service cloud.firestore {
      * @description Secure lesson slots. Readable by authenticated users, creatable by teachers.
      * @path /lesson-slots/{slotId}
      * @allow (get, list) Authenticated users can see available slots.
-     * @allow (create) Only users with 'teacher' userType can create slots.
+     * @allow (create) Only users with 'teacher' role can create slots.
      * @allow (update) Authenticated users can book an available slot.
      * @principle Role-based access for creation, state-based for updates.
      */
      match /lesson-slots/{slotId} {
         allow get, list: if request.auth != null;
-        allow create: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'teacher';
+        allow create: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
         allow update: if request.auth != null && resource.data.status == 'available' && request.resource.data.status == 'booked';
         allow delete: if false; // Prevent deletion of slots.
      }
