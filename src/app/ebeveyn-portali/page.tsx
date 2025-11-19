@@ -45,8 +45,6 @@ import { tr } from 'date-fns/locale';
 import { SetPinDialog } from '@/components/child-mode/set-pin-dialog';
 import { useToast } from '@/hooks/use-toast';
 
-const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisii.com', 'teacher@turkcocukakademisi.com'];
-
 const LIFE_REGEN_SECONDS = 90 * 60; // 1 hour and 30 minutes in seconds
 const MAX_LIVES = 5;
 
@@ -313,6 +311,14 @@ export default function EbeveynPortaliPage() {
   }, [db, user?.uid]);
   
   const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
+  
+  useEffect(() => {
+    if (!userLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, userLoading, router]);
+
+
   const isPremium = userData?.isPremium || false;
   const currentLives = userData?.lives ?? 5;
   const hasUsedFreeTrial = userData?.hasUsedFreeTrial || false;
@@ -331,22 +337,13 @@ export default function EbeveynPortaliPage() {
 
   const { data: children, isLoading: childrenLoading } = useCollection(childrenRef);
 
-  useEffect(() => {
-    if (!userLoading && !user) {
-      router.push('/login');
-    }
-     if (!userLoading && user && user.email && allowedTeacherEmails.includes(user.email)) {
-      router.push('/ogretmen-portali');
-    }
-  }, [user, userLoading, router]);
-
   const handleDeleteChild = async (childId: string) => {
       if (!db || !user?.uid) return;
       const childDocRef = doc(db, 'users', user.uid, 'children', childId);
       await deleteDoc(childDocRef);
   };
   
-  if (userLoading || childrenLoading || userDataLoading || purchasesLoading || (user && user.email && allowedTeacherEmails.includes(user.email))) {
+  if (userLoading || childrenLoading || userDataLoading || purchasesLoading) {
     return (
       <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />

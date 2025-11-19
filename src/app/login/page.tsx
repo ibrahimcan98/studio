@@ -8,8 +8,9 @@ import {
   createUserWithEmailAndPassword,
   updateProfile,
   signInWithEmailAndPassword,
+  signOut,
 } from 'firebase/auth';
-import { doc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -28,6 +29,8 @@ import { setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
+const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisii.com', 'teacher@turkcocukakademisi.com'];
+
 function LoginForm({
   onSignUpClick,
   loading,
@@ -39,21 +42,48 @@ function LoginForm({
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const auth = useAuth();
+  const db = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!auth) return;
+    if (!auth || !db) return;
+
+    if (allowedTeacherEmails.includes(email)) {
+        toast({
+            variant: 'destructive',
+            title: 'Giriş Reddedildi',
+            description: 'Öğretmen girişi için lütfen öğretmen portalını kullanın.',
+        });
+        return;
+    }
 
     setIsSubmitting(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password)
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Check user role from Firestore
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (userDoc.exists() && userDoc.data()?.role === 'teacher') {
+         await signOut(auth); // Sign out the teacher immediately
+         toast({
+            variant: 'destructive',
+            title: 'Giriş Reddedildi',
+            description: 'Öğretmen girişi için lütfen öğretmen portalını kullanın.',
+         });
+         setIsSubmitting(false);
+         return;
+      }
+
       toast({
         title: 'Başarılı!',
         description: 'Giriş yaptınız. Yönlendiriliyorsunuz...',
       });
-      router.push('/');
+      router.push('/ebeveyn-portali');
     } catch (error) {
        toast({
         variant: 'destructive',
@@ -143,6 +173,15 @@ function SignUpForm({
     e.preventDefault();
     if (!auth || !db) return;
 
+    if (allowedTeacherEmails.includes(email)) {
+        toast({
+            variant: 'destructive',
+            title: 'Kayıt Reddedildi',
+            description: 'Bu e-posta adresi öğretmenlere ayrılmıştır.',
+        });
+        return;
+    }
+
     setIsSubmitting(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -151,7 +190,6 @@ function SignUpForm({
       await updateProfile(user, { displayName: name });
 
       const userDocRef = doc(db, 'users', user.uid);
-      // Use await here to ensure data is set before redirecting.
       await setDoc(userDocRef, {
         id: user.uid,
         firstName: name.split(' ')[0] || '',
@@ -166,7 +204,7 @@ function SignUpForm({
         title: 'Harika!',
         description: 'Hesabınız oluşturuldu. Yönlendiriliyorsunuz...',
       });
-      router.push('/');
+      router.push('/ebeveyn-portali');
     } catch (error: any) {
       let errorMessage = 'Kayıt olurken bir hata oluştu.';
       if (error.code === 'auth/email-already-in-use') {
@@ -264,25 +302,36 @@ export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const { user, loading } = useUser();
   const router = useRouter();
+  const db = useFirestore();
 
   useEffect(() => {
-    if (!loading && user) {
-      router.push('/');
+    if (!loading && user && db) {
+        const checkUserRoleAndRedirect = async () => {
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                if (userData.role === 'teacher') {
+                    router.push('/ogretmen-portali');
+                } else {
+                    router.push('/ebeveyn-portali');
+                }
+            } else {
+                // Default to parent portal if no doc found
+                router.push('/ebeveyn-portali');
+            }
+        };
+        checkUserRoleAndRedirect();
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, db]);
 
-  if (loading) {
+  if (loading || user) {
      return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
   }
-  
-  if (user) {
-    return null;
-  }
-
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-cyan-50 via-amber-50 to-white p-4 overflow-hidden">
@@ -315,5 +364,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
