@@ -122,7 +122,7 @@ export default function Header() {
               <User className="mr-2 h-4 w-4" />
               <span>Profil Ayarları</span>
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem onClick={() => router.push('/ebeveyn-portali/paketlerim')} className="cursor-pointer">
               <Package className="mr-2 h-4 w-4" />
               <span>Paketlerim</span>
             </DropdownMenuItem>
