@@ -1,3 +1,4 @@
+
 'use client';
 import Link from 'next/link';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -30,7 +31,7 @@ export default function Header() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isLoggedIn = !!user;
-  const { cartItems } = useCart();
+  const { cartItems, isCartLoaded } = useCart();
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   if (pathname.startsWith('/cocuk-modu') || pathname.startsWith('/ogretmen-portali')) {
@@ -173,7 +174,7 @@ export default function Header() {
              <Button variant="ghost" asChild className="relative">
                 <Link href="/sepet">
                     <ShoppingCart className="h-5 w-5"/>
-                    {cartItemCount > 0 && (
+                    {isCartLoaded && cartItemCount > 0 && (
                         <Badge className="absolute -top-2 -right-2 h-5 w-5 justify-center p-0">{cartItemCount}</Badge>
                     )}
                     <span className="sr-only">Sepeti Görüntüle</span>
@@ -219,7 +220,7 @@ export default function Header() {
                                 </button>
                             ))}
                              <button onClick={() => handleLinkClick('/sepet')} className="text-lg font-medium transition-colors hover:text-foreground/80 text-left">
-                                Sepet ({cartItemCount})
+                                Sepet ({isCartLoaded ? cartItemCount : 0})
                             </button>
                             <Button variant="secondary" className="w-full justify-center p-2 h-auto font-medium text-lg" onClick={() => {}}>
                                 Ücretsiz Deneme

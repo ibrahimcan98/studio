@@ -2,7 +2,6 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useToast } from '@/hooks/use-toast';
 
 export type CartItem = {
     id: string;
@@ -25,34 +24,38 @@ interface CartContextType {
     finalTotal: number;
     appliedCoupon: string | null;
     removeCoupon: () => void;
+    isCartLoaded: boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-    const [cartItems, setCartItems] = useState<CartItem[]>(() => {
-        if (typeof window === 'undefined') {
-            return [];
-        }
-        try {
-            const localData = localStorage.getItem('cartItems');
-            return localData ? JSON.parse(localData) : [];
-        } catch (error) {
-            console.error("Failed to parse cart items from localStorage", error);
-            return [];
-        }
-    });
-
+    const [cartItems, setCartItems] = useState<CartItem[]>([]);
+    const [isCartLoaded, setIsCartLoaded] = useState(false);
     const [discount, setDiscount] = useState(0); // discount percentage
     const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
 
     useEffect(() => {
         try {
-            localStorage.setItem('cartItems', JSON.stringify(cartItems));
+            const localData = localStorage.getItem('cartItems');
+            if (localData) {
+                setCartItems(JSON.parse(localData));
+            }
         } catch (error) {
-            console.error("Failed to save cart items to localStorage", error);
+            console.error("Failed to parse cart items from localStorage", error);
         }
-    }, [cartItems]);
+        setIsCartLoaded(true);
+    }, []);
+
+    useEffect(() => {
+        if (isCartLoaded) {
+            try {
+                localStorage.setItem('cartItems', JSON.stringify(cartItems));
+            } catch (error) {
+                console.error("Failed to save cart items to localStorage", error);
+            }
+        }
+    }, [cartItems, isCartLoaded]);
 
     const addToCart = (item: CartItem) => {
         setCartItems(prevItems => {
@@ -110,7 +113,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const finalTotal = cartTotal - discountAmount;
 
     return (
-        <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal, applyCoupon, discountAmount, finalTotal, appliedCoupon, removeCoupon }}>
+        <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal, applyCoupon, discountAmount, finalTotal, appliedCoupon, removeCoupon, isCartLoaded }}>
             {children}
         </CartContext.Provider>
     );
