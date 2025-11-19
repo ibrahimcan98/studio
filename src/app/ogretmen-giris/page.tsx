@@ -13,8 +13,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { TeacherIllustration } from '@/components/illustrations/teacher-illustration';
 
-// Sadece bu listedeki e-postalar öğretmen portalına giriş yapabilir.
-const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisi.com'];
+// Sadece bu domain'e sahip e-postalar öğretmen portalına giriş yapabilir.
+const allowedTeacherDomain = 'turkcocukakademisi.com';
 
 export default function OgretmenGirisPage() {
   const [email, setEmail] = useState('');
@@ -26,7 +26,7 @@ export default function OgretmenGirisPage() {
   const { user, loading } = useUser();
 
   useEffect(() => {
-    if (!loading && user && allowedTeacherEmails.includes(user.email || '')) {
+    if (!loading && user && user.email?.endsWith(allowedTeacherDomain)) {
       router.push('/ogretmen-portali');
     }
   }, [user, loading, router]);
@@ -36,7 +36,7 @@ export default function OgretmenGirisPage() {
     e.preventDefault();
     if (!auth) return;
 
-    if (!allowedTeacherEmails.includes(email)) {
+    if (!email.endsWith(allowedTeacherDomain)) {
       toast({
         variant: 'destructive',
         title: 'Giriş Reddedildi',
@@ -72,7 +72,7 @@ export default function OgretmenGirisPage() {
     );
   }
   
-  if (user && allowedTeacherEmails.includes(user.email || '')) {
+  if (user && user.email?.endsWith(allowedTeacherDomain)) {
     return null;
   }
 
@@ -135,3 +135,5 @@ export default function OgretmenGirisPage() {
     </div>
   );
 }
+
+    

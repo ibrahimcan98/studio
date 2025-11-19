@@ -39,13 +39,13 @@ import {
 } from "@/components/ui/tooltip"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { collection, doc, addDoc, deleteDoc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { collection, doc, addDoc, deleteDoc, updateDoc, serverTimestamp, getDoc, query, orderBy } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { SetPinDialog } from '@/components/child-mode/set-pin-dialog';
 import { useToast } from '@/hooks/use-toast';
 
-const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisi.com'];
+const allowedTeacherDomain = 'turkcocukakademisi.com';
 
 const LIFE_REGEN_SECONDS = 90 * 60; // 1 hour and 30 minutes in seconds
 const MAX_LIVES = 5;
@@ -316,6 +316,13 @@ export default function EbeveynPortaliPage() {
   const isPremium = userData?.isPremium || false;
   const currentLives = userData?.lives ?? 5;
   
+  const purchasesRef = useMemoFirebase(() => {
+    if (!db || !user?.uid) return null;
+    return query(collection(db, 'users', user.uid, 'purchases'), orderBy('createdAt', 'desc'));
+  }, [db, user?.uid]);
+
+  const { data: purchases, isLoading: purchasesLoading } = useCollection(purchasesRef);
+
   const childrenRef = useMemoFirebase(() => {
     if (!db || !user?.uid) return null;
     return collection(db, 'users', user.uid, 'children');
@@ -327,7 +334,7 @@ export default function EbeveynPortaliPage() {
     if (!userLoading && !user) {
       router.push('/login');
     }
-     if (!userLoading && user && allowedTeacherEmails.includes(user.email || '')) {
+     if (!userLoading && user && user.email?.endsWith(allowedTeacherDomain)) {
       router.push('/ogretmen-portali');
     }
   }, [user, userLoading, router]);
@@ -338,7 +345,7 @@ export default function EbeveynPortaliPage() {
       await deleteDoc(childDocRef);
   };
   
-  if (userLoading || childrenLoading || userDataLoading || (user && allowedTeacherEmails.includes(user.email || ''))) {
+  if (userLoading || childrenLoading || userDataLoading || purchasesLoading || (user && user.email?.endsWith(allowedTeacherDomain))) {
     return (
       <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -580,3 +587,5 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
+
+    

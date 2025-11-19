@@ -6,14 +6,14 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
-const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisi.com'];
+const allowedTeacherDomain = 'turkcocukakademisi.com';
 
 export default function OgretmenPortaliPage() {
   const { user, loading } = useUser();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && (!user || !allowedTeacherEmails.includes(user.email || ''))) {
+    if (!loading && (!user || !user.email?.endsWith(allowedTeacherDomain))) {
       router.push('/ogretmen-giris');
     }
   }, [user, loading, router]);
@@ -34,3 +34,5 @@ export default function OgretmenPortaliPage() {
     </div>
   );
 }
+
+    
