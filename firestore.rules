@@ -100,6 +100,24 @@ service cloud.firestore {
     }
 
     /**
+     * @description Secure user purchases. Only the user can view their own purchase history.
+     * @path /users/{userId}/purchases/{purchaseId}
+     * @allow (get) User 'user123' can get their own purchase document.
+     * @allow (list) User 'user123' can list their own purchases.
+     * @allow (create) User 'user123' can create a purchase document under their own ID.
+     * @deny (update) No user can update a purchase document.
+     * @deny (delete) No user can delete a purchase document.
+     * @principle Enforces document ownership for reads and creates, and makes purchase history immutable.
+     */
+    match /users/{userId}/purchases/{purchaseId} {
+        allow get: if request.auth.uid == userId;
+        allow list: if request.auth.uid == userId;
+        allow create: if request.auth.uid == userId;
+        allow update: if false;
+        allow delete: if false;
+    }
+
+    /**
      * @description Secure lessons associated with a course. Publicly readable, write access restricted to admins.
      * @path /courses/{courseId}/lessons/{lessonId}
      * @allow (get) Any user can read lessons.
