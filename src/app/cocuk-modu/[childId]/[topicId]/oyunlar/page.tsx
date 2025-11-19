@@ -2,7 +2,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Gamepad2, Lock, Sparkles } from 'lucide-react';
+import { ArrowLeft, Gamepad2, Lock, Sparkles, RefreshCw } from 'lucide-react';
 import topicsData from '@/data/topics.json';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -128,7 +128,7 @@ export default function GamesPage() {
                                 <Card
                                     key={game.id}
                                     className={`p-4 rounded-xl transition-all ${!unlocked ? 'bg-gray-200 cursor-not-allowed' : 'bg-white hover:shadow-lg hover:-translate-y-1 cursor-pointer'}`}
-                                    onClick={() => unlocked && !completed && router.push(game.path)}
+                                    onClick={() => unlocked && router.push(game.path)}
                                 >
                                     <div className="flex items-center gap-4">
                                         <div className={`p-3 rounded-lg ${!unlocked ? 'bg-gray-300' : 'bg-gray-100'}`}>
@@ -141,8 +141,8 @@ export default function GamesPage() {
                                         {!unlocked ? (
                                             <Lock className="w-6 h-6 text-gray-400" />
                                         ) : completed ? (
-                                            <div className="text-green-500 font-bold text-sm flex items-center gap-1">
-                                                Tamamlandı
+                                            <div className="text-blue-500 flex items-center gap-1">
+                                                <RefreshCw className="w-5 h-5"/>
                                             </div>
                                         ): null}
                                     </div>
