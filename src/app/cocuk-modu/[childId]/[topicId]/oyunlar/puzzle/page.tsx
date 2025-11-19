@@ -15,21 +15,20 @@ type Word = {
 export default function PuzzlePage() {
     const params = useParams();
     const { topicId } = params;
-    const [imageToSolve, setImageToSolve] = useState<string | null>(null);
+    const [wordsForPuzzle, setWordsForPuzzle] = useState<Word[] | null>(null);
 
     const topic = useMemo(() => {
         return topicsData.find(t => t.id === topicId);
     }, [topicId]);
 
     useEffect(() => {
-        if (topic && topic.wordList.length > 0) {
-            // Select a random image from the topic's word list for the puzzle
-            const randomIndex = Math.floor(Math.random() * topic.wordList.length);
-            setImageToSolve(topic.wordList[randomIndex].image);
+        if (topic) {
+            // Use the whole word list for the puzzle game
+            setWordsForPuzzle(topic.wordList);
         }
     }, [topic]);
 
-    if (!imageToSolve) {
+    if (!wordsForPuzzle || wordsForPuzzle.length === 0) {
         return (
             <div className="flex h-screen items-center justify-center bg-amber-50">
                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -37,5 +36,5 @@ export default function PuzzlePage() {
         );
     }
 
-    return <PuzzleClient imageUrl={imageToSolve} />;
+    return <PuzzleClient words={wordsForPuzzle} />;
 }
