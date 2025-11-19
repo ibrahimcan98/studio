@@ -130,24 +130,29 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
         if (currentWordIndex < words.length - 1) {
             setCurrentWordIndex(prev => prev + 1);
         } else {
-            await handleGameFinish();
+            setGameFinished(true); // Trigger game finished state
         }
     }
 
-
-    const handleGameFinish = async () => {
-        if (childDocRef && topicId) {
-            const completedKey = `${topicId}-puzzle`;
-            // Avoid adding duplicate entries if game is replayed
-            if (!childData?.completedTopics?.includes(completedKey)) {
-                await updateDoc(childDocRef, {
-                    completedTopics: arrayUnion(completedKey),
-                    rozet: increment(1)
-                });
-            }
+    // Effect to handle the final database update and confetti when gameFinished is true
+    useEffect(() => {
+        if (gameFinished) {
+            const handleGameFinish = async () => {
+                if (childDocRef && topicId) {
+                    const completedKey = `${topicId}-puzzle`;
+                    // Avoid adding duplicate entries if game is replayed
+                    if (!childData?.completedTopics?.includes(completedKey)) {
+                        await updateDoc(childDocRef, {
+                            completedTopics: arrayUnion(completedKey),
+                            rozet: increment(1)
+                        });
+                    }
+                }
+            };
+            handleGameFinish();
         }
-        setGameFinished(true);
-    };
+    }, [gameFinished, childDocRef, topicId, childData]);
+
 
     const resetGame = () => {
         startNewPuzzle();
