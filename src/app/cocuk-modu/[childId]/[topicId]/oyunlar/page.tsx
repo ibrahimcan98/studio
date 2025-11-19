@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -63,7 +64,7 @@ export default function GamesPage() {
             id: 'puzzle',
             name: 'Puzzle Tamamlama',
             description: 'Parçaları birleştirerek resmi tamamla.',
-            path: '#',
+            path: `/cocuk-modu/${childId}/${topicId}/oyunlar/puzzle`,
             icon: <Gamepad2 className="w-8 h-8 text-blue-500" />,
         },
     ];
