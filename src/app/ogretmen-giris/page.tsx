@@ -35,7 +35,7 @@ export default function OgretmenGirisPage() {
   // Redirect if a teacher is already logged in
   useEffect(() => {
     if (!userLoading && user && user.email && allowedTeacherEmails.includes(user.email)) {
-      router.replace('/ogretmen-portali');
+      router.replace('/ogretmen-portali/takvim');
     }
   }, [user, userLoading, router]);
 
@@ -102,7 +102,7 @@ export default function OgretmenGirisPage() {
         title: 'Başarılı!',
         description: 'Öğretmen portalına yönlendiriliyorsunuz...',
       });
-      router.push('/ogretmen-portali'); // Directly push to portal after successful login
+      router.push('/ogretmen-portali/takvim'); // Directly push to calendar page after successful login
     } catch (error) {
       toast({
         variant: 'destructive',
