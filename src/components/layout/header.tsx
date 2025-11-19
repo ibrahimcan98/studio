@@ -12,7 +12,7 @@ import {
   DropdownMenuGroup,
 } from '@/components/ui/dropdown-menu';
 import { Logo } from '@/components/logo';
-import { Menu, Loader2, LayoutDashboard, User, Package, History, Settings, LogOut, Crown } from 'lucide-react';
+import { Menu, Loader2, LayoutDashboard, User, Package, History, Settings, LogOut, Crown, ShoppingCart } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader } from '@/components/ui/sheet';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { getAuth, signOut } from 'firebase/auth';
@@ -129,6 +129,10 @@ export default function Header() {
             <DropdownMenuItem className="cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />
               <span>Hesap Ayarları</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer">
+              <ShoppingCart className="mr-2 h-4 w-4" />
+              <span>Sepet</span>
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
