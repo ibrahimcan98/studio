@@ -10,13 +10,16 @@ import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import Link from 'next/link';
 
+// Bu liste öğretmen giriş sayfasındaki liste ile aynı olmalıdır.
+const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisi.com'];
+
 function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useUser();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!loading && (!user || !user.email?.endsWith('@turkcocukakademisi.com'))) {
+    if (!loading && (!user || !allowedTeacherEmails.includes(user.email || ''))) {
         if(pathname !== '/ogretmen-giris') {
             router.replace('/ogretmen-giris');
         }
@@ -41,7 +44,7 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
       return <>{children}</>;
   }
   
-  if (user && user.email?.endsWith('@turkcocukakademisi.com')) {
+  if (user && allowedTeacherEmails.includes(user.email || '')) {
      return (
         <div className="min-h-screen bg-muted/40">
             <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

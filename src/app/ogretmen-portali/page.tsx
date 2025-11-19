@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser } from '@/firebase';
@@ -5,12 +6,14 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
+const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisi.com'];
+
 export default function OgretmenPortaliPage() {
   const { user, loading } = useUser();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && (!user || !user.email?.endsWith('@turkcocukakademisi.com'))) {
+    if (!loading && (!user || !allowedTeacherEmails.includes(user.email || ''))) {
       router.push('/ogretmen-giris');
     }
   }, [user, loading, router]);

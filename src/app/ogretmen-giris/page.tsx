@@ -13,6 +13,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { TeacherIllustration } from '@/components/illustrations/teacher-illustration';
 
+// Sadece bu listedeki e-postalar öğretmen portalına giriş yapabilir.
+const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisi.com'];
+
 export default function OgretmenGirisPage() {
   const [email, setEmail] = useState('ibrahimcan@turkcocukakademisi.com');
   const [password, setPassword] = useState('ibocan_9898');
@@ -23,7 +26,7 @@ export default function OgretmenGirisPage() {
   const { user, loading } = useUser();
 
   useEffect(() => {
-    if (!loading && user && user.email?.endsWith('@turkcocukakademisi.com')) {
+    if (!loading && user && allowedTeacherEmails.includes(user.email || '')) {
       router.push('/ogretmen-portali');
     }
   }, [user, loading, router]);
@@ -33,11 +36,11 @@ export default function OgretmenGirisPage() {
     e.preventDefault();
     if (!auth) return;
 
-    if (!email.endsWith('@turkcocukakademisi.com')) {
+    if (!allowedTeacherEmails.includes(email)) {
       toast({
         variant: 'destructive',
-        title: 'Geçersiz E-posta',
-        description: 'Sadece @turkcocukakademisi.com uzantılı e-posta adresleri ile giriş yapılabilir.',
+        title: 'Giriş Reddedildi',
+        description: 'Bu e-posta adresi ile öğretmen portalına giriş yapma yetkiniz yok.',
       });
       return;
     }
@@ -69,7 +72,7 @@ export default function OgretmenGirisPage() {
     );
   }
   
-  if (user && user.email?.endsWith('@turkcocukakademisi.com')) {
+  if (user && allowedTeacherEmails.includes(user.email || '')) {
     return null;
   }
 
