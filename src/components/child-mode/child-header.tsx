@@ -23,7 +23,7 @@ type ChildHeaderProps = {
     isPremium: boolean;
     childId: string;
     livesLastUpdatedAt: any; // Can be Firestore Timestamp or null
-    onLivesUpdate: (newLives: number) => void;
+    onLivesUpdate: (newLives: number, newTimestamp: any) => void;
 }
 
 const LIFE_REGEN_SECONDS = 5 * 60; // 5 minutes in seconds
@@ -31,45 +31,41 @@ const MAX_LIVES = 5;
 
 
 export function ChildHeader({ childName, lives, badges, isPremium, childId, livesLastUpdatedAt, onLivesUpdate }: ChildHeaderProps) {
-    const [isMounted, setIsMounted] = useState(false);
-    let timer: NodeJS.Timeout | null = null;
-
+    
     useEffect(() => {
-        setIsMounted(true);
-        let isMountedInEffect = true;
+        let isMounted = true;
 
         const updateLives = () => {
-            if (!isMountedInEffect || isPremium || typeof lives !== 'number' || lives >= MAX_LIVES || !livesLastUpdatedAt?.toDate) {
+            if (!isMounted || isPremium || typeof lives !== 'number' || lives >= MAX_LIVES || !livesLastUpdatedAt?.toDate) {
                 return;
             }
 
             const lastUpdatedDate = livesLastUpdatedAt.toDate();
-            const now = new Date();
-            const timePassedSeconds = Math.floor((now.getTime() - lastUpdatedDate.getTime()) / 1000);
+            let now = new Date();
+            let timePassedSeconds = Math.floor((now.getTime() - lastUpdatedDate.getTime()) / 1000);
             
-            const livesToRegen = Math.floor(timePassedSeconds / LIFE_REGEN_SECONDS);
+            let livesToRegen = Math.floor(timePassedSeconds / LIFE_REGEN_SECONDS);
 
             if (livesToRegen > 0) {
                 const newLiveCount = Math.min(MAX_LIVES, lives + livesToRegen);
                  if (newLiveCount > lives) {
-                    onLivesUpdate(newLiveCount);
+                    // Calculate the timestamp for the last life regenerated
+                    const secondsForLivesGained = (newLiveCount - lives) * LIFE_REGEN_SECONDS;
+                    const newTimestampDate = new Date(lastUpdatedDate.getTime() + secondsForLivesGained * 1000);
+
+                    onLivesUpdate(newLiveCount, newTimestampDate);
                 }
             }
         };
         
-        if (isMounted) {
-            updateLives(); // Initial check
-            timer = setInterval(updateLives, 60000); // Check every minute
-        }
+        updateLives();
+        const interval = setInterval(updateLives, 60000); // Check every minute
 
         return () => {
-            isMountedInEffect = false;
-            if (timer) {
-                clearInterval(timer);
-            }
+            isMounted = false;
+            clearInterval(interval);
         };
-
-    }, [lives, isPremium, livesLastUpdatedAt, onLivesUpdate, isMounted]);
+    }, [lives, isPremium, livesLastUpdatedAt, onLivesUpdate]);
 
 
   return (

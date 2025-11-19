@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -49,24 +48,30 @@ import { useToast } from '@/hooks/use-toast';
 const LIFE_REGEN_SECONDS = 5 * 60; // 5 minutes in seconds
 const MAX_LIVES = 5;
 
-function LivesTooltipContent({ lives, livesLastUpdatedAt, onUpdate, childId }: { lives: number, livesLastUpdatedAt: any, onUpdate: (childId: string, newLives: number) => void, childId: string }) {
+function LivesTooltipContent({ lives, livesLastUpdatedAt, onUpdate, childId }: { lives: number, livesLastUpdatedAt: any, onUpdate: (childId: string, newLives: number, newTimestamp: any) => void, childId: string }) {
 
     useEffect(() => {
+        let isMounted = true;
+
         const updateLives = () => {
-            if (lives >= MAX_LIVES || !livesLastUpdatedAt?.toDate) {
+             if (!isMounted || lives >= MAX_LIVES || !livesLastUpdatedAt?.toDate) {
                 return;
             }
 
             const lastUpdatedDate = livesLastUpdatedAt.toDate();
-            const now = new Date();
-            const timePassedSeconds = Math.floor((now.getTime() - lastUpdatedDate.getTime()) / 1000);
+            let now = new Date();
+            let timePassedSeconds = Math.floor((now.getTime() - lastUpdatedDate.getTime()) / 1000);
             
-            const livesToRegen = Math.floor(timePassedSeconds / LIFE_REGEN_SECONDS);
+            let livesToRegen = Math.floor(timePassedSeconds / LIFE_REGEN_SECONDS);
 
             if (livesToRegen > 0) {
                 const newLiveCount = Math.min(MAX_LIVES, lives + livesToRegen);
                  if (newLiveCount > lives) {
-                    onUpdate(childId, newLiveCount);
+                    // Calculate the timestamp for the last life regenerated
+                    const secondsForLivesGained = (newLiveCount - lives) * LIFE_REGEN_SECONDS;
+                    const newTimestampDate = new Date(lastUpdatedDate.getTime() + secondsForLivesGained * 1000);
+
+                    onUpdate(childId, newLiveCount, newTimestampDate);
                 }
             }
         };
@@ -74,7 +79,10 @@ function LivesTooltipContent({ lives, livesLastUpdatedAt, onUpdate, childId }: {
         updateLives();
         const interval = setInterval(updateLives, 60000); // Check every minute
 
-        return () => clearInterval(interval);
+        return () => {
+            isMounted = false;
+            clearInterval(interval);
+        };
     }, [lives, livesLastUpdatedAt, onUpdate, childId]);
 
     return (
@@ -198,7 +206,7 @@ function PremiumBadge() {
   );
 }
 
-function ChildCard({ child, isPremium, onDelete, onUpdateLives }: { child: any, isPremium: boolean, onDelete: (id: string) => void, onUpdateLives: (id: string, lives: number) => void }) {
+function ChildCard({ child, isPremium, onDelete, onUpdateLives }: { child: any, isPremium: boolean, onDelete: (id: string) => void, onUpdateLives: (id: string, lives: number, timestamp: any) => void }) {
     const { toast } = useToast();
 
     const handleStartLearning = (e: React.MouseEvent) => {
@@ -310,12 +318,12 @@ export default function EbeveynPortaliPage() {
       await deleteDoc(childDocRef);
   };
   
-    const handleUpdateLives = (childId: string, newLives: number) => {
+    const handleUpdateLives = (childId: string, newLives: number, newTimestamp: any) => {
         if (!db || !user?.uid) return;
         const childDocRef = doc(db, 'users', user.uid, 'children', childId);
         updateDoc(childDocRef, {
             lives: newLives,
-            livesLastUpdatedAt: serverTimestamp()
+            livesLastUpdatedAt: newTimestamp
         });
     };
 

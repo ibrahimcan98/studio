@@ -42,11 +42,11 @@ export default function CocukModuPage() {
   const { data: userData } = useDoc(userDocRef);
   const isPremium = userData?.isPremium || false;
 
-  const handleLivesUpdate = useCallback(async (newLives: number) => {
+  const handleLivesUpdate = useCallback(async (newLives: number, newTimestamp: any) => {
       if (childDocRef) {
           await updateDoc(childDocRef, {
               lives: newLives,
-              livesLastUpdatedAt: serverTimestamp()
+              livesLastUpdatedAt: newTimestamp
           });
       }
   }, [childDocRef]);
