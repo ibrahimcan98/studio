@@ -62,38 +62,37 @@ export default function TakvimYonetimiPage() {
     }, [lessonSlots, selectedDate]);
     
     const handleTimeSlotClick = async (time: string) => {
-        if (!selectedDate || !user) return;
+        if (!selectedDate || !user || !db) return;
 
         const [hours, minutes] = time.split(':').map(Number);
-        
-        // This date is created in the local timezone, but represents the intended day.
-        const localDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
-        // `set` will also use local timezone, which is fine as long as we convert to timestamp correctly.
-        const slotDateTime = set(localDate, { hours, minutes, seconds: 0, milliseconds: 0 });
+        const slotDateTime = set(startOfDay(selectedDate), { hours, minutes });
+        const startTime = Timestamp.fromDate(slotDateTime);
 
         setIsSubmitting(prevState => ({ ...prevState, [time]: true }));
 
         const existingSlot = slotsForSelectedDate.get(time);
 
         try {
-             if (existingSlot) {
+            if (existingSlot) {
+                // Slot exists, so we might need to delete it (remove availability)
                 if (existingSlot.teacherId !== user.uid) {
-                     toast({ variant: 'destructive', title: 'Hata', description: 'Bu ders aralığı başka bir öğretmen tarafından yönetiliyor.' });
-                     return;
+                    toast({ variant: 'destructive', title: 'Hata', description: 'Bu ders aralığı başka bir öğretmen tarafından yönetiliyor.' });
+                    return;
                 }
                 if (existingSlot.status === 'booked') {
                     toast({ variant: 'destructive', title: 'Hata', description: 'Bu ders aralığı bir öğrenci tarafından rezerve edildiği için kaldırılamaz.' });
                     return;
                 }
+                // If it's available and belongs to the current teacher, delete it.
                 const slotDocRef = doc(db, 'lesson-slots', existingSlot.id);
                 await deleteDoc(slotDocRef);
                 toast({ title: 'Kapatıldı', description: `${time} saati müsaitlikten kaldırıldı.` });
             } else {
-                // Slot doesn't exist, so create it (open the slot)
+                // Slot doesn't exist, so create it (add availability)
                 await addDoc(collection(db, 'lesson-slots'), {
                     teacherId: user.uid,
-                    startTime: Timestamp.fromDate(slotDateTime),
-                    endTime: Timestamp.fromDate(new Date(slotDateTime.getTime() + 45 * 60 * 1000)),
+                    startTime: startTime,
+                    endTime: Timestamp.fromDate(new Date(startTime.toMillis() + 45 * 60 * 1000)),
                     status: 'available',
                     bookedBy: null,
                 });
@@ -148,21 +147,21 @@ export default function TakvimYonetimiPage() {
                             <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                                 {timeSlots.map(time => {
                                     const slot = slotsForSelectedDate.get(time);
-                                    const isBookedByOther = slot && slot.teacherId !== user?.uid;
                                     const isBookedByStudent = slot?.status === 'booked';
+                                    const isBookedByOtherTeacher = slot && slot.teacherId !== user?.uid;
                                     const isAvailableForMe = slot?.status === 'available' && slot.teacherId === user?.uid;
 
                                     return (
                                         <Button
                                             key={time}
-                                            variant={isBookedByStudent || isBookedByOther ? 'destructive' : isAvailableForMe ? 'default' : 'outline'}
+                                            variant={isBookedByStudent || isBookedByOtherTeacher ? 'destructive' : isAvailableForMe ? 'default' : 'outline'}
                                             className="h-12 text-base relative"
                                             onClick={() => handleTimeSlotClick(time)}
-                                            disabled={isSubmitting[time] || isBookedByStudent || isBookedByOther}
+                                            disabled={isSubmitting[time] || isBookedByStudent || isBookedByOtherTeacher}
                                         >
                                             {isSubmitting[time] && <Loader2 className="animate-spin absolute" />}
                                             <span className={isSubmitting[time] ? 'opacity-0' : ''}>{time}</span>
-                                             {(isBookedByStudent || isBookedByOther) && <CheckCircle className="w-4 h-4 absolute top-1 right-1 text-white"/>}
+                                             {isBookedByStudent && <CheckCircle className="w-4 h-4 absolute top-1 right-1 text-white"/>}
                                         </Button>
                                     );
                                 })}
