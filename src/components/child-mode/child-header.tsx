@@ -14,9 +14,6 @@ import {
 } from "@/components/ui/tooltip"
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { updateDocumentNonBlocking } from "@/firebase";
-import { doc, serverTimestamp } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
 
 
 type ChildHeaderProps = {
@@ -33,6 +30,7 @@ const LIFE_REGEN_SECONDS = 2 * 60 * 60; // 2 hours in seconds
 const MAX_LIVES = 5;
 
 const formatTime = (seconds: number) => {
+    if (seconds <= 0) return "00:00:00";
     const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
     const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
     const s = Math.floor(seconds % 60).toString().padStart(2, '0');
@@ -41,32 +39,22 @@ const formatTime = (seconds: number) => {
 
 export function ChildHeader({ childName, lives, badges, isPremium, childId, livesLastUpdatedAt, onLivesUpdate }: ChildHeaderProps) {
     const [countdown, setCountdown] = useState<string | null>(null);
-    const db = useFirestore();
 
     useEffect(() => {
-        let isMounted = true;
+        let timer: NodeJS.Timeout;
 
-        const timer = setInterval(() => {
-            if (!isMounted) return;
-
+        const updateCountdown = () => {
             const currentLives = typeof lives === 'number' ? lives : MAX_LIVES;
 
-            if (isPremium || currentLives >= MAX_LIVES) {
-                setCountdown(null);
-                return;
-            }
-
-            if (!livesLastUpdatedAt?.toDate) {
+            if (isPremium || currentLives >= MAX_LIVES || !livesLastUpdatedAt?.toDate) {
                 setCountdown(null);
                 return;
             }
 
             const lastUpdatedDate = livesLastUpdatedAt.toDate();
             const now = new Date();
-            
             const timePassedSinceUpdate = Math.floor((now.getTime() - lastUpdatedDate.getTime()) / 1000);
-            
-            // Calculate how many full life-cycles have passed
+
             const livesToRegenerate = Math.floor(timePassedSinceUpdate / LIFE_REGEN_SECONDS);
 
             if (livesToRegenerate > 0) {
@@ -78,20 +66,15 @@ export function ChildHeader({ childName, lives, badges, isPremium, childId, live
                 }
             }
 
-            // Calculate seconds remaining for the next life
             const secondsIntoCurrentCycle = timePassedSinceUpdate % LIFE_REGEN_SECONDS;
             const secondsRemaining = LIFE_REGEN_SECONDS - secondsIntoCurrentCycle;
-
             setCountdown(formatTime(secondsRemaining));
-
-        }, 1000);
-
-        // Cleanup function
-        return () => {
-            isMounted = false;
-            clearInterval(timer);
         };
+        
+        updateCountdown(); // Initial call
+        timer = setInterval(updateCountdown, 1000); // Update every second
 
+        return () => clearInterval(timer);
     }, [lives, isPremium, livesLastUpdatedAt, onLivesUpdate]);
 
   return (
@@ -120,7 +103,7 @@ export function ChildHeader({ childName, lives, badges, isPremium, childId, live
                             ) : (
                                 <div className="flex items-center gap-2">
                                      <span className="text-lg font-bold">{lives}</span>
-                                     {countdown && lives < MAX_LIVES && (
+                                     {countdown && typeof lives === 'number' && lives < MAX_LIVES && (
                                         <div className="flex items-center gap-1 text-xs font-mono text-red-500 bg-white/50 px-1 rounded">
                                             <Clock className="w-3 h-3"/>
                                             {countdown}
@@ -133,7 +116,7 @@ export function ChildHeader({ childName, lives, badges, isPremium, childId, live
                     {!isPremium && lives !== 'unlimited' && (
                         <TooltipContent>
                              <p>
-                                { (typeof lives === 'number' && lives < MAX_LIVES)
+                                { (typeof lives === 'number' && lives < MAX_LIVES && countdown)
                                     ? `Sonraki can ${countdown} sonra`
                                     : "Canlar dolu!"
                                 }
@@ -167,7 +150,3 @@ export function ChildHeader({ childName, lives, badges, isPremium, childId, live
     </header>
   );
 }
-
-    
-
-    

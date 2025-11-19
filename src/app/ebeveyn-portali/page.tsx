@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock, Infinity as InfinityIcon, Settings, Target, CreditCard, Clock } from 'lucide-react';
@@ -73,13 +73,11 @@ function LivesTooltipContent({ lives, livesLastUpdatedAt, onUpdate, childId }: {
     const [countdown, setCountdown] = useState<string>("Hesaplanıyor...");
 
     useEffect(() => {
-        let isMounted = true;
-        const timer = setInterval(() => {
-            if (!isMounted) return;
+        let timer: NodeJS.Timeout;
 
+        const updateCountdown = () => {
             if (lives >= MAX_LIVES) {
                 setCountdown("Canlar dolu!");
-                clearInterval(timer);
                 return;
             }
 
@@ -92,30 +90,26 @@ function LivesTooltipContent({ lives, livesLastUpdatedAt, onUpdate, childId }: {
             const now = new Date();
             const timePassedSeconds = Math.floor((now.getTime() - lastUpdatedDate.getTime()) / 1000);
             
-            // Calculate how many lives should have regenerated since the last update
             const livesToRegen = Math.floor(timePassedSeconds / LIFE_REGEN_SECONDS);
 
             if (livesToRegen > 0) {
                 const newLiveCount = Math.min(MAX_LIVES, lives + livesToRegen);
                  if (newLiveCount > lives) {
-                    // This will trigger a re-render with the new lives, and the timer will restart.
                     onUpdate(childId, newLiveCount);
                     return; 
                 }
             }
             
-            // Calculate time until the *next* single life is regenerated
             const secondsSinceLastPossibleRegen = timePassedSeconds % LIFE_REGEN_SECONDS;
             const remainingSecondsForNextLife = LIFE_REGEN_SECONDS - secondsSinceLastPossibleRegen;
             
             setCountdown(formatTimeDifference(remainingSecondsForNextLife * 1000));
-
-        }, 1000);
-
-        return () => {
-            isMounted = false;
-            clearInterval(timer);
         };
+        
+        updateCountdown();
+        timer = setInterval(updateCountdown, 1000);
+
+        return () => clearInterval(timer);
     }, [lives, livesLastUpdatedAt, onUpdate, childId]);
 
     return (
@@ -275,8 +269,7 @@ export default function EbeveynPortaliPage() {
     const handleUpdateLives = (childId: string, newLives: number) => {
         if (!db || !user?.uid) return;
         const childDocRef = doc(db, 'users', user.uid, 'children', childId);
-        // Use non-blocking update
-        updateDocumentNonBlocking(childDocRef, {
+        updateDoc(childDocRef, {
             lives: newLives,
             livesLastUpdatedAt: serverTimestamp()
         });
@@ -557,7 +550,3 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
-
-    
-
-    
