@@ -10,8 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { format as formatInTimeZone, toDate } from 'date-fns-tz';
-import { set, startOfDay, format, isSameDay } from 'date-fns';
+import { formatInTimeZone, toDate } from 'date-fns-tz';
+import { set, startOfDay, format, isSameDay, differenceInYears } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import {
   Dialog,
@@ -58,7 +58,7 @@ function LessonDetailsDialog({ slot, isOpen, onOpenChange }: { slot: SlotDetails
 
     if (!slot) return null;
     
-    const childAge = childData?.dateOfBirth ? new Date().getFullYear() - new Date(childData.dateOfBirth).getFullYear() : 'N/A';
+    const childAge = childData?.dateOfBirth ? differenceInYears(new Date(), new Date(childData.dateOfBirth)) : 'N/A';
 
     return (
          <Dialog open={isOpen} onOpenChange={onOpenChange}>
