@@ -109,7 +109,15 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
             if (allPlaced) {
                 setIsSolved(true);
                 if (audioRef.current) {
-                    audioRef.current.play().catch(e => console.error("Audio play failed:", e));
+                    try {
+                        if (!audioRef.current.paused) {
+                            audioRef.current.pause();
+                            audioRef.current.currentTime = 0;
+                        }
+                        await audioRef.current.play();
+                    } catch (e) {
+                         console.error("Audio play failed:", e)
+                    }
                 }
             }
         } else {

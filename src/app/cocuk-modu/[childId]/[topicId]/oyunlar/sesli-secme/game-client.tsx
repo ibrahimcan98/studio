@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Card } from '@/components/ui/card';
@@ -69,16 +69,24 @@ export default function GameClient({ questions }: GameClientProps) {
 
     const currentQuestion = questions[currentIndex];
 
-    const playQuestionAudio = () => {
+    const playQuestionAudio = useCallback(async () => {
         if (audioRef.current) {
+            if (!audioRef.current.paused) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+            }
             audioRef.current.src = currentQuestion.audio;
-            audioRef.current.play().catch(e => console.error("Audio play failed:", e));
+            try {
+                await audioRef.current.play();
+            } catch (error) {
+                console.error("Audio play failed:", error);
+            }
         }
-    };
+    }, [currentQuestion.audio]);
 
     useEffect(() => {
         playQuestionAudio();
-    }, [currentIndex, currentQuestion.audio]);
+    }, [currentIndex, playQuestionAudio]);
 
     const handleAnswer = async (answer: Word) => {
         if (selectedAnswer) return; // Prevent multiple selections

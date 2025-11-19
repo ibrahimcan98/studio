@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,22 +37,30 @@ export function WordCard({ wordList, childId, topicId }: WordCardProps) {
     const isFirstWord = currentIndex === 0;
     const isLastWord = currentIndex === wordList.length - 1;
 
+    const playAudio = useCallback(async (audioSrc: string) => {
+        if (audioRef.current) {
+            // Stop and reset any currently playing audio
+            if (!audioRef.current.paused) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+            }
+            audioRef.current.src = audioSrc;
+            try {
+                // The play() method returns a Promise which can be safely handled.
+                await audioRef.current.play();
+            } catch (error) {
+                // Autoplay was prevented.
+                console.error("Audio play failed:", error);
+            }
+        }
+    }, []);
 
     useEffect(() => {
         setGradient(backgroundGradients[currentIndex % backgroundGradients.length]);
         // Autoplay audio when word changes
-        if (audioRef.current) {
-            audioRef.current.src = currentWord.audio;
-            audioRef.current.load();
-            audioRef.current.play().catch(e => console.error("Audio play failed:", e));
-        }
-    }, [currentIndex, currentWord]);
+        playAudio(currentWord.audio);
+    }, [currentIndex, currentWord, playAudio]);
 
-    const playAudio = () => {
-        if (audioRef.current) {
-            audioRef.current.play().catch(e => console.error("Audio play failed:", e));
-        }
-    };
 
     const goToNext = () => {
         if (!isLastWord) {
@@ -88,12 +96,12 @@ export function WordCard({ wordList, childId, topicId }: WordCardProps) {
                         size="icon"
                         variant="outline"
                         className="rounded-full w-16 h-16 bg-green-100 hover:bg-green-200 text-green-600 border-none shadow-md"
-                        onClick={playAudio}
+                        onClick={() => playAudio(currentWord.audio)}
                     >
                         <Volume2 className="w-8 h-8" />
                     </Button>
                     <h2 className="text-5xl font-bold text-gray-800 ">{currentWord.word}</h2>
-                    <audio ref={audioRef} src={currentWord.audio} preload="auto" />
+                    <audio ref={audioRef} preload="auto" />
                 </div>
                 <div className="flex justify-between items-center">
                     <Button
