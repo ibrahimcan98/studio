@@ -1,109 +1,34 @@
 
-/**
- * @fileoverview Firestore Security Rules for Türk Çocuk Akademisi.
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for personal data (users, children, enrollments),
- * allows public read access to course catalogs and lessons, and restricts write access based on ownership or role.
- *
- * Data Structure:
- * - /users/{userId}: User profiles, accessible only by the user.
- * - /users/{userId}/children/{childId}: Child profiles, accessible only by the parent user.
- * - /courses/{courseId}: Course information, publicly readable.
- * - /users/{userId}/enrollments/{enrollmentId}: Enrollment data, accessible only by the user.
- * - /courses/{courseId}/lessons/{lessonId}: Lessons for a course, publicly readable.
- * - /reviews/{reviewId}: User reviews, publicly readable, but writes are restricted to the user who created the review.
- * - /lesson-slots/{slotId}: Lesson time slots, readable by all authenticated users, creatable by teachers, updatable by parents.
- *
- * Key Security Decisions:
- * - Users can only access their own data (profile, children, enrollments).
- * - Courses and lessons are publicly readable to facilitate browsing.
- * - Reviews can be listed publicly, but only the author can modify or delete them.
- * - Data validation is relaxed to allow for prototyping and rapid iteration,
- *   but ownership and relational integrity are strictly enforced.
- * - No user listing is allowed to protect user privacy.
- *
- * Denormalization for Authorization:
- * - Reviews contain a `userId` field to simplify ownership checks.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * @description Secure user profiles. Only the user can read and write their own profile.
-     * @path /users/{userId}
-     * @allow (create) User with ID 'user123' can create their profile if request.auth.uid == 'user123'.
-     * @allow (get) User with ID 'user123' can read their profile if request.auth.uid == 'user123'.
-     * @allow (update) User with ID 'user123' can update their profile if request.auth.uid == 'user123'.
-     * @allow (delete) User with ID 'user123' can delete their profile if request.auth.uid == 'user123'.
-     * @deny (create) User with ID 'user456' cannot create a profile with ID 'user123'.
-     * @principle Enforces document ownership for writes and reads, validates user ID on create.
-     */
     match /users/{userId} {
       allow read, update, delete: if request.auth.uid == userId;
-      allow list: if false; // User listing is disabled for privacy.
+      allow list: if false; 
       allow create: if request.auth.uid == userId;
     }
 
-    /**
-     * @description Secure child profiles. Only the parent user can manage their children.
-     * @path /users/{userId}/children/{childId}
-     * @allow (create) User with ID 'user123' can create a child profile under their ID.
-     * @allow (get) User with ID 'user123' can read a child profile under their ID.
-     * @allow (update) User with ID 'user123' can update a child profile under their ID.
-     * @allow (delete) User with ID 'user123' can delete a child profile under their ID.
-     * @deny (create) User with ID 'user456' cannot create a child profile under user 'user123'.
-     * @principle Restricts access to a user's own data tree, enforces document ownership.
-     */
     match /users/{userId}/children/{childId} {
       allow read, list, update, delete: if request.auth.uid == userId;
       allow create: if request.auth.uid == userId && request.resource.data.userId == userId;
     }
 
-    /**
-     * @description Secure lesson slots. Readable by authenticated users, creatable by teachers.
-     * @path /lesson-slots/{slotId}
-     * @allow (get, list) Authenticated users can see available slots.
-     * @allow (create) Only users with 'teacher' role can create slots.
-     * @allow (update) Authenticated users can book an available slot.
-     * @principle Role-based access for creation, state-based for updates.
-     */
-     match /lesson-slots/{slotId} {
+    match /lesson-slots/{slotId} {
         allow get, list: if request.auth != null;
         allow create: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
         allow update: if request.auth != null && resource.data.status == 'available' && request.resource.data.status == 'booked';
-        allow delete: if false; // Prevent deletion of slots.
-     }
-
-    /**
-     * @description Secure course information. Publicly readable, but write access is not defined in the schema.
-     * @path /courses/{courseId}
-     * @allow (get) Any user can read course information.
-     * @allow (list) Any user can list courses.
-     * @deny (create) No user can create courses (requires admin role, not yet implemented).
-     * @deny (update) No user can update courses (requires admin role, not yet implemented).
-     * @deny (delete) No user can delete courses (requires admin role, not yet implemented).
-     * @principle Public read access with restricted write access (admin role to be implemented).
-     */
+        allow delete: if request.auth.uid == resource.data.teacherId && resource.data.status == 'available';
+    }
+    
     match /courses/{courseId} {
       allow get: if true;
       allow list: if true;
-      allow create: if false; // TODO: Add admin role check
-      allow update: if false; // TODO: Add admin role check
-      allow delete: if false; // TODO: Add admin role check
+      allow create: if false; 
+      allow update: if false; 
+      allow delete: if false; 
     }
 
-    /**
-     * @description Secure enrollment data. Only the user can manage their own enrollments.
-     * @path /users/{userId}/enrollments/{enrollmentId}
-     * @allow (create) User with ID 'user123' can create an enrollment under their ID.
-     * @allow (get) User with ID 'user123' can read an enrollment under their ID.
-     * @allow (update) User with ID 'user123' can update an enrollment under their ID.
-     * @allow (delete) User with ID 'user123' can delete an enrollment under their ID.
-     * @deny (create) User with ID 'user456' cannot create an enrollment under user 'user123'.
-     * @principle Restricts access to a user's own data, enforces document ownership.
-     */
     match /users/{userId}/enrollments/{enrollmentId} {
       allow get: if request.auth.uid == userId;
       allow list: if request.auth.uid == userId;
@@ -112,16 +37,6 @@ service cloud.firestore {
       allow delete: if request.auth.uid == userId && resource != null;
     }
 
-    /**
-     * @description Secure user purchases. Only the user can view their own purchase history.
-     * @path /users/{userId}/purchases/{purchaseId}
-     * @allow (get) User 'user123' can get their own purchase document.
-     * @allow (list) User 'user123' can list their own purchases.
-     * @allow (create) User 'user123' can create a purchase document under their own ID.
-     * @deny (update) No user can update a purchase document.
-     * @deny (delete) No user can delete a purchase document.
-     * @principle Enforces document ownership for reads and creates, and makes purchase history immutable.
-     */
     match /users/{userId}/purchases/{purchaseId} {
         allow get: if request.auth.uid == userId;
         allow list: if request.auth.uid == userId;
@@ -130,34 +45,14 @@ service cloud.firestore {
         allow delete: if false;
     }
 
-    /**
-     * @description Secure lessons associated with a course. Publicly readable, write access restricted to admins.
-     * @path /courses/{courseId}/lessons/{lessonId}
-     * @allow (get) Any user can read lessons.
-     * @allow (list) Any user can list lessons.
-     * @deny (create) No user can create lessons (requires admin role, not yet implemented).
-     * @deny (update) No user can update lessons (requires admin role, not yet implemented).
-     * @deny (delete) No user can delete lessons (requires admin role, not yet implemented).
-     * @principle Public read access, write access restricted to admins (to be implemented).
-     */
     match /courses/{courseId}/lessons/{lessonId} {
       allow get: if true;
       allow list: if true;
-      allow create: if false; // TODO: Add admin role check
-      allow update: if false; // TODO: Add admin role check
-      allow delete: if false; // TODO: Add admin role check
+      allow create: if false; 
+      allow update: if false; 
+      allow delete: if false; 
     }
 
-    /**
-     * @description Secure user reviews. Reviews are publicly readable, but writes are restricted to the user who created the review.
-     * @path /reviews/{reviewId}
-     * @allow (get) Any user can read reviews.
-     * @allow (list) Any user can list reviews.
-     * @allow (create) User can create review if their userId matches request.auth.uid
-     * @allow (update) Only the user who created the review can update it.
-     * @allow (delete) Only the user who created the review can delete it.
-     * @principle Public read access with owner-only writes, enforces document ownership.
-     */
     match /reviews/{reviewId} {
       allow get: if true;
       allow list: if true;
@@ -167,5 +62,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
