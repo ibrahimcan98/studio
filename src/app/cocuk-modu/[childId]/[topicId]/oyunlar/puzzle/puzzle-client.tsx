@@ -32,9 +32,9 @@ const shuffleArray = <T,>(array: T[]): T[] => {
 
 export default function PuzzleClient({ words }: PuzzleClientProps) {
     const [currentWordIndex, setCurrentWordIndex] = useState(0);
-    const [shuffledPieces, setShuffledPieces] = useState<number[]>([]);
+    const [shuffledPieces, setShuffledPieces] = useState<(number | null)[]>([]);
     const [placedPieces, setPlacedPieces] = useState<(number | null)[]>(Array(PIECES_COUNT).fill(null));
-    const [draggedPiece, setDraggedPiece] = useState<{ index: number; piece: number } | null>(null);
+    const [selectedPiece, setSelectedPiece] = useState<{ index: number; piece: number } | null>(null);
     const [isSolved, setIsSolved] = useState(false);
     const [gameFinished, setGameFinished] = useState(false);
 
@@ -78,37 +78,36 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
         const shuffled = shuffleArray([...pieceIndices]);
         setShuffledPieces(shuffled);
         setPlacedPieces(Array(PIECES_COUNT).fill(null));
+        setSelectedPiece(null);
         setIsSolved(false);
     };
 
-    const handleDragStart = (piece: number, index: number) => {
-        setDraggedPiece({ piece, index });
+    const handleSelectPiece = (piece: number, index: number) => {
+        if (isSolved || piece === null) return;
+        setSelectedPiece({ piece, index });
     };
 
-    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-    };
+    const handlePlacePiece = async (gridIndex: number) => {
+        if (isSolved || selectedPiece === null || placedPieces[gridIndex] !== null) return;
 
-    const handleDrop = async (dropIndex: number) => {
-        if (draggedPiece === null || placedPieces[dropIndex] !== null) return;
-        
-        // If piece is correct
-        if (draggedPiece.piece === dropIndex) {
+        if (selectedPiece.piece === gridIndex) {
+            // Correct placement
             const newPlacedPieces = [...placedPieces];
-            newPlacedPieces[dropIndex] = draggedPiece.piece;
+            newPlacedPieces[gridIndex] = selectedPiece.piece;
             setPlacedPieces(newPlacedPieces);
 
             const newShuffledPieces = [...shuffledPieces];
-            newShuffledPieces[draggedPiece.index] = -1; // Mark as placed
+            newShuffledPieces[selectedPiece.index] = null; // Mark as placed
             setShuffledPieces(newShuffledPieces);
             
-            // Check if all pieces are placed
+            setSelectedPiece(null); // Deselect piece
+
             const allPlaced = newPlacedPieces.every(p => p !== null);
             if (allPlaced) {
                 setIsSolved(true);
             }
         } else {
-            // Incorrect drop
+            // Incorrect placement
             if (!isPremium) {
                 const newLives = lives - 1;
                 setLives(newLives);
@@ -123,8 +122,8 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
                     return;
                 }
             }
+            setSelectedPiece(null); // Deselect piece after wrong attempt
         }
-        setDraggedPiece(null);
     };
     
     const goToNextWord = async () => {
@@ -205,9 +204,11 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
                         return (
                             <div
                                 key={index}
-                                onDrop={() => handleDrop(index)}
-                                onDragOver={handleDragOver}
-                                className={cn("transition-colors", placedPieces[index] === null && "bg-transparent hover:bg-black/10")}
+                                onClick={() => handlePlacePiece(index)}
+                                className={cn(
+                                    "transition-colors border-2",
+                                    placedPieces[index] === null ? "border-dashed border-gray-400/50 cursor-pointer hover:bg-black/10" : "border-transparent"
+                                )}
                             >
                                 {placedPiece !== null && (
                                      <div
@@ -237,15 +238,17 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
                 <div className="w-full lg:w-auto flex lg:flex-col items-center justify-center gap-4">
                     <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
                         {shuffledPieces.map((piece, index) => {
-                            if (piece === -1) return <div key={index} className="w-24 h-24 md:w-32 md:h-32 rounded-lg bg-gray-300/50" />;
+                            if (piece === null) return <div key={index} className="w-24 h-24 md:w-32 md:h-32 rounded-lg bg-gray-300/50" />;
                             const row = Math.floor(piece / 2);
                             const col = piece % 2;
                             return (
                                 <div
                                     key={index}
-                                    draggable={!isSolved}
-                                    onDragStart={() => handleDragStart(piece, index)}
-                                    className={cn("w-24 h-24 md:w-32 md:h-32 rounded-lg", !isSolved ? "cursor-grab active:cursor-grabbing" : "cursor-not-allowed")}
+                                    onClick={() => handleSelectPiece(piece, index)}
+                                    className={cn(
+                                        "w-24 h-24 md:w-32 md:h-32 rounded-lg cursor-pointer transition-all",
+                                        selectedPiece?.index === index ? 'ring-4 ring-blue-500 scale-105' : 'hover:scale-105'
+                                    )}
                                     style={{
                                         backgroundImage: `url(${currentWord.image})`,
                                         backgroundSize: '200% 200%',
