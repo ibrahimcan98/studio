@@ -25,11 +25,22 @@ export default function OgretmenPortaliPage() {
       </div>
     );
   }
+
+  const getTeacherName = () => {
+    if (user.displayName) {
+      return user.displayName;
+    }
+    if (user.email) {
+      const emailName = user.email.split('@')[0];
+      return emailName.charAt(0).toUpperCase() + emailName.slice(1);
+    }
+    return 'Öğretmen';
+  }
   
   return (
     <div className="container mx-auto p-8">
       <h1 className="text-3xl font-bold">Öğretmen Portalı</h1>
-      <p className="mt-4">Hoş geldiniz, {user.displayName || user.email}!</p>
+      <p className="mt-4">Hoş geldiniz, {getTeacherName()}!</p>
       {/* Öğretmenlere özel içerik buraya gelecek */}
     </div>
   );

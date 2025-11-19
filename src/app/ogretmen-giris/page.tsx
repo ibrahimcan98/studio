@@ -3,8 +3,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { useAuth, useUser } from '@/firebase';
+import { signInWithEmailAndPassword, User } from 'firebase/auth';
+import { useAuth, useUser, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { TeacherIllustration } from '@/components/illustrations/teacher-illustration';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisii.com', 'teacher@turkcocukakademisi.com'];
 
@@ -20,6 +21,7 @@ export default function OgretmenGirisPage() {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const auth = useAuth();
+  const db = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
   const { user, loading } = useUser();
@@ -29,6 +31,30 @@ export default function OgretmenGirisPage() {
       router.push('/ogretmen-portali');
     }
   }, [user, loading, router]);
+  
+  const ensureTeacherProfile = async (user: User) => {
+      if (!db || !user.email) return;
+
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+          // Create a new teacher profile if it doesn't exist
+          await setDoc(userDocRef, {
+              id: user.uid,
+              email: user.email,
+              firstName: user.email.split('@')[0],
+              lastName: '',
+              userType: 'teacher',
+              createdAt: serverTimestamp(),
+          });
+      } else {
+          // If user exists but isn't a teacher, update them
+          if(userDoc.data()?.userType !== 'teacher') {
+            await setDoc(userDocRef, { userType: 'teacher' }, { merge: true });
+          }
+      }
+  };
 
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -46,7 +72,8 @@ export default function OgretmenGirisPage() {
 
     setIsSubmitting(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      await ensureTeacherProfile(userCredential.user);
       toast({
         title: 'Başarılı!',
         description: 'Öğretmen portalına yönlendiriliyorsunuz...',
