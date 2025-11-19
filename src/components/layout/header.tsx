@@ -29,7 +29,7 @@ export default function Header() {
   const pathname = usePathname();
 
   // CRITICAL FIX: Do not render this header on teacher portal pages.
-  if (pathname.startsWith('/ogretmen-portali') || pathname.startsWith('/ogretmen-giris')) {
+  if (pathname.startsWith('/ogretmen-portali')) {
     return null;
   }
   
