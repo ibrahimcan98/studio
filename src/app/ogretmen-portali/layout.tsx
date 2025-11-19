@@ -1,19 +1,21 @@
 'use client';
 
 import { useUser } from '@/firebase';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
-import { Loader2, LogOut } from 'lucide-react';
+import { Loader2, LogOut, Calendar, Users } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisii.com', 'teacher@turkcocukakademisi.com'];
 
 function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useUser();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     // Wait until loading is finished
@@ -40,6 +42,20 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
+
+  const navItems = [
+    {
+      href: '/ogretmen-portali/takvim',
+      label: 'Takvim',
+      icon: Calendar
+    },
+    {
+      href: '/ogretmen-portali/ogrenciler',
+      label: 'Öğrencilerim',
+      icon: Users,
+      disabled: true
+    }
+  ];
   
   // If we reach here, user is an authorized teacher
   return (
@@ -58,6 +74,28 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
                         Çıkış Yap
                     </Button>
                 </div>
+            </div>
+             <div className="border-b">
+                <nav className="container flex items-center">
+                    {navItems.map((item) => (
+                        <Link
+                            key={item.href}
+                            href={item.disabled ? '#' : item.href}
+                            className={cn(
+                                'flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors',
+                                pathname === item.href
+                                    ? 'text-primary border-b-2 border-primary'
+                                    : 'text-muted-foreground hover:text-primary',
+                                item.disabled ? 'cursor-not-allowed opacity-50' : ''
+                            )}
+                            aria-disabled={item.disabled}
+                            tabIndex={item.disabled ? -1 : undefined}
+                        >
+                            <item.icon className="h-4 w-4" />
+                            {item.label}
+                        </Link>
+                    ))}
+                </nav>
             </div>
         </header>
         <main>{children}</main>
