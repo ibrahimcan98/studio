@@ -53,40 +53,52 @@ function formatTimeDifference(ms: number) {
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
 
-    if (hours > 0) {
-        return `${hours} saat ${minutes} dakika içinde yenilenecek`;
+    let parts = [];
+    if (hours > 0) parts.push(`${hours} saat`);
+    if (minutes > 0) parts.push(`${minutes} dakika`);
+
+    if (parts.length === 0) {
+        return "birkaç saniye içinde yenilenecek";
     }
-    if (minutes > 0) {
-        return `${minutes} dakika içinde yenilenecek`;
-    }
-    return `birkaç saniye içinde yenilenecek`;
+
+    return `${parts.join(' ')} içinde yenilenecek`;
 }
 
 
 function LivesTooltipContent({ lives, livesLastUpdatedAt }: { lives: number, livesLastUpdatedAt: any }) {
-    const [countdown, setCountdown] = useState<string | null>(null);
+    const [countdown, setCountdown] = useState<string>("Can bilgisi hesaplanıyor...");
 
     useEffect(() => {
-        if (lives >= MAX_LIVES || !livesLastUpdatedAt?.toDate) {
+        if (lives >= MAX_LIVES) {
             setCountdown("Canlar dolu!");
             return;
         }
 
+        if (!livesLastUpdatedAt?.toDate) {
+            setCountdown("Yeni can için bekleniyor...");
+            return;
+        }
+
         const interval = setInterval(() => {
-            const lastUpdated = livesLastUpdatedAt.toDate();
+            const lastUpdatedDate = livesLastUpdatedAt.toDate();
             const now = new Date();
             
-            const hoursSinceUpdate = (now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
+            const hoursSinceUpdate = (now.getTime() - lastUpdatedDate.getTime()) / (1000 * 60 * 60);
             const regeneratedLives = Math.floor(hoursSinceUpdate / LIFE_REGEN_HOURS);
-
-            if (lives + regeneratedLives >= MAX_LIVES) {
+            const currentTotalLives = lives + regeneratedLives;
+            
+            if (currentTotalLives >= MAX_LIVES) {
                 setCountdown("Canlar dolu!");
-                 if (interval) clearInterval(interval);
+                if (interval) clearInterval(interval);
                 return;
             }
             
-            // Time when the *next* life is due
-            const nextRegenTime = new Date(lastUpdated.getTime() + (regeneratedLives + 1) * LIFE_REGEN_HOURS * 60 * 60 * 1000);
+            // Son canın yenilendiği zamanı bul
+            const lastRegenEventTime = new Date(lastUpdatedDate.getTime() + (regeneratedLives * LIFE_REGEN_HOURS * 60 * 60 * 1000));
+            
+            // Bir sonraki canın ne zaman dolacağını hesapla
+            const nextRegenTime = new Date(lastRegenEventTime.getTime() + LIFE_REGEN_HOURS * 60 * 60 * 1000);
+            
             const remainingMs = Math.max(0, nextRegenTime.getTime() - now.getTime());
 
             if (remainingMs === 0) {
@@ -527,6 +539,8 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
+
+    
 
     
 
