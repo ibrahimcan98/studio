@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, updateDoc, where, query } from 'firebase/firestore';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Card } from '@/components/ui/card';
@@ -14,6 +14,8 @@ import { useToast } from '@/hooks/use-toast';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { isSameDay } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from '@/components/ui/label';
 
 export default function DersPlanlaPage() {
     const router = useRouter();
@@ -24,6 +26,7 @@ export default function DersPlanlaPage() {
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
     const [isBooking, setIsBooking] = useState(false);
     const [localTimeZone, setLocalTimeZone] = useState<string | null>(null);
+    const [selectedChildId, setSelectedChildId] = useState<string>('');
 
     useEffect(() => {
         // Run only on the client, after hydration
@@ -36,6 +39,13 @@ export default function DersPlanlaPage() {
     }, [user, db]);
 
     const { data: userData, isLoading: isUserLoading } = useDoc(userDocRef);
+
+     const childrenRef = useMemoFirebase(() => {
+        if (!db || !user?.uid) return null;
+        return collection(db, 'users', user.uid, 'children');
+    }, [db, user?.uid]);
+
+    const { data: children, isLoading: areChildrenLoading } = useCollection(childrenRef);
 
     const lessonSlotsRef = useMemoFirebase(() => {
         if (!db) return null;
@@ -64,6 +74,11 @@ export default function DersPlanlaPage() {
             return;
         }
 
+        if (!selectedChildId) {
+            toast({ variant: 'destructive', title: 'Hata', description: 'Lütfen dersi alacak çocuğu seçin.' });
+            return;
+        }
+
         if(userData?.hasUsedFreeTrial) {
              toast({ variant: 'destructive', title: 'Hakkınız Kalmadı', description: 'Ücretsiz deneme dersi hakkınızı zaten kullandınız.' });
              return;
@@ -74,7 +89,8 @@ export default function DersPlanlaPage() {
             const slotDocRef = doc(db, 'lesson-slots', slotId);
             await updateDoc(slotDocRef, {
                 status: 'booked',
-                bookedBy: user.uid
+                bookedBy: user.uid,
+                childId: selectedChildId
             });
             await updateDoc(userDocRef, {
                 hasUsedFreeTrial: true
@@ -94,7 +110,7 @@ export default function DersPlanlaPage() {
     };
 
 
-    if (isUserLoading || areSlotsLoading || !localTimeZone) {
+    if (isUserLoading || areSlotsLoading || areChildrenLoading || !localTimeZone) {
         return (
             <div className="flex h-screen items-center justify-center">
                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -137,6 +153,20 @@ export default function DersPlanlaPage() {
                         />
                     </div>
                     <div className="h-full">
+                         <div className="mb-6">
+                            <Label htmlFor="child-select">Dersi alacak çocuk:</Label>
+                             <Select value={selectedChildId} onValueChange={setSelectedChildId}>
+                                <SelectTrigger id="child-select" className="mt-2">
+                                    <SelectValue placeholder="Çocuk Seçin" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {children && children.map(child => (
+                                        <SelectItem key={child.id} value={child.id}>{child.firstName}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                         </div>
+                        
                         <h3 className="text-lg font-semibold mb-4 text-center lg:text-left">
                             {selectedDate ? formatInTimeZone(selectedDate, localTimeZone, 'dd MMMM yyyy', { locale: tr }) : 'Bir tarih seçin'} için Müsait Saatler
                             {selectedDate && <span className="text-sm text-muted-foreground ml-2">({formatInTimeZone(selectedDate, localTimeZone, 'zzz')})</span>}
