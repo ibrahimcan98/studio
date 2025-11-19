@@ -5,6 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Heart, Award, Crown, LogOut } from "lucide-react";
 import { ExitDialog } from "./exit-dialog";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 type ChildHeaderProps = {
     childName: string;
@@ -31,10 +37,22 @@ export function ChildHeader({ childName, lives, badges, isPremium, childId }: Ch
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 font-semibold text-destructive">
-            <Heart className="w-5 h-5 fill-current" />
-            <span>{lives === 'unlimited' ? 'Sınırsız' : lives}</span>
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-2 font-semibold text-destructive">
+                  <Heart className="w-5 h-5 fill-current" />
+                  <span>{lives === 'unlimited' ? 'Sınırsız' : lives}</span>
+                </div>
+              </TooltipTrigger>
+              {!isPremium && (
+                <TooltipContent>
+                  <p>Canlar 2 saatte bir yenilenir.</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+
           <div className="flex items-center gap-2 font-semibold text-yellow-500">
             <Award className="w-5 h-5 fill-current" />
             <span>{badges}</span>
