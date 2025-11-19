@@ -192,7 +192,7 @@ function AddChildDialog({ userId }: { userId: string }) {
 }
 
 
-function StatCard({ title, value, icon: Icon, unit }: { title: string, value: string | number, icon: React.ElementType, unit?: string }) {
+function StatCard({ title, value, icon: Icon, unit, children }: { title: string, value: string | number, icon: React.ElementType, unit?: string, children?: React.ReactNode }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -200,9 +200,13 @@ function StatCard({ title, value, icon: Icon, unit }: { title: string, value: st
         <Icon className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">
-          {value} {unit && <span className="text-xs text-muted-foreground">{unit}</span>}
-        </div>
+        {children ? (
+          children
+        ) : (
+          <div className="text-2xl font-bold">
+            {value} {unit && <span className="text-xs text-muted-foreground">{unit}</span>}
+          </div>
+        )}
       </CardContent>
     </Card>
   )
@@ -345,7 +349,8 @@ export default function EbeveynPortaliPage() {
   const childCount = children ? children.length : 0;
   const totalRozet = children ? children.reduce((acc, child) => acc + (child.rozet || 0), 0) : 0;
   const premiumStartDate = userData?.premiumStartDate?.toDate ? userData.premiumStartDate.toDate() : (userData?.premiumStartDate ? new Date(userData.premiumStartDate) : null);
-
+  const enrolledPackages: string[] = userData?.enrolledPackages || [];
+  const remainingLessons = userData?.remainingLessons ?? 0;
 
   return (
     <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20">
@@ -439,7 +444,24 @@ export default function EbeveynPortaliPage() {
 
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Kalan Ders" value={"0"} icon={BookOpen} />
+        <StatCard title="Kalan Ders" value={remainingLessons} icon={BookOpen}>
+            <div className="flex justify-between items-end">
+              <div>
+                <p className="text-xs text-muted-foreground">Paket</p>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {enrolledPackages.length > 0 ? (
+                      enrolledPackages.map(pkg => <Badge key={pkg} variant="secondary">{pkg}</Badge>)
+                  ) : (
+                      <span className="text-sm font-medium text-muted-foreground">-</span>
+                  )}
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">Kalan</p>
+                <p className="text-2xl font-bold">{remainingLessons}</p>
+              </div>
+            </div>
+        </StatCard>
         <StatCard title="Toplam Çocuk" value={childCount} icon={Users} />
         <StatCard title="Toplam Rozet" value={totalRozet} icon={Star} />
         <Card>

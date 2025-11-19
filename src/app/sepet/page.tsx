@@ -7,17 +7,40 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trash2, ShoppingCart, ArrowLeft, CreditCard, Tag, Minus, Plus, XCircle } from "lucide-react";
+import { Trash2, ShoppingCart, ArrowLeft, CreditCard, Tag, Minus, Plus, XCircle, Loader2 } from "lucide-react";
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/context/cart-context';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { doc, updateDoc, arrayUnion, increment, getDoc } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
+
+const getCourseCode = (courseId: string) => {
+    switch (courseId) {
+        case 'baslangic': return 'B';
+        case 'konusma': return 'K';
+        case 'gelisim': return 'G';
+        case 'akademik': return 'A';
+        default: return '';
+    }
+}
 
 export default function SepetPage() {
-    const { cartItems, updateQuantity, removeFromCart, cartTotal, applyCoupon, discountAmount, finalTotal, appliedCoupon, removeCoupon } = useCart();
+    const { cartItems, updateQuantity, removeFromCart, cartTotal, applyCoupon, discountAmount, finalTotal, appliedCoupon, removeCoupon, clearCart } = useCart();
     const [coupon, setCoupon] = useState('');
     const { toast } = useToast();
+    const { user } = useUser();
+    const db = useFirestore();
+    const router = useRouter();
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const userDocRef = useMemoFirebase(() => {
+        if (!user || !db) return null;
+        return doc(db, "users", user.uid);
+    }, [user, db]);
+
 
     const handleApplyCoupon = () => {
         if (!coupon) return;
@@ -36,6 +59,57 @@ export default function SepetPage() {
             })
         }
     }
+    
+    const handleCheckout = async () => {
+        if (!user || !userDocRef) {
+            toast({ variant: 'destructive', title: 'Hata', description: 'Ödeme yapmak için giriş yapmalısınız.' });
+            router.push('/login');
+            return;
+        }
+
+        setIsProcessing(true);
+
+        try {
+            const newPackages = cartItems.map(item => {
+                const [courseId] = item.id.split('-');
+                const lessons = parseInt(item.description.split(' ')[0], 10);
+                const courseCode = getCourseCode(courseId);
+                return `${lessons}${courseCode}`;
+            });
+
+            const totalLessonsToAdd = cartItems.reduce((total, item) => {
+                const lessons = parseInt(item.description.split(' ')[0], 10);
+                return total + lessons;
+            }, 0);
+
+            // Fetch current user data to safely increment values
+            const userSnap = await getDoc(userDocRef);
+            const currentData = userSnap.data();
+            const currentLessons = currentData?.remainingLessons || 0;
+            const currentPackages = currentData?.enrolledPackages || [];
+
+            await updateDoc(userDocRef, {
+                enrolledPackages: arrayUnion(...newPackages),
+                remainingLessons: increment(totalLessonsToAdd)
+            });
+            
+            clearCart();
+
+            toast({
+                title: 'Ödeme Başarılı!',
+                description: 'Dersleriniz hesabınıza eklendi. Yönlendiriliyorsunuz...',
+                className: 'bg-green-500 text-white'
+            });
+
+            router.push('/ebeveyn-portali');
+
+        } catch (error) {
+            console.error("Checkout error:", error);
+            toast({ variant: 'destructive', title: 'Hata', description: 'Ödeme sırasında bir sorun oluştu.' });
+            setIsProcessing(false);
+        }
+    };
+
 
     return (
         <div className="bg-muted/30 min-h-[calc(100vh-80px)] py-12 px-4 sm:px-6 lg:px-8">
@@ -151,9 +225,13 @@ export default function SepetPage() {
                                 )}
                             </CardContent>
                             <CardFooter>
-                                <Button className="w-full text-lg h-12" disabled={cartItems.length === 0}>
-                                    <CreditCard className="mr-2" />
-                                    Ödemeye Geç
+                                <Button className="w-full text-lg h-12" disabled={cartItems.length === 0 || isProcessing} onClick={handleCheckout}>
+                                    {isProcessing ? (
+                                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                    ) : (
+                                        <CreditCard className="mr-2" />
+                                    )}
+                                    {isProcessing ? 'İşleniyor...' : 'Ödemeye Geç'}
                                 </Button>
                             </CardFooter>
                         </Card>
@@ -163,3 +241,5 @@ export default function SepetPage() {
         </div>
     );
 }
+
+    

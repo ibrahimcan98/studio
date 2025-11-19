@@ -55,6 +55,17 @@
             "type": "string",
             "format": "date-time",
             "description": "The timestamp when the lives count was last updated, used for regeneration logic."
+        },
+        "enrolledPackages": {
+            "type": "array",
+            "description": "An array of strings representing the package IDs the user is enrolled in (e.g., ['4B', '12K']).",
+            "items": {
+                "type": "string"
+            }
+        },
+        "remainingLessons": {
+            "type": "number",
+            "description": "The total number of lessons remaining from all purchased packages."
         }
       },
       "required": [
