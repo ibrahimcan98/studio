@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -44,12 +45,12 @@ import { tr } from 'date-fns/locale';
 import { SetPinDialog } from '@/components/child-mode/set-pin-dialog';
 
 
-const LIFE_REGEN_HOURS = 2;
+const LIFE_REGEN_SECONDS = 2 * 60 * 60; // 2 hours in seconds
 const MAX_LIVES = 5;
 
 function formatTimeDifference(ms: number) {
     if (ms <= 0) {
-        return "birkaç saniye içinde yenilenecek";
+        return "birkaç saniye içinde";
     }
     const totalSeconds = Math.floor(ms / 1000);
     const hours = Math.floor(totalSeconds / 3600);
@@ -60,76 +61,77 @@ function formatTimeDifference(ms: number) {
     if (minutes > 0) parts.push(`${minutes} dakika`);
 
     if (parts.length === 0 && totalSeconds > 0) {
-        return "birkaç saniye içinde yenilenecek";
+        return "birkaç saniye içinde";
     }
     
     if (parts.length === 0) {
-        return "Canlar yenileniyor...";
+        return "yenileniyor...";
     }
 
-    return `${parts.join(' ')} içinde yenilenecek`;
+    return `${parts.join(' ')} içinde`;
 }
 
 
-function LivesTooltipContent({ lives, livesLastUpdatedAt }: { lives: number, livesLastUpdatedAt: any }) {
-    const [countdown, setCountdown] = useState<string>("Can bilgisi hesaplanıyor...");
+function LivesTooltipContent({ lives, livesLastUpdatedAt, onUpdate, childId }: { lives: number, livesLastUpdatedAt: any, onUpdate: (childId: string, newLives: number) => void, childId: string }) {
+    const [countdown, setCountdown] = useState<string>("Hesaplanıyor...");
 
     useEffect(() => {
-        if (lives >= MAX_LIVES) {
-            setCountdown("Canlar dolu!");
-            return;
-        }
-
-        if (!livesLastUpdatedAt?.toDate) {
-            setCountdown("Yeni can için bekleniyor...");
-            return;
-        }
+        let isMounted = true;
         
-        const lastUpdatedDate = livesLastUpdatedAt.toDate();
+        const timer = setInterval(() => {
+            if (!isMounted) return;
 
-        const interval = setInterval(() => {
-            const now = new Date();
-            
-            // Calculate how many lives should have regenerated since the last update.
-            const timeDiffMs = now.getTime() - lastUpdatedDate.getTime();
-            const livesRegenerated = Math.floor(timeDiffMs / (LIFE_REGEN_HOURS * 60 * 60 * 1000));
-            
-            const effectiveLives = Math.min(MAX_LIVES, lives + livesRegenerated);
-
-            if (effectiveLives >= MAX_LIVES) {
+            if (lives >= MAX_LIVES) {
                 setCountdown("Canlar dolu!");
-                clearInterval(interval);
+                clearInterval(timer);
                 return;
             }
 
-            // Calculate when the *next* single life will be regenerated.
-            // This is based on the timestamp of the last update that *did not result in full lives*.
-            // We find the time of the last regeneration event that *already happened*.
-            const lastRegenEventTime = lastUpdatedDate.getTime() + (livesRegenerated * LIFE_REGEN_HOURS * 60 * 60 * 1000);
+            if (!livesLastUpdatedAt?.toDate) {
+                setCountdown("Can bilgisi bekleniyor...");
+                return;
+            }
             
-            // The next regeneration time is simply the last event plus the regeneration interval.
-            const nextRegenTime = new Date(lastRegenEventTime + LIFE_REGEN_HOURS * 60 * 60 * 1000);
+            const lastUpdatedDate = livesLastUpdatedAt.toDate();
+            const now = new Date();
+            const timePassedSeconds = Math.floor((now.getTime() - lastUpdatedDate.getTime()) / 1000);
+            const livesToRegen = Math.floor(timePassedSeconds / LIFE_REGEN_SECONDS);
             
-            const remainingMs = Math.max(0, nextRegenTime.getTime() - now.getTime());
+            if (livesToRegen > 0) {
+                const newLiveCount = Math.min(MAX_LIVES, lives + livesToRegen);
+                if (newLiveCount > lives) {
+                    onUpdate(childId, newLiveCount);
+                    // The parent component will handle the DB update and re-render.
+                    // The timer will be restarted by the parent's re-render.
+                    return;
+                }
+            }
             
-            if (remainingMs === 0) {
-                 setCountdown("Canlar yenileniyor...");
+            // Calculate time until the *next* life is regenerated
+            const secondsSinceLastRegenEvent = timePassedSeconds % LIFE_REGEN_SECONDS;
+            const remainingMs = (LIFE_REGEN_SECONDS - secondsSinceLastRegenEvent) * 1000;
+            
+            if (remainingMs <= 0) {
+                setCountdown("Yenileniyor...");
             } else {
-                 setCountdown(formatTimeDifference(remainingMs));
+                setCountdown(`${formatTimeDifference(remainingMs)} yenilenecek`);
             }
 
         }, 1000);
 
-        return () => clearInterval(interval);
-    }, [lives, livesLastUpdatedAt]);
-
+        return () => {
+            isMounted = false;
+            clearInterval(timer);
+        };
+    }, [lives, livesLastUpdatedAt, onUpdate, childId]);
 
     return (
         <TooltipContent>
             <p className="text-sm">{countdown}</p>
         </TooltipContent>
-    )
+    );
 }
+
 
 function AddChildDialog({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false);
@@ -275,6 +277,15 @@ export default function EbeveynPortaliPage() {
       const childDocRef = doc(db, 'users', user.uid, 'children', childId);
       await deleteDoc(childDocRef);
   };
+  
+    const handleUpdateLives = async (childId: string, newLives: number) => {
+        if (!db || !user?.uid) return;
+        const childDocRef = doc(db, 'users', user.uid, 'children', childId);
+        await updateDoc(childDocRef, {
+            lives: newLives,
+            livesLastUpdatedAt: new Date()
+        });
+    };
 
 
   if (userLoading || childrenLoading || userDataLoading) {
@@ -499,7 +510,7 @@ export default function EbeveynPortaliPage() {
                                                     </div>
                                                 </div>
                                             </TooltipTrigger>
-                                            {!isPremium && <LivesTooltipContent lives={child.lives ?? 5} livesLastUpdatedAt={child.livesLastUpdatedAt} />}
+                                            {!isPremium && <LivesTooltipContent lives={child.lives ?? 5} livesLastUpdatedAt={child.livesLastUpdatedAt} onUpdate={handleUpdateLives} childId={child.id} />}
                                         </Tooltip>
                                        </TooltipProvider>
                                     </div>

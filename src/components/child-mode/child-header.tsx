@@ -4,7 +4,7 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Heart, Award, Crown, LogOut, Clock } from "lucide-react";
+import { Heart, Award, Crown, LogOut, Clock, Infinity as InfinityIcon } from "lucide-react";
 import { ExitDialog } from "./exit-dialog";
 import {
     Tooltip,
@@ -25,7 +25,7 @@ type ChildHeaderProps = {
     onLivesUpdate: (newLives: number) => void;
 }
 
-const LIFE_REGEN_HOURS = 2;
+const LIFE_REGEN_SECONDS = 2 * 60 * 60; // 2 hours in seconds
 const MAX_LIVES = 5;
 
 const formatTime = (seconds: number) => {
@@ -36,75 +36,60 @@ const formatTime = (seconds: number) => {
 };
 
 export function ChildHeader({ childName, lives, badges, isPremium, childId, livesLastUpdatedAt, onLivesUpdate }: ChildHeaderProps) {
-  const [countdown, setCountdown] = useState<string | null>(null);
+    const [countdown, setCountdown] = useState<string | null>(null);
 
-   useEffect(() => {
-    const currentLives = typeof lives === 'number' ? lives : 0;
-    if (isPremium || lives === 'unlimited' || currentLives >= MAX_LIVES || !livesLastUpdatedAt?.toDate) {
-        setCountdown(null);
-        return;
-    }
-    
-    let isMounted = true;
+    useEffect(() => {
+        let isMounted = true;
 
-    const checkAndRegenerateLives = () => {
-        if (!isMounted) return;
-        const currentLivesVal = typeof lives === 'number' ? lives : 0;
-        if (currentLivesVal >= MAX_LIVES) return;
+        const startTimer = () => {
+            if (!isMounted) return;
+            const currentLives = typeof lives === 'number' ? lives : MAX_LIVES;
 
-        const lastUpdated = livesLastUpdatedAt.toDate();
-        const now = new Date();
-        const hoursPassed = (now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
-        
-        const livesToRegen = Math.floor(hoursPassed / LIFE_REGEN_HOURS);
-
-        if (livesToRegen > 0) {
-            const newLives = Math.min(MAX_LIVES, currentLivesVal + livesToRegen);
-            if (newLives > currentLivesVal) {
-                onLivesUpdate(newLives);
+            if (isPremium || currentLives >= MAX_LIVES || !livesLastUpdatedAt?.toDate) {
+                setCountdown(null);
+                return;
             }
-        }
-    };
-    
-    checkAndRegenerateLives();
 
-    const interval = setInterval(() => {
-        if (!isMounted) return;
-        const currentLivesVal = typeof lives === 'number' ? lives : 0;
-        if (isPremium || currentLivesVal >= MAX_LIVES || !livesLastUpdatedAt?.toDate) {
-            setCountdown(null);
-            return;
-        }
+            const lastUpdatedDate = livesLastUpdatedAt.toDate();
+            const now = new Date();
+            
+            const timePassedSinceUpdate = Math.floor((now.getTime() - lastUpdatedDate.getTime()) / 1000);
+            
+            const livesToRegenerate = Math.floor(timePassedSinceUpdate / LIFE_REGEN_SECONDS);
 
-        const lastUpdated = livesLastUpdatedAt.toDate();
-        const hoursSinceUpdate = (new Date().getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
-        const regeneratedLives = Math.floor(hoursSinceUpdate / LIFE_REGEN_HOURS);
-        
-        if(currentLivesVal + regeneratedLives >= MAX_LIVES){
-             checkAndRegenerateLives();
-             setCountdown(null);
-             return;
-        }
-        
-        const nextRegenTime = new Date(lastUpdated.getTime() + (regeneratedLives + 1) * LIFE_REGEN_HOURS * 60 * 60 * 1000);
+            if (livesToRegenerate > 0) {
+                const newTotalLives = Math.min(MAX_LIVES, currentLives + livesToRegenerate);
+                if (newTotalLives > currentLives) {
+                    onLivesUpdate(newTotalLives);
+                    // After updating, the component will re-render with new props, restarting the effect.
+                    return; 
+                }
+            }
 
-        const now = new Date();
-        const secondsRemaining = Math.max(0, (nextRegenTime.getTime() - now.getTime()) / 1000);
+            const secondsSinceLastRegen = timePassedSinceUpdate % LIFE_REGEN_SECONDS;
+            const secondsRemaining = LIFE_REGEN_SECONDS - secondsSinceLastRegen;
 
-        if (secondsRemaining === 0) {
-            checkAndRegenerateLives();
-        } else {
+            if (secondsRemaining <= 0) {
+                 onLivesUpdate(Math.min(MAX_LIVES, currentLives + 1));
+                 return;
+            }
+
             setCountdown(formatTime(secondsRemaining));
-        }
+        };
 
-    }, 1000);
-    
-    return () => {
-        isMounted = false;
-        clearInterval(interval);
-    }
+        // Run once initially
+        startTimer();
 
-   }, [lives, isPremium, livesLastUpdatedAt, onLivesUpdate]);
+        // Then set an interval to update every second
+        const intervalId = setInterval(startTimer, 1000);
+
+        // Cleanup function
+        return () => {
+            isMounted = false;
+            clearInterval(intervalId);
+        };
+
+    }, [lives, isPremium, livesLastUpdatedAt, onLivesUpdate]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
@@ -130,10 +115,10 @@ export function ChildHeader({ childName, lives, badges, isPremium, childId, live
                             {lives === 'unlimited' ? (
                                 <InfinityIcon className="w-5 h-5" />
                             ) : (
-                                <div className="flex flex-col items-center leading-none">
-                                     <span>{lives}/{MAX_LIVES}</span>
+                                <div className="flex items-center gap-2">
+                                     <span className="text-lg font-bold">{lives}/{MAX_LIVES}</span>
                                      {countdown && (
-                                        <div className="flex items-center gap-1 text-xs font-mono text-red-500">
+                                        <div className="flex items-center gap-1 text-xs font-mono text-red-500 bg-white/50 px-1 rounded">
                                             <Clock className="w-3 h-3"/>
                                             {countdown}
                                         </div>
@@ -144,7 +129,13 @@ export function ChildHeader({ childName, lives, badges, isPremium, childId, live
                     </TooltipTrigger>
                     {!isPremium && lives !== 'unlimited' && (
                         <TooltipContent>
-                            <p>Canlar 2 saatte bir yenilenir.</p>
+                             <p>
+                                { (typeof lives === 'number' && lives < MAX_LIVES)
+                                    ? `Sonraki can ${countdown ? formatTime(LIFE_REGEN_SECONDS - (LIFE_REGEN_SECONDS - (parseInt(countdown.split(':')[0])*3600 + parseInt(countdown.split(':')[1])*60 + parseInt(countdown.split(':')[2])))) : ''} sonra`
+                                    : "Canlar dolu!"
+                                }
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">Canlar 2 saatte bir yenilenir.</p>
                         </TooltipContent>
                     )}
                 </Tooltip>
