@@ -96,7 +96,6 @@ export default function OgretmenGirisPage() {
                                 <Input
                                 id="email"
                                 type="email"
-                                placeholder="ornek@turkcocukakademisi.com"
                                 required
                                 autoComplete="email"
                                 value={email}
@@ -110,7 +109,6 @@ export default function OgretmenGirisPage() {
                                 id="password"
                                 type="password"
                                 required
-                                placeholder="••••••••"
                                 autoComplete="current-password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
