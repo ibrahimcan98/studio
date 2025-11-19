@@ -124,6 +124,17 @@ export default function TakvimYonetimiPage() {
         }
     };
 
+    const getTeacherName = () => {
+        if (user?.displayName) {
+            return user.displayName.split(' ')[0];
+        }
+        if (user?.email) {
+            const emailName = user.email.split('@')[0];
+            return emailName.charAt(0).toUpperCase() + emailName.slice(1);
+        }
+        return 'Öğretmen';
+    };
+
 
     if (areSlotsLoading) {
         return <div className="flex h-screen items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
@@ -133,6 +144,7 @@ export default function TakvimYonetimiPage() {
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen">
             <div className="flex items-center justify-between">
                 <div>
+                     <p className="text-muted-foreground mb-1">Hoş geldin, {getTeacherName()}!</p>
                     <h2 className="text-3xl font-bold tracking-tight">Müsaitlik Takvimi</h2>
                 </div>
             </div>
