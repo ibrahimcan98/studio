@@ -61,12 +61,14 @@ export default function CocukModuPage() {
     );
   }
 
+  const currentLives = childData.lives ?? 3;
+
 
   return (
-    <div className="bg-amber-50 h-screen flex flex-col overflow-hidden">
+    <div className="bg-amber-50 h-screen flex flex-col">
       <ChildHeader 
         childName={childData.firstName} 
-        lives={isPremium ? 'unlimited' : 3}
+        lives={isPremium ? 'unlimited' : currentLives}
         badges={childData.rozet || 0}
         isPremium={isPremium}
         childId={childId}

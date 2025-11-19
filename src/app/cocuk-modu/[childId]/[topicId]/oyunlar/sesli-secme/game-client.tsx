@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Volume2, CheckCircle, XCircle, ArrowLeft, Star } from 'lucide-react';
+import { Volume2, CheckCircle, XCircle, ArrowLeft, Star, Heart } from 'lucide-react';
 import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
@@ -39,16 +39,29 @@ export default function GameClient({ questions }: GameClientProps) {
     const { childId, topicId } = params;
     const { width, height } = useWindowSize();
 
-
     const { user: authUser } = useUser();
     const db = useFirestore();
+
+    const userDocRef = useMemoFirebase(() => {
+        if (!db || !authUser?.uid) return null;
+        return doc(db, 'users', authUser.uid);
+    }, [db, authUser?.uid]);
+    const { data: userData } = useDoc(userDocRef);
+    const isPremium = userData?.isPremium || false;
 
     const childDocRef = useMemoFirebase(() => {
         if (!db || !authUser?.uid || !childId) return null;
         return doc(db, 'users', authUser.uid, 'children', childId as string);
-      }, [db, authUser?.uid, childId]);
+    }, [db, authUser?.uid, childId]);
     
     const { data: childData } = useDoc(childDocRef);
+    const [lives, setLives] = useState(3);
+
+     useEffect(() => {
+        if (childData) {
+            setLives(childData.lives ?? 3);
+        }
+    }, [childData]);
 
 
     const currentQuestion = questions[currentIndex];
@@ -62,15 +75,29 @@ export default function GameClient({ questions }: GameClientProps) {
 
     useEffect(() => {
         playQuestionAudio();
-    }, [currentIndex]);
-    
+    }, [currentIndex, playQuestionAudio]);
 
-    const handleAnswer = (answer: Word) => {
+    const handleAnswer = async (answer: Word) => {
         if (selectedAnswer) return; // Prevent multiple selections
 
         setSelectedAnswer(answer);
         const correct = answer.word === currentQuestion.correctAnswer.word;
         setIsCorrect(correct);
+
+        if (!correct && !isPremium) {
+            const newLives = lives - 1;
+            setLives(newLives);
+            if (childDocRef) {
+                await updateDoc(childDocRef, { lives: newLives });
+            }
+            if (newLives <= 0) {
+                 setTimeout(() => {
+                    alert('Canların bitti! Ebeveyn portalına yönlendiriliyorsun.');
+                    router.push('/ebeveyn-portali');
+                }, 1500);
+                return;
+            }
+        }
 
         setTimeout(() => {
             if (correct) {
@@ -136,7 +163,10 @@ export default function GameClient({ questions }: GameClientProps) {
                            {currentQuestion.correctAnswer.word} nerede?
                         </h1>
                     </div>
-                     <div className="w-12"></div> {/* Spacer */}
+                    <div className="w-auto flex items-center gap-2 font-semibold text-destructive px-4">
+                        <Heart className="w-7 h-7 fill-current" />
+                        <span className="text-2xl">{isPremium ? 'Sınırsız' : lives}</span>
+                    </div>
                 </div>
             </header>
 

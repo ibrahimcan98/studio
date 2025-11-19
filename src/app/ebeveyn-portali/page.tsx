@@ -396,7 +396,7 @@ export default function EbeveynPortaliPage() {
                                        <div className='flex justify-between items-center text-sm'>
                                         <span className='text-muted-foreground'>Kalan Can:</span>
                                         <div className='flex items-center gap-1 font-bold bg-destructive/10 text-destructive px-2 py-1 rounded-md'>
-                                          {isPremium ? <InfinityIcon className='w-4 h-4' /> : <span>3</span>}
+                                          {isPremium ? <InfinityIcon className='w-4 h-4' /> : <span>{child.lives ?? 3}</span>}
                                            <Heart className='w-4 h-4 fill-current'/>
                                         </div>
                                       </div>
