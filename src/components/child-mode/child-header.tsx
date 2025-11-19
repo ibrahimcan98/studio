@@ -14,6 +14,10 @@ import {
 } from "@/components/ui/tooltip"
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { updateDocumentNonBlocking } from "@/firebase";
+import { doc, serverTimestamp } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+
 
 type ChildHeaderProps = {
     childName: string;
@@ -37,15 +41,22 @@ const formatTime = (seconds: number) => {
 
 export function ChildHeader({ childName, lives, badges, isPremium, childId, livesLastUpdatedAt, onLivesUpdate }: ChildHeaderProps) {
     const [countdown, setCountdown] = useState<string | null>(null);
+    const db = useFirestore();
 
     useEffect(() => {
         let isMounted = true;
 
-        const startTimer = () => {
+        const timer = setInterval(() => {
             if (!isMounted) return;
+
             const currentLives = typeof lives === 'number' ? lives : MAX_LIVES;
 
-            if (isPremium || currentLives >= MAX_LIVES || !livesLastUpdatedAt?.toDate) {
+            if (isPremium || currentLives >= MAX_LIVES) {
+                setCountdown(null);
+                return;
+            }
+
+            if (!livesLastUpdatedAt?.toDate) {
                 setCountdown(null);
                 return;
             }
@@ -55,33 +66,25 @@ export function ChildHeader({ childName, lives, badges, isPremium, childId, live
             
             const timePassedSinceUpdate = Math.floor((now.getTime() - lastUpdatedDate.getTime()) / 1000);
             
+            // Calculate how many full life-cycles have passed
             const livesToRegenerate = Math.floor(timePassedSinceUpdate / LIFE_REGEN_SECONDS);
 
             if (livesToRegenerate > 0) {
                 const newTotalLives = Math.min(MAX_LIVES, currentLives + livesToRegenerate);
                 if (newTotalLives > currentLives) {
                     onLivesUpdate(newTotalLives);
-                    // After updating, the component will re-render with new props, restarting the effect.
+                    // The component will re-render with new props, restarting the effect.
                     return; 
                 }
             }
 
-            const secondsSinceLastRegen = timePassedSinceUpdate % LIFE_REGEN_SECONDS;
-            const secondsRemaining = LIFE_REGEN_SECONDS - secondsSinceLastRegen;
-
-            if (secondsRemaining <= 0) {
-                 onLivesUpdate(Math.min(MAX_LIVES, currentLives + 1));
-                 return;
-            }
+            // Calculate seconds remaining for the next life
+            const secondsIntoCurrentCycle = timePassedSinceUpdate % LIFE_REGEN_SECONDS;
+            const secondsRemaining = LIFE_REGEN_SECONDS - secondsIntoCurrentCycle;
 
             setCountdown(formatTime(secondsRemaining));
-        };
 
-        // Run once initially
-        startTimer();
-
-        // Then set an interval to update every second
-        const intervalId = setInterval(startTimer, 1000);
+        }, 1000);
 
         // Cleanup function
         return () => {
@@ -116,8 +119,8 @@ export function ChildHeader({ childName, lives, badges, isPremium, childId, live
                                 <InfinityIcon className="w-5 h-5" />
                             ) : (
                                 <div className="flex items-center gap-2">
-                                     <span className="text-lg font-bold">{lives}/{MAX_LIVES}</span>
-                                     {countdown && (
+                                     <span className="text-lg font-bold">{lives}</span>
+                                     {countdown && lives < MAX_LIVES && (
                                         <div className="flex items-center gap-1 text-xs font-mono text-red-500 bg-white/50 px-1 rounded">
                                             <Clock className="w-3 h-3"/>
                                             {countdown}
@@ -131,7 +134,7 @@ export function ChildHeader({ childName, lives, badges, isPremium, childId, live
                         <TooltipContent>
                              <p>
                                 { (typeof lives === 'number' && lives < MAX_LIVES)
-                                    ? `Sonraki can ${countdown ? formatTime(LIFE_REGEN_SECONDS - (LIFE_REGEN_SECONDS - (parseInt(countdown.split(':')[0])*3600 + parseInt(countdown.split(':')[1])*60 + parseInt(countdown.split(':')[2])))) : ''} sonra`
+                                    ? `Sonraki can ${countdown} sonra`
                                     : "Canlar dolu!"
                                 }
                             </p>
@@ -164,5 +167,7 @@ export function ChildHeader({ childName, lives, badges, isPremium, childId, live
     </header>
   );
 }
+
+    
 
     

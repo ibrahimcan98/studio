@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock, Infinity as InfinityIcon, Settings, Target, CreditCard, Clock } from 'lucide-react';
@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/tooltip"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { collection, doc, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, addDoc, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { SetPinDialog } from '@/components/child-mode/set-pin-dialog';
@@ -50,7 +50,7 @@ const MAX_LIVES = 5;
 
 function formatTimeDifference(ms: number) {
     if (ms <= 0) {
-        return "birkaç saniye içinde";
+        return "şimdi yenileniyor";
     }
     const totalSeconds = Math.floor(ms / 1000);
     const hours = Math.floor(totalSeconds / 3600);
@@ -60,15 +60,12 @@ function formatTimeDifference(ms: number) {
     if (hours > 0) parts.push(`${hours} saat`);
     if (minutes > 0) parts.push(`${minutes} dakika`);
 
-    if (parts.length === 0 && totalSeconds > 0) {
-        return "birkaç saniye içinde";
-    }
-    
     if (parts.length === 0) {
-        return "yenileniyor...";
+      if (totalSeconds > 0) return "birkaç saniye içinde";
+      return "şimdi yenileniyor";
     }
 
-    return `${parts.join(' ')} içinde`;
+    return `${parts.join(' ')} içinde yenilenecek`;
 }
 
 
@@ -77,7 +74,6 @@ function LivesTooltipContent({ lives, livesLastUpdatedAt, onUpdate, childId }: {
 
     useEffect(() => {
         let isMounted = true;
-        
         const timer = setInterval(() => {
             if (!isMounted) return;
 
@@ -95,27 +91,24 @@ function LivesTooltipContent({ lives, livesLastUpdatedAt, onUpdate, childId }: {
             const lastUpdatedDate = livesLastUpdatedAt.toDate();
             const now = new Date();
             const timePassedSeconds = Math.floor((now.getTime() - lastUpdatedDate.getTime()) / 1000);
-            const livesToRegen = Math.floor(timePassedSeconds / LIFE_REGEN_SECONDS);
             
+            // Calculate how many lives should have regenerated since the last update
+            const livesToRegen = Math.floor(timePassedSeconds / LIFE_REGEN_SECONDS);
+
             if (livesToRegen > 0) {
                 const newLiveCount = Math.min(MAX_LIVES, lives + livesToRegen);
-                if (newLiveCount > lives) {
+                 if (newLiveCount > lives) {
+                    // This will trigger a re-render with the new lives, and the timer will restart.
                     onUpdate(childId, newLiveCount);
-                    // The parent component will handle the DB update and re-render.
-                    // The timer will be restarted by the parent's re-render.
-                    return;
+                    return; 
                 }
             }
             
-            // Calculate time until the *next* life is regenerated
-            const secondsSinceLastRegenEvent = timePassedSeconds % LIFE_REGEN_SECONDS;
-            const remainingMs = (LIFE_REGEN_SECONDS - secondsSinceLastRegenEvent) * 1000;
+            // Calculate time until the *next* single life is regenerated
+            const secondsSinceLastPossibleRegen = timePassedSeconds % LIFE_REGEN_SECONDS;
+            const remainingSecondsForNextLife = LIFE_REGEN_SECONDS - secondsSinceLastPossibleRegen;
             
-            if (remainingMs <= 0) {
-                setCountdown("Yenileniyor...");
-            } else {
-                setCountdown(`${formatTimeDifference(remainingMs)} yenilenecek`);
-            }
+            setCountdown(formatTimeDifference(remainingSecondsForNextLife * 1000));
 
         }, 1000);
 
@@ -128,6 +121,7 @@ function LivesTooltipContent({ lives, livesLastUpdatedAt, onUpdate, childId }: {
     return (
         <TooltipContent>
             <p className="text-sm">{countdown}</p>
+             {lives < MAX_LIVES && <p className="text-xs text-muted-foreground mt-1">Canlar 2 saatte bir yenilenir.</p>}
         </TooltipContent>
     );
 }
@@ -159,7 +153,7 @@ function AddChildDialog({ userId }: { userId: string }) {
       rozet: 0,
       completedTopics: [],
       lives: 5,
-      livesLastUpdatedAt: new Date(),
+      livesLastUpdatedAt: serverTimestamp(),
     });
     
     setName('');
@@ -278,12 +272,13 @@ export default function EbeveynPortaliPage() {
       await deleteDoc(childDocRef);
   };
   
-    const handleUpdateLives = async (childId: string, newLives: number) => {
+    const handleUpdateLives = (childId: string, newLives: number) => {
         if (!db || !user?.uid) return;
         const childDocRef = doc(db, 'users', user.uid, 'children', childId);
-        await updateDoc(childDocRef, {
+        // Use non-blocking update
+        updateDocumentNonBlocking(childDocRef, {
             lives: newLives,
-            livesLastUpdatedAt: new Date()
+            livesLastUpdatedAt: serverTimestamp()
         });
     };
 
@@ -562,5 +557,7 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
+
+    
 
     
