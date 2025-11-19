@@ -202,7 +202,7 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
 
             <main className="flex-1 flex flex-col lg:flex-row items-center justify-center gap-8">
                  <div 
-                    className="relative w-[300px] h-[300px] md:w-[400px] md:h-[400px] grid grid-cols-2 grid-rows-2 gap-1 rounded-lg overflow-hidden shadow-lg bg-gray-200"
+                    className="relative w-[302px] h-[302px] md:w-[402px] md:h-[402px] grid grid-cols-2 grid-rows-2 gap-1 rounded-lg overflow-hidden shadow-lg bg-gray-200"
                 >
                     {/* Background silhouette */}
                     <Image src={currentWord.image} layout="fill" objectFit="cover" className="opacity-20 pointer-events-none" alt="Puzzle silhouette"/>
@@ -247,7 +247,7 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
                 <div className="w-full lg:w-auto flex lg:flex-col items-center justify-center gap-4">
                     <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
                         {shuffledPieces.map((piece, index) => {
-                            if (piece === null) return <div key={index} className="w-24 h-24 md:w-32 md:h-32 rounded-lg bg-gray-300/50" />;
+                            if (piece === null) return <div key={index} className="w-[150px] h-[150px] md:w-[200px] md:h-[200px] rounded-lg bg-gray-300/50" />;
                             const row = Math.floor(piece / 2);
                             const col = piece % 2;
                             return (
@@ -255,7 +255,7 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
                                     key={index}
                                     onClick={() => handleSelectPiece(piece, index)}
                                     className={cn(
-                                        "w-24 h-24 md:w-32 md:h-32 rounded-lg cursor-pointer transition-all",
+                                        "w-[150px] h-[150px] md:w-[200px] md:h-[200px] rounded-lg cursor-pointer transition-all",
                                         selectedPiece?.index === index ? 'ring-4 ring-blue-500 scale-105' : 'hover:scale-105'
                                     )}
                                     style={{
