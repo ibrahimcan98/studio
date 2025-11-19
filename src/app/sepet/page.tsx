@@ -70,27 +70,28 @@ export default function SepetPage() {
         setIsProcessing(true);
 
         try {
-            const newPackages = cartItems.map(item => {
-                const [courseId] = item.id.split('-');
-                const lessons = parseInt(item.description.split(' ')[0], 10);
-                const courseCode = getCourseCode(courseId);
-                return `${lessons}${courseCode}`;
-            });
-
-            const totalLessonsToAdd = cartItems.reduce((total, item) => {
-                const lessons = parseInt(item.description.split(' ')[0], 10);
-                return total + lessons;
-            }, 0);
-
-            // Fetch current user data to safely increment values
+            // Fetch current user data to safely update values
             const userSnap = await getDoc(userDocRef);
             const currentData = userSnap.data();
             const currentLessons = currentData?.remainingLessons || 0;
             const currentPackages = currentData?.enrolledPackages || [];
 
+            const totalLessonsToAdd = cartItems.reduce((total, item) => {
+                const lessons = parseInt(item.description.split(' ')[0], 10);
+                return total + (item.quantity * lessons);
+            }, 0);
+
+            const newPackages = cartItems.flatMap(item => {
+                 const [courseId] = item.id.split('-');
+                 const lessons = parseInt(item.description.split(' ')[0], 10);
+                 const courseCode = getCourseCode(courseId);
+                 // Create an array of package codes based on quantity
+                 return Array(item.quantity).fill(`${lessons}${courseCode}`);
+            });
+
             await updateDoc(userDocRef, {
-                enrolledPackages: arrayUnion(...newPackages),
-                remainingLessons: increment(totalLessonsToAdd)
+                enrolledPackages: [...currentPackages, ...newPackages],
+                remainingLessons: currentLessons + totalLessonsToAdd,
             });
             
             clearCart();
