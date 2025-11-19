@@ -42,15 +42,6 @@ export default function CocukModuPage() {
   const { data: userData } = useDoc(userDocRef);
   const isPremium = userData?.isPremium || false;
 
-  const handleLivesUpdate = useCallback(async (newLives: number, newTimestamp: any) => {
-      if (childDocRef) {
-          await updateDoc(childDocRef, {
-              lives: newLives,
-              livesLastUpdatedAt: newTimestamp
-          });
-      }
-  }, [childDocRef]);
-
   if (authLoading || childLoading || isAuthenticated === null) {
     return (
       <div className="flex h-screen items-center justify-center bg-amber-50">
@@ -71,19 +62,11 @@ export default function CocukModuPage() {
     );
   }
 
-  const currentLives = childData.lives ?? 5;
-
-
   return (
     <div className="bg-amber-50 h-screen flex flex-col">
       <ChildHeader 
         childName={childData.firstName} 
-        lives={isPremium ? 'unlimited' : currentLives}
-        badges={childData.rozet || 0}
-        isPremium={isPremium}
         childId={childId}
-        livesLastUpdatedAt={childData.livesLastUpdatedAt}
-        onLivesUpdate={handleLivesUpdate}
       />
       <main className="flex-1 container py-8 px-4 md:px-8 overflow-y-auto">
         <div className="text-center mb-10">
@@ -116,3 +99,5 @@ export default function CocukModuPage() {
     </div>
   );
 }
+
+    

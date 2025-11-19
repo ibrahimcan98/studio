@@ -45,15 +45,6 @@ export default function GamesPage() {
     const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
     const isPremium = userData?.isPremium || false;
 
-    const handleLivesUpdate = useCallback(async (newLives: number, newTimestamp: any) => {
-        if (childDocRef) {
-            await updateDoc(childDocRef, {
-                lives: newLives,
-                livesLastUpdatedAt: newTimestamp
-            });
-        }
-    }, [childDocRef]);
-
     useEffect(() => {
         const topic = topicsData.find(t => t.id === topicId);
         if (topic) {
@@ -97,20 +88,12 @@ export default function GamesPage() {
             </div>
         )
     }
-    
-    const currentLives = childData.lives ?? 5;
-
 
     return (
         <div className="bg-amber-50 h-screen flex flex-col">
             <ChildHeader 
                 childName={childData.firstName} 
-                lives={isPremium ? 'unlimited' : currentLives}
-                badges={childData.rozet || 0}
-                isPremium={isPremium}
                 childId={childId as string}
-                livesLastUpdatedAt={childData.livesLastUpdatedAt}
-                onLivesUpdate={handleLivesUpdate}
             />
             <div className="p-4 sm:p-8 flex flex-col flex-1">
                 <header className="flex-shrink-0 mb-8">
@@ -168,3 +151,5 @@ export default function GamesPage() {
         </div>
     );
 }
+
+    

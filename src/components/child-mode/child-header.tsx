@@ -14,58 +14,77 @@ import {
 } from "@/components/ui/tooltip"
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
 
 type ChildHeaderProps = {
     childName: string;
-    lives: number | 'unlimited';
-    badges: number;
-    isPremium: boolean;
     childId: string;
-    livesLastUpdatedAt: any; // Can be Firestore Timestamp or null
-    onLivesUpdate: (newLives: number, newTimestamp: any) => void;
 }
 
-const LIFE_REGEN_SECONDS = 5 * 60; // 5 minutes in seconds
+const LIFE_REGEN_SECONDS = 5 * 60; // 5 minutes
 const MAX_LIVES = 5;
 
 
-export function ChildHeader({ childName, lives, badges, isPremium, childId, livesLastUpdatedAt, onLivesUpdate }: ChildHeaderProps) {
-    
+export function ChildHeader({ childName, childId }: ChildHeaderProps) {
+    const { user: authUser } = useUser();
+    const db = useFirestore();
+
+    const userDocRef = useMemoFirebase(() => {
+        if (!db || !authUser?.uid) return null;
+        return doc(db, 'users', authUser.uid);
+    }, [db, authUser?.uid]);
+
+    const { data: userData } = useDoc(userDocRef);
+    const isPremium = userData?.isPremium || false;
+    const lives = userData?.lives ?? 5;
+    const livesLastUpdatedAt = userData?.livesLastUpdatedAt;
+
+    const childDocRef = useMemoFirebase(() => {
+        if (!db || !authUser?.uid || !childId) return null;
+        return doc(db, 'users', authUser.uid, 'children', childId as string);
+    }, [db, authUser?.uid, childId]);
+
+    const { data: childData } = useDoc(childDocRef);
+    const badges = childData?.rozet || 0;
+
     useEffect(() => {
-        let isMounted = true;
+        if (!userDocRef || isPremium || typeof lives !== 'number' || lives >= MAX_LIVES || !livesLastUpdatedAt?.toDate) {
+            return;
+        }
 
-        const updateLives = () => {
-            if (!isMounted || isPremium || typeof lives !== 'number' || lives >= MAX_LIVES || !livesLastUpdatedAt?.toDate) {
-                return;
-            }
+        const interval = setInterval(async () => {
+            // Re-fetch the latest user data inside the interval to avoid stale data
+            const userSnap = await getDoc(userDocRef);
+            const latestUserData = userSnap.data();
+            const latestLives = latestUserData?.lives ?? 5;
+            const latestTimestamp = latestUserData?.livesLastUpdatedAt;
 
-            const lastUpdatedDate = livesLastUpdatedAt.toDate();
-            let now = new Date();
-            let timePassedSeconds = Math.floor((now.getTime() - lastUpdatedDate.getTime()) / 1000);
+            if (latestLives >= MAX_LIVES || !latestTimestamp?.toDate) return;
+
+            const lastUpdated = latestTimestamp.toDate();
+            const now = new Date();
+            const diffSeconds = Math.floor((now.getTime() - lastUpdated.getTime()) / 1000);
             
-            let livesToRegen = Math.floor(timePassedSeconds / LIFE_REGEN_SECONDS);
+            if (diffSeconds >= LIFE_REGEN_SECONDS) {
+                const livesToRegen = Math.floor(diffSeconds / LIFE_REGEN_SECONDS);
+                const newLiveCount = Math.min(MAX_LIVES, latestLives + livesToRegen);
+                
+                if (newLiveCount > latestLives) {
+                    const secondsForLivesGained = (newLiveCount - latestLives) * LIFE_REGEN_SECONDS;
+                    const newTimestampDate = new Date(lastUpdated.getTime() + secondsForLivesGained * 1000);
 
-            if (livesToRegen > 0) {
-                const newLiveCount = Math.min(MAX_LIVES, lives + livesToRegen);
-                 if (newLiveCount > lives) {
-                    // Calculate the timestamp for the last life regenerated
-                    const secondsForLivesGained = (newLiveCount - lives) * LIFE_REGEN_SECONDS;
-                    const newTimestampDate = new Date(lastUpdatedDate.getTime() + secondsForLivesGained * 1000);
-
-                    onLivesUpdate(newLiveCount, newTimestampDate);
+                    await updateDoc(userDocRef, {
+                        lives: newLiveCount,
+                        livesLastUpdatedAt: newTimestampDate
+                    });
                 }
             }
-        };
-        
-        updateLives();
-        const interval = setInterval(updateLives, 60000); // Check every minute
+        }, 60000); // Check every minute for potential regeneration
 
-        return () => {
-            isMounted = false;
-            clearInterval(interval);
-        };
-    }, [lives, isPremium, livesLastUpdatedAt, onLivesUpdate]);
+        return () => clearInterval(interval);
+    }, [lives, isPremium, livesLastUpdatedAt, userDocRef]);
 
 
   return (
@@ -89,7 +108,7 @@ export function ChildHeader({ childName, lives, badges, isPremium, childId, live
                     <TooltipTrigger asChild>
                          <div className="flex items-center gap-2 font-semibold text-destructive bg-red-100 px-3 py-1.5 rounded-lg">
                             <Heart className="w-5 h-5 fill-current" />
-                            {lives === 'unlimited' ? (
+                            {lives === 'unlimited' || isPremium ? (
                                 <InfinityIcon className="w-5 h-5" />
                             ) : (
                                 <span className="text-lg font-bold">{Math.max(0, lives)}</span>
@@ -99,7 +118,7 @@ export function ChildHeader({ childName, lives, badges, isPremium, childId, live
                     {!isPremium && lives !== 'unlimited' && (
                         <TooltipContent>
                              <p>
-                                Canlar 5 dakikada bir yenilenir.
+                                Canlar 2 saatte bir yenilenir.
                             </p>
                         </TooltipContent>
                     )}

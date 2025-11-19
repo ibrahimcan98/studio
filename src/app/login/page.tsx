@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -23,7 +24,7 @@ import { Label } from '@/components/ui/label';
 import { LoginIllustration } from '@/components/illustrations/login-illustration';
 import { SignUpIllustration } from '@/components/illustrations/signup-illustration';
 import { useAuth, useFirestore, useUser } from '@/firebase';
-import { setDoc } from 'firebase/firestore';
+import { setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
@@ -157,6 +158,8 @@ function SignUpForm({
         lastName: name.split(' ').slice(1).join(' ') || '',
         email: user.email,
         userType: 'parent',
+        lives: 5,
+        livesLastUpdatedAt: serverTimestamp(),
       }, { merge: true });
 
       toast({
@@ -312,3 +315,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    

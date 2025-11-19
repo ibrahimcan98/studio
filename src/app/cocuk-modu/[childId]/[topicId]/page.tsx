@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { WordCard } from '@/components/child-mode/word-card';
 import { ChildHeader } from '@/components/child-mode/child-header';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 
 
 type Word = {
@@ -44,23 +44,6 @@ export default function TopicPage() {
 
     const { data: childData, isLoading: childLoading } = useDoc(childDocRef);
 
-    const userDocRef = useMemoFirebase(() => {
-        if (!db || !authUser?.uid) return null;
-        return doc(db, 'users', authUser.uid);
-    }, [db, authUser?.uid]);
-
-    const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
-    const isPremium = userData?.isPremium || false;
-
-     const handleLivesUpdate = useCallback(async (newLives: number, newTimestamp: any) => {
-        if (childDocRef) {
-            await updateDoc(childDocRef, {
-                lives: newLives,
-                livesLastUpdatedAt: newTimestamp
-            });
-        }
-    }, [childDocRef]);
-
     useEffect(() => {
         if(topicId) {
             const currentTopic = topicsData.find(t => t.id === topicId);
@@ -72,26 +55,19 @@ export default function TopicPage() {
     }, [topicId]);
 
 
-    if (!topic || authLoading || childLoading || userDataLoading || !childData) {
+    if (!topic || authLoading || childLoading || !childData) {
         return (
             <div className="flex h-screen items-center justify-center bg-amber-50">
                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
             </div>
         );
     }
-    
-    const currentLives = childData.lives ?? 5;
 
     return (
         <div className="bg-amber-50 h-screen flex flex-col">
              <ChildHeader 
                 childName={childData.firstName} 
-                lives={isPremium ? 'unlimited' : currentLives}
-                badges={childData.rozet || 0}
-                isPremium={isPremium}
                 childId={childId as string}
-                livesLastUpdatedAt={childData.livesLastUpdatedAt}
-                onLivesUpdate={handleLivesUpdate}
             />
             <div className="p-4 sm:p-8 flex flex-col flex-1">
                 <header className="flex-shrink-0 mb-4">
@@ -114,3 +90,5 @@ export default function TopicPage() {
         </div>
     );
 }
+
+    

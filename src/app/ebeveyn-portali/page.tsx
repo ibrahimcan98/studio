@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -48,46 +49,45 @@ import { useToast } from '@/hooks/use-toast';
 const LIFE_REGEN_SECONDS = 5 * 60; // 5 minutes in seconds
 const MAX_LIVES = 5;
 
-function LivesTooltipContent({ lives, livesLastUpdatedAt, onUpdate, childId }: { lives: number, livesLastUpdatedAt: any, onUpdate: (childId: string, newLives: number, newTimestamp: any) => void, childId: string }) {
+function LivesTooltipContent({ userDocRef }: { userDocRef: any }) {
+    const { data: userData } = useDoc(userDocRef);
+    const lives = userData?.lives;
+    const livesLastUpdatedAt = userData?.livesLastUpdatedAt;
 
     useEffect(() => {
-        let isMounted = true;
+        if (!userDocRef || userData?.isPremium || typeof lives !== 'number' || lives >= MAX_LIVES || !livesLastUpdatedAt?.toDate) {
+            return;
+        }
 
-        const updateLives = () => {
-             if (!isMounted || lives >= MAX_LIVES || !livesLastUpdatedAt?.toDate) {
-                return;
-            }
-
-            const lastUpdatedDate = livesLastUpdatedAt.toDate();
-            let now = new Date();
-            let timePassedSeconds = Math.floor((now.getTime() - lastUpdatedDate.getTime()) / 1000);
-            
-            let livesToRegen = Math.floor(timePassedSeconds / LIFE_REGEN_SECONDS);
+        const interval = setInterval(async () => {
+            const lastUpdated = livesLastUpdatedAt.toDate();
+            const now = new Date();
+            const diffSeconds = Math.floor((now.getTime() - lastUpdated.getTime()) / 1000);
+            const livesToRegen = Math.floor(diffSeconds / LIFE_REGEN_SECONDS);
 
             if (livesToRegen > 0) {
-                const newLiveCount = Math.min(MAX_LIVES, lives + livesToRegen);
-                 if (newLiveCount > lives) {
-                    // Calculate the timestamp for the last life regenerated
-                    const secondsForLivesGained = (newLiveCount - lives) * LIFE_REGEN_SECONDS;
-                    const newTimestampDate = new Date(lastUpdatedDate.getTime() + secondsForLivesGained * 1000);
+                const currentLives = (await (await getDoc(userDocRef)).data() as any).lives;
+                const newLiveCount = Math.min(MAX_LIVES, currentLives + livesToRegen);
+                
+                if (newLiveCount > currentLives) {
+                    const secondsForLivesGained = (newLiveCount - currentLives) * LIFE_REGEN_SECONDS;
+                    const newTimestampDate = new Date(lastUpdated.getTime() + secondsForLivesGained * 1000);
 
-                    onUpdate(childId, newLiveCount, newTimestampDate);
+                    await updateDoc(userDocRef, {
+                        lives: newLiveCount,
+                        livesLastUpdatedAt: newTimestampDate
+                    });
                 }
             }
-        };
-        
-        updateLives();
-        const interval = setInterval(updateLives, 60000); // Check every minute
+        }, 60000); // Check every minute
 
-        return () => {
-            isMounted = false;
-            clearInterval(interval);
-        };
-    }, [lives, livesLastUpdatedAt, onUpdate, childId]);
+        return () => clearInterval(interval);
+    }, [lives, userData?.isPremium, livesLastUpdatedAt, userDocRef]);
+
 
     return (
         <TooltipContent>
-            <p>Canlar 5 dakikada bir yenilenir.</p>
+            <p>Canlar 2 saatte bir yenilenir.</p>
         </TooltipContent>
     );
 }
@@ -118,8 +118,6 @@ function AddChildDialog({ userId }: { userId: string }) {
       userId: userId,
       rozet: 0,
       completedTopics: [],
-      lives: 5,
-      livesLastUpdatedAt: serverTimestamp(),
     });
     
     setName('');
@@ -206,11 +204,11 @@ function PremiumBadge() {
   );
 }
 
-function ChildCard({ child, isPremium, onDelete, onUpdateLives }: { child: any, isPremium: boolean, onDelete: (id: string) => void, onUpdateLives: (id: string, lives: number, timestamp: any) => void }) {
+function ChildCard({ child, userDocRef, isPremium, currentLives, onDelete }: { child: any, userDocRef: any, isPremium: boolean, currentLives: number, onDelete: (id: string) => void }) {
     const { toast } = useToast();
 
     const handleStartLearning = (e: React.MouseEvent) => {
-        if (!isPremium && (child.lives ?? 0) <= 0) {
+        if (!isPremium && currentLives <= 0) {
             e.preventDefault(); // Prevent Dialog from opening
             toast({
                 variant: "destructive",
@@ -220,7 +218,7 @@ function ChildCard({ child, isPremium, onDelete, onUpdateLives }: { child: any, 
         }
     };
     
-    const displayLives = Math.max(0, child.lives ?? 5);
+    const displayLives = Math.max(0, currentLives);
 
     return (
         <Card className="relative flex flex-col items-center text-center p-6 space-y-4 hover:shadow-lg transition-shadow group">
@@ -271,7 +269,7 @@ function ChildCard({ child, isPremium, onDelete, onUpdateLives }: { child: any, 
                             </div>
                         </div>
                     </TooltipTrigger>
-                    {!isPremium && <LivesTooltipContent lives={child.lives ?? 5} livesLastUpdatedAt={child.livesLastUpdatedAt} onUpdate={onUpdateLives} childId={child.id} />}
+                    {!isPremium && <LivesTooltipContent userDocRef={userDocRef} />}
                 </Tooltip>
                </TooltipProvider>
             </div>
@@ -298,6 +296,7 @@ export default function EbeveynPortaliPage() {
   
   const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
   const isPremium = userData?.isPremium || false;
+  const currentLives = userData?.lives ?? 5;
   
   const childrenRef = useMemoFirebase(() => {
     if (!db || !user?.uid) return null;
@@ -318,16 +317,6 @@ export default function EbeveynPortaliPage() {
       await deleteDoc(childDocRef);
   };
   
-    const handleUpdateLives = (childId: string, newLives: number, newTimestamp: any) => {
-        if (!db || !user?.uid) return;
-        const childDocRef = doc(db, 'users', user.uid, 'children', childId);
-        updateDoc(childDocRef, {
-            lives: newLives,
-            livesLastUpdatedAt: newTimestamp
-        });
-    };
-
-
   if (userLoading || childrenLoading || userDataLoading) {
     return (
       <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
@@ -505,9 +494,10 @@ export default function EbeveynPortaliPage() {
                                <ChildCard 
                                     key={child.id}
                                     child={child}
+                                    userDocRef={userDocRef}
                                     isPremium={isPremium}
+                                    currentLives={currentLives}
                                     onDelete={handleDeleteChild}
-                                    onUpdateLives={handleUpdateLives}
                                />
                             ))}
                         </div>
