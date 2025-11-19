@@ -30,7 +30,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isLoggedIn = !!user;
 
-  if (pathname.startsWith('/cocuk-modu')) {
+  if (pathname.startsWith('/cocuk-modu') || pathname.startsWith('/ogretmen-portali')) {
     return null;
   }
 
@@ -51,7 +51,7 @@ export default function Header() {
 
 
   const navLinks = [
-    { href: '#teachers', label: 'Öğretmen Portalı' },
+    { href: '/ogretmen-giris', label: 'Öğretmen Portalı' },
     { href: '/kurslar', label: 'Kurslar' },
   ];
 
