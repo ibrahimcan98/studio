@@ -1,24 +1,33 @@
 
 'use client';
 
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
+import { doc } from 'firebase/firestore';
 
 const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisii.com', 'teacher@turkcocukakademisi.com'];
 
 export default function OgretmenPortaliPage() {
-  const { user, loading } = useUser();
+  const { user, loading: userLoading } = useUser();
+  const db = useFirestore();
   const router = useRouter();
 
+  const userDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(db, 'users', user.uid);
+  }, [user, db]);
+
+  const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
+
   useEffect(() => {
-    if (!loading && (!user || !user.email || !allowedTeacherEmails.includes(user.email))) {
+    if (!userLoading && (!user || !user.email || !allowedTeacherEmails.includes(user.email))) {
       router.push('/ogretmen-giris');
     }
-  }, [user, loading, router]);
+  }, [user, userLoading, router]);
 
-  if (loading || !user) {
+  if (userLoading || userDataLoading || !user) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -27,8 +36,11 @@ export default function OgretmenPortaliPage() {
   }
 
   const getTeacherName = () => {
+    if (userData?.firstName) {
+      return userData.firstName;
+    }
     if (user.displayName) {
-      return user.displayName;
+      return user.displayName.split(' ')[0];
     }
     if (user.email) {
       const emailName = user.email.split('@')[0];

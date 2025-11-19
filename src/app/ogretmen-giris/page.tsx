@@ -161,3 +161,5 @@ export default function OgretmenGirisPage() {
     </div>
   );
 }
+
+    

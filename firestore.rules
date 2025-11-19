@@ -41,7 +41,7 @@ service cloud.firestore {
      * @principle Enforces document ownership for writes and reads, validates user ID on create.
      */
     match /users/{userId} {
-      allow get, update, delete: if request.auth.uid == userId;
+      allow read, update, delete: if request.auth.uid == userId;
       allow list: if false; // User listing is disabled for privacy.
       allow create: if request.auth.uid == userId;
     }
@@ -57,7 +57,7 @@ service cloud.firestore {
      * @principle Restricts access to a user's own data tree, enforces document ownership.
      */
     match /users/{userId}/children/{childId} {
-      allow get, list, update, delete: if request.auth.uid == userId;
+      allow read, list, update, delete: if request.auth.uid == userId;
       allow create: if request.auth.uid == userId && request.resource.data.userId == userId;
     }
 
@@ -167,3 +167,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
