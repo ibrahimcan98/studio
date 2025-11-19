@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { COURSES, Course } from '@/data/courses';
 
 function StatCard({ title, value, icon: Icon, unit, children }: { title: string, value: string | number, icon: React.ElementType, unit?: string, children?: React.ReactNode }) {
     return (
@@ -32,18 +33,17 @@ function StatCard({ title, value, icon: Icon, unit, children }: { title: string,
       </Card>
     )
   }
+  
+const getCourseByCode = (code: string): Course | undefined => {
+    const courseMap: { [key: string]: string } = { 'B': 'baslangic', 'K': 'konusma', 'G': 'gelisim', 'A': 'akademik' };
+    const courseId = courseMap[code];
+    return COURSES.find(c => c.id === courseId);
+};
 
 export default function PaketlerimPage() {
     const { user, loading: userLoading } = useUser();
     const router = useRouter();
     const db = useFirestore();
-
-    const purchasesRef = useMemoFirebase(() => {
-        if (!db || !user?.uid) return null;
-        return query(collection(db, 'users', user.uid, 'purchases'), orderBy('purchaseDate', 'desc'));
-    }, [db, user?.uid]);
-
-    const { data: purchases, isLoading: purchasesLoading } = useCollection(purchasesRef);
 
     const userDocRef = useMemoFirebase(() => {
         if (!db || !user?.uid) return null;
@@ -59,7 +59,7 @@ export default function PaketlerimPage() {
         }
     }, [user, userLoading, router]);
 
-    if (userLoading || purchasesLoading || userDataLoading) {
+    if (userLoading || userDataLoading) {
         return (
             <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -85,7 +85,7 @@ export default function PaketlerimPage() {
                 </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-1">
                 <StatCard title="Kalan Ders" value={remainingLessons} icon={BookOpen}>
                     <div className="flex justify-between items-end">
                         <div>
@@ -104,17 +104,6 @@ export default function PaketlerimPage() {
                         </div>
                     </div>
                 </StatCard>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Toplam Harcama</CardTitle>
-                        <Award className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                       <div className="text-2xl font-bold">
-                         €{purchases?.reduce((acc, p) => acc + p.finalTotal, 0).toFixed(2) ?? '0.00'}
-                       </div>
-                    </CardContent>
-                </Card>
             </div>
 
             <Card>
@@ -125,38 +114,34 @@ export default function PaketlerimPage() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    {purchases && purchases.length > 0 ? (
+                    {enrolledPackages && enrolledPackages.length > 0 ? (
                         <div className="space-y-6">
-                            {purchases.map(purchase => (
-                                <div key={purchase.id} className="p-4 border rounded-lg bg-background">
-                                    <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-4 pb-4 border-b">
-                                        <div>
-                                            <p className="font-semibold">Sipariş Tarihi</p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {format(purchase.purchaseDate.toDate(), 'dd MMMM yyyy, HH:mm', { locale: tr })}
-                                            </p>
-                                        </div>
-                                        <div className="mt-2 sm:mt-0 sm:text-right">
-                                            <p className="font-semibold">Toplam Tutar</p>
-                                            <p className="text-sm font-bold">€{purchase.finalTotal.toFixed(2)}</p>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        {purchase.items.map((item: any) => (
-                                            <div key={item.id} className="flex justify-between items-center text-sm">
-                                                <p>{item.name} <span className="text-muted-foreground">({item.description})</span> x{item.quantity}</p>
-                                                <p className="font-medium">€{(item.price * item.quantity).toFixed(2)}</p>
+                            {enrolledPackages.map((pkgCode, index) => {
+                                const lessons = parseInt(pkgCode.replace(/\D/g, ''), 10);
+                                const courseCode = pkgCode.replace(/[0-9]/g, '');
+                                const course = getCourseByCode(courseCode);
+                                if (!course) return null;
+
+                                const pkgDetails = course.pricing.packages.find(p => p.lessons === lessons);
+                                const price = pkgDetails ? pkgDetails.price : 0;
+                                
+                                return (
+                                    <div key={`${pkgCode}-${index}`} className="p-4 border rounded-lg bg-background">
+                                        <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-2">
+                                            <div>
+                                                <p className="font-semibold">{course.title}</p>
+                                                <p className="text-sm text-muted-foreground">
+                                                   ({lessons} derslik paket)
+                                                </p>
                                             </div>
-                                        ))}
-                                    </div>
-                                    {purchase.appliedCoupon && (
-                                        <div className="mt-3 pt-3 border-t text-sm text-green-600 flex justify-between">
-                                            <span>Kupon indirimi ({purchase.appliedCoupon}):</span>
-                                            <span>-€{purchase.discountAmount.toFixed(2)}</span>
+                                            <div className="mt-2 sm:mt-0 sm:text-right">
+                                                <p className="font-semibold">Tutar</p>
+                                                <p className="text-sm font-bold">€{price.toFixed(2)}</p>
+                                            </div>
                                         </div>
-                                    )}
-                                </div>
-                            ))}
+                                    </div>
+                                );
+                            })}
                         </div>
                     ) : (
                         <div className="text-center py-16 text-muted-foreground">
