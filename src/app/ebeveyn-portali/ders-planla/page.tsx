@@ -15,8 +15,6 @@ import { format as formatInTimeZone, toDate } from 'date-fns-tz';
 import { isSameDay, format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
-const turkeyTimeZone = 'Europe/Istanbul';
-
 export default function DersPlanlaPage() {
     const router = useRouter();
     const { user } = useUser();
@@ -25,6 +23,9 @@ export default function DersPlanlaPage() {
 
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
     const [isBooking, setIsBooking] = useState(false);
+
+    // Detect user's local timezone from the browser
+    const localTimeZone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
 
     const userDocRef = useMemoFirebase(() => {
         if (!user || !db) return null;
@@ -42,15 +43,17 @@ export default function DersPlanlaPage() {
 
     const availableDays = useMemo(() => {
         if (!availableSlots) return [];
-        return availableSlots.map(slot => toDate(slot.startTime.seconds * 1000, { timeZone: turkeyTimeZone }));
-    }, [availableSlots]);
+        // Convert stored UTC timestamps to dates in the user's local timezone for calendar highlighting
+        return availableSlots.map(slot => toDate(slot.startTime.seconds * 1000, { timeZone: localTimeZone }));
+    }, [availableSlots, localTimeZone]);
 
     const slotsForSelectedDate = useMemo(() => {
         if (!availableSlots || !selectedDate) return [];
         return availableSlots
-            .filter(slot => isSameDay(toDate(slot.startTime.seconds * 1000, { timeZone: turkeyTimeZone }), selectedDate))
+            // Filter slots that fall on the selected local date
+            .filter(slot => isSameDay(toDate(slot.startTime.seconds * 1000, { timeZone: localTimeZone }), selectedDate))
             .sort((a, b) => a.startTime.seconds - b.startTime.seconds);
-    }, [availableSlots, selectedDate]);
+    }, [availableSlots, selectedDate, localTimeZone]);
     
     const handleBookLesson = async (slotId: string) => {
         if (!user || !userDocRef) {
@@ -106,7 +109,7 @@ export default function DersPlanlaPage() {
                     </Button>
                     <h2 className="text-3xl font-bold tracking-tight">Ders Planla</h2>
                     <p className="text-muted-foreground">
-                        Öğretmenimizin müsait olduğu zamanlardan birini seçin (Türkiye saatine göre).
+                        Öğretmenimizin müsait olduğu zamanlardan birini seçin.
                     </p>
                 </div>
             </div>
@@ -126,9 +129,9 @@ export default function DersPlanlaPage() {
                                 available: 'bg-primary/20 text-primary-foreground rounded-full',
                             }}
                             disabled={(date) => {
-                                // Disable all past dates
-                                if (date < new Date(new Date().setDate(new Date().getDate() - 1))) return true;
-                                // Check if the date is not in the available days list
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                if (date < today) return true;
                                 return !availableDays.some(availableDay => isSameDay(date, availableDay));
                             }}
                             className="rounded-md border"
@@ -137,6 +140,7 @@ export default function DersPlanlaPage() {
                     <div className="h-full">
                         <h3 className="text-lg font-semibold mb-4 text-center lg:text-left">
                             {selectedDate ? format(selectedDate, 'dd MMMM yyyy', { locale: tr }) : 'Bir tarih seçin'} için Müsait Saatler
+                            {selectedDate && <span className="text-sm text-muted-foreground ml-2">({format(selectedDate, 'zzz', { timeZone: localTimeZone })})</span>}
                         </h3>
                         {selectedDate && slotsForSelectedDate.length > 0 ? (
                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -148,7 +152,7 @@ export default function DersPlanlaPage() {
                                         onClick={() => handleBookLesson(slot.id)}
                                         disabled={isBooking}
                                     >
-                                        {isBooking ? <Loader2 className="animate-spin" /> : format(toDate(slot.startTime.seconds * 1000, { timeZone: turkeyTimeZone }), 'HH:mm')}
+                                        {isBooking ? <Loader2 className="animate-spin" /> : formatInTimeZone(toDate(slot.startTime.seconds * 1000), localTimeZone, 'HH:mm')}
                                     </Button>
                                 ))}
                             </div>
