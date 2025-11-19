@@ -10,8 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import Link from 'next/link';
 
-// Sadece bu domain'e sahip e-postalar öğretmen portalına giriş yapabilir.
-const allowedTeacherDomain = 'turkcocukakademisi.com';
+const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisii.com', 'teacher@turkcocukakademisi.com'];
 
 function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useUser();
@@ -19,7 +18,7 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!loading && (!user || !user.email?.endsWith(allowedTeacherDomain))) {
+    if (!loading && (!user || !user.email || !allowedTeacherEmails.includes(user.email))) {
         if(pathname !== '/ogretmen-giris') {
             router.replace('/ogretmen-giris');
         }
@@ -44,7 +43,7 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
       return <>{children}</>;
   }
   
-  if (user && user.email?.endsWith(allowedTeacherDomain)) {
+  if (user && user.email && allowedTeacherEmails.includes(user.email)) {
      return (
         <div className="min-h-screen bg-muted/40">
             <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
