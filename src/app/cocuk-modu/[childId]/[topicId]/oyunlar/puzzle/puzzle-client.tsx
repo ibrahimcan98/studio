@@ -89,8 +89,8 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
         e.preventDefault();
     };
 
-    const handleDrop = (dropIndex: number) => {
-        if (draggedPiece === null) return;
+    const handleDrop = async (dropIndex: number) => {
+        if (draggedPiece === null || placedPieces[dropIndex] !== null) return;
         
         // If piece is correct
         if (draggedPiece.piece === dropIndex) {
@@ -99,13 +99,29 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
             setPlacedPieces(newPlacedPieces);
 
             const newShuffledPieces = [...shuffledPieces];
-            newShuffledPieces[draggedPiece.index] = -1; // Mark as placed
+            newShuffledPieces[newShuffledPieces.findIndex(p => p === draggedPiece.piece)] = -1; // Mark as placed
             setShuffledPieces(newShuffledPieces);
             
             // Check if all pieces are placed
             const allPlaced = newPlacedPieces.every(p => p !== null);
             if (allPlaced) {
                 setIsSolved(true);
+            }
+        } else {
+            // Incorrect drop
+            if (!isPremium) {
+                const newLives = lives - 1;
+                setLives(newLives);
+                if (childDocRef) {
+                    await updateDoc(childDocRef, { lives: newLives });
+                }
+                if (newLives <= 0) {
+                     setTimeout(() => {
+                        alert('Canların bitti! Ebeveyn portalına yönlendiriliyorsun.');
+                        router.push('/ebeveyn-portali');
+                    }, 1500);
+                    return;
+                }
             }
         }
         setDraggedPiece(null);
@@ -220,7 +236,7 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
                     )}
                 </div>
 
-                <div className="w-full lg:w-48 flex lg:flex-col items-center justify-center gap-4">
+                <div className="w-full lg:w-auto flex lg:flex-col items-center justify-center gap-4">
                     <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
                         {shuffledPieces.map((piece, index) => {
                             if (piece === -1) return <div key={index} className="w-24 h-24 md:w-32 md:h-32 rounded-lg bg-gray-300/50" />;
