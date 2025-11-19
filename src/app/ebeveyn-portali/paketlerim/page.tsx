@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
@@ -91,7 +92,7 @@ export default function PaketlerimPage() {
                             <p className="text-xs text-muted-foreground">Paketler</p>
                             <div className="flex flex-wrap gap-1 mt-1">
                             {enrolledPackages.length > 0 ? (
-                                enrolledPackages.map((pkg, index) => <Badge key={index} variant="secondary">{pkg}</Badge>)
+                                enrolledPackages.map((pkg, index) => <Badge key={`${pkg}-${index}`} variant="secondary">{pkg}</Badge>)
                             ) : (
                                 <span className="text-sm font-medium text-muted-foreground">-</span>
                             )}

@@ -450,7 +450,7 @@ export default function EbeveynPortaliPage() {
                 <p className="text-xs text-muted-foreground">Paket</p>
                 <div className="flex flex-wrap gap-1 mt-1">
                   {enrolledPackages.length > 0 ? (
-                      enrolledPackages.map(pkg => <Badge key={pkg} variant="secondary">{pkg}</Badge>)
+                      enrolledPackages.map((pkg, index) => <Badge key={`${pkg}-${index}`} variant="secondary">{pkg}</Badge>)
                   ) : (
                       <span className="text-sm font-medium text-muted-foreground">-</span>
                   )}
@@ -577,4 +577,3 @@ export default function EbeveynPortaliPage() {
   );
 }
 
-    
