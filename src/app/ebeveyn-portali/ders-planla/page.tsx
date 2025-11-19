@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, updateDoc, where, query } from 'firebase/firestore';
@@ -23,9 +23,12 @@ export default function DersPlanlaPage() {
 
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
     const [isBooking, setIsBooking] = useState(false);
+    const [localTimeZone, setLocalTimeZone] = useState<string | null>(null);
 
-    // Detect user's local timezone from the browser
-    const localTimeZone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
+    useEffect(() => {
+        // Run only on the client, after hydration
+        setLocalTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+    }, []);
 
     const userDocRef = useMemoFirebase(() => {
         if (!user || !db) return null;
@@ -42,13 +45,13 @@ export default function DersPlanlaPage() {
     const { data: availableSlots, isLoading: areSlotsLoading } = useCollection(lessonSlotsRef);
 
     const availableDays = useMemo(() => {
-        if (!availableSlots) return [];
+        if (!availableSlots || !localTimeZone) return [];
         // Convert stored UTC timestamps to dates in the user's local timezone for calendar highlighting
         return availableSlots.map(slot => toDate(slot.startTime.seconds * 1000, { timeZone: localTimeZone }));
     }, [availableSlots, localTimeZone]);
 
     const slotsForSelectedDate = useMemo(() => {
-        if (!availableSlots || !selectedDate) return [];
+        if (!availableSlots || !selectedDate || !localTimeZone) return [];
         return availableSlots
             // Filter slots that fall on the selected local date
             .filter(slot => isSameDay(toDate(slot.startTime.seconds * 1000, { timeZone: localTimeZone }), selectedDate))
@@ -91,7 +94,7 @@ export default function DersPlanlaPage() {
     };
 
 
-    if (isUserLoading || areSlotsLoading) {
+    if (isUserLoading || areSlotsLoading || !localTimeZone) {
         return (
             <div className="flex h-screen items-center justify-center">
                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
