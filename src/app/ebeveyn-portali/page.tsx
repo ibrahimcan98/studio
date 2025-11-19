@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock, Infinity as InfinityIcon, Settings, Target, CreditCard } from 'lucide-react';
+import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock, Infinity as InfinityIcon, Settings, Target, CreditCard, Clock } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -67,7 +67,7 @@ function LivesTooltipContent({ lives, livesLastUpdatedAt }: { lives: number, liv
     const [countdown, setCountdown] = useState<string | null>(null);
 
     useEffect(() => {
-        if (lives >= MAX_LIVES || !livesLastUpdatedAt) {
+        if (lives >= MAX_LIVES || !livesLastUpdatedAt?.toDate) {
             setCountdown("Canlar dolu!");
             return;
         }
@@ -75,15 +75,18 @@ function LivesTooltipContent({ lives, livesLastUpdatedAt }: { lives: number, liv
         const interval = setInterval(() => {
             const lastUpdated = livesLastUpdatedAt.toDate();
             const now = new Date();
-            const hoursPassed = (now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
-            const livesToRegen = Math.floor(hoursPassed / LIFE_REGEN_HOURS);
+            
+            const hoursSinceUpdate = (now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
+            const regeneratedLives = Math.floor(hoursSinceUpdate / LIFE_REGEN_HOURS);
 
-            if (lives + livesToRegen >= MAX_LIVES) {
+            if (lives + regeneratedLives >= MAX_LIVES) {
                 setCountdown("Canlar dolu!");
+                 if (interval) clearInterval(interval);
                 return;
             }
             
-            const nextRegenTime = new Date(lastUpdated.getTime() + (livesToRegen + 1) * LIFE_REGEN_HOURS * 60 * 60 * 1000);
+            // Time when the *next* life is due
+            const nextRegenTime = new Date(lastUpdated.getTime() + (regeneratedLives + 1) * LIFE_REGEN_HOURS * 60 * 60 * 1000);
             const remainingMs = Math.max(0, nextRegenTime.getTime() - now.getTime());
 
             if (remainingMs === 0) {
@@ -130,6 +133,7 @@ function AddChildDialog({ userId }: { userId: string }) {
       rozet: 0,
       completedTopics: [],
       lives: 5,
+      livesLastUpdatedAt: new Date(),
     });
     
     setName('');
@@ -463,10 +467,10 @@ export default function EbeveynPortaliPage() {
                                        <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <div className='flex justify-between items-center text-sm'>
+                                                <div className='flex justify-between items-center text-sm cursor-help'>
                                                     <span className='text-muted-foreground'>Kalan Can:</span>
-                                                    <div className='flex items-center gap-1 font-bold bg-destructive/10 text-destructive px-2 py-1 rounded-md'>
-                                                    {isPremium ? <InfinityIcon className='w-4 h-4' /> : <span>{child.lives ?? 5}</span>}
+                                                    <div className='flex items-center gap-1 font-bold bg-red-100 text-red-600 px-2 py-1 rounded-md'>
+                                                    {isPremium ? <InfinityIcon className='w-4 h-4' /> : <span>{child.lives ?? 5}/{MAX_LIVES}</span>}
                                                     <Heart className='w-4 h-4 fill-current'/>
                                                     </div>
                                                 </div>
@@ -523,5 +527,7 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
+
+    
 
     
