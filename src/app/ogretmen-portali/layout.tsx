@@ -18,11 +18,11 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (loading) return; // Wait until user status is resolved
+    if (loading) return;
 
     const isTeacher = user && user.email && allowedTeacherEmails.includes(user.email);
-
-    if (!isTeacher && pathname !== '/ogretmen-giris') {
+    
+    if (!isTeacher) {
       router.replace('/ogretmen-giris');
     }
   }, [user, loading, router]);
@@ -33,29 +33,14 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
     router.push('/ogretmen-giris');
   };
   
-  if (loading) {
+  if (loading || !user) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
   }
-
-  // If user is not a teacher and is trying to access a non-login page, show loading while redirecting
-  if (!user && pathname !== '/ogretmen-giris') {
-      return (
-        <div className="flex h-screen items-center justify-center bg-gray-50">
-            <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        </div>
-      )
-  }
-
-  // For the login page, render children directly without the layout wrapper
-  if (pathname === '/ogretmen-giris') {
-      return <>{children}</>;
-  }
   
-  // If we are here, user is an authenticated teacher
   return (
     <div className="min-h-screen bg-muted/40">
         <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -79,17 +64,10 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-
 export default function Layout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-
-  if(pathname.startsWith('/ogretmen-portali') || pathname.startsWith('/ogretmen-giris')) {
-    return <TeacherPortalLayout>{children}</TeacherPortalLayout>
-  }
-  
-  return <>{children}</>
+  return <TeacherPortalLayout>{children}</TeacherPortalLayout>
 }

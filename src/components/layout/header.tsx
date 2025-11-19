@@ -26,17 +26,20 @@ import { useCart } from '@/context/cart-context';
 
 
 export default function Header() {
+  const pathname = usePathname();
+
+  // CRITICAL FIX: Do not render this header on teacher portal pages.
+  if (pathname.startsWith('/ogretmen-portali') || pathname.startsWith('/ogretmen-giris')) {
+    return null;
+  }
+  
   const { user, loading: userLoading } = useUser();
   const router = useRouter();
-  const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isLoggedIn = !!user;
   const { cartItems, isCartLoaded } = useCart();
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  if (pathname.startsWith('/cocuk-modu') || pathname.startsWith('/ogretmen-portali')) {
-    return null;
-  }
 
   const handlePortalClick = () => {
     setMobileMenuOpen(false);
