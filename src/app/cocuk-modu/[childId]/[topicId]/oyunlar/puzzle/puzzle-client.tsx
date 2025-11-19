@@ -98,12 +98,12 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
             newPlacedPieces[dropIndex] = draggedPiece.piece;
             setPlacedPieces(newPlacedPieces);
 
-            const newShuffledPieces = [...shuffledPieces];
-            // Find the index of the piece in the shuffled array and mark it as placed (-1)
-            const indexInShuffled = newShuffledPieces.findIndex(p => p === draggedPiece.piece);
-            if (indexInShuffled > -1) {
-                newShuffledPieces[indexInShuffled] = -1; 
-            }
+            const newShuffledPieces = shuffledPieces.map((p, i) => {
+                 if (p === draggedPiece.piece) {
+                    return -1; // Mark as placed
+                }
+                return p;
+            });
             setShuffledPieces(newShuffledPieces);
             
             // Check if all pieces are placed
