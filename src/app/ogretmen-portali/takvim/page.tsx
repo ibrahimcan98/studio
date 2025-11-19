@@ -11,7 +11,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { format as formatInTimeZone, toDate } from 'date-fns-tz';
-import { set, startOfDay, format } from 'date-fns';
+import { set, startOfDay, format, isSameDay } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
 const timeSlots = [
@@ -31,30 +31,31 @@ export default function TakvimYonetimiPage() {
     const [isSubmitting, setIsSubmitting] = useState<Record<string, boolean>>({});
 
     const lessonSlotsQuery = useMemoFirebase(() => {
-        if (!db || !user?.uid) return null;
-        // Query all slots by the teacher, regardless of status, to correctly manage the calendar
-        return query(collection(db, 'lesson-slots'), where('teacherId', '==', user.uid));
-    }, [db, user?.uid]);
+        if (!db) return null;
+        // Fetch all slots to correctly manage the calendar display for all teachers and parents
+        return query(collection(db, 'lesson-slots'));
+    }, [db]);
 
     const { data: lessonSlots, isLoading: areSlotsLoading } = useCollection(lessonSlotsQuery);
 
     const activeDays = useMemo(() => {
-        if (!lessonSlots) return [];
-        // A day is active if it has at least one available or booked slot
-        return lessonSlots.map(slot => toDate(slot.startTime.seconds * 1000, { timeZone: turkeyTimeZone }));
-    }, [lessonSlots]);
+        if (!lessonSlots || !user) return [];
+        // A day is active if the current teacher has at least one available or booked slot
+        return lessonSlots
+            .filter(slot => slot.teacherId === user.uid)
+            .map(slot => toDate(slot.startTime.seconds * 1000, { timeZone: turkeyTimeZone }));
+    }, [lessonSlots, user]);
     
     const slotsForSelectedDate = useMemo(() => {
         if (!lessonSlots || !selectedDate) return new Map();
         
         const slotsMap = new Map();
-        const startOfSelectedDay = startOfDay(selectedDate);
         
         lessonSlots.forEach(slot => {
             const slotDate = toDate(slot.startTime.seconds * 1000, { timeZone: turkeyTimeZone });
-            if (slotDate >= startOfSelectedDay && slotDate < new Date(startOfSelectedDay.getTime() + 24 * 60 * 60 * 1000)) {
+            if (isSameDay(slotDate, selectedDate)) {
                 const time = format(slotDate, 'HH:mm');
-                slotsMap.set(time, { id: slot.id, status: slot.status });
+                slotsMap.set(time, { id: slot.id, status: slot.status, teacherId: slot.teacherId });
             }
         });
         return slotsMap;
@@ -65,9 +66,10 @@ export default function TakvimYonetimiPage() {
 
         const [hours, minutes] = time.split(':').map(Number);
         
-        // Ensure date operations are in the correct timezone from the start
+        // This date is created in the local timezone, but represents the intended day.
         const localDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
-        const slotDateTimeInTurkey = set(localDate, { hours, minutes, seconds: 0, milliseconds: 0 });
+        // `set` will also use local timezone, which is fine as long as we convert to timestamp correctly.
+        const slotDateTime = set(localDate, { hours, minutes, seconds: 0, milliseconds: 0 });
 
         setIsSubmitting(prevState => ({ ...prevState, [time]: true }));
 
@@ -75,8 +77,11 @@ export default function TakvimYonetimiPage() {
 
         try {
              if (existingSlot) {
-                // Slot exists, so try to delete it (close the slot)
-                 if (existingSlot.status === 'booked') {
+                if (existingSlot.teacherId !== user.uid) {
+                     toast({ variant: 'destructive', title: 'Hata', description: 'Bu ders aralığı başka bir öğretmen tarafından yönetiliyor.' });
+                     return;
+                }
+                if (existingSlot.status === 'booked') {
                     toast({ variant: 'destructive', title: 'Hata', description: 'Bu ders aralığı bir öğrenci tarafından rezerve edildiği için kaldırılamaz.' });
                     return;
                 }
@@ -87,9 +92,8 @@ export default function TakvimYonetimiPage() {
                 // Slot doesn't exist, so create it (open the slot)
                 await addDoc(collection(db, 'lesson-slots'), {
                     teacherId: user.uid,
-                    // Convert to Firestore Timestamp from the correct timezone date
-                    startTime: Timestamp.fromDate(slotDateTimeInTurkey),
-                    endTime: Timestamp.fromDate(new Date(slotDateTimeInTurkey.getTime() + 45 * 60 * 1000)),
+                    startTime: Timestamp.fromDate(slotDateTime),
+                    endTime: Timestamp.fromDate(new Date(slotDateTime.getTime() + 45 * 60 * 1000)),
                     status: 'available',
                     bookedBy: null,
                 });
@@ -144,20 +148,21 @@ export default function TakvimYonetimiPage() {
                             <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                                 {timeSlots.map(time => {
                                     const slot = slotsForSelectedDate.get(time);
-                                    const isBooked = slot?.status === 'booked';
-                                    const isAvailable = slot?.status === 'available';
+                                    const isBookedByOther = slot && slot.teacherId !== user?.uid;
+                                    const isBookedByStudent = slot?.status === 'booked';
+                                    const isAvailableForMe = slot?.status === 'available' && slot.teacherId === user?.uid;
 
                                     return (
                                         <Button
                                             key={time}
-                                            variant={isBooked ? 'destructive' : isAvailable ? 'default' : 'outline'}
+                                            variant={isBookedByStudent || isBookedByOther ? 'destructive' : isAvailableForMe ? 'default' : 'outline'}
                                             className="h-12 text-base relative"
                                             onClick={() => handleTimeSlotClick(time)}
-                                            disabled={isSubmitting[time]}
+                                            disabled={isSubmitting[time] || isBookedByStudent || isBookedByOther}
                                         >
                                             {isSubmitting[time] && <Loader2 className="animate-spin absolute" />}
                                             <span className={isSubmitting[time] ? 'opacity-0' : ''}>{time}</span>
-                                             {isBooked && <CheckCircle className="w-4 h-4 absolute top-1 right-1 text-white"/>}
+                                             {(isBookedByStudent || isBookedByOther) && <CheckCircle className="w-4 h-4 absolute top-1 right-1 text-white"/>}
                                         </Button>
                                     );
                                 })}
@@ -169,8 +174,8 @@ export default function TakvimYonetimiPage() {
                         )}
                         <div className="flex flex-col gap-2 mt-6 text-sm text-muted-foreground">
                             <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-sm bg-primary"></div> Müsait (Açık)</div>
-                            <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-sm bg-destructive"></div> Dolu (Rezerve Edilmiş)</div>
-                            <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-sm border bg-background"></div> Müsait Değil (Kapalı)</div>
+                            <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-sm bg-destructive"></div> Dolu (Rezerve Edilmiş veya Başkasına Ait)</div>
+                            <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-sm border bg-background"></div> Kapalı</div>
                         </div>
                     </div>
                 </div>
