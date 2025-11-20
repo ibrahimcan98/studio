@@ -18,7 +18,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader } from '@/co
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { getAuth, signOut } from 'firebase/auth';
 import { useRouter, usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { doc } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -27,18 +27,22 @@ import { useCart } from '@/context/cart-context';
 
 export default function Header() {
   const pathname = usePathname();
-
-  // CRITICAL FIX: Do not render this header on teacher or child mode pages.
-  if (pathname.startsWith('/ogretmen-portali') || pathname.startsWith('/cocuk-modu')) {
-    return null;
-  }
-  
   const { user, loading: userLoading } = useUser();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isLoggedIn = !!user;
   const { cartItems, isCartLoaded } = useCart();
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const [showHeader, setShowHeader] = useState(false);
+
+  useEffect(() => {
+    // This effect runs only on the client, after hydration
+    if (pathname.startsWith('/ogretmen-portali') || pathname.startsWith('/cocuk-modu')) {
+      setShowHeader(false);
+    } else {
+      setShowHeader(true);
+    }
+  }, [pathname]);
 
 
   const handlePortalClick = () => {
@@ -148,6 +152,9 @@ export default function Header() {
     )
   };
 
+  if (!showHeader) {
+    return null; // Don't render anything if the header should be hidden
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
