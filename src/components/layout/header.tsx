@@ -33,14 +33,14 @@ export default function Header() {
   const isLoggedIn = !!user;
   const { cartItems, isCartLoaded } = useCart();
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  const [showHeader, setShowHeader] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
 
   useEffect(() => {
     // This effect runs only on the client, after hydration
     if (pathname.startsWith('/ogretmen-portali') || pathname.startsWith('/cocuk-modu')) {
-      setShowHeader(false);
+      setIsHidden(true);
     } else {
-      setShowHeader(true);
+      setIsHidden(false);
     }
   }, [pathname]);
 
@@ -151,13 +151,9 @@ export default function Header() {
       </DropdownMenu>
     )
   };
-
-  if (!showHeader) {
-    return null; // Don't render anything if the header should be hidden
-  }
-
+  
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className={cn("sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60", { 'hidden': isHidden })}>
       <div className="container flex h-20 items-center">
         <Link href="/" className="flex items-center space-x-2 mr-auto">
           <Logo />
