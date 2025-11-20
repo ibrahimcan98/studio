@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -28,10 +29,52 @@
           "description": "URL of the user's profile image.",
           "format": "uri"
         },
-        "userType": {
+        "role": {
           "type": "string",
-          "description": "Type of user (e.g., parent, teacher).",
-          "format": "string"
+          "description": "The role of the user (e.g., parent, teacher).",
+          "enum": ["parent", "teacher"]
+        },
+        "isPremium": {
+          "type": "boolean",
+          "description": "Indicates if the user has a premium subscription."
+        },
+        "premiumStartDate": {
+          "type": "string",
+          "description": "The start date of the premium subscription.",
+          "format": "date-time"
+        },
+        "premiumEndDate": {
+          "type": "string",
+          "description": "The end date (renewal date) of the premium subscription.",
+          "format": "date-time"
+        },
+        "lives": {
+          "type": "number",
+          "description": "The number of shared lives the user has for all their children's games."
+        },
+        "livesLastUpdatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp when the lives count was last updated, used for regeneration logic."
+        },
+        "enrolledPackages": {
+            "type": "array",
+            "description": "An array of strings representing the package IDs the user is enrolled in (e.g., ['4B', '12K']).",
+            "items": {
+                "type": "string"
+            }
+        },
+        "remainingLessons": {
+            "type": "number",
+            "description": "The total number of lessons remaining from all purchased packages."
+        },
+        "hasUsedFreeTrial": {
+            "type": "boolean",
+            "description": "Indicates if the user has already used their free trial lesson."
+        },
+        "timezone": {
+            "type": "string",
+            "description": "The IANA timezone identifier for the user (e.g., 'Europe/Dublin')."
         }
       },
       "required": [
@@ -39,7 +82,7 @@
         "firstName",
         "lastName",
         "email",
-        "userType"
+        "role"
       ]
     },
     "Child": {
@@ -77,6 +120,21 @@
         "dateOfBirth",
         "level"
       ]
+    },
+    "LessonSlot": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Lesson Slot",
+        "type": "object",
+        "description": "Represents a time slot for a lesson, which can be available or booked.",
+        "properties": {
+            "id": { "type": "string", "description": "Unique identifier for the lesson slot." },
+            "teacherId": { "type": "string", "description": "ID of the teacher who is available for this slot." },
+            "startTime": { "type": "string", "format": "date-time", "description": "The start time of the lesson slot." },
+            "endTime": { "type": "string", "format": "date-time", "description": "The end time of the lesson slot." },
+            "status": { "type": "string", "enum": ["available", "booked"], "description": "The current status of the slot." },
+            "bookedBy": { "type": "string", "description": "ID of the user (parent) who booked this slot." }
+        },
+        "required": ["id", "teacherId", "startTime", "endTime", "status"]
     },
     "Course": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -264,6 +322,17 @@
           ]
         }
       },
+       {
+        "path": "/lesson-slots/{slotId}",
+        "definition": {
+            "entityName": "LessonSlot",
+            "schema": { "$ref": "#/backend/entities/LessonSlot" },
+            "description": "Stores available and booked lesson time slots. Publicly readable, but writes are restricted.",
+            "params": [
+                { "name": "slotId", "description": "The unique identifier for the lesson slot." }
+            ]
+        }
+      },
       {
         "path": "/courses/{courseId}",
         "definition": {
@@ -337,6 +406,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to support the Türk Çocuk Akademisi platform, focusing on user data, child profiles, courses, enrollments, lessons, and reviews. The design prioritizes Authorization Independence, DBAC (Database-Based Access Control), and clear segregation of data based on access requirements.\n\n**Authorization Independence:**\n\n*   The primary method for ensuring authorization independence is through path-based ownership and avoiding `get()` calls in security rules. Data related to a specific user (e.g., children, enrollments, reviews) is stored under the `/users/{userId}` path, eliminating the need to fetch parent document data to authorize access.\n\n**QAPs (Rules are not Filters):**\n\n*   **Path-Based Ownership:** User-specific data (children, enrollments, reviews) resides under `/users/{userId}`, ensuring only the authenticated user (or authorized admin) can access it.  This facilitates secure `list` operations as rules can simply check `request.auth.uid == userId`.\n\n**Structure Overview:**\n\n*   `/users/{userId}`: Stores user profiles. This uses path-based ownership, a user can only access their own profile.\n*   `/users/{userId}/children/{childId}`: Stores child profiles associated with a user. This enforces that only a user can manage their own children.\n*   `/courses/{courseId}`: Stores course information. No user-specific data is stored here, which means that to list courses a rule can simply check that get operations are allowed, i.e. `allow read: if true`. \n*   `/users/{userId}/enrollments/{enrollmentId}`: Stores enrollment data for each user. This allows a user to see what they are enrolled in and their progress. This follows a similar design as with the user's children.\n*   `/courses/{courseId}/lessons/{lessonId}`: Stores lessons associated with a course. `list` operations are also straightforward, requiring a general read permission on courses and lessons, which can be refined based on enrollment status.\n*   `/reviews/{reviewId}`: Stores user reviews. Reviews are not stored within the user document but instead as top-level collections to allow for listing all reviews independently of user information. Reviews include a `userId` field to connect the review to the user.\n\n**Data Integrity and Invariants:**\n\n*   Timestamps (where needed) should be managed server-side to ensure integrity.  Consider adding `createdAt` and `updatedAt` fields managed via server timestamps.\n*   Ownership (`userId`) is explicitly stored in relevant documents (children, enrollments, reviews), enabling direct and secure access control."
+    "reasoning": "The Firestore data structure is designed to support the Türk Çocuk Akademisi platform, focusing on user data, child profiles, courses, enrollments, lessons, and reviews. The design prioritizes Authorization Independence, DBAC (Database-Based Access Control), and clear segregation of data based on access requirements.\\n\\n**Authorization Independence:**\\n\\n*   The primary method for ensuring authorization independence is through path-based ownership and avoiding `get()` calls in security rules. Data related to a specific user (e.g., children, enrollments, reviews) is stored under the `/users/{userId}` path, eliminating the need to fetch parent document data to authorize access.\\n\\n**QAPs (Rules are not Filters):**\\n\\n*   **Path-Based Ownership:** User-specific data (children, enrollments, reviews) resides under `/users/{userId}`, ensuring only the authenticated user (or authorized admin) can access it.  This facilitates secure `list` operations as rules can simply check `request.auth.uid == userId`.\\n\\n**Structure Overview:**\\n\\n*   `/users/{userId}`: Stores user profiles. This uses path-based ownership, a user can only access their own profile.\\n*   `/users/{userId}/children/{childId}`: Stores child profiles associated with a user. This enforces that only a user can manage their own children.\\n*   `/courses/{courseId}`: Stores course information. No user-specific data is stored here, which means that to list courses a rule can simply check that get operations are allowed, i.e. `allow read: if true`. \\n*   `/users/{userId}/enrollments/{enrollmentId}`: Stores enrollment data for each user. This allows a user to see what they are enrolled in and their progress. This follows a similar design as with the user's children.\\n*   `/courses/{courseId}/lessons/{lessonId}`: Stores lessons associated with a course. `list` operations are also straightforward, requiring a general read permission on courses and lessons, which can be refined based on enrollment status.\\n*   `/reviews/{reviewId}`: Stores user reviews. Reviews are not stored within the user document but instead as top-level collections to allow for listing all reviews independently of user information. Reviews include a `userId` field to connect the review to the user.\\n\\n**Data Integrity and Invariants:**\\n\\n*   Timestamps (where needed) should be managed server-side to ensure integrity.  Consider adding `createdAt` and `updatedAt` fields managed via server timestamps.\\n*   Ownership (`userId`) is explicitly stored in relevant documents (children, enrollments, reviews), enabling direct and secure access control."
   }
 }

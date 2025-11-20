@@ -16,6 +16,7 @@ import { isSameDay } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from '@/components/ui/label';
+import timezones from '@/data/timezones.json';
 
 export default function DersPlanlaPage() {
     const router = useRouter();
@@ -25,12 +26,8 @@ export default function DersPlanlaPage() {
 
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
     const [isBooking, setIsBooking] = useState(false);
-    const [localTimeZone, setLocalTimeZone] = useState<string | null>(null);
     const [selectedChildId, setSelectedChildId] = useState<string>('');
-
-    useEffect(() => {
-        setLocalTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
-    }, []);
+    const [selectedTimeZone, setSelectedTimeZone] = useState<string>('');
 
     const userDocRef = useMemoFirebase(() => {
         if (!user || !db) return null;
@@ -39,7 +36,36 @@ export default function DersPlanlaPage() {
 
     const { data: userData, isLoading: isUserLoading } = useDoc(userDocRef);
 
-     const childrenRef = useMemoFirebase(() => {
+    useEffect(() => {
+        if (userData?.timezone) {
+            setSelectedTimeZone(userData.timezone);
+        } else {
+            // Fallback to browser's timezone if not set in profile
+            setSelectedTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+        }
+    }, [userData]);
+
+    const handleTimeZoneChange = async (tz: string) => {
+        setSelectedTimeZone(tz);
+        if (userDocRef) {
+            try {
+                await updateDoc(userDocRef, { timezone: tz });
+                toast({
+                    title: 'Saat Dilimi Güncellendi',
+                    description: `Saat diliminiz ${tz} olarak ayarlandı.`,
+                });
+            } catch (error) {
+                console.error('Failed to update timezone:', error);
+                toast({
+                    variant: 'destructive',
+                    title: 'Hata',
+                    description: 'Saat dilimi güncellenirken bir sorun oluştu.',
+                });
+            }
+        }
+    };
+
+    const childrenRef = useMemoFirebase(() => {
         if (!db || !user?.uid) return null;
         return collection(db, 'users', user.uid, 'children');
     }, [db, user?.uid]);
@@ -54,20 +80,19 @@ export default function DersPlanlaPage() {
     const { data: availableSlots, isLoading: areSlotsLoading } = useCollection(lessonSlotsRef);
 
     const availableDays = useMemo(() => {
-        if (!availableSlots || !localTimeZone) return [];
-        // Convert stored UTC timestamps to dates in the user's local timezone for calendar highlighting
-        return availableSlots.map(slot => toZonedTime(slot.startTime.toDate(), localTimeZone));
-    }, [availableSlots, localTimeZone]);
+        if (!availableSlots || !selectedTimeZone) return [];
+        return availableSlots.map(slot => toZonedTime(slot.startTime.toDate(), selectedTimeZone));
+    }, [availableSlots, selectedTimeZone]);
 
     const slotsForSelectedDate = useMemo(() => {
-        if (!availableSlots || !selectedDate || !localTimeZone) return [];
+        if (!availableSlots || !selectedDate || !selectedTimeZone) return [];
         return availableSlots
             .filter(slot => {
-                const zonedDate = toZonedTime(slot.startTime.toDate(), localTimeZone);
+                const zonedDate = toZonedTime(slot.startTime.toDate(), selectedTimeZone);
                 return isSameDay(zonedDate, selectedDate);
             })
             .sort((a, b) => a.startTime.seconds - b.startTime.seconds);
-    }, [availableSlots, selectedDate, localTimeZone]);
+    }, [availableSlots, selectedDate, selectedTimeZone]);
     
     const handleBookLesson = async (slotId: string) => {
         if (!user || !userDocRef) {
@@ -111,7 +136,7 @@ export default function DersPlanlaPage() {
     };
 
 
-    if (isUserLoading || areSlotsLoading || areChildrenLoading || !localTimeZone) {
+    if (isUserLoading || areSlotsLoading || areChildrenLoading || !selectedTimeZone) {
         return (
             <div className="flex h-screen items-center justify-center">
                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -132,7 +157,7 @@ export default function DersPlanlaPage() {
 
             <Card className="p-4 sm:p-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="flex justify-center">
+                    <div className="flex flex-col items-center">
                          <Calendar
                             mode="single"
                             selected={selectedDate}
@@ -152,6 +177,19 @@ export default function DersPlanlaPage() {
                             }}
                             className="rounded-md border"
                         />
+                         <div className="mt-6 w-full max-w-sm">
+                            <Label htmlFor="timezone-select">Saat Diliminiz:</Label>
+                             <Select value={selectedTimeZone} onValueChange={handleTimeZoneChange}>
+                                <SelectTrigger id="timezone-select" className="mt-2">
+                                    <SelectValue placeholder="Saat dilimi seçin..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {timezones.map(tz => (
+                                        <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                         </div>
                     </div>
                     <div className="h-full">
                          <div className="mb-6">
@@ -169,8 +207,8 @@ export default function DersPlanlaPage() {
                          </div>
                         
                         <h3 className="text-lg font-semibold mb-4 text-center lg:text-left">
-                            {selectedDate ? formatInTimeZone(selectedDate, localTimeZone, 'dd MMMM yyyy', { locale: tr }) : 'Bir tarih seçin'} için Müsait Saatler
-                            {selectedDate && <span className="text-sm text-muted-foreground ml-2">({formatInTimeZone(selectedDate, localTimeZone, 'zzz')})</span>}
+                            {selectedDate ? formatInTimeZone(selectedDate, selectedTimeZone, 'dd MMMM yyyy', { locale: tr }) : 'Bir tarih seçin'} için Müsait Saatler
+                            {selectedDate && <span className="text-sm text-muted-foreground ml-2">({formatInTimeZone(selectedDate, selectedTimeZone, 'zzz')})</span>}
                         </h3>
                         {selectedDate && slotsForSelectedDate.length > 0 ? (
                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -182,7 +220,7 @@ export default function DersPlanlaPage() {
                                         onClick={() => handleBookLesson(slot.id)}
                                         disabled={isBooking}
                                     >
-                                        {isBooking ? <Loader2 className="animate-spin" /> : formatInTimeZone(toZonedTime(slot.startTime.toDate(), localTimeZone), localTimeZone, 'HH:mm', { locale: tr })}
+                                        {isBooking ? <Loader2 className="animate-spin" /> : formatInTimeZone(toZonedTime(slot.startTime.toDate(), selectedTimeZone), selectedTimeZone, 'HH:mm', { locale: tr })}
                                     </Button>
                                 ))}
                             </div>
@@ -202,5 +240,3 @@ export default function DersPlanlaPage() {
         </div>
     );
 }
-
-    

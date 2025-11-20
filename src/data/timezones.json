@@ -1,0 +1,14 @@
+
+[
+    { "value": "Europe/London", "label": "Londra (GMT+0 / GMT+1)" },
+    { "value": "Europe/Dublin", "label": "Dublin (GMT+0 / GMT+1)" },
+    { "value": "Europe/Berlin", "label": "Berlin, Paris (GMT+1 / GMT+2)" },
+    { "value": "Europe/Istanbul", "label": "İstanbul (GMT+3)" },
+    { "value": "America/New_York", "label": "New York (EST, GMT-5 / EDT, GMT-4)" },
+    { "value": "America/Chicago", "label": "Chicago (CST, GMT-6 / CDT, GMT-5)" },
+    { "value": "America/Denver", "label": "Denver (MST, GMT-7 / MDT, GMT-6)" },
+    { "value": "America/Los_Angeles", "label": "Los Angeles (PST, GMT-8 / PDT, GMT-7)" },
+    { "value": "Asia/Dubai", "label": "Dubai (GMT+4)" },
+    { "value": "Asia/Tokyo", "label": "Tokyo (GMT+9)" },
+    { "value": "Australia/Sydney", "label": "Sydney (AEST, GMT+10 / AEDT, GMT+11)" }
+]
