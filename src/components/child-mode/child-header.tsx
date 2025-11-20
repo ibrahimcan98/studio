@@ -135,13 +135,11 @@ export function ChildHeader({ childName, childId }: ChildHeaderProps) {
             <Award className="w-5 h-5 fill-current" />
             <span>{badges}</span>
           </div>
-          {isPremium ? (
+          {isPremium && (
              <Badge className="bg-yellow-400 text-yellow-900 hover:bg-yellow-400/90 hidden sm:flex">
                 <Crown className="mr-1 h-3 w-3" />
                 Premium
             </Badge>
-          ) : (
-            <Button size="sm" className="bg-yellow-400 text-yellow-900 hover:bg-yellow-500 hidden sm:inline-flex">Premium</Button>
           )}
           <ExitDialog childId={childId}>
             <Button variant="outline" size="icon">
