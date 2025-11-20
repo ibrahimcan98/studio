@@ -11,7 +11,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { formatInTimeZone } from 'date-fns-tz';
+import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { isSameDay } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -39,8 +39,7 @@ export default function DersPlanlaPage() {
     useEffect(() => {
         if (userData?.timezone) {
             setSelectedTimeZone(userData.timezone);
-        } else {
-            // Fallback to browser's timezone if not set in profile
+        } else if (typeof window !== 'undefined') {
             setSelectedTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
         }
     }, [userData]);
@@ -81,14 +80,14 @@ export default function DersPlanlaPage() {
 
     const availableDays = useMemo(() => {
         if (!availableSlots || !selectedTimeZone) return [];
-        return availableSlots.map(slot => new Date(formatInTimeZone(slot.startTime.toDate(), selectedTimeZone, 'yyyy-MM-dd HH:mm:ss')));
+        return availableSlots.map(slot => toDate(slot.startTime.seconds * 1000, { timeZone: selectedTimeZone }));
     }, [availableSlots, selectedTimeZone]);
 
     const slotsForSelectedDate = useMemo(() => {
         if (!availableSlots || !selectedDate || !selectedTimeZone) return [];
         return availableSlots
             .filter(slot => {
-                const zonedDate = new Date(formatInTimeZone(slot.startTime.toDate(), selectedTimeZone, 'yyyy-MM-dd HH:mm:ss'));
+                const zonedDate = toDate(slot.startTime.seconds * 1000, { timeZone: selectedTimeZone });
                 return isSameDay(zonedDate, selectedDate);
             })
             .sort((a, b) => a.startTime.seconds - b.startTime.seconds);
