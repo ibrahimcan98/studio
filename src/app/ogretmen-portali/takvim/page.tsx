@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 
 const timeSlots = [
@@ -233,6 +234,12 @@ export default function TakvimYonetimiPage() {
                  <p className="text-muted-foreground mb-1">Hoş geldin, {getTeacherName()}!</p>
                 <h2 className="text-3xl font-bold tracking-tight">Müsaitlik Takvimi</h2>
             </div>
+             <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                    Takvimdeki tüm saatler Türkiye (Europe/Istanbul) saat dilimine göredir.
+                </AlertDescription>
+            </Alert>
 
             <Card className="p-4 sm:p-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -251,6 +258,7 @@ export default function TakvimYonetimiPage() {
                     <div>
                         <h3 className="text-lg font-semibold mb-4 text-center lg:text-left">
                             {selectedDate ? format(selectedDate, 'dd MMMM yyyy', { locale: tr }) : 'Bir tarih seçin'} için Saatler
+                             {selectedDate && <span className="text-sm text-muted-foreground ml-2">({formatInTimeZone(selectedDate, turkeyTimeZone, 'zzz')})</span>}
                         </h3>
                         {selectedDate ? (
                             <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
