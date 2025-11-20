@@ -11,7 +11,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { formatInTimeZone } from 'date-fns-tz';
 import { isSameDay } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -81,14 +81,14 @@ export default function DersPlanlaPage() {
 
     const availableDays = useMemo(() => {
         if (!availableSlots || !selectedTimeZone) return [];
-        return availableSlots.map(slot => toZonedTime(slot.startTime.toDate(), selectedTimeZone));
+        return availableSlots.map(slot => new Date(formatInTimeZone(slot.startTime.toDate(), selectedTimeZone, 'yyyy-MM-dd HH:mm:ss')));
     }, [availableSlots, selectedTimeZone]);
 
     const slotsForSelectedDate = useMemo(() => {
         if (!availableSlots || !selectedDate || !selectedTimeZone) return [];
         return availableSlots
             .filter(slot => {
-                const zonedDate = toZonedTime(slot.startTime.toDate(), selectedTimeZone);
+                const zonedDate = new Date(formatInTimeZone(slot.startTime.toDate(), selectedTimeZone, 'yyyy-MM-dd HH:mm:ss'));
                 return isSameDay(zonedDate, selectedDate);
             })
             .sort((a, b) => a.startTime.seconds - b.startTime.seconds);
@@ -220,7 +220,7 @@ export default function DersPlanlaPage() {
                                         onClick={() => handleBookLesson(slot.id)}
                                         disabled={isBooking}
                                     >
-                                        {isBooking ? <Loader2 className="animate-spin" /> : formatInTimeZone(toZonedTime(slot.startTime.toDate(), selectedTimeZone), selectedTimeZone, 'HH:mm', { locale: tr })}
+                                        {isBooking ? <Loader2 className="animate-spin" /> : formatInTimeZone(slot.startTime.toDate(), selectedTimeZone, 'HH:mm', { locale: tr })}
                                     </Button>
                                 ))}
                             </div>
