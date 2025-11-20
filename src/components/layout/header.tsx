@@ -28,8 +28,8 @@ import { useCart } from '@/context/cart-context';
 export default function Header() {
   const pathname = usePathname();
 
-  // CRITICAL FIX: Do not render this header on teacher portal pages.
-  if (pathname.startsWith('/ogretmen-portali')) {
+  // CRITICAL FIX: Do not render this header on teacher or child mode pages.
+  if (pathname.startsWith('/ogretmen-portali') || pathname.startsWith('/cocuk-modu')) {
     return null;
   }
   
