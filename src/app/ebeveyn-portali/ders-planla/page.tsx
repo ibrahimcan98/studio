@@ -11,7 +11,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { formatInTimeZone, toDate } from 'date-fns-tz';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import { isSameDay } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -29,7 +29,6 @@ export default function DersPlanlaPage() {
     const [selectedChildId, setSelectedChildId] = useState<string>('');
 
     useEffect(() => {
-        // Run only on the client, after hydration
         setLocalTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
     }, []);
 
@@ -57,14 +56,16 @@ export default function DersPlanlaPage() {
     const availableDays = useMemo(() => {
         if (!availableSlots || !localTimeZone) return [];
         // Convert stored UTC timestamps to dates in the user's local timezone for calendar highlighting
-        return availableSlots.map(slot => toDate(slot.startTime.seconds * 1000, { timeZone: localTimeZone }));
+        return availableSlots.map(slot => toZonedTime(slot.startTime.toDate(), localTimeZone));
     }, [availableSlots, localTimeZone]);
 
     const slotsForSelectedDate = useMemo(() => {
         if (!availableSlots || !selectedDate || !localTimeZone) return [];
         return availableSlots
-            // Filter slots that fall on the selected local date
-            .filter(slot => isSameDay(toDate(slot.startTime.seconds * 1000, { timeZone: localTimeZone }), selectedDate))
+            .filter(slot => {
+                const zonedDate = toZonedTime(slot.startTime.toDate(), localTimeZone);
+                return isSameDay(zonedDate, selectedDate);
+            })
             .sort((a, b) => a.startTime.seconds - b.startTime.seconds);
     }, [availableSlots, selectedDate, localTimeZone]);
     
@@ -181,7 +182,7 @@ export default function DersPlanlaPage() {
                                         onClick={() => handleBookLesson(slot.id)}
                                         disabled={isBooking}
                                     >
-                                        {isBooking ? <Loader2 className="animate-spin" /> : formatInTimeZone(toDate(slot.startTime.seconds * 1000), localTimeZone, 'HH:mm', { locale: tr })}
+                                        {isBooking ? <Loader2 className="animate-spin" /> : formatInTimeZone(toZonedTime(slot.startTime.toDate(), localTimeZone), localTimeZone, 'HH:mm', { locale: tr })}
                                     </Button>
                                 ))}
                             </div>
@@ -201,3 +202,5 @@ export default function DersPlanlaPage() {
         </div>
     );
 }
+
+    
