@@ -10,8 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { formatInTimeZone, toDate } from 'date-fns-tz';
-import { set, startOfDay, format, isSameDay, differenceInYears } from 'date-fns';
+import { format, set, startOfDay, isSameDay, differenceInYears } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import {
   Dialog,
@@ -29,8 +28,6 @@ const timeSlots = [
     '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', 
     '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'
 ];
-
-const turkeyTimeZone = 'Europe/Istanbul';
 
 type SlotDetails = {
     id: string;
@@ -67,7 +64,7 @@ function LessonDetailsDialog({ slot, isOpen, onOpenChange }: { slot: SlotDetails
                 <DialogHeader>
                     <DialogTitle>Ders Detayları</DialogTitle>
                     <DialogDescription>
-                         {formatInTimeZone(slot.startTime.toDate(), turkeyTimeZone, 'dd MMMM yyyy, HH:mm', { locale: tr })}
+                         {format(slot.startTime.toDate(), 'dd MMMM yyyy, HH:mm', { locale: tr })}
                     </DialogDescription>
                 </DialogHeader>
                 {isParentLoading || isChildLoading ? (
@@ -127,7 +124,7 @@ export default function TakvimYonetimiPage() {
         if (!lessonSlots || !user) return [];
         return lessonSlots
             .filter(slot => slot.teacherId === user.uid && slot.status === 'available')
-            .map(slot => toDate(slot.startTime.seconds * 1000, { timeZone: turkeyTimeZone }));
+            .map(slot => slot.startTime.toDate());
     }, [lessonSlots, user]);
     
     const slotsForSelectedDate = useMemo(() => {
@@ -136,7 +133,7 @@ export default function TakvimYonetimiPage() {
         const slotsMap = new Map<string, SlotDetails>();
         
         lessonSlots.forEach(slot => {
-            const slotDate = toDate(slot.startTime.seconds * 1000, { timeZone: turkeyTimeZone });
+            const slotDate = slot.startTime.toDate();
             if (isSameDay(slotDate, selectedDate)) {
                 const time = format(slotDate, 'HH:mm');
                 slotsMap.set(time, slot as SlotDetails);
@@ -234,13 +231,7 @@ export default function TakvimYonetimiPage() {
                  <p className="text-muted-foreground mb-1">Hoş geldin, {getTeacherName()}!</p>
                 <h2 className="text-3xl font-bold tracking-tight">Müsaitlik Takvimi</h2>
             </div>
-             <Alert>
-                <Info className="h-4 w-4" />
-                <AlertDescription>
-                    Takvimdeki tüm saatler Türkiye (Europe/Istanbul) saat dilimine göredir.
-                </AlertDescription>
-            </Alert>
-
+            
             <Card className="p-4 sm:p-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <div className="flex justify-center">
@@ -258,7 +249,6 @@ export default function TakvimYonetimiPage() {
                     <div>
                         <h3 className="text-lg font-semibold mb-4 text-center lg:text-left">
                             {selectedDate ? format(selectedDate, 'dd MMMM yyyy', { locale: tr }) : 'Bir tarih seçin'} için Saatler
-                             {selectedDate && <span className="text-sm text-muted-foreground ml-2">({formatInTimeZone(selectedDate, turkeyTimeZone, 'zzz')})</span>}
                         </h3>
                         {selectedDate ? (
                             <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
