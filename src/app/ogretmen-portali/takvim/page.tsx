@@ -173,7 +173,7 @@ export default function TakvimYonetimiPage() {
                 .then(() => {
                     toast({ title: 'Kapatıldı', description: `${time} saati müsaitlikten kaldırıldı.` });
                 })
-                .catch(() => {
+                .catch(async (serverError) => {
                     const contextualError = new FirestorePermissionError({
                         operation: 'delete',
                         path: slotDocRef.path,
@@ -197,7 +197,7 @@ export default function TakvimYonetimiPage() {
                 .then(() => {
                      toast({ title: 'Açıldı', description: `${time} saati müsait olarak eklendi.`, className: 'bg-green-500 text-white' });
                 })
-                .catch(() => {
+                .catch(async (serverError) => {
                     const contextualError = new FirestorePermissionError({
                         operation: 'create',
                         path: 'lesson-slots',
@@ -314,3 +314,4 @@ export default function TakvimYonetimiPage() {
         </div>
     );
 }
+
