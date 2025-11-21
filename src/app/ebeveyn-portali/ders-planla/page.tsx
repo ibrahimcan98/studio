@@ -11,7 +11,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
-import { isSameDay } from 'date-fns';
+import { isSameDay, toDate } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from '@/components/ui/label';
@@ -91,14 +91,14 @@ export default function DersPlanlaPage() {
 
     const availableDays = useMemo(() => {
         if (!availableSlots || !selectedTimeZone) return [];
-        return availableSlots.map(slot => toZonedTime(slot.startTime.seconds * 1000, selectedTimeZone));
+        return availableSlots.map(slot => toDate(slot.startTime.seconds * 1000, { timeZone: selectedTimeZone }));
     }, [availableSlots, selectedTimeZone]);
-
+    
     const slotsForSelectedDate = useMemo(() => {
         if (!availableSlots || !selectedDate || !selectedTimeZone) return [];
         return availableSlots
             .filter(slot => {
-                const zonedDate = toZonedTime(slot.startTime.seconds * 1000, selectedTimeZone);
+                const zonedDate = toDate(slot.startTime.seconds * 1000, { timeZone: selectedTimeZone });
                 return isSameDay(zonedDate, selectedDate);
             })
             .sort((a, b) => a.startTime.seconds - b.startTime.seconds);
@@ -278,7 +278,7 @@ export default function DersPlanlaPage() {
                         
                             <h3 className="text-lg font-semibold text-center lg:text-left">
                                 {selectedDate ? formatInTimeZone(selectedDate, selectedTimeZone, 'dd MMMM yyyy', { locale: tr }) : 'Bir tarih seçin'} için Müsait Saatler
-                                {selectedDate && <span className="text-sm text-muted-foreground ml-2">({formatInTimeZone(selectedDate, selectedTimeZone, 'zzz')})</span>}
+                                {selectedDate && <span className="text-sm text-muted-foreground ml-2">({formatInTimeZone(toDate(selectedDate), selectedTimeZone, 'zzz')})</span>}
                             </h3>
                             {selectedDate && slotsForSelectedDate.length > 0 ? (
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -324,5 +324,4 @@ export default function DersPlanlaPage() {
         </div>
     );
 }
-
     
