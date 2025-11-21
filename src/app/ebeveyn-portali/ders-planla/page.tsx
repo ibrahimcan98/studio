@@ -123,7 +123,7 @@ export default function DersPlanlaPage() {
             return;
         }
         
-        if (!hasFreeTrial && !selectedPackage) {
+        if (hasRemainingLessons && !hasFreeTrial && !selectedPackage) {
             toast({ variant: 'destructive', title: 'Hata', description: 'Lütfen kullanmak istediğiniz ders paketini seçin.' });
             return;
         }
@@ -254,7 +254,7 @@ export default function DersPlanlaPage() {
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                {enrolledPackages.length > 0 && !userData?.hasUsedFreeTrial && (
+                                {enrolledPackages.length > 0 && userData?.hasUsedFreeTrial && (
                                     <div>
                                         <Label htmlFor="package-select">Kullanılacak paket:</Label>
                                         <Select value={selectedPackage} onValueChange={setSelectedPackage}>
