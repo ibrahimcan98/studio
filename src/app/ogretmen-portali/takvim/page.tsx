@@ -22,6 +22,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { formatInTimeZone } from 'date-fns-tz';
 
 
 const timeSlots = [
@@ -40,6 +41,7 @@ type SlotDetails = {
 
 function LessonDetailsDialog({ slot, isOpen, onOpenChange }: { slot: SlotDetails | null, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
     const db = useFirestore();
+    const turkeyTimeZone = 'Europe/Istanbul';
 
     const parentDocRef = useMemoFirebase(() => {
         if (!db || !slot?.bookedBy) return null;
@@ -64,7 +66,7 @@ function LessonDetailsDialog({ slot, isOpen, onOpenChange }: { slot: SlotDetails
                 <DialogHeader>
                     <DialogTitle>Ders Detayları</DialogTitle>
                     <DialogDescription>
-                         {format(slot.startTime.toDate(), 'dd MMMM yyyy, HH:mm', { locale: tr })}
+                         {formatInTimeZone(slot.startTime.toDate(), turkeyTimeZone, 'dd MMMM yyyy, HH:mm', { locale: tr })} (Türkiye Saati)
                     </DialogDescription>
                 </DialogHeader>
                 {isParentLoading || isChildLoading ? (
@@ -111,7 +113,11 @@ export default function TakvimYonetimiPage() {
     const [isSubmitting, setIsSubmitting] = useState<Record<string, boolean>>({});
     const [selectedSlot, setSelectedSlot] = useState<SlotDetails | null>(null);
     const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+    const [timeZone, setTimeZone] = useState('');
 
+    useEffect(() => {
+        setTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+    }, []);
 
     const lessonSlotsQuery = useMemoFirebase(() => {
         if (!db) return null;
@@ -312,4 +318,3 @@ export default function TakvimYonetimiPage() {
         </div>
     );
 }
-
