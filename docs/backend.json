@@ -132,7 +132,8 @@
             "startTime": { "type": "string", "format": "date-time", "description": "The start time of the lesson slot." },
             "endTime": { "type": "string", "format": "date-time", "description": "The end time of the lesson slot." },
             "status": { "type": "string", "enum": ["available", "booked"], "description": "The current status of the slot." },
-            "bookedBy": { "type": "string", "description": "ID of the user (parent) who booked this slot." }
+            "bookedBy": { "type": "string", "description": "ID of the user (parent) who booked this slot." },
+            "childId": { "type": "string", "description": "ID of the child who will take the lesson." }
         },
         "required": ["id", "teacherId", "startTime", "endTime", "status"]
     },

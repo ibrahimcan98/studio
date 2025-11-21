@@ -4,8 +4,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, where, query } from 'firebase/firestore';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { collection, doc, updateDoc, where, query, increment } from 'firebase/firestore';
+import { Loader2, ArrowLeft, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Card } from '@/components/ui/card';
@@ -17,6 +17,7 @@ import { tr } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from '@/components/ui/label';
 import timezones from '@/data/timezones.json';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function DersPlanlaPage() {
     const router = useRouter();
@@ -94,7 +95,7 @@ export default function DersPlanlaPage() {
     }, [availableSlots, selectedDate, selectedTimeZone]);
     
     const handleBookLesson = async (slotId: string) => {
-        if (!user || !userDocRef) {
+        if (!user || !userDocRef || !userData) {
             toast({ variant: 'destructive', title: 'Hata', description: 'Giriş yapmalısınız.' });
             return;
         }
@@ -104,28 +105,47 @@ export default function DersPlanlaPage() {
             return;
         }
 
-        if(userData?.hasUsedFreeTrial) {
-             toast({ variant: 'destructive', title: 'Hakkınız Kalmadı', description: 'Ücretsiz deneme dersi hakkınızı zaten kullandınız.' });
-             return;
+        const hasFreeTrial = !userData.hasUsedFreeTrial;
+        const hasRemainingLessons = (userData.remainingLessons || 0) > 0;
+
+        if (!hasFreeTrial && !hasRemainingLessons) {
+            toast({ variant: 'destructive', title: 'Ders Hakkı Kalmadı', description: 'Ders planlamak için lütfen yeni bir paket satın alın.' });
+            return;
         }
 
         setIsBooking(true);
         try {
             const slotDocRef = doc(db, 'lesson-slots', slotId);
-            await updateDoc(slotDocRef, {
+            
+            // Prepare updates
+            const slotUpdate = {
                 status: 'booked',
                 bookedBy: user.uid,
                 childId: selectedChildId
-            });
-            await updateDoc(userDocRef, {
-                hasUsedFreeTrial: true
-            });
+            };
+            
+            let userUpdate = {};
+            let successMessage = '';
+            
+            if (hasFreeTrial) {
+                userUpdate = { hasUsedFreeTrial: true };
+                successMessage = 'Ücretsiz deneme dersiniz başarıyla planlandı.';
+            } else {
+                userUpdate = { remainingLessons: increment(-1) };
+                successMessage = 'Dersiniz başarıyla planlandı. Kalan ders sayınız güncellendi.';
+            }
+
+            // Perform updates
+            await updateDoc(slotDocRef, slotUpdate);
+            await updateDoc(userDocRef, userUpdate);
+
             toast({
                 title: 'Ders Planlandı!',
-                description: 'Ücretsiz deneme dersiniz başarıyla planlandı.',
+                description: successMessage,
                 className: 'bg-green-500 text-white'
             });
             router.push('/ebeveyn-portali');
+
         } catch (error) {
             console.error("Booking error:", error);
             toast({ variant: 'destructive', title: 'Hata', description: 'Ders planlanırken bir sorun oluştu.' });
@@ -133,6 +153,8 @@ export default function DersPlanlaPage() {
             setIsBooking(false);
         }
     };
+    
+    const hasBookingRights = !userData?.hasUsedFreeTrial || (userData?.remainingLessons || 0) > 0;
 
 
     if (isUserLoading || areSlotsLoading || areChildrenLoading || !selectedTimeZone) {
@@ -227,7 +249,7 @@ export default function DersPlanlaPage() {
                                         variant="outline"
                                         className="h-12 text-base"
                                         onClick={() => handleBookLesson(slot.id)}
-                                        disabled={isBooking}
+                                        disabled={isBooking || !hasBookingRights}
                                     >
                                         {isBooking ? <Loader2 className="animate-spin" /> : formatInTimeZone(slot.startTime.toDate(), selectedTimeZone, 'HH:mm', { locale: tr })}
                                     </Button>
@@ -239,13 +261,23 @@ export default function DersPlanlaPage() {
                             </div>
                         )}
                          <div className="mt-6 text-center">
-                            {userData?.hasUsedFreeTrial && (
-                                <Badge variant="destructive">Ücretsiz deneme dersi hakkınızı kullandınız.</Badge>
+                           {!userData?.hasUsedFreeTrial ? (
+                                <Badge variant="default" className='bg-green-100 text-green-800'>Ücretsiz deneme dersi hakkınız mevcut!</Badge>
+                            ) : (userData?.remainingLessons || 0) > 0 ? (
+                                <Badge>Kalan Ders: {userData.remainingLessons}</Badge>
+                            ) : (
+                                <Badge variant="destructive">Hiç ders hakkınız kalmadı.</Badge>
                             )}
                         </div>
                     </div>
                 </div>
             </Card>
+             <Alert className="mt-8">
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                    Derse 24 saat kalana kadar ücretsiz iptal edebilirsiniz. 24 saatten az kalan dersler için 2 değişim hakkınız vardır.
+                </AlertDescription>
+            </Alert>
         </div>
     );
 }
