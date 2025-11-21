@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, updateDoc, where, query } from 'firebase/firestore';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Card } from '@/components/ui/card';
@@ -146,11 +146,21 @@ export default function DersPlanlaPage() {
     return (
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen">
             <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Ders Planla</h2>
-                    <p className="text-muted-foreground">
-                        Öğretmenimizin müsait olduğu zamanlardan birini seçin.
-                    </p>
+                <div className="flex items-center gap-4">
+                     <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-10 w-10"
+                        onClick={() => router.push('/ebeveyn-portali')}
+                    >
+                        <ArrowLeft className="h-5 w-5" />
+                    </Button>
+                    <div>
+                        <h2 className="text-3xl font-bold tracking-tight">Ders Planla</h2>
+                        <p className="text-muted-foreground">
+                            Öğretmenimizin müsait olduğu zamanlardan birini seçin.
+                        </p>
+                    </div>
                 </div>
             </div>
 
