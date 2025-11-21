@@ -1,11 +1,11 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError, useDoc } from '@/firebase';
 import { collection, query, where, addDoc, deleteDoc, Timestamp, doc } from 'firebase/firestore';
-import { Loader2, CheckCircle, User, Baby, Info } from 'lucide-react';
+import { Loader2, CheckCircle, User, Baby, Info, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +23,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatInTimeZone } from 'date-fns-tz';
+import { COURSES } from '@/data/courses';
 
 
 const timeSlots = [
@@ -37,7 +38,19 @@ type SlotDetails = {
     bookedBy?: string;
     childId?: string;
     startTime: Timestamp;
+    packageCode?: string;
 };
+
+const getCourseDetailsFromPackageCode = (code?: string) => {
+    if (!code) return null;
+    if (code === 'FREE_TRIAL') return { courseName: 'Ücretsiz Deneme Dersi', duration: '30 dakika' };
+    
+    const courseCodeMap: { [key: string]: string } = { 'B': 'baslangic', 'K': 'konusma', 'G': 'gelisim', 'A': 'akademik' };
+    const courseId = courseCodeMap[code.replace(/[0-9]/g, '')];
+    const course = COURSES.find(c => c.id === courseId);
+    return course ? { courseName: course.title, duration: course.details.duration } : null;
+}
+
 
 function LessonDetailsDialog({ slot, isOpen, onOpenChange }: { slot: SlotDetails | null, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
     const db = useFirestore();
@@ -59,6 +72,7 @@ function LessonDetailsDialog({ slot, isOpen, onOpenChange }: { slot: SlotDetails
     if (!slot) return null;
     
     const childAge = childData?.dateOfBirth ? differenceInYears(new Date(), new Date(childData.dateOfBirth)) : 'N/A';
+    const packageDetails = getCourseDetailsFromPackageCode(slot.packageCode);
 
     return (
          <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -75,6 +89,17 @@ function LessonDetailsDialog({ slot, isOpen, onOpenChange }: { slot: SlotDetails
                     </div>
                 ) : (
                     <div className="space-y-6 pt-4">
+                        {packageDetails && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-lg flex items-center gap-2"><BookOpen /> Ders Bilgileri</CardTitle>
+                                </CardHeader>
+                                <CardContent className="text-sm space-y-2">
+                                     <p><strong>Paket:</strong> {packageDetails.courseName} ({slot.packageCode === 'FREE_TRIAL' ? 'Deneme' : slot.packageCode})</p>
+                                     <p><strong>Süre:</strong> {packageDetails.duration}</p>
+                                </CardContent>
+                            </Card>
+                        )}
                         <Card>
                             <CardHeader>
                                 <CardTitle className="text-lg flex items-center gap-2"><User /> Veli Bilgileri</CardTitle>
@@ -82,6 +107,7 @@ function LessonDetailsDialog({ slot, isOpen, onOpenChange }: { slot: SlotDetails
                             <CardContent className="text-sm space-y-2">
                                 <p><strong>İsim:</strong> {parentData?.firstName} {parentData?.lastName}</p>
                                 <p><strong>Email:</strong> {parentData?.email}</p>
+                                <p><strong>Saat Dilimi:</strong> {parentData?.timezone}</p>
                             </CardContent>
                         </Card>
                         <Card>
@@ -94,9 +120,6 @@ function LessonDetailsDialog({ slot, isOpen, onOpenChange }: { slot: SlotDetails
                                 <p><strong>Seviye:</strong> {childData?.level}</p>
                             </CardContent>
                         </Card>
-                         <div className="text-center">
-                            <Badge variant="secondary">Ücretsiz Deneme Dersi</Badge>
-                        </div>
                     </div>
                 )}
             </DialogContent>
@@ -121,6 +144,7 @@ export default function TakvimYonetimiPage() {
 
     const lessonSlotsQuery = useMemoFirebase(() => {
         if (!db) return null;
+        // The query doesn't need to be restricted by teacherId here, we will filter on the client
         return query(collection(db, 'lesson-slots'));
     }, [db]);
 
@@ -139,14 +163,15 @@ export default function TakvimYonetimiPage() {
         const slotsMap = new Map<string, SlotDetails>();
         
         lessonSlots.forEach(slot => {
-            const slotDate = slot.startTime.toDate();
-            if (isSameDay(slotDate, selectedDate)) {
-                const time = format(slotDate, 'HH:mm');
+            // Compare dates in the teacher's local timezone
+            const localSlotDate = toZonedTime(slot.startTime.seconds * 1000, timeZone);
+            if (isSameDay(localSlotDate, selectedDate)) {
+                const time = format(localSlotDate, 'HH:mm');
                 slotsMap.set(time, slot as SlotDetails);
             }
         });
         return slotsMap;
-    }, [lessonSlots, selectedDate]);
+    }, [lessonSlots, selectedDate, timeZone]);
     
     const handleTimeSlotClick = (time: string) => {
         const slot = slotsForSelectedDate.get(time);
@@ -160,12 +185,14 @@ export default function TakvimYonetimiPage() {
         if (!selectedDate || !user || !db) return;
 
         const [hours, minutes] = time.split(':').map(Number);
+        // Create the date in the local timezone of the teacher's browser
         const slotDateTime = set(startOfDay(selectedDate), { hours, minutes });
         const startTime = Timestamp.fromDate(slotDateTime);
 
         setIsSubmitting(prevState => ({ ...prevState, [time]: true }));
         
         if (slot) {
+            // A slot exists, so we're deleting it (closing the slot)
             if (slot.teacherId !== user.uid) {
                 toast({ variant: 'destructive', title: 'Hata', description: 'Bu aralık başka bir öğretmene ait.' });
                 setIsSubmitting(prevState => ({ ...prevState, [time]: false }));
@@ -189,9 +216,12 @@ export default function TakvimYonetimiPage() {
                 });
 
         } else {
+             // No slot exists, so we're creating one (opening the slot)
              const newSlotData = {
                 teacherId: user.uid,
                 startTime: startTime,
+                // Duration is determined by the package parent chooses, not here.
+                // We can set a default or handle it dynamically. Let's set a default for now.
                 endTime: Timestamp.fromDate(new Date(startTime.toMillis() + 45 * 60 * 1000)),
                 status: 'available',
                 bookedBy: null,
@@ -288,7 +318,7 @@ export default function TakvimYonetimiPage() {
                                             variant={variant}
                                             className="h-12 text-base relative"
                                             onClick={() => handleTimeSlotClick(time)}
-                                            disabled={disabled && !isBookedByStudent}
+                                            disabled={disabled || (isBookedByStudent && slot?.teacherId !== user?.uid)}
                                         >
                                             {content}
                                             {isBookedByStudent && <CheckCircle className="w-4 h-4 absolute top-1 right-1 text-white"/>}
@@ -318,3 +348,5 @@ export default function TakvimYonetimiPage() {
         </div>
     );
 }
+
+    
