@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, updateDoc, where, query, increment, Timestamp } from 'firebase/firestore';
 import { Loader2, ArrowLeft, Info, BookOpen, User, Calendar as CalendarIcon, Package, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -148,49 +148,59 @@ export default function DersPlanlaPage() {
     };
     
     const handleBookLesson = async () => {
-        if (!user || !userDocRef || !userData || !selectedSlot) return;
-
+        if (!user || !db || !userDocRef || !userData || !selectedSlot) return;
+    
         setIsBooking(true);
-        try {
-            const slotDocRef = doc(db, 'lesson-slots', selectedSlot.id);
-            const hasFreeTrial = !userData.hasUsedFreeTrial;
-            
-            const slotUpdate = {
-                status: 'booked',
-                bookedBy: user.uid,
-                childId: selectedChildId,
-                packageCode: hasFreeTrial ? 'FREE_TRIAL' : selectedPackage
-            };
-            
-            let userUpdate = {};
-            let successMessage = '';
-            
-            if (hasFreeTrial) {
-                userUpdate = { hasUsedFreeTrial: true };
-                successMessage = 'Ücretsiz deneme dersiniz başarıyla planlandı.';
-            } else {
-                userUpdate = { remainingLessons: increment(-1) };
-                successMessage = 'Dersiniz başarıyla planlandı. Kalan ders sayınız güncellendi.';
-            }
-
-            await updateDoc(slotDocRef, slotUpdate);
-            await updateDoc(userDocRef, userUpdate);
-
-            toast({
-                title: 'Ders Planlandı!',
-                description: successMessage,
-                className: 'bg-green-500 text-white'
-            });
-            router.push('/ebeveyn-portali');
-
-        } catch (error) {
-            console.error("Booking error:", error);
-            toast({ variant: 'destructive', title: 'Hata', description: 'Ders planlanırken bir sorun oluştu.' });
-        } finally {
-            setIsBooking(false);
-            setIsConfirming(false);
-            setSelectedSlot(null);
+    
+        const slotDocRef = doc(db, 'lesson-slots', selectedSlot.id);
+        const hasFreeTrial = !userData.hasUsedFreeTrial;
+    
+        const slotUpdate = {
+            status: 'booked',
+            bookedBy: user.uid,
+            childId: selectedChildId,
+            packageCode: hasFreeTrial ? 'FREE_TRIAL' : selectedPackage
+        };
+    
+        let userUpdate: { [key: string]: any } = {};
+        let successMessage = '';
+    
+        if (hasFreeTrial) {
+            userUpdate = { hasUsedFreeTrial: true };
+            successMessage = 'Ücretsiz deneme dersiniz başarıyla planlandı.';
+        } else {
+            userUpdate = { remainingLessons: increment(-1) };
+            successMessage = 'Dersiniz başarıyla planlandı. Kalan ders sayınız güncellendi.';
         }
+    
+        // Perform updates and handle potential permission errors
+        updateDoc(slotDocRef, slotUpdate)
+            .then(() => {
+                return updateDoc(userDocRef, userUpdate);
+            })
+            .then(() => {
+                toast({
+                    title: 'Ders Planlandı!',
+                    description: successMessage,
+                    className: 'bg-green-500 text-white'
+                });
+                router.push('/ebeveyn-portali');
+            })
+            .catch(async (serverError) => {
+                // Determine which update failed based on error, but for simplicity, we assume slotUpdate might be the first point of failure.
+                // A more robust solution might check which doc was being written.
+                 const permissionError = new FirestorePermissionError({
+                    path: slotDocRef.path, // More likely to fail here first
+                    operation: 'update',
+                    requestResourceData: slotUpdate,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            })
+            .finally(() => {
+                setIsBooking(false);
+                setIsConfirming(false);
+                setSelectedSlot(null);
+            });
     };
     
     const hasBookingRights = !userData?.hasUsedFreeTrial || (userData?.remainingLessons || 0) > 0;
