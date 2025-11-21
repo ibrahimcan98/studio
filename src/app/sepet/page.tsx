@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -14,7 +15,7 @@ import { useCart } from '@/context/cart-context';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, arrayUnion, increment, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
 const getCourseCode = (courseId: string) => {
@@ -36,12 +37,6 @@ export default function SepetPage() {
     const router = useRouter();
     const [isProcessing, setIsProcessing] = useState(false);
 
-    const userDocRef = useMemoFirebase(() => {
-        if (!user || !db) return null;
-        return doc(db, "users", user.uid);
-    }, [user, db]);
-
-
     const handleApplyCoupon = () => {
         if (!coupon) return;
         const success = applyCoupon(coupon);
@@ -61,21 +56,16 @@ export default function SepetPage() {
     }
     
     const handleCheckout = async () => {
-        if (!user || !userDocRef) {
+        if (!user || !db) {
             toast({ variant: 'destructive', title: 'Hata', description: 'Ödeme yapmak için giriş yapmalısınız.' });
             router.push('/login');
             return;
         }
 
         setIsProcessing(true);
+        const userDocRef = doc(db, "users", user.uid);
 
         try {
-            // Fetch current user data to safely update values
-            const userSnap = await getDoc(userDocRef);
-            const currentData = userSnap.data();
-            const currentLessons = currentData?.remainingLessons || 0;
-            const currentPackages = currentData?.enrolledPackages || [];
-
             const totalLessonsToAdd = cartItems.reduce((total, item) => {
                 const lessons = parseInt(item.description.split(' ')[0], 10);
                 return total + (item.quantity * lessons);
@@ -85,24 +75,23 @@ export default function SepetPage() {
                  const [courseId] = item.id.split('-');
                  const lessons = parseInt(item.description.split(' ')[0], 10);
                  const courseCode = getCourseCode(courseId);
-                 // Create an array of package codes based on quantity
                  return Array(item.quantity).fill(`${lessons}${courseCode}`);
             });
 
             await updateDoc(userDocRef, {
-                enrolledPackages: [...currentPackages, ...newPackages],
-                remainingLessons: currentLessons + totalLessonsToAdd,
+                enrolledPackages: arrayUnion(...newPackages),
+                remainingLessons: increment(totalLessonsToAdd),
             });
             
             clearCart();
 
             toast({
                 title: 'Ödeme Başarılı!',
-                description: 'Dersleriniz hesabınıza eklendi. Yönlendiriliyorsunuz...',
+                description: 'Dersleriniz hesabınıza eklendi. Paketlerim sayfasından atama yapabilirsiniz.',
                 className: 'bg-green-500 text-white'
             });
 
-            router.push('/ebeveyn-portali');
+            router.push('/ebeveyn-portali/paketlerim');
 
         } catch (error) {
             console.error("Checkout error:", error);

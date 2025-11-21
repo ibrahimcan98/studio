@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -130,6 +131,9 @@ function AddChildDialog({ userId }: { userId: string }) {
       userId: userId,
       rozet: 0,
       completedTopics: [],
+      remainingLessons: 0,
+      assignedPackage: null,
+      assignedPackageName: null,
     });
     
     setName('');
@@ -288,6 +292,19 @@ function ChildCard({ child, userDocRef, isPremium, currentLives, onDelete }: { c
                     {!isPremium && <LivesTooltipContent userDocRef={userDocRef} />}
                 </Tooltip>
                </TooltipProvider>
+                <div className='flex justify-between items-center text-sm'>
+                    <span className='text-muted-foreground'>Kalan Ders:</span>
+                    <div className='flex items-center gap-1 font-bold bg-blue-100 text-blue-600 px-2 py-1 rounded-md'>
+                        <span>{child.remainingLessons || 0}</span>
+                        <BookOpen className='w-4 h-4'/>
+                    </div>
+                </div>
+                {child.assignedPackage && (
+                     <div className='flex justify-between items-center text-sm'>
+                        <span className='text-muted-foreground'>Paket:</span>
+                        <Badge variant="secondary">{child.assignedPackageName}</Badge>
+                    </div>
+                )}
             </div>
             <div onClickCapture={handleStartLearning} className="w-full mt-auto">
                  <SetPinDialog childId={child.id}>
@@ -358,8 +375,8 @@ export default function EbeveynPortaliPage() {
   const childCount = children ? children.length : 0;
   const totalRozet = children ? children.reduce((acc, child) => acc + (child.rozet || 0), 0) : 0;
   const premiumStartDate = userData?.premiumStartDate?.toDate ? userData.premiumStartDate.toDate() : (userData?.premiumStartDate ? new Date(userData.premiumStartDate) : null);
-  const enrolledPackages: string[] = userData?.enrolledPackages || [];
-  const remainingLessons = userData?.remainingLessons ?? 0;
+  const totalRemainingLessons = children ? children.reduce((acc, child) => acc + (child.remainingLessons || 0), 0) : 0;
+  const unassignedLessons = userData?.remainingLessons || 0;
 
   return (
     <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20">
@@ -453,24 +470,7 @@ export default function EbeveynPortaliPage() {
 
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Kalan Ders" value={remainingLessons} icon={BookOpen}>
-            <div className="flex justify-between items-end">
-              <div>
-                <p className="text-xs text-muted-foreground">Paket</p>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {enrolledPackages.length > 0 ? (
-                      enrolledPackages.map((pkg, index) => <Badge key={`${pkg}-${index}`} variant="secondary">{pkg}</Badge>)
-                  ) : (
-                      <span className="text-sm font-medium text-muted-foreground">-</span>
-                  )}
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground">Kalan</p>
-                <p className="text-2xl font-bold">{remainingLessons}</p>
-              </div>
-            </div>
-        </StatCard>
+        <StatCard title="Kalan Toplam Ders" value={totalRemainingLessons + unassignedLessons} icon={BookOpen} />
         <StatCard title="Toplam Çocuk" value={childCount} icon={Users} />
         <StatCard title="Toplam Rozet" value={totalRozet} icon={Star} />
         <Card>
@@ -514,7 +514,7 @@ export default function EbeveynPortaliPage() {
                     </div>
                     <div>
                         <CardTitle className="text-amber-900">Ders Paketi Satın Al</CardTitle>
-                        <CardDescription className="text-amber-700">4, 8 veya 12 derslik paketler</CardDescription>
+                        <CardDescription className="text-amber-700">4, 8, 12 veya 24 derslik paketler</CardDescription>
                     </div>
                 </div>
             </CardHeader>
@@ -589,3 +589,5 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
+
+    

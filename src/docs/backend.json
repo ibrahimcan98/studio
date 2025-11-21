@@ -59,14 +59,14 @@
         },
         "enrolledPackages": {
             "type": "array",
-            "description": "An array of strings representing the package IDs the user is enrolled in (e.g., ['4B', '12K']).",
+            "description": "An array of strings representing the package IDs the user is enrolled in (e.g., ['4B', '12K']). This is a temporary holding area until packages are assigned to a child.",
             "items": {
                 "type": "string"
             }
         },
         "remainingLessons": {
             "type": "number",
-            "description": "The total number of lessons remaining from all purchased packages."
+            "description": "The total number of UNASSIGNED lessons remaining from all purchased packages."
         },
         "hasUsedFreeTrial": {
             "type": "boolean",
@@ -111,6 +111,18 @@
         "level": {
           "type": "string",
           "description": "The current learning level of the child."
+        },
+        "assignedPackage": {
+            "type": "string",
+            "description": "The package code assigned to this child (e.g., '12K')."
+        },
+        "assignedPackageName": {
+            "type": "string",
+            "description": "The full name of the assigned package (e.g., 'Konuşma Kursu')."
+        },
+        "remainingLessons": {
+            "type": "number",
+            "description": "Number of lessons remaining for this child from their assigned package."
         }
       },
       "required": [

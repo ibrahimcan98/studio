@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, doc, updateDoc, where, query, increment, Timestamp } from 'firebase/firestore';
+import { collection, doc, updateDoc, where, query, increment, Timestamp, writeBatch } from 'firebase/firestore';
 import { Loader2, ArrowLeft, Info, BookOpen, User, Calendar as CalendarIcon, Package, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -61,6 +62,13 @@ export default function DersPlanlaPage() {
 
     const { data: userData, isLoading: isUserLoading } = useDoc(userDocRef);
 
+    const childrenRef = useMemoFirebase(() => {
+        if (!db || !user?.uid) return null;
+        return collection(db, 'users', user.uid, 'children');
+    }, [db, user?.uid]);
+
+    const { data: children, isLoading: areChildrenLoading } = useCollection(childrenRef);
+
     useEffect(() => {
         if (userData?.timezone) {
             setSelectedTimeZone(userData.timezone);
@@ -68,6 +76,18 @@ export default function DersPlanlaPage() {
             setSelectedTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
         }
     }, [userData]);
+
+    // Auto-select package when child is selected
+    useEffect(() => {
+        if(selectedChildId) {
+            const child = children?.find(c => c.id === selectedChildId);
+            if (child && child.assignedPackage) {
+                setSelectedPackage(child.assignedPackage);
+            } else {
+                setSelectedPackage('');
+            }
+        }
+    }, [selectedChildId, children]);
 
     const handleTimeZoneChange = async (tz: string) => {
         setSelectedTimeZone(tz);
@@ -89,13 +109,6 @@ export default function DersPlanlaPage() {
         }
     };
 
-    const childrenRef = useMemoFirebase(() => {
-        if (!db || !user?.uid) return null;
-        return collection(db, 'users', user.uid, 'children');
-    }, [db, user?.uid]);
-
-    const { data: children, isLoading: areChildrenLoading } = useCollection(childrenRef);
-
     const lessonSlotsRef = useMemoFirebase(() => {
         if (!db) return null;
         return query(collection(db, 'lesson-slots'), where('status', '==', 'available'));
@@ -112,13 +125,14 @@ export default function DersPlanlaPage() {
         if (!availableSlots || !selectedDate || !selectedTimeZone) return [];
         return availableSlots
             .filter(slot => {
-                 const zonedDate = toDate(slot.startTime.seconds * 1000, { timeZone: selectedTimeZone });
+                const zonedDate = toDate(slot.startTime.seconds * 1000, { timeZone: selectedTimeZone });
                 return isSameDay(zonedDate, selectedDate);
             })
             .sort((a, b) => a.startTime.seconds - b.startTime.seconds);
     }, [availableSlots, selectedDate, selectedTimeZone]);
     
-
+    const selectedChildData = useMemo(() => children?.find(c => c.id === selectedChildId), [children, selectedChildId]);
+    
     const handleSlotClick = (slot: { id: string, startTime: Timestamp }) => {
          if (!user || !userData) {
             toast({ variant: 'destructive', title: 'Hata', description: 'Giriş yapmalısınız.' });
@@ -131,14 +145,14 @@ export default function DersPlanlaPage() {
         }
 
         const hasFreeTrial = !userData.hasUsedFreeTrial;
-        const hasRemainingLessons = (userData.remainingLessons || 0) > 0;
+        const hasChildLessons = (selectedChildData?.remainingLessons || 0) > 0;
 
-        if (!hasFreeTrial && !hasRemainingLessons) {
-            toast({ variant: 'destructive', title: 'Ders Hakkı Kalmadı', description: 'Ders planlamak için lütfen yeni bir paket satın alın.' });
+        if (!hasFreeTrial && !hasChildLessons) {
+            toast({ variant: 'destructive', title: 'Ders Hakkı Kalmadı', description: 'Bu çocuk için atanmış ders paketi bulunmuyor veya ders hakkı kalmadı.' });
             return;
         }
         
-        if (hasRemainingLessons && !hasFreeTrial && !selectedPackage) {
+        if (hasChildLessons && !hasFreeTrial && !selectedPackage) {
             toast({ variant: 'destructive', title: 'Eksik Bilgi', description: 'Lütfen kullanmak istediğiniz ders paketini seçin.' });
             return;
         }
@@ -148,9 +162,10 @@ export default function DersPlanlaPage() {
     };
     
     const handleBookLesson = async () => {
-        if (!user || !db || !userDocRef || !userData || !selectedSlot) return;
+        if (!user || !db || !userDocRef || !userData || !selectedSlot || !selectedChildData) return;
     
         setIsBooking(true);
+        const batch = writeBatch(db);
     
         const slotDocRef = doc(db, 'lesson-slots', selectedSlot.id);
         const hasFreeTrial = !userData.hasUsedFreeTrial;
@@ -161,52 +176,42 @@ export default function DersPlanlaPage() {
             childId: selectedChildId,
             packageCode: hasFreeTrial ? 'FREE_TRIAL' : selectedPackage
         };
+        batch.update(slotDocRef, slotUpdate);
     
-        let userUpdate: { [key: string]: any } = {};
         let successMessage = '';
     
         if (hasFreeTrial) {
-            userUpdate = { hasUsedFreeTrial: true };
+            batch.update(userDocRef, { hasUsedFreeTrial: true });
             successMessage = 'Ücretsiz deneme dersiniz başarıyla planlandı.';
         } else {
-            userUpdate = { remainingLessons: increment(-1) };
-            successMessage = 'Dersiniz başarıyla planlandı. Kalan ders sayınız güncellendi.';
+            const childDocRef = doc(db, 'users', user.uid, 'children', selectedChildId);
+            batch.update(childDocRef, { remainingLessons: increment(-1) });
+            successMessage = 'Dersiniz başarıyla planlandı. Çocuğunuzun kalan ders sayısı güncellendi.';
         }
     
-        // Perform updates and handle potential permission errors
-        updateDoc(slotDocRef, slotUpdate)
-            .then(() => {
-                return updateDoc(userDocRef, userUpdate);
-            })
-            .then(() => {
-                toast({
-                    title: 'Ders Planlandı!',
-                    description: successMessage,
-                    className: 'bg-green-500 text-white'
-                });
-                router.push('/ebeveyn-portali');
-            })
-            .catch(async (serverError) => {
-                // Determine which update failed based on error, but for simplicity, we assume slotUpdate might be the first point of failure.
-                // A more robust solution might check which doc was being written.
-                 const permissionError = new FirestorePermissionError({
-                    path: slotDocRef.path, // More likely to fail here first
-                    operation: 'update',
-                    requestResourceData: slotUpdate,
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            })
-            .finally(() => {
-                setIsBooking(false);
-                setIsConfirming(false);
-                setSelectedSlot(null);
+        try {
+            await batch.commit();
+             toast({
+                title: 'Ders Planlandı!',
+                description: successMessage,
+                className: 'bg-green-500 text-white'
             });
+            router.push('/ebeveyn-portali');
+        } catch(serverError) {
+             const permissionError = new FirestorePermissionError({
+                path: slotDocRef.path,
+                operation: 'update',
+                requestResourceData: slotUpdate,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } finally {
+            setIsBooking(false);
+            setIsConfirming(false);
+            setSelectedSlot(null);
+        }
     };
     
-    const hasBookingRights = !userData?.hasUsedFreeTrial || (userData?.remainingLessons || 0) > 0;
-    const enrolledPackages: string[] = userData?.enrolledPackages || [];
-    
-    const selectedChildName = children?.find(c => c.id === selectedChildId)?.firstName;
+    const hasBookingRights = !userData?.hasUsedFreeTrial || children?.some(c => c.remainingLessons > 0);
     const selectedPackageDetails = getCourseDetailsFromPackageCode(selectedPackage || (userData?.hasUsedFreeTrial ? '' : 'FREE_TRIAL'));
 
     if (isUserLoading || areSlotsLoading || areChildrenLoading || !selectedTimeZone) {
@@ -290,22 +295,17 @@ export default function DersPlanlaPage() {
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                {enrolledPackages.length > 0 && userData?.hasUsedFreeTrial && (
+                                {selectedChildData?.assignedPackage && userData?.hasUsedFreeTrial && (
                                     <div>
                                         <Label htmlFor="package-select">Kullanılacak paket:</Label>
-                                        <Select value={selectedPackage} onValueChange={setSelectedPackage}>
+                                        <Select value={selectedPackage} onValueChange={setSelectedPackage} disabled>
                                             <SelectTrigger id="package-select" className="mt-2">
                                                 <SelectValue placeholder="Paket Seçin" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {enrolledPackages.map((pkg, index) => {
-                                                     const details = getCourseDetailsFromPackageCode(pkg);
-                                                     return (
-                                                        <SelectItem key={`${pkg}-${index}`} value={pkg}>
-                                                            {pkg} - {details?.courseName} ({details?.duration})
-                                                        </SelectItem>
-                                                    )
-                                                })}
+                                                <SelectItem value={selectedChildData.assignedPackage}>
+                                                    {selectedChildData.assignedPackage} - {getCourseDetailsFromPackageCode(selectedChildData.assignedPackage)?.courseName}
+                                                </SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -342,10 +342,12 @@ export default function DersPlanlaPage() {
                                     <BookOpen className="w-3 h-3 mr-1"/>
                                     Ücretsiz deneme dersi hakkınız mevcut!
                                 </Badge>
-                            ) : (userData?.remainingLessons || 0) > 0 ? (
-                                <Badge>Kalan Ders: {userData.remainingLessons}</Badge>
+                            ) : (selectedChildData && (selectedChildData.remainingLessons || 0) > 0) ? (
+                                <Badge>{selectedChildData.firstName} için Kalan Ders: {selectedChildData.remainingLessons}</Badge>
+                            ) : selectedChildId ? (
+                                <Badge variant="destructive">Bu çocuk için ders hakkı kalmadı.</Badge>
                             ) : (
-                                <Badge variant="destructive">Hiç ders hakkınız kalmadı.</Badge>
+                                <Badge variant="destructive">Lütfen bir çocuk seçin.</Badge>
                             )}
                         </div>
                     </div>
@@ -370,7 +372,7 @@ export default function DersPlanlaPage() {
                          <div className="space-y-4 my-4">
                             <div className="flex items-center gap-3">
                                 <User className="w-5 h-5 text-muted-foreground"/>
-                                <p><strong>Çocuk:</strong> {selectedChildName}</p>
+                                <p><strong>Çocuk:</strong> {selectedChildData?.firstName}</p>
                             </div>
                             <div className="flex items-center gap-3">
                                 <CalendarIcon className="w-5 h-5 text-muted-foreground"/>
@@ -398,3 +400,5 @@ export default function DersPlanlaPage() {
         </div>
     );
 }
+
+    
