@@ -3,8 +3,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, where, query, increment } from 'firebase/firestore';
-import { Loader2, ArrowLeft, Info, BookOpen } from 'lucide-react';
+import { collection, doc, updateDoc, where, query, increment, Timestamp } from 'firebase/firestore';
+import { Loader2, ArrowLeft, Info, BookOpen, User, Calendar as CalendarIcon, Package, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Card } from '@/components/ui/card';
@@ -18,8 +18,20 @@ import { Label } from '@/components/ui/label';
 import timezones from '@/data/timezones.json';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { COURSES } from '@/data/courses';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 const getCourseDetailsFromPackageCode = (code: string) => {
+    if (code === 'FREE_TRIAL') return { courseName: 'Ücretsiz Deneme Dersi', lessons: 1, duration: '30 dakika' };
+
     const courseCodeMap: { [key: string]: string } = { 'B': 'baslangic', 'K': 'konusma', 'G': 'gelisim', 'A': 'akademik' };
     const lessons = parseInt(code.replace(/\D/g, ''), 10);
     const courseId = courseCodeMap[code.replace(/[0-9]/g, '')];
@@ -39,6 +51,8 @@ export default function DersPlanlaPage() {
     const [selectedChildId, setSelectedChildId] = useState<string>('');
     const [selectedPackage, setSelectedPackage] = useState<string>('');
     const [selectedTimeZone, setSelectedTimeZone] = useState<string>('');
+    const [isConfirming, setIsConfirming] = useState(false);
+    const [selectedSlot, setSelectedSlot] = useState<{ id: string, startTime: Timestamp } | null>(null);
 
     const userDocRef = useMemoFirebase(() => {
         if (!user || !db) return null;
@@ -98,20 +112,21 @@ export default function DersPlanlaPage() {
         if (!availableSlots || !selectedDate || !selectedTimeZone) return [];
         return availableSlots
             .filter(slot => {
-                const zonedDate = toDate(slot.startTime.seconds * 1000, { timeZone: selectedTimeZone });
+                 const zonedDate = toDate(slot.startTime.seconds * 1000, { timeZone: selectedTimeZone });
                 return isSameDay(zonedDate, selectedDate);
             })
             .sort((a, b) => a.startTime.seconds - b.startTime.seconds);
     }, [availableSlots, selectedDate, selectedTimeZone]);
     
-    const handleBookLesson = async (slotId: string) => {
-        if (!user || !userDocRef || !userData) {
+
+    const handleSlotClick = (slot: { id: string, startTime: Timestamp }) => {
+         if (!user || !userData) {
             toast({ variant: 'destructive', title: 'Hata', description: 'Giriş yapmalısınız.' });
             return;
         }
 
         if (!selectedChildId) {
-            toast({ variant: 'destructive', title: 'Hata', description: 'Lütfen dersi alacak çocuğu seçin.' });
+            toast({ variant: 'destructive', title: 'Eksik Bilgi', description: 'Lütfen dersi alacak çocuğu seçin.' });
             return;
         }
 
@@ -124,15 +139,22 @@ export default function DersPlanlaPage() {
         }
         
         if (hasRemainingLessons && !hasFreeTrial && !selectedPackage) {
-            toast({ variant: 'destructive', title: 'Hata', description: 'Lütfen kullanmak istediğiniz ders paketini seçin.' });
+            toast({ variant: 'destructive', title: 'Eksik Bilgi', description: 'Lütfen kullanmak istediğiniz ders paketini seçin.' });
             return;
         }
 
+        setSelectedSlot(slot);
+        setIsConfirming(true);
+    };
+    
+    const handleBookLesson = async () => {
+        if (!user || !userDocRef || !userData || !selectedSlot) return;
+
         setIsBooking(true);
         try {
-            const slotDocRef = doc(db, 'lesson-slots', slotId);
+            const slotDocRef = doc(db, 'lesson-slots', selectedSlot.id);
+            const hasFreeTrial = !userData.hasUsedFreeTrial;
             
-            // Prepare updates
             const slotUpdate = {
                 status: 'booked',
                 bookedBy: user.uid,
@@ -151,7 +173,6 @@ export default function DersPlanlaPage() {
                 successMessage = 'Dersiniz başarıyla planlandı. Kalan ders sayınız güncellendi.';
             }
 
-            // Perform updates
             await updateDoc(slotDocRef, slotUpdate);
             await updateDoc(userDocRef, userUpdate);
 
@@ -167,11 +188,16 @@ export default function DersPlanlaPage() {
             toast({ variant: 'destructive', title: 'Hata', description: 'Ders planlanırken bir sorun oluştu.' });
         } finally {
             setIsBooking(false);
+            setIsConfirming(false);
+            setSelectedSlot(null);
         }
     };
     
     const hasBookingRights = !userData?.hasUsedFreeTrial || (userData?.remainingLessons || 0) > 0;
     const enrolledPackages: string[] = userData?.enrolledPackages || [];
+    
+    const selectedChildName = children?.find(c => c.id === selectedChildId)?.firstName;
+    const selectedPackageDetails = getCourseDetailsFromPackageCode(selectedPackage || (userData?.hasUsedFreeTrial ? '' : 'FREE_TRIAL'));
 
     if (isUserLoading || areSlotsLoading || areChildrenLoading || !selectedTimeZone) {
         return (
@@ -278,7 +304,7 @@ export default function DersPlanlaPage() {
                         
                             <h3 className="text-lg font-semibold text-center lg:text-left">
                                 {selectedDate ? formatInTimeZone(selectedDate, selectedTimeZone, 'dd MMMM yyyy', { locale: tr }) : 'Bir tarih seçin'} için Müsait Saatler
-                                {selectedDate && <span className="text-sm text-muted-foreground ml-2">({formatInTimeZone(toDate(selectedDate), selectedTimeZone, 'zzz')})</span>}
+                                {selectedDate && <span className="text-sm text-muted-foreground ml-2">({selectedTimeZone})</span>}
                             </h3>
                             {selectedDate && slotsForSelectedDate.length > 0 ? (
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -287,10 +313,10 @@ export default function DersPlanlaPage() {
                                             key={slot.id}
                                             variant="outline"
                                             className="h-12 text-base"
-                                            onClick={() => handleBookLesson(slot.id)}
+                                            onClick={() => handleSlotClick(slot)}
                                             disabled={isBooking || !hasBookingRights}
                                         >
-                                            {isBooking ? <Loader2 className="animate-spin" /> : formatInTimeZone(slot.startTime.toDate(), selectedTimeZone, 'HH:mm')}
+                                            {formatInTimeZone(slot.startTime.toDate(), selectedTimeZone, 'HH:mm')}
                                         </Button>
                                     ))}
                                 </div>
@@ -318,10 +344,47 @@ export default function DersPlanlaPage() {
              <Alert className="mt-8">
                 <Info className="h-4 w-4" />
                 <AlertDescription>
-                    Derse 24 saat kalana kadar ücretsiz iptal edebilirsiniz. 24 saatten az kalan dersler için 2 değişim hakkınız vardır.
+                    Derse 24 saat kalana kadar ücretsiz iptal edebilirsiniz. 24 saatten az kalan dersler icin 2 degisim hakkiniz vardir
                 </AlertDescription>
             </Alert>
+
+            <AlertDialog open={isConfirming} onOpenChange={setIsConfirming}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Ders Planını Onayla</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Lütfen aşağıdaki bilgileri kontrol edin ve dersi planlamak için onaylayın.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    {selectedSlot && (
+                         <div className="space-y-4 my-4">
+                            <div className="flex items-center gap-3">
+                                <User className="w-5 h-5 text-muted-foreground"/>
+                                <p><strong>Çocuk:</strong> {selectedChildName}</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <CalendarIcon className="w-5 h-5 text-muted-foreground"/>
+                                <p><strong>Tarih:</strong> {formatInTimeZone(selectedSlot.startTime.toDate(), selectedTimeZone, 'dd MMMM yyyy', { locale: tr })}</p>
+                            </div>
+                             <div className="flex items-center gap-3">
+                                <Clock className="w-5 h-5 text-muted-foreground"/>
+                                <p><strong>Saat:</strong> {formatInTimeZone(selectedSlot.startTime.toDate(), selectedTimeZone, 'HH:mm')} ({selectedTimeZone})</p>
+                            </div>
+                             <div className="flex items-center gap-3">
+                                <Package className="w-5 h-5 text-muted-foreground"/>
+                                <p><strong>Paket:</strong> {!userData?.hasUsedFreeTrial ? 'Ücretsiz Deneme Dersi' : `${selectedPackageDetails?.courseName} (${selectedPackage})`}</p>
+                            </div>
+                        </div>
+                    )}
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setSelectedSlot(null)}>İptal</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleBookLesson} disabled={isBooking}>
+                            {isBooking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Onayla ve Planla
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
-    
