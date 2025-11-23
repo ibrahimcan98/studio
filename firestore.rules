@@ -13,7 +13,8 @@ service cloud.firestore {
     match /users/{userId} {
       // Allow a user to get their own doc.
       // Allow a teacher to get any user's doc.
-      allow get: if request.auth.uid == userId || isTeacher();
+      // Allow any authenticated user to read any other user's profile.
+      allow get: if request.auth.uid == userId || exists(/databases/$(database)/documents/users/$(request.auth.uid));
       allow list: if isTeacher(); // Allow teachers to list/query users.
       allow create: if request.auth.uid == userId;
       allow update, delete: if request.auth.uid == userId;
