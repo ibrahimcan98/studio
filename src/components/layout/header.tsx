@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Logo } from '@/components/logo';
 import { Menu, Loader2, LayoutDashboard, User, Package, History, Settings, LogOut, Crown, ShoppingCart } from 'lucide-react';
-import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { getAuth, signOut } from 'firebase/auth';
 import { useRouter, usePathname } from 'next/navigation';
@@ -205,6 +205,7 @@ export default function Header() {
                 </SheetTrigger>
                 <SheetContent side="right">
                     <SheetHeader className="border-b pb-4">
+                        <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
                         <SheetClose asChild>
                           <Link href="/" className="flex items-center space-x-2">
                             <Logo />
