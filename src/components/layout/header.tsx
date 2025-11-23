@@ -138,10 +138,6 @@ export default function Header() {
               <Settings className="mr-2 h-4 w-4" />
               <span>Profil Ayarları</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => router.push('/ebeveyn-portali/uyelik')} className="cursor-pointer">
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Hesap Ayarları</span>
-            </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
@@ -205,7 +201,7 @@ export default function Header() {
                 </SheetTrigger>
                 <SheetContent side="right">
                     <SheetHeader className="border-b pb-4">
-                        <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
+                        <SheetTitle className='sr-only'>Mobile Menu</SheetTitle>
                         <SheetClose asChild>
                           <Link href="/" className="flex items-center space-x-2">
                             <Logo />
