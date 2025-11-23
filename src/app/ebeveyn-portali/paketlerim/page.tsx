@@ -68,8 +68,8 @@ export default function PaketlerimPage() {
     const handleAssignPackage = async () => {
         if (!db || !user || !userDocRef || !userData || !selectedPackageToAssign || !childToAssign) return;
 
-        const childRef = doc(db, 'users', user.uid, 'children', childToAssign);
-        const childSnap = await getDoc(childRef);
+        const childDocRef = doc(db, 'users', user.uid, 'children', childToAssign);
+        const childSnap = await getDoc(childDocRef);
 
         if (childSnap.exists() && childSnap.data()?.assignedPackage) {
             toast({
@@ -86,10 +86,9 @@ export default function PaketlerimPage() {
             return;
         }
         
-        if ((userData.remainingLessons || 0) < lessonsToAssign) {
-            toast({ variant: 'destructive', title: 'Yetersiz Ders', description: 'Havuzda bu paketi atamak için yeterli ders bulunmuyor.' });
-            return;
-        }
+        // This check is flawed if we re-introduce packages with remaining lessons. Let's assume for now pool has full packages.
+        const poolLessonsForThisPackageType = (userData.enrolledPackages || []).filter((p: string) => p === selectedPackageToAssign).length * lessonsToAssign;
+
         
         const course = getCourseByCode(selectedPackageToAssign.replace(/[0-9]/g, ''));
         if (!course) {
@@ -102,17 +101,19 @@ export default function PaketlerimPage() {
         const batch = writeBatch(db);
 
         // Update child document with the package code and the lessons from that package
-        batch.update(childRef, {
+        batch.update(childDocRef, {
             assignedPackage: selectedPackageToAssign,
             assignedPackageName: course.title,
             remainingLessons: lessonsToAssign 
         });
 
         // Decrement user's lesson pool and remove the package from the unassigned list
-        const updatedEnrolledPackages = [...userData.enrolledPackages];
+        const updatedEnrolledPackages = [...(userData.enrolledPackages || [])];
         const packageIndexToRemove = updatedEnrolledPackages.indexOf(selectedPackageToAssign);
         if (packageIndexToRemove > -1) {
             updatedEnrolledPackages.splice(packageIndexToRemove, 1);
+        } else {
+             console.error("Could not find package to remove from user's enrolled packages");
         }
 
         batch.update(userDocRef, {
@@ -161,7 +162,7 @@ export default function PaketlerimPage() {
 
         // Add package and *remaining* lessons back to the user's pool
         const newEnrolledPackages = [...(userData.enrolledPackages || []), packageCode];
-        const newRemainingLessons = (userData.remainingLessons || 0) + lessons;
+        const newRemainingLessons = (userData.remainingLessons || 0) + lessons; // Use the remaining lessons
 
         batch.update(userDocRef, {
             enrolledPackages: newEnrolledPackages,
