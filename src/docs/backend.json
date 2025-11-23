@@ -123,6 +123,10 @@
         "remainingLessons": {
             "type": "number",
             "description": "Number of lessons remaining for this child from their assigned package."
+        },
+        "finishedPackage": {
+            "type": "string",
+            "description": "The package code of the last finished package by the child (e.g., '4B')."
         }
       },
       "required": [
@@ -423,5 +427,4 @@
     "reasoning": "The Firestore data structure is designed to support the Türk Çocuk Akademisi platform, focusing on user data, child profiles, courses, enrollments, lessons, and reviews. The design prioritizes Authorization Independence, DBAC (Database-Based Access Control), and clear segregation of data based on access requirements.\\n\\n**Authorization Independence:**\\n\\n*   The primary method for ensuring authorization independence is through path-based ownership and avoiding `get()` calls in security rules. Data related to a specific user (e.g., children, enrollments, reviews) is stored under the `/users/{userId}` path, eliminating the need to fetch parent document data to authorize access.\\n\\n**QAPs (Rules are not Filters):**\\n\\n*   **Path-Based Ownership:** User-specific data (children, enrollments, reviews) resides under `/users/{userId}`, ensuring only the authenticated user (or authorized admin) can access it.  This facilitates secure `list` operations as rules can simply check `request.auth.uid == userId`.\\n\\n**Structure Overview:**\\n\\n*   `/users/{userId}`: Stores user profiles. This uses path-based ownership, a user can only access their own profile.\\n*   `/users/{userId}/children/{childId}`: Stores child profiles associated with a user. This enforces that only a user can manage their own children.\\n*   `/courses/{courseId}`: Stores course information. No user-specific data is stored here, which means that to list courses a rule can simply check that get operations are allowed, i.e. `allow read: if true`. \\n*   `/users/{userId}/enrollments/{enrollmentId}`: Stores enrollment data for each user. This allows a user to see what they are enrolled in and their progress. This follows a similar design as with the user's children.\\n*   `/courses/{courseId}/lessons/{lessonId}`: Stores lessons associated with a course. `list` operations are also straightforward, requiring a general read permission on courses and lessons, which can be refined based on enrollment status.\\n*   `/reviews/{reviewId}`: Stores user reviews. Reviews are not stored within the user document but instead as top-level collections to allow for listing all reviews independently of user information. Reviews include a `userId` field to connect the review to the user.\\n\\n**Data Integrity and Invariants:**\\n\\n*   Timestamps (where needed) should be managed server-side to ensure integrity.  Consider adding `createdAt` and `updatedAt` fields managed via server timestamps.\\n*   Ownership (`userId`) is explicitly stored in relevant documents (children, enrollments, reviews), enabling direct and secure access control."
   }
 }
-
     

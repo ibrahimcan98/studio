@@ -1,12 +1,13 @@
+
 'use client';
 
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Loader2, Package, ArrowLeft, BookOpen, User, Plus, ChevronsRight } from 'lucide-react';
+import { Loader2, Package, ArrowLeft, BookOpen, User, Plus, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { collection, doc, writeBatch, getDoc, updateDoc, increment, arrayUnion } from 'firebase/firestore';
+import { collection, doc, writeBatch, getDoc, updateDoc, increment, arrayRemove } from 'firebase/firestore';
 import { COURSES, Course } from '@/data/courses';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
@@ -21,9 +22,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
+import { useCart } from '@/context/cart-context';
 
-const getCourseByCode = (code: string): Course | undefined => {
+const getCourseByCode = (code?: string): Course | undefined => {
     if (!code) return undefined;
     const courseMap: { [key: string]: string } = { 'B': 'baslangic', 'K': 'konusma', 'G': 'gelisim', 'A': 'akademik' };
     const courseId = courseMap[code.replace(/[0-9]/g, '')];
@@ -35,8 +37,8 @@ export default function PaketlerimPage() {
     const router = useRouter();
     const db = useFirestore();
     const { toast } = useToast();
+    const { addToCart } = useCart();
 
-    // State for assigning a package
     const [isAssigning, setIsAssigning] = useState(false);
     const [selectedPackageToAssign, setSelectedPackageToAssign] = useState<string>('');
     const [childToAssign, setChildToAssign] = useState<string>('');
@@ -71,7 +73,7 @@ export default function PaketlerimPage() {
             toast({
                 variant: 'destructive',
                 title: 'Atama Hatası',
-                description: 'Bu çocuğun zaten atanmış bir paketi var. Yeni bir paket atamak için önce mevcut paketi kaldırmalısınız.',
+                description: 'Bu çocuğun zaten atanmış bir paketi var.',
             });
             return;
         }
@@ -92,18 +94,15 @@ export default function PaketlerimPage() {
 
         const batch = writeBatch(db);
         
-        // Update child document
         batch.update(childDocRef, {
             assignedPackage: selectedPackageToAssign,
             assignedPackageName: course.title,
-            remainingLessons: increment(lessonsInPackage)
+            remainingLessons: lessonsInPackage,
+            finishedPackage: null,
         });
 
-        // Update user document
-        const updatedEnrolledPackages = (userData.enrolledPackages || []).filter((p: string) => p !== selectedPackageToAssign);
-        
         batch.update(userDocRef, {
-            enrolledPackages: updatedEnrolledPackages,
+            enrolledPackages: arrayRemove(selectedPackageToAssign),
             remainingLessons: increment(-lessonsInPackage)
         });
         
@@ -127,6 +126,36 @@ export default function PaketlerimPage() {
             setSelectedPackageToAssign('');
             setChildToAssign('');
         }
+    };
+    
+    const handleBuyAgain = (packageCode: string) => {
+        const course = getCourseByCode(packageCode);
+        const lessons = parseInt(packageCode.replace(/\D/g, ''), 10);
+        
+        if (!course || !lessons) {
+            toast({ variant: 'destructive', title: 'Hata', description: 'Paket bilgisi bulunamadı.' });
+            return;
+        }
+
+        const pkg = course.pricing.packages.find(p => p.lessons === lessons);
+        if (!pkg) {
+            toast({ variant: 'destructive', title: 'Hata', description: 'Fiyat bilgisi bulunamadı.' });
+            return;
+        }
+
+        addToCart({
+            id: `${course.id}-${pkg.lessons}`,
+            name: course.title,
+            description: `${pkg.lessons} derslik paket`,
+            price: pkg.price,
+            quantity: 1,
+            image: `/images/topics/family.png` // Placeholder
+        });
+
+        toast({
+            title: "Sepete Eklendi",
+            description: `${course.title} (${pkg.lessons} ders) sepetinize eklendi.`,
+        });
     };
     
     const unassignedPackages = userData?.enrolledPackages || [];
@@ -161,7 +190,6 @@ export default function PaketlerimPage() {
                 </div>
             </div>
 
-            {/* Unassigned Packages */}
             <Card>
                 <CardHeader>
                     <CardTitle className='flex items-center gap-2'><Package /> Atanmamış Paketler Havuzu</CardTitle>
@@ -198,7 +226,6 @@ export default function PaketlerimPage() {
                 </CardContent>
             </Card>
 
-            {/* Assigned Packages */}
             <Card>
                 <CardHeader>
                     <CardTitle className='flex items-center gap-2'><User /> Çocuklarım ve Paketleri</CardTitle>
@@ -215,6 +242,14 @@ export default function PaketlerimPage() {
                                                 <p className="text-muted-foreground">{child.assignedPackageName}</p>
                                                 <Badge className='mt-2'>{child.remainingLessons} ders kaldı</Badge>
                                             </>
+                                        ) : child.finishedPackage ? (
+                                            <div className='mt-2 space-y-2'>
+                                                 <p className="text-sm text-muted-foreground">{getCourseByCode(child.finishedPackage)?.title} paketi bitti.</p>
+                                                 <Button size="sm" onClick={() => handleBuyAgain(child.finishedPackage)}>
+                                                    <ShoppingCart className='w-4 h-4 mr-2'/>
+                                                    Tekrar Satın Al
+                                                 </Button>
+                                            </div>
                                         ) : (
                                             <p className="text-sm text-muted-foreground">Henüz atanmış bir paketi yok.</p>
                                         )}
@@ -233,7 +268,6 @@ export default function PaketlerimPage() {
                 </CardContent>
             </Card>
 
-            {/* Assign Package Dialog */}
             <AlertDialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>

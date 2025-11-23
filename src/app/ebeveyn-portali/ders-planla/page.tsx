@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, doc, updateDoc, where, query, increment, Timestamp, writeBatch, getDoc, arrayUnion } from 'firebase/firestore';
+import { collection, doc, updateDoc, where, query, increment, Timestamp, writeBatch, getDoc, arrayRemove } from 'firebase/firestore';
 import { Loader2, ArrowLeft, Info, BookOpen, User, Calendar as CalendarIcon, Package, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -34,10 +34,9 @@ const getCourseDetailsFromPackageCode = (code: string) => {
     if (code === 'FREE_TRIAL') return { courseName: 'Ücretsiz Deneme Dersi', lessons: 1, duration: '30 dakika' };
 
     const courseCodeMap: { [key: string]: string } = { 'B': 'baslangic', 'K': 'konusma', 'G': 'gelisim', 'A': 'akademik' };
-    const lessons = parseInt(code.replace(/\D/g, ''), 10);
     const courseId = courseCodeMap[code.replace(/[0-9]/g, '')];
     const course = COURSES.find(c => c.id === courseId);
-    return course ? { courseName: course.title, lessons, duration: course.details.duration } : null;
+    return course ? { courseName: course.title, duration: course.details.duration } : null;
 }
 
 
@@ -165,55 +164,60 @@ export default function DersPlanlaPage() {
         if (!user || !db || !userDocRef || !userData || !selectedSlot || !selectedChildData) return;
     
         setIsBooking(true);
-        const batch = writeBatch(db);
     
         const slotDocRef = doc(db, 'lesson-slots', selectedSlot.id);
         const hasFreeTrial = !userData.hasUsedFreeTrial;
-    
-        const slotUpdate = {
-            status: 'booked',
-            bookedBy: user.uid,
-            childId: selectedChildId,
-            packageCode: hasFreeTrial ? 'FREE_TRIAL' : selectedPackage
-        };
-        batch.update(slotDocRef, slotUpdate);
-    
-        let successMessage = '';
         const childDocRef = doc(db, 'users', user.uid, 'children', selectedChildId);
-
-        if (hasFreeTrial) {
-            batch.update(userDocRef, { hasUsedFreeTrial: true });
-            successMessage = 'Ücretsiz deneme dersiniz başarıyla planlandı.';
-        } else {
-            batch.update(childDocRef, { remainingLessons: increment(-1) });
-            successMessage = 'Dersiniz başarıyla planlandı. Çocuğunuzun kalan ders sayısı güncellendi.';
-        }
     
         try {
+            const batch = writeBatch(db);
+    
+            // 1. Update the lesson slot
+            const slotUpdate = {
+                status: 'booked',
+                bookedBy: user.uid,
+                childId: selectedChildId,
+                packageCode: hasFreeTrial ? 'FREE_TRIAL' : selectedPackage
+            };
+            batch.update(slotDocRef, slotUpdate);
+    
+            let successMessage = '';
+    
+            // 2. Update user/child lesson counts
+            if (hasFreeTrial) {
+                batch.update(userDocRef, { hasUsedFreeTrial: true });
+                successMessage = 'Ücretsiz deneme dersiniz başarıyla planlandı.';
+            } else {
+                batch.update(childDocRef, { remainingLessons: increment(-1) });
+                successMessage = 'Dersiniz başarıyla planlandı. Çocuğunuzun kalan ders sayısı güncellendi.';
+            }
+        
             await batch.commit();
-
-             const updatedChildSnap = await getDoc(childDocRef);
-             if (updatedChildSnap.exists() && updatedChildSnap.data().remainingLessons === 0) {
+    
+            // 3. Check if the package is finished after booking
+            const updatedChildSnap = await getDoc(childDocRef);
+            if (updatedChildSnap.exists() && updatedChildSnap.data().remainingLessons === 0) {
                 const finishedPackage = updatedChildSnap.data().assignedPackage;
-                const lessonsInPackage = parseInt(finishedPackage.replace(/\D/g, ''), 10);
                 
                 const secondBatch = writeBatch(db);
-                // Reset child's package
+                // Reset child's package fields
                 secondBatch.update(childDocRef, {
                     assignedPackage: null,
                     assignedPackageName: null,
-                    remainingLessons: 0
+                    remainingLessons: 0,
+                    finishedPackage: finishedPackage // Store the finished package code
                 });
-                // Return package to parent's pool
+
+                // Remove the finished package from parent's pool completely
                 secondBatch.update(userDocRef, {
-                    enrolledPackages: arrayUnion(finishedPackage),
-                    remainingLessons: increment(lessonsInPackage)
+                    enrolledPackages: arrayRemove(finishedPackage),
                 });
+
                 await secondBatch.commit();
 
                 toast({
                     title: 'Paket Tamamlandı!',
-                    description: `Çocuğunuz ${finishedPackage} paketindeki tüm dersleri tamamladı. Paket tekrar havuza eklendi.`,
+                    description: `Çocuğunuz ${finishedPackage} paketindeki tüm dersleri tamamladı.`,
                 });
             } else {
                  toast({
@@ -223,12 +227,12 @@ export default function DersPlanlaPage() {
                 });
             }
            
-            router.push('/ebeveyn-portali');
+            router.push('/ebeveyn-portali/paketlerim');
         } catch(serverError) {
              const permissionError = new FirestorePermissionError({
                 path: slotDocRef.path,
                 operation: 'update',
-                requestResourceData: slotUpdate,
+                requestResourceData: {},
             });
             errorEmitter.emit('permission-error', permissionError);
         } finally {
@@ -331,7 +335,7 @@ export default function DersPlanlaPage() {
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value={selectedChildData.assignedPackage}>
-                                                    {selectedChildData.assignedPackage} - {getCourseDetailsFromPackageCode(selectedChildData.assignedPackage)?.courseName}
+                                                    {selectedChildData.assignedPackageName} ({selectedChildData.assignedPackage})
                                                 </SelectItem>
                                             </SelectContent>
                                         </Select>
