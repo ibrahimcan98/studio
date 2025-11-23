@@ -1,7 +1,7 @@
 
 'use client';
 import Link from 'next/link';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -98,6 +98,7 @@ export default function Header() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-10 w-10 rounded-full">
             <Avatar className="h-10 w-10">
+              <AvatarImage src={user?.photoURL || ''} />
               <AvatarFallback>{user?.displayName?.charAt(0) || 'U'}</AvatarFallback>
             </Avatar>
           </Button>
@@ -129,7 +130,7 @@ export default function Header() {
               <Package className="mr-2 h-4 w-4" />
               <span>Paketlerim</span>
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem onClick={() => router.push('/ebeveyn-portali/dersler')} className="cursor-pointer">
               <History className="mr-2 h-4 w-4" />
               <span>Dersler</span>
             </DropdownMenuItem>
