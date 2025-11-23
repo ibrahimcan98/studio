@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { Loader2, Package, ArrowLeft, BookOpen, User, Plus, ChevronsRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { collection, doc, writeBatch, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, writeBatch, getDoc, updateDoc, increment, arrayUnion } from 'firebase/firestore';
 import { COURSES, Course } from '@/data/courses';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
@@ -51,13 +51,13 @@ export default function PaketlerimPage() {
         return doc(db, 'users', user.uid);
     }, [db, user?.uid]);
 
-    const { data: userData, isLoading: userDataLoading, refetch: refetchUserData } = useDoc(userDocRef);
+    const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
 
     const childrenRef = useMemoFirebase(() => {
         if (!db || !user?.uid) return null;
         return collection(db, 'users', user.uid, 'children');
     }, [db, user?.uid]);
-    const { data: children, isLoading: childrenLoading, refetch: refetchChildrenData } = useCollection(childrenRef);
+    const { data: children, isLoading: childrenLoading } = useCollection(childrenRef);
 
     useEffect(() => {
         if (!userLoading && !user) {
@@ -67,10 +67,11 @@ export default function PaketlerimPage() {
 
     const handleAssignPackage = async () => {
         if (!db || !user || !userDocRef || !userData || !selectedPackageToAssign || !childToAssign) return;
-
+    
         const childDocRef = doc(db, 'users', user.uid, 'children', childToAssign);
+        
         const childSnap = await getDoc(childDocRef);
-
+    
         if (childSnap.exists() && childSnap.data()?.assignedPackage) {
             toast({
                 variant: 'destructive',
@@ -79,12 +80,12 @@ export default function PaketlerimPage() {
             });
             return;
         }
-
-        const lessonsToAssign = parseInt(selectedPackageToAssign.replace(/\D/g, ''), 10);
-        if (isNaN(lessonsToAssign) || lessonsToAssign <= 0) {
+    
+        const lessonsInPackage = parseInt(selectedPackageToAssign.replace(/\D/g, ''), 10);
+        if (isNaN(lessonsInPackage) || lessonsInPackage <= 0) {
             toast({ variant: 'destructive', title: 'Geçersiz Paket', description: 'Seçilen paketin ders sayısı geçersiz.' });
             return;
-        };
+        }
 
         const course = getCourseByCode(selectedPackageToAssign);
         if (!course) {
@@ -95,34 +96,27 @@ export default function PaketlerimPage() {
         setIsAssigning(true);
 
         const batch = writeBatch(db);
-
-        // Update child document with the package code and the lessons from that package
+        
+        // Update child document
         batch.update(childDocRef, {
             assignedPackage: selectedPackageToAssign,
             assignedPackageName: course.title,
-            remainingLessons: lessonsToAssign 
+            remainingLessons: increment(lessonsInPackage)
         });
 
-        // Decrement user's lesson pool and remove the package from the unassigned list
-        const updatedEnrolledPackages = [...(userData.enrolledPackages || [])];
-        const packageIndexToRemove = updatedEnrolledPackages.indexOf(selectedPackageToAssign);
-        if (packageIndexToRemove > -1) {
-            updatedEnrolledPackages.splice(packageIndexToRemove, 1);
-        } else {
-             console.error("Could not find package to remove from user's enrolled packages");
-        }
-
+        // Update user document
+        const updatedEnrolledPackages = (userData.enrolledPackages || []).filter((p: string) => p !== selectedPackageToAssign);
+        
         batch.update(userDocRef, {
             enrolledPackages: updatedEnrolledPackages,
+            remainingLessons: increment(-lessonsInPackage)
         });
         
         try {
             await batch.commit();
-            refetchUserData();
-            refetchChildrenData();
             toast({
                 title: 'Paket Atandı!',
-                description: `${course.title} (${lessonsToAssign} ders) paketi başarıyla atandı.`,
+                description: `${course.title} (${lessonsInPackage} ders) paketi başarıyla atandı.`,
                 className: 'bg-green-500 text-white'
             });
         } catch (error) {
@@ -142,32 +136,30 @@ export default function PaketlerimPage() {
     
     const handleUnassignPackage = async () => {
         if (!db || !user || !userDocRef || !userData || !packageToUnassign) return;
-
+    
         setIsUnassigning(true);
-
+    
         const { childId, packageCode, lessons } = packageToUnassign;
         const childRef = doc(db, 'users', user.uid, 'children', childId);
         
+        // Atomik bir işlem için batch kullan
         const batch = writeBatch(db);
         
-        // Remove package from child
+        // 1. Çocuğun paketini ve kalan derslerini sıfırla
         batch.update(childRef, {
             assignedPackage: null,
             assignedPackageName: null,
             remainingLessons: 0
         });
-
-        // Add package and *remaining* lessons back to the user's pool
-        const newEnrolledPackages = [...(userData.enrolledPackages || []), packageCode];
-        
+    
+        // 2. Kullanıcının atanmamış paketlerine geri ekle ve ders sayısını güncelle
         batch.update(userDocRef, {
-            enrolledPackages: newEnrolledPackages,
+            enrolledPackages: arrayUnion(packageCode),
+            remainingLessons: increment(lessons)
         });
-
+    
         try {
             await batch.commit();
-            refetchChildrenData();
-            refetchUserData();
             toast({
                 title: 'Paket Kaldırıldı',
                 description: `Paket, çocuğun üzerinden kaldırılıp havuza geri eklendi.`,
@@ -187,7 +179,7 @@ export default function PaketlerimPage() {
     
     const unassignedPackages = userData?.enrolledPackages || [];
     const childrenWithoutPackages = children?.filter(c => !c.assignedPackage) || [];
-    const totalUnassignedLessons = unassignedPackages.reduce((acc, pkg) => acc + parseInt(pkg.replace(/\D/g, ''), 10), 0);
+    const totalUnassignedLessons = userData?.remainingLessons || 0;
 
     if (userLoading || userDataLoading || childrenLoading) {
         return (
@@ -223,7 +215,7 @@ export default function PaketlerimPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className='flex items-center gap-2'><Package /> Atanmamış Paketler Havuzu</CardTitle>
-                    <CardDescription>Bu havuzdaki dersleri bir çocuğunuza atayarak ders planlamaya başlayın.</CardDescription>
+                    <CardDescription>Bu havuzda toplam {totalUnassignedLessons} dersiniz bulunuyor. Dersleri bir çocuğunuza atayarak planlamaya başlayın.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     {unassignedPackages.length > 0 ? (
@@ -268,7 +260,7 @@ export default function PaketlerimPage() {
                                 <div key={child.id} className="p-4 border rounded-lg bg-background flex flex-col sm:flex-row justify-between items-start sm:items-center">
                                     <div className='mb-4 sm:mb-0'>
                                         <p className="font-bold text-lg">{child.firstName}</p>
-                                        {child.assignedPackage ? (
+                                        {child.assignedPackage && child.remainingLessons > 0 ? (
                                             <>
                                                 <p className="text-muted-foreground">{child.assignedPackageName}</p>
                                                 <Badge className='mt-2'>{child.remainingLessons} ders kaldı</Badge>
