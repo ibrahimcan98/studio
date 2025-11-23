@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, doc, updateDoc, where, query, increment, Timestamp, writeBatch } from 'firebase/firestore';
+import { collection, doc, updateDoc, where, query, increment, Timestamp, writeBatch, getDoc, arrayUnion } from 'firebase/firestore';
 import { Loader2, ArrowLeft, Info, BookOpen, User, Calendar as CalendarIcon, Package, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -179,23 +179,50 @@ export default function DersPlanlaPage() {
         batch.update(slotDocRef, slotUpdate);
     
         let successMessage = '';
-    
+        const childDocRef = doc(db, 'users', user.uid, 'children', selectedChildId);
+
         if (hasFreeTrial) {
             batch.update(userDocRef, { hasUsedFreeTrial: true });
             successMessage = 'Ücretsiz deneme dersiniz başarıyla planlandı.';
         } else {
-            const childDocRef = doc(db, 'users', user.uid, 'children', selectedChildId);
             batch.update(childDocRef, { remainingLessons: increment(-1) });
             successMessage = 'Dersiniz başarıyla planlandı. Çocuğunuzun kalan ders sayısı güncellendi.';
         }
     
         try {
             await batch.commit();
-             toast({
-                title: 'Ders Planlandı!',
-                description: successMessage,
-                className: 'bg-green-500 text-white'
-            });
+
+             const updatedChildSnap = await getDoc(childDocRef);
+             if (updatedChildSnap.exists() && updatedChildSnap.data().remainingLessons === 0) {
+                const finishedPackage = updatedChildSnap.data().assignedPackage;
+                const lessonsInPackage = parseInt(finishedPackage.replace(/\D/g, ''), 10);
+                
+                const secondBatch = writeBatch(db);
+                // Reset child's package
+                secondBatch.update(childDocRef, {
+                    assignedPackage: null,
+                    assignedPackageName: null,
+                    remainingLessons: 0
+                });
+                // Return package to parent's pool
+                secondBatch.update(userDocRef, {
+                    enrolledPackages: arrayUnion(finishedPackage),
+                    remainingLessons: increment(lessonsInPackage)
+                });
+                await secondBatch.commit();
+
+                toast({
+                    title: 'Paket Tamamlandı!',
+                    description: `Çocuğunuz ${finishedPackage} paketindeki tüm dersleri tamamladı. Paket tekrar havuza eklendi.`,
+                });
+            } else {
+                 toast({
+                    title: 'Ders Planlandı!',
+                    description: successMessage,
+                    className: 'bg-green-500 text-white'
+                });
+            }
+           
             router.push('/ebeveyn-portali');
         } catch(serverError) {
              const permissionError = new FirestorePermissionError({
@@ -400,5 +427,3 @@ export default function DersPlanlaPage() {
         </div>
     );
 }
-
-    

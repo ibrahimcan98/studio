@@ -240,6 +240,7 @@ function ChildCard({ child, userDocRef, isPremium, currentLives, onDelete }: { c
     };
     
     const displayLives = Math.max(0, currentLives);
+    const hasActivePackage = child.assignedPackage && child.remainingLessons > 0;
 
     return (
         <Card className="relative flex flex-col items-center text-center p-6 space-y-4 hover:shadow-lg transition-shadow group">
@@ -300,10 +301,15 @@ function ChildCard({ child, userDocRef, isPremium, currentLives, onDelete }: { c
                         <BookOpen className='w-4 h-4'/>
                     </div>
                 </div>
-                {child.assignedPackage && (
+                {hasActivePackage ? (
                      <div className='flex justify-between items-center text-sm'>
                         <span className='text-muted-foreground'>Paket:</span>
                         <Badge variant="secondary">{child.assignedPackageName}</Badge>
+                    </div>
+                ) : (
+                    <div className='flex justify-between items-center text-sm'>
+                        <span className='text-muted-foreground'>Paket:</span>
+                        <span className='text-xs text-muted-foreground italic'>Atanmamış</span>
                     </div>
                 )}
             </div>
