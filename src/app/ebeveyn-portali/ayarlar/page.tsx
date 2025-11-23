@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirebase, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { getAuth, updateProfile, updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -28,6 +28,7 @@ import {
 
 export default function AyarlarPage() {
     const { user: authUser, loading: authLoading } = useUser();
+    const { firebaseApp } = useFirebase();
     const router = useRouter();
     const { toast } = useToast();
     const db = useFirestore();
@@ -80,11 +81,11 @@ export default function AyarlarPage() {
     };
 
     const handleUploadAndSave = async () => {
-        if (!profileImage || !authUser) return;
+        if (!profileImage || !authUser || !firebaseApp) return;
 
         setIsUploading(true);
         try {
-            const storage = getStorage();
+            const storage = getStorage(firebaseApp);
             const storageRef = ref(storage, `profile-images/${authUser.uid}/${profileImage.name}`);
             const snapshot = await uploadBytes(storageRef, profileImage);
             const downloadURL = await getDownloadURL(snapshot.ref);
@@ -326,4 +327,3 @@ export default function AyarlarPage() {
         </div>
     );
 }
-
