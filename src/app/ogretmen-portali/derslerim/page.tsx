@@ -183,7 +183,7 @@ export default function OgretmenDerslerimPage() {
         });
         upcoming.sort((a, b) => a.startTime.seconds - b.startTime.seconds);
         past.sort((a, b) => b.startTime.seconds - a.startTime.seconds);
-        return { upcomingLessons, pastLessons };
+        return { upcomingLessons: upcoming, pastLessons: past };
     }, [lessons]);
 
     const handleOpenFeedbackDialog = (lesson: any) => {
