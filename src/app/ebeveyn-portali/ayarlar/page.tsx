@@ -52,11 +52,6 @@ export default function AyarlarPage() {
     const [isSavingSecurity, setIsSavingSecurity] = useState(false);
     const [isReauthRequired, setIsReauthRequired] = useState(false);
     
-    const [profileImage, setProfileImage] = useState<File | null>(null);
-    const [profileImageUrl, setProfileImageUrl] = useState('');
-    const [isUploading, setIsUploading] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
     useEffect(() => {
         if (userData) {
             setFirstName(userData.firstName || '');
@@ -64,47 +59,9 @@ export default function AyarlarPage() {
         }
         if (authUser) {
             setEmail(authUser.email || '');
-            setProfileImageUrl(authUser.photoURL || '');
         }
     }, [userData, authUser]);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            setProfileImage(file);
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                setProfileImageUrl(event.target?.result as string);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    const handleUploadAndSave = async () => {
-        if (!profileImage || !authUser || !firebaseApp) return;
-
-        setIsUploading(true);
-        try {
-            const storage = getStorage(firebaseApp);
-            const storageRef = ref(storage, `profile-images/${authUser.uid}/${profileImage.name}`);
-            const snapshot = await uploadBytes(storageRef, profileImage);
-            const downloadURL = await getDownloadURL(snapshot.ref);
-
-            await updateProfile(authUser, { photoURL: downloadURL });
-             if (userDocRef) {
-                await updateDoc(userDocRef, { profileImageUrl: downloadURL });
-            }
-
-            setProfileImageUrl(downloadURL);
-            toast({ title: 'Başarılı!', description: 'Profil resminiz güncellendi.' });
-        } catch (error) {
-            console.error(error);
-            toast({ variant: 'destructive', title: 'Hata', description: 'Resim yüklenirken bir sorun oluştu.' });
-        } finally {
-            setIsUploading(false);
-            setProfileImage(null);
-        }
-    };
 
     const handleSaveProfile = async () => {
         if (!authUser || !userDocRef) return;
@@ -205,34 +162,8 @@ export default function AyarlarPage() {
                 </div>
             </div>
 
-            <div className="grid gap-8 lg:grid-cols-3">
-                <div className="lg:col-span-1 flex flex-col gap-8">
-                     <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><ImageIcon/> Profil Resmi</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex flex-col items-center gap-4">
-                             <Avatar className="w-32 h-32 text-4xl border-4 border-background shadow-md">
-                                <AvatarImage src={profileImageUrl} alt={authUser?.displayName || ''} />
-                                <AvatarFallback>{authUser?.displayName?.charAt(0) || 'U'}</AvatarFallback>
-                            </Avatar>
-                            <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
-                            <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-                                Resim Seç
-                            </Button>
-                        </CardContent>
-                        {profileImage && (
-                            <CardFooter>
-                                <Button className='w-full' onClick={handleUploadAndSave} disabled={isUploading}>
-                                    {isUploading && <Loader2 className="animate-spin mr-2"/>}
-                                    Yükle ve Kaydet
-                                </Button>
-                            </CardFooter>
-                        )}
-                    </Card>
-                </div>
-
-                <div className="lg:col-span-2 flex flex-col gap-8">
+            <div className="grid gap-8">
+                <div className="flex flex-col gap-8">
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2"><User /> Kişisel Bilgiler</CardTitle>
