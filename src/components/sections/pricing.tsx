@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 
 const packages = [
   {
@@ -8,18 +9,21 @@ const packages = [
     price: "€99",
     lessons: 4,
     popular: false,
+    id: 'baslangic-detay'
   },
   {
     name: "Konuşma Kursu",
     price: "€198",
     lessons: 12,
     popular: true,
+    id: 'konusma-detay'
   },
   {
     name: "Gelişim Kursu",
     price: "€210.50",
     lessons: 8,
     popular: false,
+    id: 'gelisim-detay'
   },
 ];
 
@@ -46,7 +50,9 @@ export default function Pricing() {
               </CardHeader>
               <CardContent className="flex-1"></CardContent>
               <CardFooter>
-                <Button className="w-full font-bold" variant={pkg.popular ? 'default' : 'outline'}>Detaylı Gör</Button>
+                 <Button className="w-full font-bold" variant={pkg.popular ? 'default' : 'outline'} asChild>
+                    <Link href={`/kurslar#${pkg.id}`}>Detaylı Gör</Link>
+                </Button>
               </CardFooter>
             </Card>
           ))}
