@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { Loader2, Package, ArrowLeft, BookOpen, User, Plus, ChevronsRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { collection, doc, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, writeBatch } from 'firebase/firestore';
 import { COURSES, Course } from '@/data/courses';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
@@ -69,35 +69,45 @@ export default function PaketlerimPage() {
         if (!db || !user || !userDocRef || !userData || !selectedPackageToAssign || !childToAssign) return;
 
         const childRef = doc(db, 'users', user.uid, 'children', childToAssign);
-        const lessons = parseInt(selectedPackageToAssign.replace(/\D/g, ''), 10);
+        
+        // This is the critical change: We use the *actual* remaining lessons from the user's pool,
+        // not the number from the package code.
+        const lessonsToAssign = userData.remainingLessons || 0;
+        
         const course = getCourseByCode(selectedPackageToAssign.replace(/[0-9]/g, ''));
-        if (!course) return;
+        if (!course || lessonsToAssign <= 0) {
+             toast({
+                variant: 'destructive',
+                title: 'Atama Hatası',
+                description: 'Atanacak ders bulunmuyor veya paket bilgisi geçersiz.',
+            });
+            return;
+        };
 
         setIsAssigning(true);
 
         const batch = writeBatch(db);
 
-        // Update child document
+        // Update child document with the package code and the *actual* number of lessons from the pool
         batch.update(childRef, {
             assignedPackage: selectedPackageToAssign,
             assignedPackageName: course.title,
-            remainingLessons: lessons
+            remainingLessons: lessonsToAssign 
         });
 
-        // Remove package from user's unassigned list
+        // Remove package from user's unassigned list and reset the lesson pool
         const updatedEnrolledPackages = userData.enrolledPackages.filter((p: string) => p !== selectedPackageToAssign);
-        const updatedRemainingLessons = userData.remainingLessons - lessons;
 
         batch.update(userDocRef, {
             enrolledPackages: updatedEnrolledPackages,
-            remainingLessons: updatedRemainingLessons
+            remainingLessons: 0 // The pool is now empty as it's been assigned
         });
         
         try {
             await batch.commit();
             toast({
                 title: 'Paket Atandı!',
-                description: `${course.title} (${lessons} ders) paketi başarıyla atandı.`,
+                description: `${course.title} (${lessonsToAssign} ders) paketi başarıyla atandı.`,
                 className: 'bg-green-500 text-white'
             });
         } catch (error) {
@@ -134,6 +144,7 @@ export default function PaketlerimPage() {
 
         // Add package and *remaining* lessons back to the user's pool
         const newEnrolledPackages = [...(userData.enrolledPackages || []), packageCode];
+        // This is the critical change: add the remaining lessons back to the pool
         const newRemainingLessons = (userData.remainingLessons || 0) + lessons;
 
         batch.update(userDocRef, {
@@ -172,6 +183,9 @@ export default function PaketlerimPage() {
     }
     
     const childToUnassignData = children?.find(c => c.id === packageToUnassign?.childId);
+    
+    // Correctly display total lessons in the pool
+    const totalUnassignedLessons = userData?.remainingLessons || 0;
 
     return (
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20">
@@ -192,21 +206,26 @@ export default function PaketlerimPage() {
             {/* Unassigned Packages */}
             <Card>
                 <CardHeader>
-                    <CardTitle className='flex items-center gap-2'><Package /> Atanmamış Paketler</CardTitle>
-                    <CardDescription>Bu paketleri bir çocuğunuza atayarak ders planlamaya başlayın.</CardDescription>
+                    <CardTitle className='flex items-center gap-2'><Package /> Atanmamış Paketler Havuzu</CardTitle>
+                    <CardDescription>Bu havuzdaki dersleri bir çocuğunuza atayarak ders planlamaya başlayın.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     {unassignedPackages.length > 0 ? (
-                        <div className='flex flex-wrap gap-4'>
-                            {unassignedPackages.map((pkg: string, index: number) => {
-                                const course = getCourseByCode(pkg.replace(/[0-9]/g, ''));
-                                const lessons = parseInt(pkg.replace(/\D/g, ''), 10);
-                                return (
-                                    <Badge key={index} variant='secondary' className='p-2 text-base'>
-                                        {course?.title} ({lessons} ders)
-                                    </Badge>
-                                )
-                            })}
+                         <div className='flex flex-col gap-4'>
+                            <div className='flex flex-wrap gap-4'>
+                                {unassignedPackages.map((pkg: string, index: number) => {
+                                    const course = getCourseByCode(pkg.replace(/[0-9]/g, ''));
+                                    const lessons = parseInt(pkg.replace(/\D/g, ''), 10);
+                                    return (
+                                        <Badge key={index} variant='secondary' className='p-2 text-base'>
+                                            {course?.title} ({lessons} derslik paket)
+                                        </Badge>
+                                    )
+                                })}
+                            </div>
+                            <div className="font-bold text-lg">
+                                Toplam Atanmamış Ders: <Badge className="text-lg">{totalUnassignedLessons}</Badge>
+                            </div>
                         </div>
                     ) : (
                         <p className='text-muted-foreground'>Atanmamış paketiniz bulunmuyor.</p>
@@ -215,6 +234,11 @@ export default function PaketlerimPage() {
                         <Button className='mt-6' onClick={() => setIsAssignDialogOpen(true)}>
                             <Plus className='mr-2 h-4 w-4' /> Paket Ata
                         </Button>
+                    )}
+                     {unassignedPackages.length === 0 && (
+                         <Button asChild className="mt-6" variant="outline">
+                            <Link href="/kurslar">Yeni Paket Satın Al</Link>
+                         </Button>
                     )}
                 </CardContent>
             </Card>
@@ -268,7 +292,7 @@ export default function PaketlerimPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Paket Ata</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Bir paket seçin ve hangi çocuğunuza atamak istediğinizi belirtin.
+                            Bir paket seçin ve hangi çocuğunuza atamak istediğinizi belirtin. Bu işlem havuzdaki tüm dersleri o çocuğa aktaracaktır.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className='space-y-4 py-4'>
@@ -281,9 +305,8 @@ export default function PaketlerimPage() {
                                 <SelectContent>
                                     {unassignedPackages.map((pkg: string, index: number) => {
                                         const course = getCourseByCode(pkg.replace(/[0-9]/g, ''));
-                                        const lessons = parseInt(pkg.replace(/\D/g, ''), 10);
                                         return (
-                                             <SelectItem key={index} value={pkg}>{course?.title} ({lessons} ders)</SelectItem>
+                                             <SelectItem key={index} value={pkg}>{course?.title} ({pkg})</SelectItem>
                                         )
                                     })}
                                 </SelectContent>
@@ -302,6 +325,11 @@ export default function PaketlerimPage() {
                                 </SelectContent>
                             </Select>
                         </div>
+                         {selectedPackageToAssign && (
+                            <div className="font-medium p-3 bg-blue-50 border border-blue-200 rounded-md">
+                                Bu işlemle <Badge variant="secondary">{totalUnassignedLessons} ders</Badge> bu çocuğa atanacak.
+                            </div>
+                        )}
                     </div>
                     <AlertDialogFooter>
                         <AlertDialogCancel>İptal</AlertDialogCancel>
