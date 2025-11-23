@@ -118,14 +118,14 @@ export default function DersPlanlaPage() {
 
     const availableDays = useMemo(() => {
         if (!availableSlots || !selectedTimeZone) return [];
-        return availableSlots.map(slot => toDate(slot.startTime.seconds * 1000, { timeZone: selectedTimeZone }));
+        return availableSlots.map(slot => toZonedTime(slot.startTime.seconds * 1000, selectedTimeZone));
     }, [availableSlots, selectedTimeZone]);
     
     const slotsForSelectedDate = useMemo(() => {
         if (!availableSlots || !selectedDate || !selectedTimeZone) return [];
         return availableSlots
             .filter(slot => {
-                const zonedDate = toDate(slot.startTime.seconds * 1000, { timeZone: selectedTimeZone });
+                const zonedDate = toZonedTime(slot.startTime.seconds * 1000, selectedTimeZone);
                 return isSameDay(zonedDate, selectedDate);
             })
             .sort((a, b) => a.startTime.seconds - b.startTime.seconds);
