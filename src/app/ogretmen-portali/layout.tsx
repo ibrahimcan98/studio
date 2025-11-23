@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser } from '@/firebase';
@@ -50,10 +51,9 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
       icon: Calendar
     },
     {
-      href: '/ogretmen-portali/ogrenciler',
-      label: 'Öğrencilerim',
+      href: '/ogretmen-portali/derslerim',
+      label: 'Derslerim',
       icon: Users,
-      disabled: true
     }
   ];
   
@@ -80,16 +80,13 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
                     {navItems.map((item) => (
                         <Link
                             key={item.href}
-                            href={item.disabled ? '#' : item.href}
+                            href={item.href}
                             className={cn(
                                 'flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors',
                                 pathname === item.href
                                     ? 'text-primary border-b-2 border-primary'
-                                    : 'text-muted-foreground hover:text-primary',
-                                item.disabled ? 'cursor-not-allowed opacity-50' : ''
+                                    : 'text-muted-foreground hover:text-primary'
                             )}
-                            aria-disabled={item.disabled}
-                            tabIndex={item.disabled ? -1 : undefined}
                         >
                             <item.icon className="h-4 w-4" />
                             {item.label}

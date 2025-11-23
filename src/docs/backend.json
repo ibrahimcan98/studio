@@ -150,7 +150,15 @@
             "status": { "type": "string", "enum": ["available", "booked"], "description": "The current status of the slot." },
             "bookedBy": { "type": "string", "description": "ID of the user (parent) who booked this slot." },
             "childId": { "type": "string", "description": "ID of the child who will take the lesson." },
-            "packageCode": { "type": "string", "description": "The code of the package used for this lesson (e.g., '12K', 'FREE_TRIAL')." }
+            "packageCode": { "type": "string", "description": "The code of the package used for this lesson (e.g., '12K', 'FREE_TRIAL')." },
+            "feedback": {
+                "type": "object",
+                "description": "Feedback provided by the teacher for a completed lesson.",
+                "properties": {
+                    "text": { "type": "string", "description": "The content of the feedback." },
+                    "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the feedback was created or last updated." }
+                }
+            }
         },
         "required": ["id", "teacherId", "startTime", "endTime", "status"]
     },

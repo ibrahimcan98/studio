@@ -1,0 +1,80 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Allow a teacher to read user and child data if they have a booked lesson with that user.
+    // This is a simplification for development. A more robust solution might involve custom claims
+    // or duplicating relational data. For now, any teacher can read any parent/child data.
+    function isTeacher() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+    }
+     
+    match /users/{userId} {
+      // Allow a user to get their own doc.
+      // Allow any authenticated user to read any other user's profile.
+      allow get: if request.auth.uid == userId || exists(/databases/$(database)/documents/users/$(request.auth.uid));
+      allow list: if isTeacher(); // Allow teachers to list/query users.
+      allow create: if request.auth.uid == userId;
+      allow update, delete: if request.auth.uid == userId;
+    }
+
+    match /users/{userId}/children/{childId} {
+      // Allow a user to manage their own children.
+      // Allow a teacher to read any child's doc.
+      allow get, list: if request.auth.uid == userId || isTeacher();
+      allow create, update, delete: if request.auth.uid == userId && request.resource.data.userId == userId;
+    }
+
+    match /lesson-slots/{slotId} {
+        allow get, list: if request.auth != null;
+        allow create: if isTeacher();
+        // Allow a user to book an available slot 
+        // Allow a teacher to modify their own available slot
+        // Allow a teacher to add feedback to a booked slot they own
+        allow update: if (request.auth != null && resource.data.status == 'available' && request.resource.data.status == 'booked') || 
+                       (request.auth.uid == resource.data.teacherId);
+        allow delete: if request.auth.uid == resource.data.teacherId;
+    }
+    
+    match /courses/{courseId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false; 
+      allow update: if false; 
+      allow delete: if false; 
+    }
+
+    match /users/{userId}/enrollments/{enrollmentId} {
+      allow get: if request.auth.uid == userId;
+      allow list: if request.auth.uid == userId;
+      allow create: if request.auth.uid == userId && request.resource.data.userId == userId;
+      allow update: if request.auth.uid == userId && resource != null;
+      allow delete: if request.auth.uid == userId && resource != null;
+    }
+
+    match /users/{userId}/purchases/{purchaseId} {
+        allow get: if request.auth.uid == userId;
+        allow list: if request.auth.uid == userId;
+        allow create: if request.auth.uid == userId;
+        allow update: if false;
+        allow delete: if false;
+    }
+
+    match /courses/{courseId}/lessons/{lessonId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false; 
+      allow update: if false; 
+      allow delete: if false; 
+    }
+
+    match /reviews/{reviewId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth.uid == resource.data.userId && resource != null;
+      allow delete: if request.auth.uid == resource.data.userId && resource != null;
+    }
+  }
+}

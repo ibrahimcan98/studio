@@ -1,17 +1,19 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
-import { Loader2, ArrowLeft, Calendar, Clock, User, BookOpen, Baby, History, CheckCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, Calendar, Clock, User, BookOpen, Baby, History, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatInTimeZone } from 'date-fns-tz';
 import { tr } from 'date-fns/locale';
 import { COURSES } from '@/data/courses';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 
 const getCourseDetailsFromPackageCode = (code?: string) => {
@@ -50,21 +52,22 @@ function LessonCard({ lesson }: { lesson: any }) {
 
     const packageDetails = getCourseDetailsFromPackageCode(lesson.packageCode);
     const lessonDate = lesson.startTime.toDate();
+    const isPast = new Date() > lessonDate;
 
     return (
-        <Card>
+        <Card className='flex flex-col'>
             <CardHeader>
                 <CardTitle className="flex justify-between items-start">
                     <span className="text-lg">{packageDetails?.courseName || 'Ders'}</span>
-                     <Badge variant={new Date() > lessonDate ? "outline" : "default"}>
-                        {new Date() > lessonDate ? 'Tamamlandı' : 'Yaklaşıyor'}
+                     <Badge variant={isPast ? "outline" : "default"}>
+                        {isPast ? 'Tamamlandı' : 'Yaklaşıyor'}
                     </Badge>
                 </CardTitle>
                 <CardDescription>
                     {formatInTimeZone(lessonDate, 'Europe/Istanbul', 'dd MMMM yyyy, HH:mm', { locale: tr })} (TSİ)
                 </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm">
+            <CardContent className="space-y-3 text-sm flex-grow">
                 <div className="flex items-center gap-2">
                     <Baby className="w-4 h-4 text-muted-foreground" />
                     <span><strong>Öğrenci:</strong> {childData?.firstName}</span>
@@ -78,6 +81,15 @@ function LessonCard({ lesson }: { lesson: any }) {
                     <span><strong>Paket:</strong> {lesson.packageCode === 'FREE_TRIAL' ? 'Ücretsiz Deneme' : lesson.packageCode}</span>
                 </div>
             </CardContent>
+            {isPast && lesson.feedback && (
+                <>
+                <Separator />
+                <CardFooter className="flex-col items-start gap-2 pt-4">
+                    <h4 className="font-semibold flex items-center gap-2 text-base"><MessageSquare className='w-5 h-5 text-primary'/> Öğretmen Geri Bildirimi:</h4>
+                    <p className='text-sm text-muted-foreground'>{lesson.feedback.text}</p>
+                </CardFooter>
+                </>
+            )}
         </Card>
     );
 }
