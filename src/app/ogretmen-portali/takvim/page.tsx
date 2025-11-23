@@ -22,7 +22,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { formatInTimeZone } from 'date-fns-tz';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import { COURSES } from '@/data/courses';
 
 
@@ -349,4 +349,3 @@ export default function TakvimYonetimiPage() {
     );
 }
 
-    
