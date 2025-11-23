@@ -42,10 +42,6 @@ export default function PaketlerimPage() {
     const [childToAssign, setChildToAssign] = useState<string>('');
     const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
 
-    // State for unassigning a package
-    const [isUnassigning, setIsUnassigning] = useState(false);
-    const [packageToUnassign, setPackageToUnassign] = useState<{ childId: string, packageCode: string, lessons: number } | null>(null);
-
     const userDocRef = useMemoFirebase(() => {
         if (!db || !user?.uid) return null;
         return doc(db, 'users', user.uid);
@@ -69,7 +65,6 @@ export default function PaketlerimPage() {
         if (!db || !user || !userDocRef || !userData || !selectedPackageToAssign || !childToAssign) return;
     
         const childDocRef = doc(db, 'users', user.uid, 'children', childToAssign);
-        
         const childSnap = await getDoc(childDocRef);
     
         if (childSnap.exists() && childSnap.data()?.assignedPackage) {
@@ -134,49 +129,6 @@ export default function PaketlerimPage() {
         }
     };
     
-    const handleUnassignPackage = async () => {
-        if (!db || !user || !userDocRef || !userData || !packageToUnassign) return;
-    
-        setIsUnassigning(true);
-    
-        const { childId, packageCode, lessons } = packageToUnassign;
-        const childRef = doc(db, 'users', user.uid, 'children', childId);
-        
-        // Atomik bir işlem için batch kullan
-        const batch = writeBatch(db);
-        
-        // 1. Çocuğun paketini ve kalan derslerini sıfırla
-        batch.update(childRef, {
-            assignedPackage: null,
-            assignedPackageName: null,
-            remainingLessons: 0
-        });
-    
-        // 2. Kullanıcının atanmamış paketlerine geri ekle ve ders sayısını güncelle
-        batch.update(userDocRef, {
-            enrolledPackages: arrayUnion(packageCode),
-            remainingLessons: increment(lessons)
-        });
-    
-        try {
-            await batch.commit();
-            toast({
-                title: 'Paket Kaldırıldı',
-                description: `Paket, çocuğun üzerinden kaldırılıp havuza geri eklendi.`,
-            });
-        } catch (error) {
-            console.error("Package unassignment error: ", error);
-            toast({
-                variant: 'destructive',
-                title: 'Hata',
-                description: 'Paket kaldırılırken bir sorun oluştu.'
-            });
-        } finally {
-            setIsUnassigning(false);
-            setPackageToUnassign(null);
-        }
-    };
-    
     const unassignedPackages = userData?.enrolledPackages || [];
     const childrenWithoutPackages = children?.filter(c => !c.assignedPackage) || [];
     const totalUnassignedLessons = userData?.remainingLessons || 0;
@@ -188,8 +140,6 @@ export default function PaketlerimPage() {
             </div>
         );
     }
-    
-    const childToUnassignData = children?.find(c => c.id === packageToUnassign?.childId);
     
     const lessonsInSelectedPackage = selectedPackageToAssign 
         ? parseInt(selectedPackageToAssign.replace(/\D/g, ''), 10) || 0
@@ -269,14 +219,6 @@ export default function PaketlerimPage() {
                                             <p className="text-sm text-muted-foreground">Henüz atanmış bir paketi yok.</p>
                                         )}
                                     </div>
-                                    {child.assignedPackage && (
-                                        <Button 
-                                            variant='outline' 
-                                            onClick={() => setPackageToUnassign({ childId: child.id, packageCode: child.assignedPackage, lessons: child.remainingLessons })}
-                                        >
-                                            Paketi Değiştir <ChevronsRight className='ml-2 h-4 w-4' />
-                                        </Button>
-                                    )}
                                 </div>
                             ))}
                         </div>
@@ -310,8 +252,9 @@ export default function PaketlerimPage() {
                                 <SelectContent>
                                     {unassignedPackages.map((pkg: string, index: number) => {
                                         const course = getCourseByCode(pkg);
+                                        const lessons = parseInt(pkg.replace(/\D/g, ''), 10);
                                         return (
-                                             <SelectItem key={`${pkg}-${index}`} value={pkg}>{course?.title} ({pkg})</SelectItem>
+                                             <SelectItem key={`${pkg}-${index}`} value={pkg}>{course?.title} ({lessons} ders)</SelectItem>
                                         )
                                     })}
                                 </SelectContent>
@@ -341,30 +284,6 @@ export default function PaketlerimPage() {
                         <AlertDialogAction onClick={handleAssignPackage} disabled={isAssigning || !selectedPackageToAssign || !childToAssign}>
                             {isAssigning && <Loader2 className='animate-spin mr-2 h-4 w-4' />}
                             Ata
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-
-            {/* Unassign Package Dialog */}
-             <AlertDialog open={!!packageToUnassign} onOpenChange={(open) => !open && setPackageToUnassign(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Paketi Kaldır</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {packageToUnassign && childToUnassignData && (
-                                <>
-                                    <b>{packageToUnassign.packageCode}</b> paketini <b>{childToUnassignData.firstName}</b> üzerinden kaldırmak istediğinizden emin misiniz? 
-                                    Paket, kalan <b>{packageToUnassign.lessons}</b> ders ile birlikte atanmamış paketler havuzuna geri dönecektir.
-                                </>
-                            )}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setPackageToUnassign(null)}>İptal</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleUnassignPackage} disabled={isUnassigning} className="bg-destructive hover:bg-destructive/90">
-                            {isUnassigning && <Loader2 className='animate-spin mr-2 h-4 w-4' />}
-                            Evet, Kaldır
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
