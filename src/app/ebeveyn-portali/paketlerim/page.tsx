@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { Loader2, Package, ArrowLeft, BookOpen, User, Plus, ChevronsRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { collection, doc, writeBatch } from 'firebase/firestore';
+import { collection, doc, writeBatch, getDoc } from 'firebase/firestore';
 import { COURSES, Course } from '@/data/courses';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
@@ -69,18 +69,31 @@ export default function PaketlerimPage() {
         if (!db || !user || !userDocRef || !userData || !selectedPackageToAssign || !childToAssign) return;
 
         const childRef = doc(db, 'users', user.uid, 'children', childToAssign);
-        
-        // This is the critical change: We use the *actual* remaining lessons from the user's pool,
-        // not the number from the package code.
-        const lessonsToAssign = userData.remainingLessons || 0;
-        
-        const course = getCourseByCode(selectedPackageToAssign.replace(/[0-9]/g, ''));
-        if (!course || lessonsToAssign <= 0) {
-             toast({
+        const childSnap = await getDoc(childRef);
+
+        if (childSnap.exists() && childSnap.data()?.assignedPackage) {
+            toast({
                 variant: 'destructive',
                 title: 'Atama Hatası',
-                description: 'Atanacak ders bulunmuyor veya paket bilgisi geçersiz.',
+                description: 'Bu çocuğun zaten atanmış bir paketi var. Yeni bir paket atamak için önce mevcut paketi kaldırmalısınız.',
             });
+            return;
+        }
+
+        const lessonsToAssign = parseInt(selectedPackageToAssign.replace(/\D/g, ''), 10);
+        if (isNaN(lessonsToAssign) || lessonsToAssign <= 0) {
+            toast({ variant: 'destructive', title: 'Geçersiz Paket', description: 'Seçilen paketin ders sayısı geçersiz.' });
+            return;
+        }
+        
+        if ((userData.remainingLessons || 0) < lessonsToAssign) {
+            toast({ variant: 'destructive', title: 'Yetersiz Ders', description: 'Havuzda bu paketi atamak için yeterli ders bulunmuyor.' });
+            return;
+        }
+        
+        const course = getCourseByCode(selectedPackageToAssign.replace(/[0-9]/g, ''));
+        if (!course) {
+             toast({ variant: 'destructive', title: 'Atama Hatası', description: 'Paket bilgisi geçersiz.' });
             return;
         };
 
@@ -88,19 +101,23 @@ export default function PaketlerimPage() {
 
         const batch = writeBatch(db);
 
-        // Update child document with the package code and the *actual* number of lessons from the pool
+        // Update child document with the package code and the lessons from that package
         batch.update(childRef, {
             assignedPackage: selectedPackageToAssign,
             assignedPackageName: course.title,
             remainingLessons: lessonsToAssign 
         });
 
-        // Remove package from user's unassigned list and reset the lesson pool
-        const updatedEnrolledPackages = userData.enrolledPackages.filter((p: string) => p !== selectedPackageToAssign);
+        // Decrement user's lesson pool and remove the package from the unassigned list
+        const updatedEnrolledPackages = [...userData.enrolledPackages];
+        const packageIndexToRemove = updatedEnrolledPackages.indexOf(selectedPackageToAssign);
+        if (packageIndexToRemove > -1) {
+            updatedEnrolledPackages.splice(packageIndexToRemove, 1);
+        }
 
         batch.update(userDocRef, {
             enrolledPackages: updatedEnrolledPackages,
-            remainingLessons: 0 // The pool is now empty as it's been assigned
+            remainingLessons: (userData.remainingLessons || 0) - lessonsToAssign
         });
         
         try {
@@ -144,7 +161,6 @@ export default function PaketlerimPage() {
 
         // Add package and *remaining* lessons back to the user's pool
         const newEnrolledPackages = [...(userData.enrolledPackages || []), packageCode];
-        // This is the critical change: add the remaining lessons back to the pool
         const newRemainingLessons = (userData.remainingLessons || 0) + lessons;
 
         batch.update(userDocRef, {
@@ -184,8 +200,9 @@ export default function PaketlerimPage() {
     
     const childToUnassignData = children?.find(c => c.id === packageToUnassign?.childId);
     
-    // Correctly display total lessons in the pool
-    const totalUnassignedLessons = userData?.remainingLessons || 0;
+    const lessonsInSelectedPackage = selectedPackageToAssign 
+        ? parseInt(selectedPackageToAssign.replace(/\D/g, ''), 10) || 0
+        : 0;
 
     return (
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20">
@@ -217,14 +234,14 @@ export default function PaketlerimPage() {
                                     const course = getCourseByCode(pkg.replace(/[0-9]/g, ''));
                                     const lessons = parseInt(pkg.replace(/\D/g, ''), 10);
                                     return (
-                                        <Badge key={index} variant='secondary' className='p-2 text-base'>
+                                        <Badge key={`${pkg}-${index}`} variant='secondary' className='p-2 text-base'>
                                             {course?.title} ({lessons} derslik paket)
                                         </Badge>
                                     )
                                 })}
                             </div>
                             <div className="font-bold text-lg">
-                                Toplam Atanmamış Ders: <Badge className="text-lg">{totalUnassignedLessons}</Badge>
+                                Toplam Atanmamış Ders: <Badge className="text-lg">{userData?.remainingLessons || 0}</Badge>
                             </div>
                         </div>
                     ) : (
@@ -292,7 +309,7 @@ export default function PaketlerimPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Paket Ata</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Bir paket seçin ve hangi çocuğunuza atamak istediğinizi belirtin. Bu işlem havuzdaki tüm dersleri o çocuğa aktaracaktır.
+                           Bir paket seçin ve hangi çocuğunuza atamak istediğinizi belirtin.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className='space-y-4 py-4'>
@@ -306,7 +323,7 @@ export default function PaketlerimPage() {
                                     {unassignedPackages.map((pkg: string, index: number) => {
                                         const course = getCourseByCode(pkg.replace(/[0-9]/g, ''));
                                         return (
-                                             <SelectItem key={index} value={pkg}>{course?.title} ({pkg})</SelectItem>
+                                             <SelectItem key={`${pkg}-${index}`} value={pkg}>{course?.title} ({pkg})</SelectItem>
                                         )
                                     })}
                                 </SelectContent>
@@ -327,7 +344,7 @@ export default function PaketlerimPage() {
                         </div>
                          {selectedPackageToAssign && (
                             <div className="font-medium p-3 bg-blue-50 border border-blue-200 rounded-md">
-                                Bu işlemle <Badge variant="secondary">{totalUnassignedLessons} ders</Badge> bu çocuğa atanacak.
+                                Bu işlemle <Badge variant="secondary">{lessonsInSelectedPackage} ders</Badge> bu çocuğa atanacak.
                             </div>
                         )}
                     </div>
