@@ -132,7 +132,7 @@ export default function PaketlerimPage() {
             remainingLessons: 0
         });
 
-        // Add package and lessons back to the user's pool
+        // Add package and *remaining* lessons back to the user's pool
         const newEnrolledPackages = [...(userData.enrolledPackages || []), packageCode];
         const newRemainingLessons = (userData.remainingLessons || 0) + lessons;
 
