@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
@@ -7,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { Loader2, Package, ArrowLeft, BookOpen, User, Plus, ChevronsRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { collection, doc, writeBatch, getDoc } from 'firebase/firestore';
+import { collection, doc, writeBatch, getDoc, updateDoc } from 'firebase/firestore';
 import { COURSES, Course } from '@/data/courses';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +24,7 @@ import {
 } from "@/components/ui/alert-dialog"
 
 const getCourseByCode = (code: string): Course | undefined => {
+    if (!code) return undefined;
     const courseMap: { [key: string]: string } = { 'B': 'baslangic', 'K': 'konusma', 'G': 'gelisim', 'A': 'akademik' };
     const courseId = courseMap[code.replace(/[0-9]/g, '')];
     return COURSES.find(c => c.id === courseId);
@@ -51,13 +51,13 @@ export default function PaketlerimPage() {
         return doc(db, 'users', user.uid);
     }, [db, user?.uid]);
 
-    const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
+    const { data: userData, isLoading: userDataLoading, refetch: refetchUserData } = useDoc(userDocRef);
 
     const childrenRef = useMemoFirebase(() => {
         if (!db || !user?.uid) return null;
         return collection(db, 'users', user.uid, 'children');
     }, [db, user?.uid]);
-    const { data: children, isLoading: childrenLoading } = useCollection(childrenRef);
+    const { data: children, isLoading: childrenLoading, refetch: refetchChildrenData } = useCollection(childrenRef);
 
     useEffect(() => {
         if (!userLoading && !user) {
@@ -84,13 +84,9 @@ export default function PaketlerimPage() {
         if (isNaN(lessonsToAssign) || lessonsToAssign <= 0) {
             toast({ variant: 'destructive', title: 'Geçersiz Paket', description: 'Seçilen paketin ders sayısı geçersiz.' });
             return;
-        }
-        
-        // This check is flawed if we re-introduce packages with remaining lessons. Let's assume for now pool has full packages.
-        const poolLessonsForThisPackageType = (userData.enrolledPackages || []).filter((p: string) => p === selectedPackageToAssign).length * lessonsToAssign;
+        };
 
-        
-        const course = getCourseByCode(selectedPackageToAssign.replace(/[0-9]/g, ''));
+        const course = getCourseByCode(selectedPackageToAssign);
         if (!course) {
              toast({ variant: 'destructive', title: 'Atama Hatası', description: 'Paket bilgisi geçersiz.' });
             return;
@@ -118,11 +114,12 @@ export default function PaketlerimPage() {
 
         batch.update(userDocRef, {
             enrolledPackages: updatedEnrolledPackages,
-            remainingLessons: (userData.remainingLessons || 0) - lessonsToAssign
         });
         
         try {
             await batch.commit();
+            refetchUserData();
+            refetchChildrenData();
             toast({
                 title: 'Paket Atandı!',
                 description: `${course.title} (${lessonsToAssign} ders) paketi başarıyla atandı.`,
@@ -162,15 +159,15 @@ export default function PaketlerimPage() {
 
         // Add package and *remaining* lessons back to the user's pool
         const newEnrolledPackages = [...(userData.enrolledPackages || []), packageCode];
-        const newRemainingLessons = (userData.remainingLessons || 0) + lessons; // Use the remaining lessons
-
+        
         batch.update(userDocRef, {
             enrolledPackages: newEnrolledPackages,
-            remainingLessons: newRemainingLessons
         });
 
         try {
             await batch.commit();
+            refetchChildrenData();
+            refetchUserData();
             toast({
                 title: 'Paket Kaldırıldı',
                 description: `Paket, çocuğun üzerinden kaldırılıp havuza geri eklendi.`,
@@ -190,6 +187,7 @@ export default function PaketlerimPage() {
     
     const unassignedPackages = userData?.enrolledPackages || [];
     const childrenWithoutPackages = children?.filter(c => !c.assignedPackage) || [];
+    const totalUnassignedLessons = unassignedPackages.reduce((acc, pkg) => acc + parseInt(pkg.replace(/\D/g, ''), 10), 0);
 
     if (userLoading || userDataLoading || childrenLoading) {
         return (
@@ -232,7 +230,7 @@ export default function PaketlerimPage() {
                          <div className='flex flex-col gap-4'>
                             <div className='flex flex-wrap gap-4'>
                                 {unassignedPackages.map((pkg: string, index: number) => {
-                                    const course = getCourseByCode(pkg.replace(/[0-9]/g, ''));
+                                    const course = getCourseByCode(pkg);
                                     const lessons = parseInt(pkg.replace(/\D/g, ''), 10);
                                     return (
                                         <Badge key={`${pkg}-${index}`} variant='secondary' className='p-2 text-base'>
@@ -240,9 +238,6 @@ export default function PaketlerimPage() {
                                         </Badge>
                                     )
                                 })}
-                            </div>
-                            <div className="font-bold text-lg">
-                                Toplam Atanmamış Ders: <Badge className="text-lg">{userData?.remainingLessons || 0}</Badge>
                             </div>
                         </div>
                     ) : (
@@ -322,7 +317,7 @@ export default function PaketlerimPage() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {unassignedPackages.map((pkg: string, index: number) => {
-                                        const course = getCourseByCode(pkg.replace(/[0-9]/g, ''));
+                                        const course = getCourseByCode(pkg);
                                         return (
                                              <SelectItem key={`${pkg}-${index}`} value={pkg}>{course?.title} ({pkg})</SelectItem>
                                         )
