@@ -125,17 +125,17 @@ export default function Header() {
               <LayoutDashboard className="mr-2 h-4 w-4" />
               <span>Ebeveyn Sayfası</span>
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">
-              <User className="mr-2 h-4 w-4" />
-              <span>Profil Ayarları</span>
-            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => router.push('/ebeveyn-portali/paketlerim')} className="cursor-pointer">
               <Package className="mr-2 h-4 w-4" />
               <span>Paketlerim</span>
             </DropdownMenuItem>
             <DropdownMenuItem className="cursor-pointer">
               <History className="mr-2 h-4 w-4" />
-              <span>Ders Geçmişi</span>
+              <span>Dersler</span>
+            </DropdownMenuItem>
+             <DropdownMenuItem onClick={() => router.push('/ebeveyn-portali/ayarlar')} className="cursor-pointer">
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Profil Ayarları</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => router.push('/ebeveyn-portali/uyelik')} className="cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />
