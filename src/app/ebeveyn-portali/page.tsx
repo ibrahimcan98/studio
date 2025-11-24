@@ -49,63 +49,6 @@ import { useToast } from '@/hooks/use-toast';
 const LIFE_REGEN_SECONDS = 90 * 60; // 1 hour and 30 minutes in seconds
 const MAX_LIVES = 5;
 
-function LivesTooltipContent({ userDocRef }: { userDocRef: any }) {
-    const { data: userData } = useDoc(userDocRef);
-    const lives = userData?.lives;
-    const livesLastUpdatedAt = userData?.livesLastUpdatedAt;
-    const isPremium = userData?.isPremium || false;
-
-    useEffect(() => {
-        if (!userDocRef || isPremium || typeof lives !== 'number' || lives >= MAX_LIVES || !livesLastUpdatedAt?.toDate) {
-            return;
-        }
-
-        const interval = setInterval(async () => {
-            const userSnap = await getDoc(userDocRef);
-            const latestUserData = userSnap.data();
-            
-            if (!latestUserData) return;
-
-            const currentLives = latestUserData.lives;
-            const lastUpdatedTimestamp = latestUserData.livesLastUpdatedAt;
-
-            if (currentLives >= MAX_LIVES || !lastUpdatedTimestamp?.toDate) {
-                return;
-            }
-
-            const lastUpdated = lastUpdatedTimestamp.toDate();
-            const now = new Date();
-            const diffSeconds = Math.floor((now.getTime() - lastUpdated.getTime()) / 1000);
-            
-            const livesToRegen = Math.floor(diffSeconds / LIFE_REGEN_SECONDS);
-
-            if (livesToRegen > 0) {
-                const newLiveCount = Math.min(MAX_LIVES, currentLives + livesToRegen);
-                
-                if (newLiveCount > currentLives) {
-                     const secondsForLivesGained = (newLiveCount - currentLives) * LIFE_REGEN_SECONDS;
-                     const newTimestampDate = new Date(lastUpdated.getTime() + secondsForLivesGained * 1000);
-
-                    await updateDoc(userDocRef, {
-                        lives: newLiveCount,
-                        livesLastUpdatedAt: newTimestampDate
-                    });
-                }
-            }
-        }, 60000); // Check every minute
-
-        return () => clearInterval(interval);
-    }, [lives, isPremium, livesLastUpdatedAt, userDocRef]);
-
-
-    return (
-        <TooltipContent>
-            <p>Canlar 1 saat 30 dakikada bir yenilenir.</p>
-        </TooltipContent>
-    );
-}
-
-
 function AddChildDialog({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
@@ -225,7 +168,7 @@ function PremiumBadge() {
   );
 }
 
-function ChildCard({ child, userDocRef, isPremium, currentLives, onDelete }: { child: any, userDocRef: any, isPremium: boolean, currentLives: number, onDelete: (id: string) => void }) {
+function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, isPremium: boolean, currentLives: number, onDelete: (id: string) => void }) {
     const { toast } = useToast();
 
     const handleStartLearning = (e: React.MouseEvent) => {
@@ -291,7 +234,7 @@ function ChildCard({ child, userDocRef, isPremium, currentLives, onDelete }: { c
                             </div>
                         </div>
                     </TooltipTrigger>
-                    {!isPremium && <LivesTooltipContent userDocRef={userDocRef} />}
+                    {!isPremium && <TooltipContent>Canlar 1 saat 30 dakikada bir yenilenir.</TooltipContent>}
                 </Tooltip>
                </TooltipProvider>
                 <div className='flex justify-between items-center text-sm'>
@@ -553,7 +496,6 @@ export default function EbeveynPortaliPage() {
                                <ChildCard 
                                     key={child.id}
                                     child={child}
-                                    userDocRef={userDocRef}
                                     isPremium={isPremium}
                                     currentLives={currentLives}
                                     onDelete={handleDeleteChild}
