@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import Header from '@/components/layout/header';
 import { Providers } from '@/components/layout/providers';
+import { AIAssistant } from '@/components/ai-assistant';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -31,6 +32,7 @@ export default function RootLayout({
             <main className="flex-1">
               {children}
             </main>
+             <AIAssistant />
           </div>
         </Providers>
         <Toaster />
