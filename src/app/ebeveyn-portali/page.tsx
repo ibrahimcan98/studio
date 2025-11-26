@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock, Infinity as InfinityIcon, Settings, Target, CreditCard, Clock } from 'lucide-react';
+import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock, Infinity as InfinityIcon, Settings, Target, CreditCard, Clock, ChevronDown } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -25,6 +25,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Tooltip,
   TooltipContent,
@@ -114,7 +120,7 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
                 <AvatarFallback className="bg-primary/20 text-primary font-bold">{child.firstName?.charAt(0)}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
-                <p className="font-semibold text-lg">{child.firstName} {child.lastName}</p>
+                <p className="font-semibold text-lg">{child.firstName}</p>
                 <p className="text-sm text-muted-foreground">{age} yaş</p>
             </div>
             <div className='w-full space-y-3 pt-4'>
@@ -157,13 +163,6 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
                         <span className='text-xs text-muted-foreground italic'>Atanmamış</span>
                     </div>
                 )}
-            </div>
-            <div onClickCapture={handleStartLearning} className="w-full mt-auto">
-                 <SetPinDialog childId={child.id}>
-                  <Button className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold">
-                      Öğrenmeye Başla
-                  </Button>
-                </SetPinDialog>
             </div>
        </Card>
     );
@@ -292,6 +291,11 @@ export default function EbeveynPortaliPage() {
   const assignedLessons = children ? children.reduce((acc, child) => acc + (child.remainingLessons || 0), 0) : 0;
   const unassignedLessons = userData?.remainingLessons || 0;
   const totalRemainingLessons = assignedLessons + unassignedLessons;
+  
+  const handleSwitchToChildMode = (childId: string) => {
+    // We can add PIN logic here if needed, for now direct navigation
+    router.push(`/cocuk-modu/${childId}`);
+  };
 
 
   return (
@@ -302,6 +306,24 @@ export default function EbeveynPortaliPage() {
             <p className="text-muted-foreground">
              👉 Çocuğunuzun Türkçe öğrenme yolculuğunu buradan takip edebilirsiniz.
             </p>
+        </div>
+         <div className="flex items-center gap-4">
+            {children && children.length > 0 && (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button className="bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold">
+                            Çocuk Moduna Geç <ChevronDown className="ml-2 h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        {children.map(child => (
+                           <DropdownMenuItem key={child.id} onClick={() => handleSwitchToChildMode(child.id)} className="cursor-pointer">
+                                {child.firstName}
+                           </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            )}
         </div>
       </div>
 
@@ -504,3 +526,4 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
+
