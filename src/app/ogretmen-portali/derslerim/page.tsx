@@ -164,20 +164,20 @@ export default function OgretmenDerslerimPage() {
             </Tabs>
              <Dialog open={isProgressPanelOpen} onOpenChange={setIsProgressPanelOpen}>
                 <DialogContent className="max-w-5xl h-[90vh]">
+                    <DialogHeader>
+                        <DialogTitle className="text-3xl font-bold font-headline">
+                            {isChildDataLoading || !selectedChildData ? 'Yükleniyor...' : `${selectedChildData.firstName} İlerleme Paneli`}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {isChildDataLoading || !selectedChildData ? 'Öğrenci verileri yükleniyor...' : 'Çocuğunuzun Türkçe öğrenme yolculuğuna dair kapsamlı analiz ve raporlar.'}
+                        </DialogDescription>
+                    </DialogHeader>
                     {isChildDataLoading || !selectedChildData ? (
                          <div className="flex h-full items-center justify-center">
                             <Loader2 className="h-16 w-16 animate-spin text-primary" />
                         </div>
                     ) : (
-                        <>
-                           <DialogHeader>
-                                <DialogTitle className="text-3xl font-bold font-headline">{selectedChildData.firstName} İlerleme Paneli</DialogTitle>
-                                <DialogDescription>
-                                    Çocuğunuzun Türkçe öğrenme yolculuğuna dair kapsamlı analiz ve raporlar.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <ProgressPanel child={selectedChildData} />
-                        </>
+                        <ProgressPanel child={selectedChildData} />
                     )}
                 </DialogContent>
             </Dialog>
