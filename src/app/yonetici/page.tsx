@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useCollection, useFirestore } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Users, BookOpen, Calendar } from 'lucide-react';
 
@@ -23,17 +23,13 @@ function StatCard({ title, value, icon: Icon, isLoading }: { title: string, valu
 export default function AdminPage() {
     const db = useFirestore();
 
-    const { data: users, isLoading: usersLoading } = useCollection(
-        db ? collection(db, 'users') : null
-    );
+    const usersQuery = useMemoFirebase(() => db ? query(collection(db, 'users')) : null, [db]);
+    const lessonSlotsQuery = useMemoFirebase(() => db ? query(collection(db, 'lesson-slots')) : null, [db]);
+    const coursesQuery = useMemoFirebase(() => db ? query(collection(db, 'courses')) : null, [db]);
 
-    const { data: lessonSlots, isLoading: lessonsLoading } = useCollection(
-        db ? collection(db, 'lesson-slots') : null
-    );
-
-    const { data: courses, isLoading: coursesLoading } = useCollection(
-        db ? collection(db, 'courses') : null
-    );
+    const { data: users, isLoading: usersLoading } = useCollection(usersQuery);
+    const { data: lessonSlots, isLoading: lessonsLoading } = useCollection(lessonSlotsQuery);
+    const { data: courses, isLoading: coursesLoading } = useCollection(coursesQuery);
     
     const parentCount = users?.filter(u => u.role === 'parent').length ?? 0;
     const teacherCount = users?.filter(u => u.role === 'teacher').length ?? 0;
@@ -70,5 +66,3 @@ export default function AdminPage() {
         </div>
     );
 }
-
-    
