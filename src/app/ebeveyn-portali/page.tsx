@@ -45,6 +45,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ProgressPanel } from '@/components/shared/progress-panel';
 
 const MAX_LIVES = 5;
+const MAX_FREE_TRIALS = 3;
 
 function StatCard({ title, value, icon: Icon, unit, children }: { title: string, value: string | number, icon: React.ElementType, unit?: string, children?: React.ReactNode }) {
   return (
@@ -192,6 +193,7 @@ export default function EbeveynPortaliPage() {
 
   const isPremium = userData?.isPremium || false;
   const currentLives = userData?.lives ?? 5;
+  const hasUsedFreeTrial = (userData?.freeTrialsUsed || 0) > 0;
   
   const childrenRef = useMemoFirebase(() => {
     if (!db || !user?.uid) return null;
@@ -325,10 +327,10 @@ export default function EbeveynPortaliPage() {
               {isPremium ? (
                 <PremiumBadge />
               ) : (
-                <Button variant="outline" size="sm" asChild>
+                 <Button asChild variant="outline" className="w-full bg-gradient-to-r from-yellow-300 to-orange-400 text-white border-none font-bold">
                     <Link href="/premium">
-                        <Crown className="mr-2 h-4 w-4 text-yellow-500" />
-                        Premium'a Geç
+                        <Crown className="mr-2 h-4 w-4" />
+                        Premium'a Yükseltin
                     </Link>
                 </Button>
               )}
@@ -337,15 +339,25 @@ export default function EbeveynPortaliPage() {
       </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="flex flex-col justify-between p-6 bg-gradient-to-br from-green-100 to-teal-100 border-green-200 hover:shadow-lg transition-shadow">
+           <Card className="flex flex-col justify-between p-6 bg-gradient-to-br from-green-100 to-teal-100 border-green-200 hover:shadow-lg transition-shadow">
+              {hasUsedFreeTrial ? (
                 <div>
-                    <h3 className="text-xl font-bold flex items-center gap-2"><Rocket className="text-green-600"/> Ücretsiz Deneme Dersi</h3>
-                    <p className="text-muted-foreground mt-2">Platformumuzu ve öğretmenlerimizi tanımak için ücretsiz bir ders planlayın.</p>
+                  <h3 className="text-xl font-bold flex items-center gap-2"><Rocket className="text-green-600"/> Ders Planla</h3>
+                  <p className="text-muted-foreground mt-2">Yeni dersler planlayın veya mevcut derslerinizi yönetin.</p>
                 </div>
-                <Button asChild className="mt-4 w-fit bg-green-600 hover:bg-green-700 text-white">
-                    <Link href="/ebeveyn-portali/ders-planla">Hemen Planla</Link>
-                </Button>
+              ) : (
+                <div>
+                  <h3 className="text-xl font-bold flex items-center gap-2"><Rocket className="text-green-600"/> Ücretsiz Deneme Dersi</h3>
+                  <p className="text-muted-foreground mt-2">Platformumuzu ve öğretmenlerimizi tanımak için ücretsiz bir ders planlayın.</p>
+                </div>
+              )}
+              <Button asChild className="mt-4 w-fit bg-green-600 hover:bg-green-700 text-white">
+                  <Link href="/ebeveyn-portali/ders-planla">
+                    {hasUsedFreeTrial ? "Dersleri Yönet" : "Hemen Planla"}
+                  </Link>
+              </Button>
             </Card>
+
             <Card className="flex flex-col justify-between p-6 bg-gradient-to-br from-orange-100 to-amber-100 border-orange-200 hover:shadow-lg transition-shadow">
                 <div>
                     <h3 className="text-xl font-bold flex items-center gap-2"><Package className="text-orange-600"/> Ders Paketi Satın Al</h3>
@@ -392,3 +404,4 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
+
