@@ -247,7 +247,7 @@ export function AddChildForm({ userId, onChildAdded }: { userId: string, onChild
                  <FormField control={form.control} name="turkishDifficulties" render={() => (
                     <FormItem>
                         <div className="mb-4">
-                            <FormLabel className="text-base">Bölüm 4 – Türkçe ile İlgili Gözlemleriniz</FormLabel>
+                            <h3 className='font-semibold text-lg'>Bölüm 4 – Türkçe ile İlgili Gözlemleriniz</h3>
                             <FormDescription>Çocuğun Türkçe ile ilgili zorlandığı alanlar (Birden fazla seçilebilir)</FormDescription>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
