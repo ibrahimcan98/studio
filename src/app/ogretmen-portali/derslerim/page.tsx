@@ -25,6 +25,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { ProgressPanel } from '@/components/shared/progress-panel';
 
 const getCourseDetailsFromPackageCode = (code?: string) => {
     if (!code) return null;
@@ -36,7 +37,7 @@ const getCourseDetailsFromPackageCode = (code?: string) => {
     return course ? { courseName: course.title, duration: course.details.duration } : null;
 }
 
-function FeedbackDialog({ lesson, isOpen, onOpenChange, onFeedbackSaved }: { lesson: any, isOpen: boolean, onOpenChange: (open: boolean) => void, onFeedbackSaved: () => void }) {
+function FeedbackDialog({ lesson, child, isOpen, onOpenChange, onFeedbackSaved }: { lesson: any, child: any, isOpen: boolean, onOpenChange: (open: boolean) => void, onFeedbackSaved: () => void }) {
     const [feedback, setFeedback] = useState(lesson.feedback?.text || '');
     const [isSaving, setIsSaving] = useState(false);
     const db = useFirestore();
@@ -69,32 +70,38 @@ function FeedbackDialog({ lesson, isOpen, onOpenChange, onFeedbackSaved }: { les
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Ders Geri Bildirimi Ekle</DialogTitle>
-                    <DialogDescription>
-                        Öğrencinin ders performansı ve gelişimi hakkında notlarınızı ekleyin. Bu notlar veli tarafından görülecektir.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="py-4 space-y-2">
-                    <Label htmlFor="feedback-text">Geri Bildirim</Label>
-                    <Textarea
-                        id="feedback-text"
-                        value={feedback}
-                        onChange={(e) => setFeedback(e.target.value)}
-                        placeholder="Örn: Ayşe bugün renkleri çok iyi öğrendi, özellikle kırmızı rengini hemen tanıdı..."
-                        rows={5}
-                    />
+            <DialogContent className="max-w-6xl h-[90vh] grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className='flex flex-col'>
+                    <DialogHeader>
+                        <DialogTitle>Ders Geri Bildirimi Ekle</DialogTitle>
+                        <DialogDescription>
+                            Öğrencinin ders performansı ve gelişimi hakkında notlarınızı ekleyin. Bu notlar veli tarafından görülecektir.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4 space-y-2 flex-1 flex flex-col">
+                        <Label htmlFor="feedback-text">Geri Bildirim</Label>
+                        <Textarea
+                            id="feedback-text"
+                            value={feedback}
+                            onChange={(e) => setFeedback(e.target.value)}
+                            placeholder="Örn: Ayşe bugün renkleri çok iyi öğrendi, özellikle kırmızı rengini hemen tanıdı..."
+                            rows={5}
+                            className="flex-1"
+                        />
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button variant="outline">İptal</Button>
+                        </DialogClose>
+                        <Button onClick={handleSave} disabled={isSaving}>
+                            {isSaving ? <Loader2 className="animate-spin mr-2"/> : null}
+                            Kaydet
+                        </Button>
+                    </DialogFooter>
                 </div>
-                <DialogFooter>
-                    <DialogClose asChild>
-                        <Button variant="outline">İptal</Button>
-                    </DialogClose>
-                    <Button onClick={handleSave} disabled={isSaving}>
-                        {isSaving ? <Loader2 className="animate-spin mr-2"/> : null}
-                        Kaydet
-                    </Button>
-                </DialogFooter>
+                 <div className='flex flex-col h-full overflow-hidden'>
+                    {child ? <ProgressPanel child={child}/> : <Loader2 className="m-auto animate-spin" />}
+                </div>
             </DialogContent>
         </Dialog>
     )
@@ -172,6 +179,13 @@ export default function OgretmenDerslerimPage() {
 
     const { data: lessons, isLoading: lessonsLoading, refetch } = useCollection(lessonsQuery);
 
+    const childDocRef = useMemoFirebase(() => {
+        if (!db || !selectedLesson?.bookedBy || !selectedLesson?.childId) return null;
+        return doc(db, 'users', selectedLesson.bookedBy, 'children', selectedLesson.childId);
+    }, [db, selectedLesson]);
+
+    const { data: selectedChildData } = useDoc(childDocRef);
+
     const { upcomingLessons, pastLessons } = useMemo(() => {
         if (!lessons) return { upcomingLessons: [], pastLessons: [] };
         const now = new Date();
@@ -231,6 +245,7 @@ export default function OgretmenDerslerimPage() {
             {selectedLesson && (
                 <FeedbackDialog 
                     lesson={selectedLesson}
+                    child={selectedChildData}
                     isOpen={isFeedbackDialogOpen}
                     onOpenChange={setIsFeedbackDialogOpen}
                     onFeedbackSaved={refetch}
