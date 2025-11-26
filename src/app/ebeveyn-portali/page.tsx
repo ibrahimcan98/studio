@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -204,7 +205,7 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
                             İlerleme Paneli
                         </Button>
                     </DialogTrigger>
-                     <DialogContent className="max-w-5xl h-[90vh]">
+                     <DialogContent className="max-w-4xl h-[90vh]">
                         <DialogHeader>
                             <DialogTitle className="text-3xl font-bold font-headline">{child.firstName} İlerleme Paneli</DialogTitle>
                              <DialogDescription>
@@ -276,13 +277,15 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
                                 </CardHeader>
                                 <CardContent className="space-y-3">
                                     {Object.entries(cefrData).map(([skill, data]) => (
-                                        <motion.div whileHover={{ x: 3 }} key={skill} className="grid grid-cols-[auto_auto_1fr] items-center gap-x-3">
-                                            <span className="capitalize text-sm font-medium text-gray-700 ">{skill}</span>
-                                            <span className="font-bold text-sm text-gray-600">{data.level}</span>
-                                            <div className="flex gap-1 justify-self-start">
-                                                {[...Array(5)].map((_, i) => (
-                                                    <div key={i} className={`w-4 h-4 rounded-sm ${i < data.score ? 'bg-primary' : 'bg-green-200'}`}></div>
-                                                ))}
+                                        <motion.div whileHover={{ x: 3 }} key={skill}>
+                                            <div className="flex items-center gap-x-3">
+                                                <span className="capitalize text-sm font-medium text-gray-700 w-20">{skill}</span>
+                                                <span className="font-bold text-sm text-gray-600 w-16">{data.level}</span>
+                                                <div className="flex gap-1 items-center flex-1">
+                                                    {[...Array(5)].map((_, i) => (
+                                                        <div key={i} className={`w-4 h-4 rounded-sm ${i < data.score ? 'bg-primary' : 'bg-green-200'}`}></div>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </motion.div>
                                     ))}
