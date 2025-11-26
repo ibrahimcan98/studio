@@ -12,15 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+import { AddChildForm } from '@/components/parent-portal/add-child-form';
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,106 +31,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { collection, doc, addDoc, deleteDoc, updateDoc, serverTimestamp, getDoc, query, orderBy, where, getDocs, writeBatch, increment } from 'firebase/firestore';
+import { collection, doc, deleteDoc, updateDoc, getDoc, query, where, getDocs, writeBatch, increment, arrayUnion } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { SetPinDialog } from '@/components/child-mode/set-pin-dialog';
 import { useToast } from '@/hooks/use-toast';
 
-const LIFE_REGEN_SECONDS = 90 * 60; // 1 hour and 30 minutes in seconds
 const MAX_LIVES = 5;
-
-function AddChildDialog({ userId }: { userId: string }) {
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [age, setAge] = useState('');
-  const db = useFirestore();
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !age || !db) return;
-    
-    const childrenRef = collection(db, 'users', userId, 'children');
-    
-    const ageNumber = parseInt(age, 10);
-    if (isNaN(ageNumber)) {
-        console.error("Invalid age input");
-        return;
-    }
-
-    await addDoc(childrenRef, {
-      firstName: name,
-      dateOfBirth: new Date(new Date().setFullYear(new Date().getFullYear() - ageNumber)).toISOString(),
-      level: 'beginner',
-      userId: userId,
-      rozet: 0,
-      completedTopics: [],
-      // These are now handled by the parent 'paketlerim' page
-      remainingLessons: 0,
-      assignedPackage: null,
-      assignedPackageName: null,
-    });
-    
-    setName('');
-    setAge('');
-    setOpen(false);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold">
-          <Plus className="mr-2 h-4 w-4" /> Çocuk Ekle
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Yeni Çocuk Ekle</DialogTitle>
-          <DialogDescription>
-            Çocuğunuzun bilgilerini girerek öğrenme yolculuğuna ekleyin.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                İsim
-              </Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="col-span-3"
-                placeholder="Çocuğunuzun adı"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="age" className="text-right">
-                Yaş
-              </Label>
-              <Input
-                id="age"
-                type="number"
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-                className="col-span-3"
-                placeholder="Örn: 5"
-                required
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="submit">Çocuğu Ekle</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 
 function StatCard({ title, value, icon: Icon, unit, children }: { title: string, value: string | number, icon: React.ElementType, unit?: string, children?: React.ReactNode }) {
   return (
@@ -184,6 +84,8 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
     
     const displayLives = Math.max(0, currentLives);
     const hasActivePackage = child.assignedPackage && child.remainingLessons > 0;
+    const dateOfBirth = child.dateOfBirth ? new Date(child.dateOfBirth) : null;
+    const age = dateOfBirth ? new Date().getFullYear() - dateOfBirth.getFullYear() : 'N/A';
 
     return (
         <Card className="relative flex flex-col items-center text-center p-6 space-y-4 hover:shadow-lg transition-shadow group">
@@ -212,8 +114,8 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
                 <AvatarFallback className="bg-primary/20 text-primary font-bold">{child.firstName?.charAt(0)}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
-                <p className="font-semibold text-lg">{child.firstName}</p>
-                <p className="text-sm text-muted-foreground">{new Date().getFullYear() - new Date(child.dateOfBirth).getFullYear()} yaş</p>
+                <p className="font-semibold text-lg">{child.firstName} {child.lastName}</p>
+                <p className="text-sm text-muted-foreground">{age} yaş</p>
             </div>
             <div className='w-full space-y-3 pt-4'>
               <div className='flex justify-between items-center text-sm'>
@@ -291,19 +193,12 @@ export default function EbeveynPortaliPage() {
   const currentLives = userData?.lives ?? 5;
   const hasUsedFreeTrial = userData?.hasUsedFreeTrial || false;
   
-  const purchasesRef = useMemoFirebase(() => {
-    if (!db || !user?.uid) return null;
-    return query(collection(db, 'users', user.uid, 'purchases'), orderBy('createdAt', 'desc'));
-  }, [db, user?.uid]);
-
-  const { data: purchases, isLoading: purchasesLoading } = useCollection(purchasesRef);
-
   const childrenRef = useMemoFirebase(() => {
     if (!db || !user?.uid) return null;
     return collection(db, 'users', user.uid, 'children');
   }, [db, user?.uid]);
 
-  const { data: children, isLoading: childrenLoading } = useCollection(childrenRef);
+  const { data: children, isLoading: childrenLoading, refetch: refetchChildren } = useCollection(childrenRef);
 
   const handleDeleteChild = async (childId: string, assignedPackage: string | null, remainingLessons: number) => {
       if (!db || !user?.uid || !userDocRef) return;
@@ -316,29 +211,43 @@ export default function EbeveynPortaliPage() {
       
       try {
           const snapshot = await getDocs(q);
+          let lessonsReturned = 0;
+          let packagesToReturn: { [key: string]: number } = {};
+
           snapshot.forEach(lessonDoc => {
+              const lessonData = lessonDoc.data();
+              if (lessonData.packageCode && lessonData.packageCode !== 'FREE_TRIAL') {
+                  packagesToReturn[lessonData.packageCode] = (packagesToReturn[lessonData.packageCode] || 0) + 1;
+              }
               batch.update(lessonDoc.ref, {
                   status: 'available',
                   bookedBy: null,
                   childId: null,
                   packageCode: null,
               });
+              lessonsReturned++;
           });
           
-          let lessonsReturned = snapshot.size;
-
           // 2. Return the lessons from the assigned package to the parent's pool
           if (assignedPackage && remainingLessons > 0) {
-            // Add back the package code to parent's array
-            batch.update(userDocRef, {
-                enrolledPackages: arrayUnion(assignedPackage),
-                // Add back ALL remaining lessons from the package, including those just un-booked
-                remainingLessons: increment(remainingLessons + lessonsReturned)
-            });
-            toast({ title: 'Paket İade Edildi', description: `Silinen çocuğa ait paket ve dersler (${remainingLessons + lessonsReturned} ders) havuza iade edildi.`});
+             packagesToReturn[assignedPackage] = (packagesToReturn[assignedPackage] || 0) + remainingLessons;
+          }
+
+          if (Object.keys(packagesToReturn).length > 0) {
+              const packagesArray = Object.keys(packagesToReturn).flatMap(pkg => Array(packagesToReturn[pkg]).fill(pkg).map((p, i) => `${p.replace(/\d+/,'')}${parseInt(p.match(/\d+/)?.[0] || '1', 10)}`));
+              
+              const totalLessonsReturned = Object.values(packagesToReturn).reduce((a, b) => a + b, 0);
+
+              batch.update(userDocRef, {
+                  enrolledPackages: arrayUnion(...Object.keys(packagesToReturn)),
+                  remainingLessons: increment(totalLessonsReturned)
+              });
+
+              toast({ title: 'Paket ve Dersler İade Edildi', description: `Silinen çocuğa ait paket(ler) ve toplam ${totalLessonsReturned} ders havuza iade edildi.`});
           } else if (lessonsReturned > 0) {
               toast({ title: 'Dersler İptal Edildi', description: `Çocuğun planlanmış ${lessonsReturned} dersi iptal edildi.`});
           }
+
 
           // 3. Delete the child document
           const childDocRef = doc(db, 'users', user.uid, 'children', childId);
@@ -363,7 +272,7 @@ export default function EbeveynPortaliPage() {
       }
   };
   
-  if (userLoading || childrenLoading || userDataLoading || purchasesLoading) {
+  if (userLoading || childrenLoading || userDataLoading) {
     return (
       <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -539,7 +448,7 @@ export default function EbeveynPortaliPage() {
                     <h3 className="text-xl font-bold">Çocuklarım</h3>
                     <p className="text-muted-foreground">Çocuklarınızı ekleyin ve ilerlemelerini takip edin.</p>
                 </div>
-                {user && <AddChildDialog userId={user.uid} />}
+                 {user && <AddChildForm userId={user.uid} onChildAdded={refetchChildren} />}
             </div>
             <Card>
                 <CardContent className="p-6">
