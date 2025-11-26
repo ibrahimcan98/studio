@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
-import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, Settings, Target, CreditCard, Clock, ChevronDown, MonitorPlay, FileText, CheckCircle, MessageCircle, TrendingUp, TrendingDown, Book, BrainCircuit, Globe, Smile, Meh, Frown, Languages, Milestone, Cloudy, GraduationCap, User as UserIcon, X, Lock, Infinity as InfinityIcon, Heart } from 'lucide-react';
+import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, Settings, Target, CreditCard, Clock, ChevronDown, MonitorPlay, FileText, CheckCircle, MessageCircle, TrendingUp, TrendingDown, Book, BrainCircuit, Globe, Smile, Meh, Frown, Languages, Milestone, Cloudy, GraduationCap, User as UserIcon, X, Lock, Infinity as InfinityIcon, Heart, Package } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -335,6 +335,28 @@ export default function EbeveynPortaliPage() {
             </CardContent>
         </Card>
       </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="flex flex-col justify-between p-6 bg-gradient-to-br from-green-100 to-teal-100 border-green-200 hover:shadow-lg transition-shadow">
+                <div>
+                    <h3 className="text-xl font-bold flex items-center gap-2"><Rocket className="text-green-600"/> Ücretsiz Deneme Dersi</h3>
+                    <p className="text-muted-foreground mt-2">Platformumuzu ve öğretmenlerimizi tanımak için ücretsiz bir ders planlayın.</p>
+                </div>
+                <Button asChild className="mt-4 w-fit bg-green-600 hover:bg-green-700 text-white">
+                    <Link href="/ebeveyn-portali/ders-planla">Hemen Planla</Link>
+                </Button>
+            </Card>
+            <Card className="flex flex-col justify-between p-6 bg-gradient-to-br from-orange-100 to-amber-100 border-orange-200 hover:shadow-lg transition-shadow">
+                <div>
+                    <h3 className="text-xl font-bold flex items-center gap-2"><Package className="text-orange-600"/> Ders Paketi Satın Al</h3>
+                    <p className="text-muted-foreground mt-2">Çocuğunuzun ihtiyacına uygun ders paketlerinden birini seçin.</p>
+                </div>
+                <Button asChild className="mt-4 w-fit bg-orange-500 hover:bg-orange-600 text-white">
+                    <Link href="/kurslar">Paketleri İncele</Link>
+                </Button>
+            </Card>
+        </div>
+
 
         {/* Children Section */}
         <div>
