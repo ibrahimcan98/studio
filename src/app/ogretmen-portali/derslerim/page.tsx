@@ -70,7 +70,7 @@ function FeedbackDialog({ lesson, child, isOpen, onOpenChange, onFeedbackSaved }
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-6xl h-[90vh] grid grid-cols-1 md:grid-cols-2 gap-8">
+            <DialogContent className="sm:max-w-md">
                 <div className='flex flex-col'>
                     <DialogHeader>
                         <DialogTitle>Ders Geri Bildirimi Ekle</DialogTitle>
@@ -85,7 +85,7 @@ function FeedbackDialog({ lesson, child, isOpen, onOpenChange, onFeedbackSaved }
                             value={feedback}
                             onChange={(e) => setFeedback(e.target.value)}
                             placeholder="Örn: Ayşe bugün renkleri çok iyi öğrendi, özellikle kırmızı rengini hemen tanıdı..."
-                            rows={5}
+                            rows={8}
                             className="flex-1"
                         />
                     </div>
@@ -98,9 +98,6 @@ function FeedbackDialog({ lesson, child, isOpen, onOpenChange, onFeedbackSaved }
                             Kaydet
                         </Button>
                     </DialogFooter>
-                </div>
-                 <div className='flex flex-col h-full overflow-hidden'>
-                    {child ? <ProgressPanel child={child}/> : <Loader2 className="m-auto animate-spin" />}
                 </div>
             </DialogContent>
         </Dialog>
