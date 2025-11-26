@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { AddChildForm } from '@/components/parent-portal/add-child-form';
+import { Progress } from '@/components/ui/progress';
 
 import {
   AlertDialog,
@@ -33,6 +34,8 @@ import {
   DialogDescription,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { PieChart, Pie, Cell, ResponsiveContainer, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, RadarChart } from 'recharts';
+
 
 import {
   Tooltip,
@@ -49,20 +52,20 @@ import { cn } from '@/lib/utils';
 
 const MAX_LIVES = 5;
 
-const schoolLiteracyStatusMap = {
+const schoolLiteracyStatusMap: { [key: string]: string } = {
     "not-yet": "Henüz öğrenmedi",
     "in-progress": "Devam ediyor",
-    "fluent": "Öğrendi, akıcı bir şekilde okuyup yazıyor"
+    "fluent": "Öğrendi, akıcı"
 };
 
-const turkishLiteracyLevelMap = {
+const turkishLiteracyLevelMap: { [key: string]: string } = {
     "none": "Hiç yok",
-    "word-sentence": "Kelime/cümle düzeyinde",
-    "reads-short-writes": "Okuyup kısa yazabiliyor",
-    "fluent": "Akıcı okuyor / düzenli yazıyor"
+    "word-sentence": "Kelime/cümle",
+    "reads-short-writes": "Kısa metin",
+    "fluent": "Akıcı"
 };
 
-const difficultiesMap = {
+const difficultiesMap: { [key: string]: string } = {
     "kelime": "Kelime",
     "cumle": "Cümle",
     "anlama": "Anlama",
@@ -72,6 +75,25 @@ const difficultiesMap = {
     "motivasyon": "Motivasyon",
     "ingilizce-karistirma": "İngilizce karıştırma"
 };
+
+// Mock data for charts
+const pieData = [{ name: 'İngilizce', value: 70 }, { name: 'Türkçe', value: 25 }, { name: 'Diğer', value: 5 }];
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28'];
+
+const cefrData = {
+    listening: { level: 'A1', score: 2 },
+    speaking: { level: 'PreA1', score: 1 },
+    reading: { level: 'Ölçülmedi', score: 0 },
+    writing: { level: '—', score: 0 },
+};
+
+const radarData = [
+  { subject: 'Kelime', A: 80, fullMark: 100 },
+  { subject: 'Dilbilgisi', A: 60, fullMark: 100 },
+  { subject: 'Akıcılık', A: 70, fullMark: 100 },
+  { subject: 'Anlama', A: 85, fullMark: 100 },
+  { subject: 'Telaffuz', A: 75, fullMark: 100 },
+];
 
 
 function StatCard({ title, value, icon: Icon, unit, children }: { title: string, value: string | number, icon: React.ElementType, unit?: string, children?: React.ReactNode }) {
@@ -110,6 +132,9 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
     const hasActivePackage = child.assignedPackage && child.remainingLessons > 0;
     const dateOfBirth = child.dateOfBirth ? new Date(child.dateOfBirth) : null;
     const age = dateOfBirth ? differenceInYears(new Date(), dateOfBirth) : 'N/A';
+    const schoolLiteracy = schoolLiteracyStatusMap[child.schoolLiteracyStatus] || 'Belirtilmemiş';
+    const turkishLiteracy = turkishLiteracyLevelMap[child.turkishLiteracyLevel] || 'Belirtilmemiş';
+
 
     return (
         <Card className="relative flex flex-col items-center text-center p-6 space-y-4 hover:shadow-lg transition-shadow group">
@@ -188,18 +213,177 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
                             İlerleme Paneli
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-4xl h-[80vh]">
+                     <DialogContent className="max-w-4xl h-[90vh]">
                         <DialogHeader>
                             <DialogTitle>{child.firstName} İlerleme Paneli</DialogTitle>
-                            <DialogDescription>
-                                Çocuğunuzun ilerlemesine genel bakış.
+                             <DialogDescription>
+                                Çocuğunuzun Türkçe öğrenme yolculuğuna dair kapsamlı analiz ve raporlar.
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-4 h-full overflow-y-auto">
-                           <div className="md:col-span-2">
-                                {/* Future content will go here */}
-                                <p className='text-muted-foreground'>Yakında burada çocuğunuzun ilerleme raporlarını, tamamladığı konuları ve öğretmen geri bildirimlerini görebileceksiniz.</p>
-                           </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-4 h-full overflow-y-auto pr-4">
+                           {/* Card 1: Profile */}
+                            <Card className="col-span-1">
+                                <CardHeader>
+                                    <CardTitle className="text-base">Profil Kartı</CardTitle>
+                                </CardHeader>
+                                <CardContent className="flex flex-col items-center text-center">
+                                    <div className="relative w-32 h-32">
+                                        <svg className="w-full h-full" viewBox="0 0 100 100">
+                                            <circle cx="50" cy="50" r="45" fill="none" stroke="hsl(var(--muted))" strokeWidth="10" />
+                                            <circle cx="50" cy="50" r="45" fill="none" stroke="hsl(var(--primary))" strokeWidth="10" strokeDasharray="283" strokeDashoffset={283 * (1 - 0.75)} transform="rotate(-90 50 50)" />
+                                        </svg>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <Avatar className="w-24 h-24 text-4xl">
+                                                <AvatarFallback className="bg-primary/20 text-primary font-bold">{child.firstName?.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                        </div>
+                                    </div>
+                                    <p className="font-bold text-lg mt-4">{child.firstName} K.</p>
+                                    <p className="text-sm text-muted-foreground">ID: IE-023</p>
+                                    <p className="text-sm mt-2">{age} yaş • {child.countryOfResidence.split(',')[0]} • Okul Dili: {child.schoolLanguage}</p>
+                                </CardContent>
+                            </Card>
+
+                             {/* Card 2: Language Environment */}
+                            <Card className="col-span-1">
+                                <CardHeader><CardTitle className="text-base">Dil Ortamı</CardTitle></CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div>
+                                        <h4 className="text-sm font-semibold mb-2">Evde Dil Kullanımı</h4>
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <PieChart>
+                                                        <Pie data={pieData} cx="50%" cy="50%" innerRadius={10} outerRadius={20} dataKey="value" paddingAngle={2}>
+                                                            {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                                                        </Pie>
+                                                    </PieChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                            <div className="text-xs space-y-1">
+                                                <p className="flex items-center"><span className="w-2 h-2 rounded-full bg-[#0088FE] mr-2"></span>%70 İngilizce</p>
+                                                <p className="flex items-center"><span className="w-2 h-2 rounded-full bg-[#00C49F] mr-2"></span>%25 Türkçe</p>
+                                                <p className="flex items-center"><span className="w-2 h-2 rounded-full bg-[#FFBB28] mr-2"></span>%5 Diğer</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-semibold mb-1">Türkçe Maruziyet Yoğunluğu</h4>
+                                        <div className="flex items-center gap-2 text-sm"><span className="text-lg">●○○</span> (Düşük)</div>
+                                    </div>
+                                     <div>
+                                        <h4 className="text-sm font-semibold mb-2">Zorlanma Alanları</h4>
+                                        <div className="flex flex-wrap gap-1">
+                                            {child.turkishDifficulties?.map((d: string) => <Badge key={d} variant="secondary">{difficultiesMap[d] || d}</Badge>)}
+                                        </div>
+                                    </div>
+                                     <div>
+                                        <h4 className="text-sm font-semibold mb-1">Okuryazarlık ({turkishLiteracy})</h4>
+                                        <div className="flex items-center gap-2"><span className="text-lg">○ ● ○</span> <span className="text-sm text-muted-foreground">Kelime düzeyi</span></div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Card 3: CEFR Profile */}
+                             <Card className="col-span-1">
+                                <CardHeader><CardTitle className="text-base">CEFR Profili</CardTitle></CardHeader>
+                                <CardContent className="space-y-3">
+                                    {Object.entries(cefrData).map(([skill, data]) => (
+                                        <div key={skill} className="flex justify-between items-center">
+                                            <span className="capitalize text-sm font-medium">{skill}</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold text-sm w-12 text-right">{data.level}</span>
+                                                <div className="flex gap-1">
+                                                    {[...Array(5)].map((_, i) => (
+                                                        <div key={i} className={`w-4 h-4 rounded-sm ${i < data.score ? 'bg-primary' : 'bg-muted'}`}></div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </CardContent>
+                            </Card>
+
+                            {/* Card 4: Language Behavior */}
+                            <Card className="col-span-1">
+                                <CardHeader><CardTitle className="text-base">Dil Davranışı</CardTitle></CardHeader>
+                                <CardContent className="space-y-4">
+                                     <div>
+                                        <h4 className="text-sm font-semibold">Konuşma İnisiyatifi</h4>
+                                        <div className="flex items-center gap-2">
+                                            <div className="text-2xl font-mono text-primary">(◐)</div>
+                                            <span className="font-bold">40%</span>
+                                        </div>
+                                    </div>
+                                     <div>
+                                        <h4 className="text-sm font-semibold">Tutum</h4>
+                                        <p className="text-2xl">🙂🙂😐</p>
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-semibold">Dil Karıştırma</h4>
+                                        <p className="flex items-center gap-2">Ara sıra <ArrowRight className="w-4 h-4 text-red-500 transform rotate-45" /></p>
+                                    </div>
+                                     <div>
+                                        <h4 className="text-sm font-semibold">Odak</h4>
+                                        <Badge variant="outline" className="border-green-500 text-green-700">İyi</Badge>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                             {/* Card 5: System Analysis */}
+                            <Card className="col-span-1">
+                                <CardHeader>
+                                    <CardTitle className="text-base flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-1.218-1.57L12 12.118 4.044 5.242a1 1 0 0 0-1.218 1.57L10.782 13 2.826 19.958a1 1 0 1 0 1.218 1.57L12 14.882l7.956 6.874a1 1 0 0 0 1.218-1.57L13.218 13z"></path></svg>
+                                        Sistem Analizi
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3 text-sm">
+                                    <p><strong>Dil Gelişim Evresi:</strong> Evre 2</p>
+                                    <p className="flex items-center gap-2"><strong>⭐ Önerilen Kurs:</strong> Konuşma Kursu</p>
+                                    <div>
+                                        <h5 className="font-semibold text-xs text-muted-foreground">Neden?</h5>
+                                        <ul className="list-disc pl-4 text-xs text-muted-foreground">
+                                            <li>Konuşma PreA1→A1</li>
+                                            <li>Okuma yok → Akademik uygun değil</li>
+                                            <li>Maruziyet düşük</li>
+                                        </ul>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                             {/* Card 6: Interim Assessment */}
+                            <Card className="col-span-1">
+                                <CardHeader><CardTitle className="text-base">Ara Değerlendirme</CardTitle></CardHeader>
+                                <CardContent className="space-y-3 text-sm">
+                                     <div className="space-y-2">
+                                        <p>Dinleme: A1 <span className="font-mono">▢▣▢▢▢</span> → A1+ <span className="font-mono">▣▣▢▢▢</span></p>
+                                        <p>Konuşma: PreA1 <span className="font-mono">▣▢▢▢▢</span> → A1 <span className="font-mono">▣▣▢▢▢</span></p>
+                                        <p>Okuma: — <span className="font-mono">▢▢▢▢▢</span> → Kelime <span className="font-mono">▣▢▢▢▢</span></p>
+                                    </div>
+                                    <Separator/>
+                                    <p>Karıştırma: Ara sıra → Nadiren <ArrowRight className="inline w-3 h-3 text-red-500 transform rotate-45" /></p>
+                                    <p>Odak: İyi → Çok iyi <ArrowRight className="inline w-3 h-3 text-green-500 transform -rotate-45" /></p>
+                                    <Separator/>
+                                     <div>
+                                        <h5 className="font-semibold text-xs text-muted-foreground">📝 Öğretmen Notu:</h5>
+                                        <p className="text-xs italic text-muted-foreground">Kelimeler arttı, motivasyon yüksek.</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                             {/* Card 7: Past Assessments */}
+                            <Card className="col-span-1 md:col-span-2 lg:col-span-3">
+                                <CardHeader><CardTitle className="text-base">Geçmiş Değerlendirmeler</CardTitle></CardHeader>
+                                <CardContent>
+                                    <ul className="space-y-3">
+                                        <li className="flex items-center gap-2 text-sm"><span className="w-2 h-2 rounded-full bg-primary"></span> 12. Hafta Ara Değerlendirme</li>
+                                        <li className="flex items-center gap-2 text-sm"><span className="w-2 h-2 rounded-full bg-primary"></span> 6. Hafta Ara Değerlendirme</li>
+                                        <li className="flex items-center gap-2 text-sm"><span className="w-2 h-2 rounded-full bg-primary"></span> İlk Deneme Dersi</li>
+                                    </ul>
+                                </CardContent>
+                            </Card>
+
                         </div>
                     </DialogContent>
                 </Dialog>
@@ -249,54 +433,32 @@ export default function EbeveynPortaliPage() {
       
       try {
           const snapshot = await getDocs(q);
-          let lessonsReturned = 0;
-          let packagesToReturn: { [key: string]: number } = {};
-
           snapshot.forEach(lessonDoc => {
-              const lessonData = lessonDoc.data();
-              if (lessonData.packageCode && lessonData.packageCode !== 'FREE_TRIAL') {
-                  packagesToReturn[lessonData.packageCode] = (packagesToReturn[lessonData.packageCode] || 0) + 1;
-              }
               batch.update(lessonDoc.ref, {
                   status: 'available',
                   bookedBy: null,
                   childId: null,
-                  packageCode: null,
+                  packageCode: null
               });
-              lessonsReturned++;
           });
-          
-          // 2. Return the lessons from the assigned package to the parent's pool
+
           if (assignedPackage && remainingLessons > 0) {
-             packagesToReturn[assignedPackage] = (packagesToReturn[assignedPackage] || 0) + remainingLessons;
-          }
-
-          if (Object.keys(packagesToReturn).length > 0) {
-              const packagesArray = Object.keys(packagesToReturn).flatMap(pkg => Array(packagesToReturn[pkg]).fill(pkg).map((p, i) => `${p.replace(/\d+/,'')}${parseInt(p.match(/\d+/)?.[0] || '1', 10)}`));
-              
-              const totalLessonsReturned = Object.values(packagesToReturn).reduce((a, b) => a + b, 0);
-
               batch.update(userDocRef, {
-                  enrolledPackages: arrayUnion(...Object.keys(packagesToReturn)),
-                  remainingLessons: increment(totalLessonsReturned)
+                  enrolledPackages: arrayUnion(assignedPackage),
+                  remainingLessons: increment(remainingLessons)
               });
-
-              toast({ title: 'Paket ve Dersler İade Edildi', description: `Silinen çocuğa ait paket(ler) ve toplam ${totalLessonsReturned} ders havuza iade edildi.`});
-          } else if (lessonsReturned > 0) {
-              toast({ title: 'Dersler İptal Edildi', description: `Çocuğun planlanmış ${lessonsReturned} dersi iptal edildi.`});
+               toast({ title: 'Paket İade Edildi', description: `Silinen çocuğa ait ${assignedPackage} paketi (${remainingLessons} ders) havuza iade edildi.`});
           }
 
-
-          // 3. Delete the child document
+          // Delete the child document
           const childDocRef = doc(db, 'users', user.uid, 'children', childId);
           batch.delete(childDocRef);
           
-          // 4. Commit the batch
           await batch.commit();
 
           toast({
               title: 'Çocuk Silindi',
-              description: 'Çocuk profili ve ilişkili tüm planlanmış dersler başarıyla silindi.',
+              description: 'Çocuk profili ve ilişkili tüm planlanmış dersler başarıyla silindi/iptal edildi.',
               className: 'bg-green-500 text-white'
           });
 
@@ -573,3 +735,4 @@ export default function EbeveynPortaliPage() {
   );
 }
 
+    
