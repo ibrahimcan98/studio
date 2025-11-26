@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -276,15 +277,13 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
                                 </CardHeader>
                                 <CardContent className="space-y-3">
                                     {Object.entries(cefrData).map(([skill, data]) => (
-                                        <motion.div whileHover={{ x: 3 }} key={skill} className="flex justify-between items-center">
-                                            <span className="capitalize text-sm font-medium text-gray-700">{skill}</span>
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-bold text-sm w-12 text-right text-gray-600">{data.level}</span>
-                                                <div className="flex gap-1">
-                                                    {[...Array(5)].map((_, i) => (
-                                                        <div key={i} className={`w-4 h-4 rounded-sm ${i < data.score ? 'bg-primary' : 'bg-green-200'}`}></div>
-                                                    ))}
-                                                </div>
+                                        <motion.div whileHover={{ x: 3 }} key={skill} className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2">
+                                            <span className="capitalize text-sm font-medium text-gray-700 truncate">{skill}</span>
+                                            <span className="font-bold text-sm text-right text-gray-600">{data.level}</span>
+                                            <div className="flex gap-1 justify-self-end">
+                                                {[...Array(5)].map((_, i) => (
+                                                    <div key={i} className={`w-4 h-4 rounded-sm ${i < data.score ? 'bg-primary' : 'bg-green-200'}`}></div>
+                                                ))}
                                             </div>
                                         </motion.div>
                                     ))}
@@ -459,8 +458,8 @@ export default function EbeveynPortaliPage() {
         errorEmitter.emit(
             'permission-error',
             new FirestorePermissionError({
-                path: childDocRef.path, // We assume the batch fails on deleting the child
-                operation: 'delete'
+                path: childDocRef.path,
+                operation: 'delete',
             })
         );
     }
