@@ -158,6 +158,10 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
                         </Button>
                     </DialogTrigger>
                      <DialogContent className="max-w-5xl h-[90vh]">
+                       <DialogHeader>
+                            <DialogTitle className="text-3xl font-bold font-headline">{child.firstName} İlerleme Paneli</DialogTitle>
+                            <DialogDescription>Çocuğunuzun Türkçe öğrenme yolculuğuna dair kapsamlı analiz ve raporlar.</DialogDescription>
+                        </DialogHeader>
                         <ProgressPanel child={child} />
                     </DialogContent>
                 </Dialog>
@@ -318,7 +322,16 @@ export default function EbeveynPortaliPage() {
                 <Crown className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              {isPremium ? <PremiumBadge /> : <Badge variant="destructive">Değil</Badge>}
+              {isPremium ? (
+                <PremiumBadge />
+              ) : (
+                <Button variant="outline" size="sm" asChild>
+                    <Link href="/premium">
+                        <Crown className="mr-2 h-4 w-4 text-yellow-500" />
+                        Premium'a Geç
+                    </Link>
+                </Button>
+              )}
             </CardContent>
         </Card>
       </div>
