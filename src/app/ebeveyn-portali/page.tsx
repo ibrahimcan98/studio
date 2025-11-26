@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock, Infinity as InfinityIcon, Settings, Target, CreditCard, Clock, ChevronDown } from 'lucide-react';
+import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock, Infinity as InfinityIcon, Settings, Target, CreditCard, Clock, ChevronDown, MonitorPlay } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -23,14 +23,16 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+
 import {
   Tooltip,
   TooltipContent,
@@ -42,6 +44,7 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { SetPinDialog } from '@/components/child-mode/set-pin-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 const MAX_LIVES = 5;
 
@@ -76,17 +79,6 @@ function PremiumBadge() {
 
 function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, isPremium: boolean, currentLives: number, onDelete: (id: string, assignedPackage: string | null, remainingLessons: number) => void }) {
     const { toast } = useToast();
-
-    const handleStartLearning = (e: React.MouseEvent) => {
-        if (!isPremium && currentLives <= 0) {
-            e.preventDefault(); // Prevent Dialog from opening
-            toast({
-                variant: "destructive",
-                title: "Can Kalmadı!",
-                description: "Lütfen canların dolmasını bekleyiniz.",
-            });
-        }
-    };
     
     const displayLives = Math.max(0, currentLives);
     const hasActivePackage = child.assignedPackage && child.remainingLessons > 0;
@@ -291,12 +283,6 @@ export default function EbeveynPortaliPage() {
   const assignedLessons = children ? children.reduce((acc, child) => acc + (child.remainingLessons || 0), 0) : 0;
   const unassignedLessons = userData?.remainingLessons || 0;
   const totalRemainingLessons = assignedLessons + unassignedLessons;
-  
-  const handleSwitchToChildMode = (childId: string) => {
-    // We can add PIN logic here if needed, for now direct navigation
-    router.push(`/cocuk-modu/${childId}`);
-  };
-
 
   return (
     <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20">
@@ -309,20 +295,33 @@ export default function EbeveynPortaliPage() {
         </div>
          <div className="flex items-center gap-4">
             {children && children.length > 0 && (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                 <Dialog>
+                    <DialogTrigger asChild>
                         <Button className="bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold">
-                            Çocuk Moduna Geç <ChevronDown className="ml-2 h-4 w-4" />
+                            <MonitorPlay className="mr-2 h-4 w-4" /> Çocuk Moduna Geç
                         </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        {children.map(child => (
-                           <DropdownMenuItem key={child.id} onClick={() => handleSwitchToChildMode(child.id)} className="cursor-pointer">
-                                {child.firstName}
-                           </DropdownMenuItem>
-                        ))}
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Hangi Çocuk Oynayacak?</DialogTitle>
+                            <DialogDescription>
+                                Lütfen oynamak için bir çocuk seçin.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid grid-cols-2 gap-4 py-4">
+                             {children.map(child => (
+                                <SetPinDialog key={child.id} childId={child.id}>
+                                    <Card className="flex flex-col items-center justify-center p-4 gap-2 cursor-pointer hover:bg-muted transition-colors">
+                                        <Avatar className="h-16 w-16 text-2xl">
+                                            <AvatarFallback className="bg-primary/20 text-primary font-bold">{child.firstName?.charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        <span className="font-semibold">{child.firstName}</span>
+                                    </Card>
+                                </SetPinDialog>
+                            ))}
+                        </div>
+                    </DialogContent>
+                </Dialog>
             )}
         </div>
       </div>
