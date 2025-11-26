@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock, Infinity as InfinityIcon, Settings, Target, CreditCard, Clock, ChevronDown, MonitorPlay } from 'lucide-react';
+import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock, Infinity as InfinityIcon, Settings, Target, CreditCard, Clock, ChevronDown, MonitorPlay, FileText } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -41,13 +41,38 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { collection, doc, deleteDoc, updateDoc, getDoc, query, where, getDocs, writeBatch, increment, arrayUnion } from 'firebase/firestore';
-import { format } from 'date-fns';
+import { format, differenceInYears } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { SetPinDialog } from '@/components/child-mode/set-pin-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 const MAX_LIVES = 5;
+
+const schoolLiteracyStatusMap = {
+    "not-yet": "Henüz öğrenmedi",
+    "in-progress": "Devam ediyor",
+    "fluent": "Öğrendi, akıcı bir şekilde okuyup yazıyor"
+};
+
+const turkishLiteracyLevelMap = {
+    "none": "Hiç yok",
+    "word-sentence": "Kelime/cümle düzeyinde",
+    "reads-short-writes": "Okuyup kısa yazabiliyor",
+    "fluent": "Akıcı okuyor / düzenli yazıyor"
+};
+
+const difficultiesMap = {
+    "kelime": "Kelime",
+    "cumle": "Cümle",
+    "anlama": "Anlama",
+    "okuma": "Okuma",
+    "yazma": "Yazma",
+    "ifade": "Kendini ifade",
+    "motivasyon": "Motivasyon",
+    "ingilizce-karistirma": "İngilizce karıştırma"
+};
+
 
 function StatCard({ title, value, icon: Icon, unit, children }: { title: string, value: string | number, icon: React.ElementType, unit?: string, children?: React.ReactNode }) {
   return (
@@ -84,7 +109,7 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
     const displayLives = Math.max(0, currentLives);
     const hasActivePackage = child.assignedPackage && child.remainingLessons > 0;
     const dateOfBirth = child.dateOfBirth ? new Date(child.dateOfBirth) : null;
-    const age = dateOfBirth ? new Date().getFullYear() - dateOfBirth.getFullYear() : 'N/A';
+    const age = dateOfBirth ? differenceInYears(new Date(), dateOfBirth) : 'N/A';
 
     return (
         <Card className="relative flex flex-col items-center text-center p-6 space-y-4 hover:shadow-lg transition-shadow group">
@@ -156,6 +181,60 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
                         <span className='text-xs text-muted-foreground italic'>Atanmamış</span>
                     </div>
                 )}
+                 <Dialog>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" className="w-full mt-4">
+                            <FileText className="mr-2 h-4 w-4" />
+                            İlerleme Paneli
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl h-[80vh]">
+                        <DialogHeader>
+                            <DialogTitle>{child.firstName} İlerleme Paneli</DialogTitle>
+                            <DialogDescription>
+                                Çocuğunuzun bilgileri ve ilerlemesine genel bakış.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-4 h-full overflow-y-auto">
+                           <div className="md:col-span-1 space-y-6">
+                                <h3 className='font-semibold text-lg border-b pb-2'>Veli Bilgi Formu</h3>
+                                <div className="space-y-4 text-sm">
+                                    <div>
+                                        <p className="font-medium text-muted-foreground">Yaşadığı Ülke</p>
+                                        <p>{child.countryOfResidence}</p>
+                                    </div>
+                                    <div>
+                                        <p className="font-medium text-muted-foreground">Ebeveyn Dilleri</p>
+                                        <p>{child.parentTongues}</p>
+                                    </div>
+                                    <div>
+                                        <p className="font-medium text-muted-foreground">Okul Dili</p>
+                                        <p>{child.schoolLanguage}</p>
+                                    </div>
+                                    <div>
+                                        <p className="font-medium text-muted-foreground">Okulda Okuryazarlık</p>
+                                        <p>{schoolLiteracyStatusMap[child.schoolLiteracyStatus as keyof typeof schoolLiteracyStatusMap]}</p>
+                                    </div>
+                                    <div>
+                                        <p className="font-medium text-muted-foreground">Türkçe Okuryazarlık</p>
+                                        <p>{turkishLiteracyLevelMap[child.turkishLiteracyLevel as keyof typeof turkishLiteracyLevelMap]}</p>
+                                    </div>
+                                     {child.turkishDifficulties && child.turkishDifficulties.length > 0 && (
+                                        <div>
+                                            <p className="font-medium text-muted-foreground">Zorlandığı Alanlar</p>
+                                            <div className="flex flex-wrap gap-2 mt-1">
+                                                {child.turkishDifficulties.map((d: string) => <Badge variant="outline" key={d}>{difficultiesMap[d as keyof typeof difficultiesMap]}</Badge>)}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                           </div>
+                           <div className="md:col-span-2">
+                                {/* Future content will go here */}
+                           </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
        </Card>
     );
@@ -183,7 +262,6 @@ export default function EbeveynPortaliPage() {
 
   const isPremium = userData?.isPremium || false;
   const currentLives = userData?.lives ?? 5;
-  const hasUsedFreeTrial = userData?.hasUsedFreeTrial || false;
   
   const childrenRef = useMemoFirebase(() => {
     if (!db || !user?.uid) return null;
@@ -430,13 +508,13 @@ export default function EbeveynPortaliPage() {
                         <Video className="w-6 h-6 text-green-700"/>
                     </div>
                     <div>
-                        <CardTitle className="text-green-900">{hasUsedFreeTrial ? 'Ders Planlayın' : 'Ücretsiz Deneme Dersi'}</CardTitle>
+                        <CardTitle className="text-green-900">{userData?.freeTrialsUsed > 0 ? 'Ders Planlayın' : 'Ücretsiz Deneme Dersi'}</CardTitle>
                         <CardDescription className="text-green-700">Öğretmenimizle tanışın ve platformumuzu deneyimleyin.</CardDescription>
                     </div>
                 </div>
             </CardHeader>
             <CardContent>
-                {!hasUsedFreeTrial && <p className="mb-4 text-muted-foreground">İlk canlı dersiniz ücretsiz!</p>}
+                {!(userData?.freeTrialsUsed > 0) && <p className="mb-4 text-muted-foreground">İlk canlı dersiniz ücretsiz!</p>}
                 <Button asChild className="bg-green-600 hover:bg-green-700 text-white">
                   <Link href="/ebeveyn-portali/ders-planla">
                     Hemen Planla <ArrowRight className="ml-2 h-4 w-4"/>
