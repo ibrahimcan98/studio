@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
-import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock, Infinity as InfinityIcon, Settings, Target, CreditCard, Clock, ChevronDown, MonitorPlay, FileText } from 'lucide-react';
+import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock, Infinity as InfinityIcon, Settings, Target, CreditCard, Clock, ChevronDown, MonitorPlay, FileText, CheckCircle, MessageCircle, TrendingUp, TrendingDown, Book, BrainCircuit, Globe, Smile, Meh, Frown, Languages, Milestone, Cloudy, GraduationCap } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -23,7 +23,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import {
   Dialog,
@@ -38,9 +37,9 @@ import { PieChart, Pie, Cell, ResponsiveContainer, PolarGrid, PolarAngleAxis, Ra
 
 import {
   Tooltip,
-  TooltipContent,
   TooltipProvider,
   TooltipTrigger,
+  TooltipContent,
 } from "@/components/ui/tooltip"
 import { collection, doc, deleteDoc, updateDoc, getDoc, query, where, getDocs, writeBatch, increment, arrayUnion } from 'firebase/firestore';
 import { format, differenceInYears } from 'date-fns';
@@ -48,21 +47,9 @@ import { tr } from 'date-fns/locale';
 import { SetPinDialog } from '@/components/child-mode/set-pin-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 const MAX_LIVES = 5;
-
-const schoolLiteracyStatusMap: { [key: string]: string } = {
-    "not-yet": "Henüz öğrenmedi",
-    "in-progress": "Devam ediyor",
-    "fluent": "Öğrendi, akıcı"
-};
-
-const turkishLiteracyLevelMap: { [key: string]: string } = {
-    "none": "Hiç yok",
-    "word-sentence": "Kelime/cümle",
-    "reads-short-writes": "Kısa metin",
-    "fluent": "Akıcı"
-};
 
 const difficultiesMap: { [key: string]: string } = {
     "kelime": "Kelime",
@@ -76,7 +63,7 @@ const difficultiesMap: { [key: string]: string } = {
 };
 
 
-const COLORS = ['#00C49F', '#0088FE', '#FFBB28'];
+const COLORS = ['#4FC3F7', '#FF8A65', '#E0E0E0'];
 
 const cefrData = {
     listening: { level: 'A1', score: 2 },
@@ -84,14 +71,6 @@ const cefrData = {
     reading: { level: 'Ölçülmedi', score: 0 },
     writing: { level: '—', score: 0 },
 };
-
-const radarData = [
-  { subject: 'Kelime', A: 80, fullMark: 100 },
-  { subject: 'Dilbilgisi', A: 60, fullMark: 100 },
-  { subject: 'Akıcılık', A: 70, fullMark: 100 },
-  { subject: 'Anlama', A: 85, fullMark: 100 },
-  { subject: 'Telaffuz', A: 75, fullMark: 100 },
-];
 
 
 function StatCard({ title, value, icon: Icon, unit, children }: { title: string, value: string | number, icon: React.ElementType, unit?: string, children?: React.ReactNode }) {
@@ -130,8 +109,6 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
     const hasActivePackage = child.assignedPackage && child.remainingLessons > 0;
     const dateOfBirth = child.dateOfBirth ? new Date(child.dateOfBirth) : null;
     const age = dateOfBirth ? differenceInYears(new Date(), dateOfBirth) : 'N/A';
-    const schoolLiteracy = schoolLiteracyStatusMap[child.schoolLiteracyStatus] || 'Belirtilmemiş';
-    const turkishLiteracy = turkishLiteracyLevelMap[child.turkishLiteracyLevel] || 'Belirtilmemiş';
     
     const homeLanguagePieData = useMemo(() => {
         const turkishPercentage = child.homeLanguageTurkishPercentage || 0;
@@ -150,7 +127,7 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
 
 
     return (
-        <Card className="relative flex flex-col items-center text-center p-6 space-y-4 hover:shadow-lg transition-shadow group">
+        <Card className="relative flex flex-col items-center text-center p-6 space-y-4 hover:shadow-lg transition-shadow group rounded-2xl">
             <AlertDialog>
                 <AlertDialogTrigger asChild>
                     <Button variant="ghost" size="icon" className="absolute top-2 left-2 h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive">
@@ -228,50 +205,41 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
                     </DialogTrigger>
                      <DialogContent className="max-w-4xl h-[90vh]">
                         <DialogHeader>
-                            <DialogTitle>{child.firstName} İlerleme Paneli</DialogTitle>
+                            <DialogTitle className="text-3xl font-bold font-headline">{child.firstName} İlerleme Paneli</DialogTitle>
                              <DialogDescription>
                                 Çocuğunuzun Türkçe öğrenme yolculuğuna dair kapsamlı analiz ve raporlar.
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-4 h-full overflow-y-auto pr-4">
-                           {/* Card 1: Profile */}
-                            <Card className="col-span-1">
-                                <CardHeader>
-                                    <CardTitle className="text-base">Profil Kartı</CardTitle>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-4 h-full overflow-y-auto pr-4 font-body">
+                           
+                            <Card className="col-span-1 rounded-2xl bg-[#E3F2FD] border-blue-200">
+                                <CardHeader className="flex-row items-center gap-3 space-y-0">
+                                    <Users className="w-6 h-6 text-blue-500" />
+                                    <CardTitle className="text-lg text-blue-900">Profil Kartı</CardTitle>
                                 </CardHeader>
                                 <CardContent className="flex flex-col items-center text-center">
-                                    <div className="relative w-32 h-32">
-                                        <svg className="w-full h-full" viewBox="0 0 100 100">
-                                            <circle cx="50" cy="50" r="45" fill="none" stroke="hsl(var(--muted))" strokeWidth="10" />
-                                            <circle cx="50" cy="50" r="45" fill="none" stroke="hsl(var(--primary))" strokeWidth="10" strokeDasharray="283" strokeDashoffset={283 * (1 - 0.75)} transform="rotate(-90 50 50)" />
-                                        </svg>
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <Avatar className="w-24 h-24 text-4xl">
-                                                <AvatarFallback className="bg-primary/20 text-primary font-bold">{child.firstName?.charAt(0)}</AvatarFallback>
-                                            </Avatar>
-                                        </div>
-                                    </div>
-                                    <p className="font-bold text-lg mt-4">{child.firstName} K.</p>
-                                    <p className="text-sm text-muted-foreground">ID: IE-023</p>
-                                    <p className="text-sm mt-2">{age} yaş • {child.countryOfResidence.split(',')[0]} • Okul Dili: {child.schoolLanguage}</p>
+                                    <Avatar className="w-24 h-24 text-4xl mb-3">
+                                        <AvatarFallback className="bg-blue-200 text-blue-700 font-bold">{child.firstName?.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <p className="font-bold text-xl text-gray-800">{child.firstName} K.</p>
+                                    <p className="text-sm text-gray-600">ID: IE-023</p>
+                                    <p className="text-sm mt-2 text-gray-500">{age} yaş • {child.countryOfResidence.split(',')[0]} • Okul Dili: {child.schoolLanguage}</p>
                                 </CardContent>
                             </Card>
 
-                             {/* Card 2: Language Environment */}
-                            <Card className="col-span-1">
-                                <CardHeader><CardTitle className="text-base">Dil Ortamı</CardTitle></CardHeader>
+                            <Card className="col-span-1 rounded-2xl bg-[#FFF3E0] border-orange-200">
+                                <CardHeader className="flex-row items-center gap-3 space-y-0">
+                                    <Globe className="w-6 h-6 text-orange-500" />
+                                    <CardTitle className="text-lg text-orange-900">Dil Ortamı</CardTitle>
+                                </CardHeader>
                                 <CardContent className="space-y-4">
                                      <div>
-                                        <h4 className="text-sm font-semibold mb-2">Ebeveyn Dilleri</h4>
-                                        <p className="text-sm text-muted-foreground">{child.parentTongues}</p>
-                                    </div>
-                                     <div>
-                                        <h4 className="text-sm font-semibold mb-2">Evde Dil Kullanımı</h4>
+                                        <h4 className="text-sm font-semibold mb-2 text-gray-700">Evde Dil Kullanımı</h4>
                                         <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10">
+                                            <div className="w-12 h-12">
                                                 <ResponsiveContainer width="100%" height="100%">
                                                     <PieChart>
-                                                        <Pie data={homeLanguagePieData} cx="50%" cy="50%" innerRadius={10} outerRadius={20} dataKey="value" paddingAngle={2}>
+                                                        <Pie data={homeLanguagePieData} cx="50%" cy="50%" innerRadius={12} outerRadius={20} dataKey="value" paddingAngle={3}>
                                                             {homeLanguagePieData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                                                         </Pie>
                                                     </PieChart>
@@ -288,118 +256,124 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
                                         </div>
                                     </div>
                                     <div>
-                                        <h4 className="text-sm font-semibold mb-1">Türkçe Maruziyet Yoğunluğu</h4>
-                                        <div className="flex items-center gap-2 text-sm"><span className="text-lg">{exposureInfo.dots}</span> ({exposureInfo.label})</div>
+                                        <h4 className="text-sm font-semibold mb-1 text-gray-700">Türkçe Maruziyet Yoğunluğu</h4>
+                                        <div className="flex items-center gap-2 text-sm"><span className="text-lg font-mono text-orange-500">{exposureInfo.dots}</span> <span className='text-gray-600'>{exposureInfo.label}</span></div>
                                     </div>
-                                     <div>
-                                        <h4 className="text-sm font-semibold mb-2">Zorlanma Alanları</h4>
-                                        <div className="flex flex-wrap gap-1">
-                                            {child.turkishDifficulties?.map((d: string) => <Badge key={d} variant="secondary">{difficultiesMap[d] || d}</Badge>)}
+                                     <div className="pt-2">
+                                        <h4 className="text-sm font-semibold mb-2 flex items-center gap-1 text-gray-700"><Users className="w-4 h-4"/>Veli Bildirimi – Zorlanma Alanları</h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {child.turkishDifficulties?.length > 0 ? child.turkishDifficulties.map((d: string) => <Badge key={d} variant="secondary" className="bg-green-100 text-green-800 border border-green-200">{difficultiesMap[d] || d}</Badge>) : <p className="text-xs text-muted-foreground">Belirtilmedi.</p>}
                                         </div>
-                                    </div>
-                                     <div>
-                                        <h4 className="text-sm font-semibold mb-1">Okuryazarlık ({turkishLiteracy})</h4>
-                                        <div className="flex items-center gap-2"><span className="text-lg">○ ● ○</span> <span className="text-sm text-muted-foreground">Kelime düzeyi</span></div>
                                     </div>
                                 </CardContent>
                             </Card>
 
-                            {/* Card 3: CEFR Profile */}
-                             <Card className="col-span-1">
-                                <CardHeader><CardTitle className="text-base">CEFR Profili</CardTitle></CardHeader>
+                             <Card className="col-span-1 rounded-2xl bg-[#E8F5E9] border-green-200">
+                                <CardHeader className="flex-row items-center gap-3 space-y-0">
+                                    <GraduationCap className="w-6 h-6 text-green-500" />
+                                    <CardTitle className="text-lg text-green-900">CEFR Profili</CardTitle>
+                                </CardHeader>
                                 <CardContent className="space-y-3">
                                     {Object.entries(cefrData).map(([skill, data]) => (
-                                        <div key={skill} className="flex justify-between items-center">
-                                            <span className="capitalize text-sm font-medium">{skill}</span>
+                                        <motion.div whileHover={{ x: 3 }} key={skill} className="flex justify-between items-center">
+                                            <span className="capitalize text-sm font-medium text-gray-700">{skill}</span>
                                             <div className="flex items-center gap-2">
-                                                <span className="font-bold text-sm w-12 text-right">{data.level}</span>
+                                                <span className="font-bold text-sm w-12 text-right text-gray-600">{data.level}</span>
                                                 <div className="flex gap-1">
                                                     {[...Array(5)].map((_, i) => (
-                                                        <div key={i} className={`w-4 h-4 rounded-sm ${i < data.score ? 'bg-primary' : 'bg-muted'}`}></div>
+                                                        <div key={i} className={`w-4 h-4 rounded-sm ${i < data.score ? 'bg-primary' : 'bg-green-200'}`}></div>
                                                     ))}
                                                 </div>
                                             </div>
-                                        </div>
+                                        </motion.div>
                                     ))}
                                 </CardContent>
                             </Card>
 
-                            {/* Card 4: Language Behavior */}
-                            <Card className="col-span-1">
-                                <CardHeader><CardTitle className="text-base">Dil Davranışı</CardTitle></CardHeader>
-                                <CardContent className="space-y-4">
+                            <Card className="col-span-1 rounded-2xl bg-[#FFFDE7] border-yellow-200">
+                                <CardHeader className="flex-row items-center gap-3 space-y-0">
+                                    <BrainCircuit className="w-6 h-6 text-yellow-600" />
+                                    <CardTitle className="text-lg text-yellow-900">Dil Davranışı</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-5 pt-4">
                                      <div>
-                                        <h4 className="text-sm font-semibold">Konuşma İnisiyatifi</h4>
+                                        <h4 className="text-sm font-semibold text-gray-700">Konuşma İnisiyatifi</h4>
                                         <div className="flex items-center gap-2">
-                                            <div className="text-2xl font-mono text-primary">(◐)</div>
-                                            <span className="font-bold">40%</span>
+                                            <div className="text-3xl font-mono text-primary">(◐)</div>
+                                            <span className="font-bold text-lg">40%</span>
+                                        </div>
+                                    </div>
+                                     <div className="space-y-2">
+                                        <h4 className="text-sm font-semibold text-gray-700">Tutum</h4>
+                                        <div className="flex gap-4">
+                                            <motion.div whileHover={{ scale: 1.1 }} className="flex flex-col items-center gap-1 cursor-pointer">
+                                                <Smile className="w-7 h-7 text-green-500" />
+                                                <span className="text-xs font-bold text-green-600">Olumlu</span>
+                                            </motion.div>
+                                            <motion.div whileHover={{ scale: 1.1 }} className="flex flex-col items-center gap-1 cursor-pointer opacity-40">
+                                                <Meh className="w-7 h-7 text-gray-500" />
+                                                <span className="text-xs font-medium text-gray-500">Nötr</span>
+                                            </motion.div>
+                                             <motion.div whileHover={{ scale: 1.1 }} className="flex flex-col items-center gap-1 cursor-pointer opacity-40">
+                                                <Frown className="w-7 h-7 text-gray-500" />
+                                                <span className="text-xs font-medium text-gray-500">Çekingen</span>
+                                            </motion.div>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <h4 className="text-sm font-semibold text-gray-700">Dil Karıştırma</h4>
+                                            <p className="flex items-center gap-2 font-semibold text-gray-600">Ara sıra</p>
+                                        </div>
+                                        <TrendingDown className="w-7 h-7 text-red-500" />
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                             <Card className="col-span-1 md:col-span-2 rounded-2xl bg-[#F3E5F5] border-purple-200">
+                                <CardHeader className="flex-row items-center gap-3 space-y-0">
+                                    <Star className="w-6 h-6 text-purple-500" />
+                                    <CardTitle className="text-lg text-purple-900">Öğrenme Profil Özeti</CardTitle>
+                                </CardHeader>
+                                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div>
+                                        <h4 className="font-semibold mb-2 text-gray-700 flex items-center gap-2"><CheckCircle className="w-5 h-5 text-green-500"/>Güçlü Alanlar</h4>
+                                        <div className="flex flex-col gap-2">
+                                            <Badge className="bg-green-100 text-green-800 border-green-200 text-sm font-normal w-fit">Dinleme</Badge>
+                                            <Badge className="bg-green-100 text-green-800 border-green-200 text-sm font-normal w-fit">Tutum</Badge>
+                                            <Badge className="bg-green-100 text-green-800 border-green-200 text-sm font-normal w-fit">Motivasyon</Badge>
                                         </div>
                                     </div>
                                      <div>
-                                        <h4 className="text-sm font-semibold">Tutum</h4>
-                                        <p className="text-2xl">🙂🙂😐</p>
+                                        <h4 className="font-semibold mb-2 text-gray-700 flex items-center gap-2"><Cloudy className="w-5 h-5 text-orange-500"/>Gelişime Açık Alanlar</h4>
+                                        <div className="flex flex-col gap-2">
+                                            <Badge className="bg-orange-100 text-orange-800 border-orange-200 text-sm font-normal w-fit">Konuşma akıcılığı</Badge>
+                                            <Badge className="bg-orange-100 text-orange-800 border-orange-200 text-sm font-normal w-fit">Okuryazarlık</Badge>
+                                            <Badge className="bg-orange-100 text-orange-800 border-orange-200 text-sm font-normal w-fit">Türkçe maruziyet</Badge>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h4 className="text-sm font-semibold">Dil Karıştırma</h4>
-                                        <p className="flex items-center gap-2">Ara sıra <ArrowRight className="w-4 h-4 text-red-500 transform rotate-45" /></p>
-                                    </div>
-                                     <div>
-                                        <h4 className="text-sm font-semibold">Odak</h4>
-                                        <Badge variant="outline" className="border-green-500 text-green-700">İyi</Badge>
+                                     <div className="sm:col-span-2 mt-2">
+                                        <h4 className="font-semibold mb-2 text-gray-700 flex items-center gap-2"><Target className="w-5 h-5 text-red-500"/>Önerilen Kurs</h4>
+                                         <motion.div animate={{ scale: [1, 1.02, 1] }} transition={{ duration: 2, repeat: Infinity }}>
+                                            <Badge className="bg-red-100 text-red-800 border-red-200 text-base font-semibold p-2 px-3">
+                                                 <Star className="w-4 h-4 mr-2 fill-current"/>
+                                                 Konuşma Kursu
+                                            </Badge>
+                                         </motion.div>
                                     </div>
                                 </CardContent>
                             </Card>
 
-                             {/* Card 5: System Analysis */}
-                            <Card className="col-span-1">
-                                <CardHeader>
-                                    <CardTitle className="text-base flex items-center gap-2">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-1.218-1.57L12 12.118 4.044 5.242a1 1 0 0-1.218 1.57L10.782 13 2.826 19.958a1 1 0 1 0 1.218 1.57L12 14.882l7.956 6.874a1 1 0 0 0 1.218-1.57L13.218 13z"></path></svg>
-                                        Sistem Analizi
-                                    </CardTitle>
+                            <Card className="col-span-1 md:col-span-2 lg:col-span-3 rounded-2xl bg-gray-50 border-gray-200">
+                                <CardHeader className="flex-row items-center gap-3 space-y-0">
+                                    <Milestone className="w-6 h-6 text-gray-500" />
+                                    <CardTitle className="text-lg text-gray-800">Geçmiş Değerlendirmeler</CardTitle>
                                 </CardHeader>
-                                <CardContent className="space-y-3 text-sm">
-                                    <p><strong>Dil Gelişim Evresi:</strong> Evre 2</p>
-                                    <p className="flex items-center gap-2"><strong>⭐ Önerilen Kurs:</strong> Konuşma Kursu</p>
-                                    <div>
-                                        <h5 className="font-semibold text-xs text-muted-foreground">Neden?</h5>
-                                        <ul className="list-disc pl-4 text-xs text-muted-foreground">
-                                            <li>Konuşma PreA1→A1</li>
-                                            <li>Okuma yok → Akademik uygun değil</li>
-                                            <li>Maruziyet düşük</li>
-                                        </ul>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                             {/* Card 6: Interim Assessment */}
-                            <Card className="col-span-1">
-                                <CardHeader><CardTitle className="text-base">Ara Değerlendirme</CardTitle></CardHeader>
-                                <CardContent className="space-y-3 text-sm">
-                                     <div className="space-y-2">
-                                        <p>Dinleme: A1 <span className="font-mono">▢▣▢▢▢</span> → A1+ <span className="font-mono">▣▣▢▢▢</span></p>
-                                        <p>Konuşma: PreA1 <span className="font-mono">▣▢▢▢▢</span> → A1 <span className="font-mono">▣▣▢▢▢</span></p>
-                                        <p>Okuma: — <span className="font-mono">▢▢▢▢▢</span> → Kelime <span className="font-mono">▣▢▢▢▢</span></p>
-                                    </div>
-                                    <Separator/>
-                                    <p>Karıştırma: Ara sıra → Nadiren <ArrowRight className="inline w-3 h-3 text-red-500 transform rotate-45" /></p>
-                                    <p>Odak: İyi → Çok iyi <ArrowRight className="inline w-3 h-3 text-green-500 transform -rotate-45" /></p>
-                                    <Separator/>
-                                     <div>
-                                        <h5 className="font-semibold text-xs text-muted-foreground">📝 Öğretmen Notu:</h5>
-                                        <p className="text-xs italic text-muted-foreground">Kelimeler arttı, motivasyon yüksek.</p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                             {/* Card 7: Past Assessments */}
-                            <Card className="col-span-1 md:col-span-2 lg:col-span-3">
-                                <CardHeader><CardTitle className="text-base">Geçmiş Değerlendirmeler</CardTitle></CardHeader>
                                 <CardContent>
-                                    <ul className="space-y-3">
-                                        <li className="flex items-center gap-2 text-sm"><span className="w-2 h-2 rounded-full bg-primary"></span> 12. Hafta Ara Değerlendirme</li>
-                                        <li className="flex items-center gap-2 text-sm"><span className="w-2 h-2 rounded-full bg-primary"></span> 6. Hafta Ara Değerlendirme</li>
-                                        <li className="flex items-center gap-2 text-sm"><span className="w-2 h-2 rounded-full bg-primary"></span> İlk Deneme Dersi</li>
+                                    <ul className="space-y-4">
+                                        <li className="flex items-center gap-3 text-sm"><div className="w-2.5 h-2.5 rounded-full bg-primary"></div><span>12. Hafta Ara Değerlendirme</span> <span className='text-xs text-muted-foreground ml-auto'>12.06.2024</span></li>
+                                        <li className="flex items-center gap-3 text-sm"><div className="w-2.5 h-2.5 rounded-full bg-primary/50"></div><span>6. Hafta Ara Değerlendirme</span> <span className='text-xs text-muted-foreground ml-auto'>01.05.2024</span></li>
+                                        <li className="flex items-center gap-3 text-sm"><div className="w-2.5 h-2.5 rounded-full bg-primary/20"></div><span>İlk Deneme Dersi</span> <span className='text-xs text-muted-foreground ml-auto'>15.03.2024</span></li>
                                     </ul>
                                 </CardContent>
                             </Card>
@@ -754,3 +728,5 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
+
+    
