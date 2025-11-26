@@ -24,7 +24,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 
 const difficultiesMap: { [key: string]: string } = {
@@ -143,15 +142,15 @@ export function ProgressPanel({ child }: { child: any }) {
                 </CardHeader>
                 <CardContent className="space-y-3">
                     {Object.entries(cefrData).map(([skill, data]) => (
-                         <motion.div whileHover={{ x: 3 }} key={skill} className="grid grid-cols-[auto_auto_1fr] items-center gap-x-3">
-                            <span className="capitalize text-sm font-medium text-gray-700 w-20">{skill}</span>
-                            <span className="font-bold text-sm text-gray-600 w-16">{data.level}</span>
-                            <div className="flex gap-1 items-center">
+                         <div key={skill} className="grid grid-cols-[80px_auto_1fr] items-center gap-x-3">
+                             <span className="capitalize text-sm font-medium text-gray-700">{skill}</span>
+                             <span className="font-bold text-sm text-gray-600 w-20">{data.level}</span>
+                             <div className="flex gap-1 items-center">
                                 {[...Array(5)].map((_, i) => (
                                     <div key={i} className={`w-4 h-4 rounded-sm ${i < data.score ? 'bg-primary' : 'bg-green-200'}`}></div>
                                 ))}
                             </div>
-                        </motion.div>
+                        </div>
                     ))}
                 </CardContent>
             </Card>

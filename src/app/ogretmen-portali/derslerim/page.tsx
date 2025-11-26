@@ -170,7 +170,7 @@ export default function OgretmenDerslerimPage() {
                         </div>
                     ) : (
                         <>
-                            <DialogHeader>
+                           <DialogHeader>
                                 <DialogTitle className="text-3xl font-bold font-headline">{selectedChildData.firstName} İlerleme Paneli</DialogTitle>
                                 <DialogDescription>
                                     Çocuğunuzun Türkçe öğrenme yolculuğuna dair kapsamlı analiz ve raporlar.
