@@ -192,45 +192,13 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
                         <DialogHeader>
                             <DialogTitle>{child.firstName} İlerleme Paneli</DialogTitle>
                             <DialogDescription>
-                                Çocuğunuzun bilgileri ve ilerlemesine genel bakış.
+                                Çocuğunuzun ilerlemesine genel bakış.
                             </DialogDescription>
                         </DialogHeader>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-4 h-full overflow-y-auto">
-                           <div className="md:col-span-1 space-y-6">
-                                <h3 className='font-semibold text-lg border-b pb-2'>Veli Bilgi Formu</h3>
-                                <div className="space-y-4 text-sm">
-                                    <div>
-                                        <p className="font-medium text-muted-foreground">Yaşadığı Ülke</p>
-                                        <p>{child.countryOfResidence}</p>
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-muted-foreground">Ebeveyn Dilleri</p>
-                                        <p>{child.parentTongues}</p>
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-muted-foreground">Okul Dili</p>
-                                        <p>{child.schoolLanguage}</p>
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-muted-foreground">Okulda Okuryazarlık</p>
-                                        <p>{schoolLiteracyStatusMap[child.schoolLiteracyStatus as keyof typeof schoolLiteracyStatusMap]}</p>
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-muted-foreground">Türkçe Okuryazarlık</p>
-                                        <p>{turkishLiteracyLevelMap[child.turkishLiteracyLevel as keyof typeof turkishLiteracyLevelMap]}</p>
-                                    </div>
-                                     {child.turkishDifficulties && child.turkishDifficulties.length > 0 && (
-                                        <div>
-                                            <p className="font-medium text-muted-foreground">Zorlandığı Alanlar</p>
-                                            <div className="flex flex-wrap gap-2 mt-1">
-                                                {child.turkishDifficulties.map((d: string) => <Badge variant="outline" key={d}>{difficultiesMap[d as keyof typeof difficultiesMap]}</Badge>)}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                           </div>
                            <div className="md:col-span-2">
                                 {/* Future content will go here */}
+                                <p className='text-muted-foreground'>Yakında burada çocuğunuzun ilerleme raporlarını, tamamladığı konuları ve öğretmen geri bildirimlerini görebileceksiniz.</p>
                            </div>
                         </div>
                     </DialogContent>
