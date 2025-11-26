@@ -23,6 +23,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import {
   Dialog,
@@ -221,8 +222,8 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
                                     <Avatar className="w-24 h-24 text-4xl mb-3">
                                         <AvatarFallback className="bg-blue-200 text-blue-700 font-bold">{child.firstName?.charAt(0)}</AvatarFallback>
                                     </Avatar>
-                                    <p className="font-bold text-xl text-gray-800">{child.firstName} K.</p>
-                                    <p className="text-sm text-gray-600">ID: IE-023</p>
+                                    <p className="font-bold text-xl text-gray-800">{child.firstName}</p>
+                                    <p className="text-sm text-gray-600">ID: {child.id.substring(0,6).toUpperCase()}</p>
                                     <p className="text-sm mt-2 text-gray-500">{age} yaş • {child.countryOfResidence.split(',')[0]} • Okul Dili: {child.schoolLanguage}</p>
                                 </CardContent>
                             </Card>
@@ -728,5 +729,3 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
-
-    
