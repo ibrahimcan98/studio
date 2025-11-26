@@ -138,6 +138,12 @@ export default function Header() {
               <Settings className="mr-2 h-4 w-4" />
               <span>Profil Ayarları</span>
             </DropdownMenuItem>
+            {isPremium && (
+              <DropdownMenuItem onClick={() => router.push('/ebeveyn-portali/uyelik')} className="cursor-pointer">
+                <Crown className="mr-2 h-4 w-4" />
+                <span>Üyelik</span>
+              </DropdownMenuItem>
+            )}
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
