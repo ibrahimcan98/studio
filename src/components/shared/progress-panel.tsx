@@ -68,7 +68,7 @@ export function ProgressPanel({ child }: { child: any }) {
     const exposureInfo = exposureMap[child.turkishExposureIntensity] || exposureMap.low;
     
      const tutumMap: { [key: string]: { emoji: React.ReactNode, label: string } } = {
-        positive: { emoji: <Smile className="w-7 h-7 text-green-500" />, label: 'Olumlu' },
+        positive: { emoji: <Smile className="w-7 h-7 text-gray-500" />, label: 'Olumlu' },
         neutral: { emoji: <Meh className="w-7 h-7 text-gray-500" />, label: 'Nötr' },
         shy: { emoji: <Frown className="w-7 h-7 text-gray-500" />, label: 'Çekingen' }
     };
@@ -142,9 +142,9 @@ export function ProgressPanel({ child }: { child: any }) {
                 </CardHeader>
                 <CardContent className="space-y-3">
                     {Object.entries(cefrData).map(([skill, data]) => (
-                         <div key={skill} className="grid grid-cols-[80px_auto_1fr] items-center gap-x-3">
+                         <div key={skill} className="grid grid-cols-[1fr_1fr_auto] items-center gap-x-3">
                              <span className="capitalize text-sm font-medium text-gray-700">{skill}</span>
-                             <span className="font-bold text-sm text-gray-600 w-20">{data.level}</span>
+                             <span className="font-bold text-sm text-gray-600">{data.level}</span>
                              <div className="flex gap-1 items-center">
                                 {[...Array(5)].map((_, i) => (
                                     <div key={i} className={`w-4 h-4 rounded-sm ${i < data.score ? 'bg-primary' : 'bg-green-200'}`}></div>
@@ -165,7 +165,7 @@ export function ProgressPanel({ child }: { child: any }) {
                         <h4 className="text-sm font-semibold text-gray-700">Konuşma İnisiyatifi</h4>
                         <div className="flex items-center gap-2">
                             <div className="text-3xl font-mono text-primary">(◐)</div>
-                            <span className="font-bold text-lg">40%</span>
+                            <span className="font-bold text-lg">0%</span>
                         </div>
                     </div>
                     <div className="space-y-2">
@@ -175,10 +175,10 @@ export function ProgressPanel({ child }: { child: any }) {
                                  <motion.div 
                                      key={key} 
                                      whileHover={{ scale: 1.1 }} 
-                                     className={`flex flex-col items-center gap-1 cursor-pointer ${currentTutum !== key ? 'opacity-40' : ''}`}
+                                     className={`flex flex-col items-center gap-1 cursor-pointer opacity-40`}
                                  >
                                      {value.emoji}
-                                     <span className={`text-xs font-medium ${currentTutum === key ? 'text-green-600 font-bold' : 'text-gray-500'}`}>{value.label}</span>
+                                     <span className={`text-xs font-medium text-gray-500`}>{value.label}</span>
                                  </motion.div>
                              ))}
                          </div>
@@ -187,9 +187,7 @@ export function ProgressPanel({ child }: { child: any }) {
                     <div className="flex justify-between items-center">
                         <div>
                             <h4 className="text-sm font-semibold text-gray-700">Dil Karıştırma</h4>
-                            <p className="flex items-center gap-2 font-semibold text-gray-600">Ara sıra</p>
                         </div>
-                        <TrendingDown className="w-7 h-7 text-red-500" />
                     </div>
                 </CardContent>
             </Card>
@@ -203,26 +201,16 @@ export function ProgressPanel({ child }: { child: any }) {
                     <div>
                         <h4 className="font-semibold mb-2 text-gray-700 flex items-center gap-2"><Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />Güçlü Alanlar</h4>
                         <div className="flex flex-col gap-2">
-                            <Badge className="bg-green-100 text-green-800 border-green-200 text-sm font-normal w-fit">Dinleme</Badge>
-                            <Badge className="bg-green-100 text-green-800 border-green-200 text-sm font-normal w-fit">Tutum</Badge>
-                            <Badge className="bg-green-100 text-green-800 border-green-200 text-sm font-normal w-fit">Motivasyon</Badge>
                         </div>
                     </div>
                     <div>
                         <h4 className="font-semibold mb-2 text-gray-700 flex items-center gap-2"><Cloudy className="w-5 h-5 text-orange-500" />Gelişime Açık Alanlar</h4>
                         <div className="flex flex-col gap-2">
-                            <Badge className="bg-orange-100 text-orange-800 border-orange-200 text-sm font-normal w-fit">Konuşma akıcılığı</Badge>
-                            <Badge className="bg-orange-100 text-orange-800 border-orange-200 text-sm font-normal w-fit">Okuryazarlık</Badge>
-                            <Badge className="bg-orange-100 text-orange-800 border-orange-200 text-sm font-normal w-fit">Türkçe maruziyet</Badge>
                         </div>
                     </div>
                     <div className="sm:col-span-2 mt-2">
                         <h4 className="font-semibold mb-2 text-gray-700 flex items-center gap-2"><Target className="w-5 h-5 text-red-500" />Önerilen Kurs</h4>
                         <motion.div animate={{ scale: [1, 1.02, 1] }} transition={{ duration: 2, repeat: Infinity }}>
-                            <Badge className="bg-red-100 text-red-800 border-red-200 text-base font-semibold p-2 px-3">
-                                <Star className="w-4 h-4 mr-2 fill-current" />
-                                Konuşma Kursu
-                            </Badge>
                         </motion.div>
                     </div>
                 </CardContent>
