@@ -41,9 +41,9 @@ const difficultiesMap: { [key: string]: string } = {
 const COLORS = ['#4FC3F7', '#FF8A65', '#E0E0E0'];
 
 const cefrData = {
-    listening: { level: 'A1', score: 2 },
-    speaking: { level: 'PreA1', score: 1 },
-    reading: { level: 'Ölçülmedi', score: 0 },
+    listening: { level: '—', score: 0 },
+    speaking: { level: '—', score: 0 },
+    reading: { level: '—', score: 0 },
     writing: { level: '—', score: 0 },
 };
 
@@ -141,7 +141,12 @@ export function ProgressPanel({ child }: { child: any }) {
                     <CardTitle className="text-lg text-green-900">CEFR Profili</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                    {Object.entries(cefrData).map(([skill, data]) => (
+                    {Object.entries({
+                        'Dinleme': cefrData.listening,
+                        'Konuşma': cefrData.speaking,
+                        'Okuma': cefrData.reading,
+                        'Yazma': cefrData.writing
+                    }).map(([skill, data]) => (
                          <div key={skill} className="grid grid-cols-[1fr_1fr_auto] items-center gap-x-3">
                              <span className="capitalize text-sm font-medium text-gray-700">{skill}</span>
                              <span className="font-bold text-sm text-gray-600">{data.level}</span>
