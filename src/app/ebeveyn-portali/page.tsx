@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock, Infinity as InfinityIcon, Settings, Target, CreditCard, Clock, ChevronDown, MonitorPlay, FileText, CheckCircle, MessageCircle, TrendingUp, TrendingDown, Book, BrainCircuit, Globe, Smile, Meh, Frown, Languages, Milestone, Cloudy, GraduationCap } from 'lucide-react';
@@ -417,55 +417,55 @@ export default function EbeveynPortaliPage() {
 
   const { data: children, isLoading: childrenLoading, refetch: refetchChildren } = useCollection(childrenRef);
 
-  const handleDeleteChild = async (childId: string, assignedPackage: string | null, remainingLessons: number) => {
-      if (!db || !user?.uid || !userDocRef) return;
-      
-      const batch = writeBatch(db);
+ const handleDeleteChild = async (childId: string, assignedPackage: string | null, remainingLessons: number) => {
+    if (!db || !user?.uid || !userDocRef) return;
 
-      // 1. Find and update booked lesson slots for this child
-      const lessonSlotsRef = collection(db, 'lesson-slots');
-      const q = query(lessonSlotsRef, where("childId", "==", childId), where("status", "==", "booked"));
-      
-      try {
-          const snapshot = await getDocs(q);
-          snapshot.forEach(lessonDoc => {
-              batch.update(lessonDoc.ref, {
-                  status: 'available',
-                  bookedBy: null,
-                  childId: null,
-                  packageCode: null
-              });
-          });
+    const childDocRef = doc(db, 'users', user.uid, 'children', childId);
+    const lessonSlotsRef = collection(db, 'lesson-slots');
+    const q = query(lessonSlotsRef, where("childId", "==", childId), where("status", "==", "booked"));
 
-          if (assignedPackage && remainingLessons > 0) {
-              batch.update(userDocRef, {
-                  enrolledPackages: arrayUnion(assignedPackage),
-                  remainingLessons: increment(remainingLessons)
-              });
-               toast({ title: 'Paket İade Edildi', description: `Silinen çocuğa ait ${assignedPackage} paketi (${remainingLessons} ders) havuza iade edildi.`});
-          }
+    try {
+        const snapshot = await getDocs(q);
+        const batch = writeBatch(db);
 
-          // Delete the child document
-          const childDocRef = doc(db, 'users', user.uid, 'children', childId);
-          batch.delete(childDocRef);
-          
-          await batch.commit();
+        snapshot.forEach(lessonDoc => {
+            batch.update(lessonDoc.ref, {
+                status: 'available',
+                bookedBy: null,
+                childId: null,
+                packageCode: null
+            });
+        });
 
-          toast({
-              title: 'Çocuk Silindi',
-              description: 'Çocuk profili ve ilişkili tüm planlanmış dersler başarıyla silindi/iptal edildi.',
-              className: 'bg-green-500 text-white'
-          });
+        if (assignedPackage && remainingLessons > 0) {
+            batch.update(userDocRef, {
+                enrolledPackages: arrayUnion(assignedPackage),
+                remainingLessons: increment(remainingLessons)
+            });
+            toast({ title: 'Paket İade Edildi', description: `Silinen çocuğa ait ${assignedPackage} paketi (${remainingLessons} ders) havuza iade edildi.` });
+        }
 
-      } catch (error) {
-          console.error("Error deleting child and their lessons: ", error);
-          toast({
-              variant: "destructive",
-              title: "Hata",
-              description: "Çocuk silinirken bir sorun oluştu."
-          });
-      }
-  };
+        batch.delete(childDocRef);
+
+        await batch.commit();
+
+        toast({
+            title: 'Çocuk Silindi',
+            description: 'Çocuk profili ve ilişkili tüm planlanmış dersler başarıyla silindi/iptal edildi.',
+            className: 'bg-green-500 text-white'
+        });
+
+    } catch (serverError) {
+        errorEmitter.emit(
+            'permission-error',
+            new FirestorePermissionError({
+                path: childDocRef.path, // We assume the batch fails on deleting the child
+                operation: 'delete'
+            })
+        );
+    }
+};
+
   
   if (userLoading || childrenLoading || userDataLoading) {
     return (
@@ -729,3 +729,5 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
+
+    
