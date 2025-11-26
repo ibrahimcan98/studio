@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import Link from 'next/link';
@@ -34,7 +33,7 @@ import {
   DialogDescription,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { PieChart, Pie, Cell, ResponsiveContainer, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, RadarChart } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, PolarGrid, PolarAngleAxis, Radar, RadarChart } from 'recharts';
 
 
 import {
@@ -248,6 +247,10 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
                             <Card className="col-span-1">
                                 <CardHeader><CardTitle className="text-base">Dil Ortamı</CardTitle></CardHeader>
                                 <CardContent className="space-y-4">
+                                     <div>
+                                        <h4 className="text-sm font-semibold mb-2">Ebeveyn Dilleri</h4>
+                                        <p className="text-sm text-muted-foreground">{child.parentTongues}</p>
+                                    </div>
                                     <div>
                                         <h4 className="text-sm font-semibold mb-2">Evde Dil Kullanımı</h4>
                                         <div className="flex items-center gap-4">
@@ -334,7 +337,7 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
                             <Card className="col-span-1">
                                 <CardHeader>
                                     <CardTitle className="text-base flex items-center gap-2">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-1.218-1.57L12 12.118 4.044 5.242a1 1 0 0 0-1.218 1.57L10.782 13 2.826 19.958a1 1 0 1 0 1.218 1.57L12 14.882l7.956 6.874a1 1 0 0 0 1.218-1.57L13.218 13z"></path></svg>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-1.218-1.57L12 12.118 4.044 5.242a1 1 0 0-1.218 1.57L10.782 13 2.826 19.958a1 1 0 1 0 1.218 1.57L12 14.882l7.956 6.874a1 1 0 0 0 1.218-1.57L13.218 13z"></path></svg>
                                         Sistem Analizi
                                     </CardTitle>
                                 </CardHeader>
