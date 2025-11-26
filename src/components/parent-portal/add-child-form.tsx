@@ -48,8 +48,7 @@ const formSchema = z.object({
   firstName: z.string().min(1, 'İsim boş olamaz.'),
   dateOfBirth: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Geçerli bir tarih girin." }),
   countryOfResidence: z.string().min(1, 'Yaşadığı ülke boş olamaz.'),
-  motherTongues: z.string().min(1, "Anne dili boş olamaz."),
-  fatherTongues: z.string().min(1, "Baba dili boş olamaz."),
+  parentTongues: z.string().min(1, "Ebeveyn dilleri boş olamaz."),
   schoolLanguage: z.string().min(1, "Okul dili boş olamaz."),
   schoolLiteracyStatus: z.enum(["not-yet", "in-progress", "fluent"], {
     required_error: "Lütfen birini seçin.",
@@ -74,8 +73,7 @@ export function AddChildForm({ userId, onChildAdded }: { userId: string, onChild
       firstName: '',
       dateOfBirth: '',
       countryOfResidence: '',
-      motherTongues: '',
-      fatherTongues: '',
+      parentTongues: '',
       schoolLanguage: '',
       turkishDifficulties: [],
     },
@@ -88,7 +86,6 @@ export function AddChildForm({ userId, onChildAdded }: { userId: string, onChild
     try {
       await addDoc(collection(db, 'users', userId, 'children'), {
         ...values,
-        lastName: '', // Add an empty lastName to match the updated (optional) schema
         dateOfBirth: format(new Date(values.dateOfBirth), "yyyy-MM-dd"),
         userId: userId,
         rozet: 0,
@@ -166,16 +163,9 @@ export function AddChildForm({ userId, onChildAdded }: { userId: string, onChild
             {/* Bölüm 2 */}
             <div className='space-y-4 p-4 border rounded-lg'>
                 <h3 className='font-semibold text-lg'>Bölüm 2 – Dil Ortamı</h3>
-                <FormField control={form.control} name="motherTongues" render={({ field }) => (
+                <FormField control={form.control} name="parentTongues" render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Anne hangi dilleri konuşuyor?</FormLabel>
-                        <FormControl><Input {...field} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-                <FormField control={form.control} name="fatherTongues" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Baba hangi dilleri konuşuyor?</FormLabel>
+                        <FormLabel>Ebeveynler hangi dilleri konuşuyor?</FormLabel>
                         <FormControl><Input {...field} /></FormControl>
                         <FormMessage />
                     </FormItem>
