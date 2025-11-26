@@ -169,7 +169,15 @@ export default function OgretmenDerslerimPage() {
                             <Loader2 className="h-16 w-16 animate-spin text-primary" />
                         </div>
                     ) : (
-                        <ProgressPanel child={selectedChildData} />
+                        <>
+                            <DialogHeader>
+                                <DialogTitle className="text-3xl font-bold font-headline">{selectedChildData.firstName} İlerleme Paneli</DialogTitle>
+                                <DialogDescription>
+                                    Çocuğunuzun Türkçe öğrenme yolculuğuna dair kapsamlı analiz ve raporlar.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <ProgressPanel child={selectedChildData} />
+                        </>
                     )}
                 </DialogContent>
             </Dialog>
