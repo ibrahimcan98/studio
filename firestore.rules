@@ -21,11 +21,11 @@ service cloud.firestore {
 
     match /users/{userId}/children/{childId} {
       allow get, list: if request.auth.uid == userId || isTeacher() || isAdmin();
-      // A user can create/update/delete their own child, or an admin can.
-      // create: The incoming child document's userId must match the parent's uid.
-      // update: The parent must be the one updating, and they can't change the owner.
-      // delete: The parent must be the one deleting.
-      allow create, update, delete: if (request.auth.uid == userId && request.resource.data.userId == userId) || isAdmin();
+      // A user can create/update their own child, or an admin can.
+      // create/update: The incoming child document's userId must match the parent's uid.
+      allow create, update: if (request.auth.uid == userId && request.resource.data.userId == userId) || isAdmin();
+      // delete: The parent must be the one deleting, checking the existing document.
+      allow delete: if (request.auth.uid == userId && resource.data.userId == userId) || isAdmin();
     }
 
     match /lesson-slots/{slotId} {
