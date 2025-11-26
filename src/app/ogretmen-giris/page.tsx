@@ -20,7 +20,7 @@ import { Loader2 } from 'lucide-react';
 import { TeacherIllustration } from '@/components/illustrations/teacher-illustration';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
-const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisii.com'];
+const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisii.com', 'tubakodak@turkcocukakademisii.com'];
 
 export default function OgretmenGirisPage() {
   const [email, setEmail] = useState('');
