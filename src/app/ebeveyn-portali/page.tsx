@@ -1,12 +1,11 @@
 
-
 'use client';
 
 import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
-import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock, Infinity as InfinityIcon, Settings, Target, CreditCard, Clock, ChevronDown, MonitorPlay, FileText, CheckCircle, MessageCircle, TrendingUp, TrendingDown, Book, BrainCircuit, Globe, Smile, Meh, Frown, Languages, Milestone, Cloudy, GraduationCap } from 'lucide-react';
+import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock, Infinity as InfinityIcon, Settings, Target, CreditCard, Clock, ChevronDown, MonitorPlay, FileText, CheckCircle, MessageCircle, TrendingUp, TrendingDown, Book, BrainCircuit, Globe, Smile, Meh, Frown, Languages, Milestone, Cloudy, GraduationCap, User as UserIcon } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -205,7 +204,7 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
                             İlerleme Paneli
                         </Button>
                     </DialogTrigger>
-                     <DialogContent className="max-w-4xl h-[90vh]">
+                     <DialogContent className="max-w-5xl h-[90vh]">
                         <DialogHeader>
                             <DialogTitle className="text-3xl font-bold font-headline">{child.firstName} İlerleme Paneli</DialogTitle>
                              <DialogDescription>
@@ -216,7 +215,7 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
                            
                             <Card className="col-span-1 rounded-2xl bg-[#E3F2FD] border-blue-200">
                                 <CardHeader className="flex-row items-center gap-3 space-y-0">
-                                    <Users className="w-6 h-6 text-blue-500" />
+                                    <UserIcon className="w-6 h-6 text-blue-500" />
                                     <CardTitle className="text-lg text-blue-900">Profil Kartı</CardTitle>
                                 </CardHeader>
                                 <CardContent className="flex flex-col items-center text-center">
@@ -262,7 +261,7 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
                                         <div className="flex items-center gap-2 text-sm"><span className="text-lg font-mono text-orange-500">{exposureInfo.dots}</span> <span className='text-gray-600'>{exposureInfo.label}</span></div>
                                     </div>
                                      <div className="pt-2">
-                                        <h4 className="text-sm font-semibold mb-2 flex items-center gap-1 text-gray-700"><Users className="w-4 h-4"/>Veli Bildirimi – Zorlanma Alanları</h4>
+                                        <h4 className="text-sm font-semibold mb-2 flex items-center gap-1 text-gray-700"><UserIcon className="w-4 h-4"/>Veli Bildirimi – Zorlanma Alanları</h4>
                                         <div className="flex flex-wrap gap-2">
                                             {child.turkishDifficulties?.length > 0 ? child.turkishDifficulties.map((d: string) => <Badge key={d} variant="secondary" className="bg-green-100 text-green-800 border border-green-200">{difficultiesMap[d] || d}</Badge>) : <p className="text-xs text-muted-foreground">Belirtilmedi.</p>}
                                         </div>
@@ -277,10 +276,10 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
                                 </CardHeader>
                                 <CardContent className="space-y-3">
                                     {Object.entries(cefrData).map(([skill, data]) => (
-                                        <motion.div whileHover={{ x: 3 }} key={skill} className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2">
-                                            <span className="capitalize text-sm font-medium text-gray-700 truncate">{skill}</span>
-                                            <span className="font-bold text-sm text-right text-gray-600">{data.level}</span>
-                                            <div className="flex gap-1 justify-self-end">
+                                        <motion.div whileHover={{ x: 3 }} key={skill} className="grid grid-cols-[auto_auto_1fr] items-center gap-x-3">
+                                            <span className="capitalize text-sm font-medium text-gray-700 ">{skill}</span>
+                                            <span className="font-bold text-sm text-gray-600">{data.level}</span>
+                                            <div className="flex gap-1 justify-self-start">
                                                 {[...Array(5)].map((_, i) => (
                                                     <div key={i} className={`w-4 h-4 rounded-sm ${i < data.score ? 'bg-primary' : 'bg-green-200'}`}></div>
                                                 ))}
@@ -459,7 +458,7 @@ export default function EbeveynPortaliPage() {
             'permission-error',
             new FirestorePermissionError({
                 path: childDocRef.path,
-                operation: 'delete',
+                operation: 'delete'
             })
         );
     }
@@ -728,5 +727,3 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
-
-    
