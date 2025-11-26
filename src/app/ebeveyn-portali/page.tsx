@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/tooltip"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { collection, doc, addDoc, deleteDoc, updateDoc, serverTimestamp, getDoc, query, orderBy } from 'firebase/firestore';
+import { collection, doc, addDoc, deleteDoc, updateDoc, serverTimestamp, getDoc, query, orderBy, where, getDocs, writeBatch, increment } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { SetPinDialog } from '@/components/child-mode/set-pin-dialog';
@@ -168,7 +168,7 @@ function PremiumBadge() {
   );
 }
 
-function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, isPremium: boolean, currentLives: number, onDelete: (id: string) => void }) {
+function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, isPremium: boolean, currentLives: number, onDelete: (id: string, assignedPackage: string | null, remainingLessons: number) => void }) {
     const { toast } = useToast();
 
     const handleStartLearning = (e: React.MouseEvent) => {
@@ -197,12 +197,12 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
                     <AlertDialogHeader>
                         <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
                         <AlertDialogDescription>
-                           "{child.firstName}" isimli çocuğu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+                           "{child.firstName}" isimli çocuğu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve çocuğa ait planlanmış tüm dersler iptal edilecektir.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>İptal</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => onDelete(child.id)} className="bg-destructive hover:bg-destructive/90">
+                        <AlertDialogAction onClick={() => onDelete(child.id, child.assignedPackage, child.remainingLessons)} className="bg-destructive hover:bg-destructive/90">
                             Sil
                         </AlertDialogAction>
                     </AlertDialogFooter>
@@ -271,6 +271,7 @@ export default function EbeveynPortaliPage() {
   const { user, loading: userLoading } = useUser();
   const router = useRouter();
   const db = useFirestore();
+  const { toast } = useToast();
 
   const userDocRef = useMemoFirebase(() => {
     if (!db || !user?.uid) return null;
@@ -304,10 +305,62 @@ export default function EbeveynPortaliPage() {
 
   const { data: children, isLoading: childrenLoading } = useCollection(childrenRef);
 
-  const handleDeleteChild = async (childId: string) => {
-      if (!db || !user?.uid) return;
-      const childDocRef = doc(db, 'users', user.uid, 'children', childId);
-      await deleteDoc(childDocRef);
+  const handleDeleteChild = async (childId: string, assignedPackage: string | null, remainingLessons: number) => {
+      if (!db || !user?.uid || !userDocRef) return;
+      
+      const batch = writeBatch(db);
+
+      // 1. Find and update booked lesson slots for this child
+      const lessonSlotsRef = collection(db, 'lesson-slots');
+      const q = query(lessonSlotsRef, where("childId", "==", childId), where("status", "==", "booked"));
+      
+      try {
+          const snapshot = await getDocs(q);
+          snapshot.forEach(lessonDoc => {
+              batch.update(lessonDoc.ref, {
+                  status: 'available',
+                  bookedBy: null,
+                  childId: null,
+                  packageCode: null,
+              });
+          });
+          
+          let lessonsReturned = snapshot.size;
+
+          // 2. Return the lessons from the assigned package to the parent's pool
+          if (assignedPackage && remainingLessons > 0) {
+            // Add back the package code to parent's array
+            batch.update(userDocRef, {
+                enrolledPackages: arrayUnion(assignedPackage),
+                // Add back ALL remaining lessons from the package, including those just un-booked
+                remainingLessons: increment(remainingLessons + lessonsReturned)
+            });
+            toast({ title: 'Paket İade Edildi', description: `Silinen çocuğa ait paket ve dersler (${remainingLessons + lessonsReturned} ders) havuza iade edildi.`});
+          } else if (lessonsReturned > 0) {
+              toast({ title: 'Dersler İptal Edildi', description: `Çocuğun planlanmış ${lessonsReturned} dersi iptal edildi.`});
+          }
+
+          // 3. Delete the child document
+          const childDocRef = doc(db, 'users', user.uid, 'children', childId);
+          batch.delete(childDocRef);
+          
+          // 4. Commit the batch
+          await batch.commit();
+
+          toast({
+              title: 'Çocuk Silindi',
+              description: 'Çocuk profili ve ilişkili tüm planlanmış dersler başarıyla silindi.',
+              className: 'bg-green-500 text-white'
+          });
+
+      } catch (error) {
+          console.error("Error deleting child and their lessons: ", error);
+          toast({
+              variant: "destructive",
+              title: "Hata",
+              description: "Çocuk silinirken bir sorun oluştu."
+          });
+      }
   };
   
   if (userLoading || childrenLoading || userDataLoading || purchasesLoading) {
