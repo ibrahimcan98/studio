@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { format, differenceInYears } from 'date-fns';
@@ -19,11 +19,13 @@ import {
     Frown,
     CheckCircle,
     TrendingDown,
-    Award
+    Award,
+    MessageSquare
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
 
 
 const difficultiesMap: { [key: string]: string } = {
@@ -49,6 +51,8 @@ const cefrData = {
 
 export function ProgressPanel({ child }: { child: any }) {
     
+    const [assessmentView, setAssessmentView] = useState(0); // 0 for current, 1 for past
+
     const dateOfBirth = child.dateOfBirth ? new Date(child.dateOfBirth) : null;
     const age = dateOfBirth ? differenceInYears(new Date(), dateOfBirth) : 'N/A';
 
@@ -140,7 +144,7 @@ export function ProgressPanel({ child }: { child: any }) {
                     <GraduationCap className="w-6 h-6 text-green-500" />
                     <CardTitle className="text-lg text-green-900">CEFR Profili</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                 <CardContent className="space-y-3">
                     {Object.entries({
                         'Dinleme': cefrData.listening,
                         'Konuşma': cefrData.speaking,
@@ -189,10 +193,8 @@ export function ProgressPanel({ child }: { child: any }) {
                          </div>
                      </div>
 
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <h4 className="text-sm font-semibold text-gray-700">Dil Karıştırma</h4>
-                        </div>
+                    <div>
+                        <h4 className="text-sm font-semibold text-gray-700">Dil Karıştırma</h4>
                     </div>
                 </CardContent>
             </Card>
@@ -200,7 +202,7 @@ export function ProgressPanel({ child }: { child: any }) {
             <Card className="col-span-1 md:col-span-2 rounded-2xl bg-[#F3E5F5] border-purple-200">
                 <CardHeader className="flex-row items-center gap-3 space-y-0">
                     <Award className="w-6 h-6 text-purple-500" />
-                    <CardTitle className="text-lg text-purple-900">Öğrenme Profil Özeti</CardTitle>
+                    <CardTitle className="text-lg text-purple-900">Öğrenme Profili Özeti</CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
@@ -222,19 +224,35 @@ export function ProgressPanel({ child }: { child: any }) {
             </Card>
 
             <Card className="col-span-1 md:col-span-2 lg:col-span-3 rounded-2xl bg-gray-50 border-gray-200">
-                <CardHeader className="flex-row items-center gap-3 space-y-0">
-                    <Milestone className="w-6 h-6 text-gray-500" />
-                    <CardTitle className="text-lg text-gray-800">Geçmiş Değerlendirmeler</CardTitle>
+                <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
+                    <div className="flex items-center gap-3">
+                         <MessageSquare className="w-6 h-6 text-gray-500" />
+                         <CardTitle className="text-lg text-gray-800">Öğretmen Değerlendirmesi</CardTitle>
+                    </div>
+                    <div className='flex items-center gap-2 text-sm font-medium'>
+                       <span>Geçmiş</span>
+                       <Slider
+                            defaultValue={[0]}
+                            max={1}
+                            step={1}
+                            className="w-16"
+                            onValueChange={(value) => setAssessmentView(value[0])}
+                        />
+                       <span>Güncel</span>
+                    </div>
                 </CardHeader>
-                <CardContent>
-                    <ul className="space-y-4">
-                        <li className="flex items-center gap-3 text-sm"><div className="w-2.5 h-2.5 rounded-full bg-primary"></div><span>12. Hafta Ara Değerlendirme</span> <span className='text-xs text-muted-foreground ml-auto'>12.06.2024</span></li>
-                        <li className="flex items-center gap-3 text-sm"><div className="w-2.5 h-2.5 rounded-full bg-primary/50"></div><span>6. Hafta Ara Değerlendirme</span> <span className='text-xs text-muted-foreground ml-auto'>01.05.2024</span></li>
-                        <li className="flex items-center gap-3 text-sm"><div className="w-2.5 h-2.5 rounded-full bg-primary/20"></div><span>İlk Deneme Dersi</span> <span className='text-xs text-muted-foreground ml-auto'>15.03.2024</span></li>
-                    </ul>
+                <CardContent className="pt-4">
+                   {assessmentView === 0 ? (
+                       <div>
+                           {/* Current Assessment Content */}
+                       </div>
+                   ) : (
+                       <div>
+                           {/* Past Assessments Content */}
+                       </div>
+                   )}
                 </CardContent>
             </Card>
-
         </div>
     );
 }
