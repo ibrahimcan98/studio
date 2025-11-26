@@ -31,8 +31,8 @@
         },
         "role": {
           "type": "string",
-          "description": "The role of the user (e.g., parent, teacher).",
-          "enum": ["parent", "teacher"]
+          "description": "The role of the user (e.g., parent, teacher, admin).",
+          "enum": ["parent", "teacher", "admin"]
         },
         "isPremium": {
           "type": "boolean",
@@ -59,14 +59,14 @@
         },
         "enrolledPackages": {
             "type": "array",
-            "description": "An array of strings representing the package IDs the user is enrolled in (e.g., ['4B', '12K']).",
+            "description": "An array of strings representing the package IDs the user is enrolled in (e.g., ['4B', '12K']). This is a temporary holding area until packages are assigned to a child.",
             "items": {
                 "type": "string"
             }
         },
         "remainingLessons": {
             "type": "number",
-            "description": "The total number of lessons remaining from all purchased packages."
+            "description": "The total number of UNASSIGNED lessons remaining from all purchased packages."
         },
         "hasUsedFreeTrial": {
             "type": "boolean",
@@ -97,28 +97,49 @@
         },
         "userId": {
           "type": "string",
-          "description": "Reference to the User entity who is the parent of this child. (Relationship: User 1:N Child)"
+          "description": "Reference to the User entity who is the parent of this child."
         },
-        "firstName": {
-          "type": "string",
-          "description": "The child's first name."
+        "firstName": { "type": "string", "description": "The child's first name." },
+        "lastName": { "type": "string", "description": "The child's last name." },
+        "dateOfBirth": { "type": "string", "format": "date", "description": "The child's date of birth." },
+        "countryOfResidence": { "type": "string", "description": "The country where the child lives." },
+        "level": { "type": "string", "description": "The current learning level of the child." },
+        "motherTongues": { "type": "string", "description": "Languages spoken by the mother." },
+        "fatherTongues": { "type": "string", "description": "Languages spoken by the father." },
+        "schoolLanguage": { "type": "string", "description": "The primary language of instruction at the child's school." },
+        "schoolLiteracyStatus": {
+            "type": "string",
+            "enum": ["not-yet", "in-progress", "fluent"],
+            "description": "Literacy status in their school language."
         },
-        "dateOfBirth": {
-          "type": "string",
-          "description": "The child's date of birth.",
-          "format": "date-time"
+        "turkishLiteracyLevel": {
+            "type": "string",
+            "enum": ["none", "word-sentence", "reads-short-writes", "fluent"],
+            "description": "The child's Turkish reading and writing level."
         },
-        "level": {
-          "type": "string",
-          "description": "The current learning level of the child."
-        }
+        "turkishDifficulties": {
+            "type": "array",
+            "description": "Areas where the child has difficulty with Turkish.",
+            "items": { "type": "string" }
+        },
+        "rozet": { "type": "number", "description": "The number of badges the child has earned." },
+        "completedTopics": { "type": "array", "items": { "type": "string" }, "description": "A list of completed topic keys." },
+        "assignedPackage": { "type": "string", "description": "The package code assigned to this child (e.g., '12K')." },
+        "assignedPackageName": { "type": "string", "description": "The full name of the assigned package (e.g., 'Konuşma Kursu')." },
+        "remainingLessons": { "type": "number", "description": "Number of lessons remaining from their assigned package." },
+        "finishedPackage": { "type": "string", "description": "The code of the last finished package by the child (e.g., '4B')." }
       },
       "required": [
         "id",
         "userId",
         "firstName",
         "dateOfBirth",
-        "level"
+        "countryOfResidence",
+        "motherTongues",
+        "fatherTongues",
+        "schoolLanguage",
+        "schoolLiteracyStatus",
+        "turkishLiteracyLevel"
       ]
     },
     "LessonSlot": {
@@ -133,7 +154,16 @@
             "endTime": { "type": "string", "format": "date-time", "description": "The end time of the lesson slot." },
             "status": { "type": "string", "enum": ["available", "booked"], "description": "The current status of the slot." },
             "bookedBy": { "type": "string", "description": "ID of the user (parent) who booked this slot." },
-            "childId": { "type": "string", "description": "ID of the child who will take the lesson." }
+            "childId": { "type": "string", "description": "ID of the child who will take the lesson." },
+            "packageCode": { "type": "string", "description": "The code of the package used for this lesson (e.g., '12K', 'FREE_TRIAL')." },
+            "feedback": {
+                "type": "object",
+                "description": "Feedback provided by the teacher for a completed lesson.",
+                "properties": {
+                    "text": { "type": "string", "description": "The content of the feedback." },
+                    "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the feedback was created or last updated." }
+                }
+            }
         },
         "required": ["id", "teacherId", "startTime", "endTime", "status"]
     },

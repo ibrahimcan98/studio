@@ -46,7 +46,6 @@ const difficulties = [
 
 const formSchema = z.object({
   firstName: z.string().min(1, 'İsim boş olamaz.'),
-  lastName: z.string().min(1, 'Soyisim boş olamaz.'),
   dateOfBirth: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Geçerli bir tarih girin." }),
   countryOfResidence: z.string().min(1, 'Yaşadığı ülke boş olamaz.'),
   motherTongues: z.string().min(1, "Anne dili boş olamaz."),
@@ -73,7 +72,6 @@ export function AddChildForm({ userId, onChildAdded }: { userId: string, onChild
     resolver: zodResolver(formSchema),
     defaultValues: {
       firstName: '',
-      lastName: '',
       dateOfBirth: '',
       countryOfResidence: '',
       motherTongues: '',
@@ -90,6 +88,7 @@ export function AddChildForm({ userId, onChildAdded }: { userId: string, onChild
     try {
       await addDoc(collection(db, 'users', userId, 'children'), {
         ...values,
+        lastName: '', // Add an empty lastName to match the updated (optional) schema
         dateOfBirth: format(new Date(values.dateOfBirth), "yyyy-MM-dd"),
         userId: userId,
         rozet: 0,
@@ -139,18 +138,11 @@ export function AddChildForm({ userId, onChildAdded }: { userId: string, onChild
             {/* Bölüm 1 */}
             <div className='space-y-4 p-4 border rounded-lg'>
               <h3 className='font-semibold text-lg'>Bölüm 1 – Çocuğun Temel Bilgileri</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <FormField control={form.control} name="firstName" render={({ field }) => (
                   <FormItem>
                     <FormLabel>İsim</FormLabel>
                     <FormControl><Input placeholder="Çocuğun adı" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="lastName" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Soyisim</FormLabel>
-                    <FormControl><Input placeholder="Çocuğun soyadı" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
