@@ -46,6 +46,7 @@ const difficulties = [
 
 const formSchema = z.object({
   firstName: z.string().min(1, 'İsim boş olamaz.'),
+  lastName: z.string().optional(),
   dateOfBirth: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Geçerli bir tarih girin." }),
   countryOfResidence: z.string().min(1, 'Yaşadığı ülke boş olamaz.'),
   parentTongues: z.string().min(1, "Ebeveyn dilleri boş olamaz."),
@@ -71,6 +72,7 @@ export function AddChildForm({ userId, onChildAdded }: { userId: string, onChild
     resolver: zodResolver(formSchema),
     defaultValues: {
       firstName: '',
+      lastName: '',
       dateOfBirth: '',
       countryOfResidence: '',
       parentTongues: '',
@@ -94,6 +96,7 @@ export function AddChildForm({ userId, onChildAdded }: { userId: string, onChild
         assignedPackage: null,
         assignedPackageName: null,
         level: 'beginner', // Default level
+        hasUsedFreeTrial: false,
       });
 
       toast({
@@ -233,46 +236,55 @@ export function AddChildForm({ userId, onChildAdded }: { userId: string, onChild
             </div>
 
             {/* Bölüm 4 */}
-            <div className='space-y-4 p-4 border rounded-lg'>
-                 <FormField control={form.control} name="turkishDifficulties" render={() => (
+             <div className='space-y-4 p-4 border rounded-lg'>
+                <FormField
+                    control={form.control}
+                    name="turkishDifficulties"
+                    render={() => (
                     <FormItem>
                         <div className="mb-4">
                             <h3 className='font-semibold text-lg'>Bölüm 4 – Türkçe ile İlgili Gözlemleriniz</h3>
                             <FormDescription>Çocuğun Türkçe ile ilgili zorlandığı alanlar (Birden fazla seçilebilir)</FormDescription>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                            {difficulties.map((item) => (
-                                <FormField
-                                key={item.id}
-                                control={form.control}
-                                name="turkishDifficulties"
-                                render={({ field }) => {
-                                    return (
-                                    <FormItem key={item.id} className="flex flex-row items-start space-x-3 space-y-0">
-                                        <FormControl>
-                                            <Checkbox
-                                                checked={field.value?.includes(item.id)}
-                                                onCheckedChange={(checked) => {
-                                                return checked
-                                                    ? field.onChange([...(field.value || []), item.id])
-                                                    : field.onChange(
-                                                        field.value?.filter(
-                                                        (value) => value !== item.id
-                                                        )
-                                                    )
-                                                }}
-                                            />
-                                        </FormControl>
-                                        <FormLabel className="font-normal">{item.label}</FormLabel>
-                                    </FormItem>
-                                    )
-                                }}
-                                />
-                            ))}
+                        {difficulties.map((item) => (
+                            <FormField
+                            key={item.id}
+                            control={form.control}
+                            name="turkishDifficulties"
+                            render={({ field }) => {
+                                return (
+                                <FormItem
+                                    key={item.id}
+                                    className="flex flex-row items-start space-x-3 space-y-0"
+                                >
+                                    <FormControl>
+                                    <Checkbox
+                                        checked={field.value?.includes(item.id)}
+                                        onCheckedChange={(checked) => {
+                                        return checked
+                                            ? field.onChange([...(field.value || []), item.id])
+                                            : field.onChange(
+                                                field.value?.filter(
+                                                (value) => value !== item.id
+                                                )
+                                            )
+                                        }}
+                                    />
+                                    </FormControl>
+                                    <FormLabel className="font-normal">
+                                    {item.label}
+                                    </FormLabel>
+                                </FormItem>
+                                )
+                            }}
+                            />
+                        ))}
                         </div>
                         <FormMessage />
                     </FormItem>
-                 )} />
+                    )}
+                />
             </div>
 
             <DialogFooter>

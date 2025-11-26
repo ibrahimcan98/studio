@@ -39,6 +39,8 @@ const getCourseDetailsFromPackageCode = (code: string) => {
     return course ? { courseName: course.title, duration: course.details.duration } : null;
 }
 
+const MAX_FREE_TRIALS = 3;
+
 
 export default function DersPlanlaPage() {
     const router = useRouter();
@@ -50,6 +52,7 @@ export default function DersPlanlaPage() {
     const [isBooking, setIsBooking] = useState(false);
     const [selectedChildId, setSelectedChildId] = useState<string>('');
     const [selectedPackage, setSelectedPackage] = useState<string>('');
+    const [bookingMode, setBookingMode] = useState<'free' | 'paid'>('paid');
     const [selectedTimeZone, setSelectedTimeZone] = useState<string>('');
     const [isConfirming, setIsConfirming] = useState(false);
     const [selectedSlot, setSelectedSlot] = useState<{ id: string, startTime: Timestamp } | null>(null);
@@ -68,6 +71,8 @@ export default function DersPlanlaPage() {
 
     const { data: children, isLoading: areChildrenLoading } = useCollection(childrenRef);
 
+    const selectedChildData = useMemo(() => children?.find(c => c.id === selectedChildId), [children, selectedChildId]);
+    
     useEffect(() => {
         if (userData?.timezone) {
             setSelectedTimeZone(userData.timezone);
@@ -76,17 +81,27 @@ export default function DersPlanlaPage() {
         }
     }, [userData]);
 
-    // Auto-select package when child is selected
+    // Logic to determine available booking modes for the selected child
     useEffect(() => {
-        if(selectedChildId) {
-            const child = children?.find(c => c.id === selectedChildId);
-            if (child && child.assignedPackage) {
-                setSelectedPackage(child.assignedPackage);
+        if (selectedChildData) {
+            const hasPackage = selectedChildData.assignedPackage && selectedChildData.remainingLessons > 0;
+            const canTakeFreeTrial = !selectedChildData.hasUsedFreeTrial && (userData?.freeTrialsUsed || 0) < MAX_FREE_TRIALS;
+
+            if (canTakeFreeTrial) {
+                setBookingMode('free');
+            } else if (hasPackage) {
+                setBookingMode('paid');
+                setSelectedPackage(selectedChildData.assignedPackage);
             } else {
+                setBookingMode('paid'); // Default, but will be disabled
                 setSelectedPackage('');
             }
+        } else {
+            setBookingMode('paid');
+            setSelectedPackage('');
         }
-    }, [selectedChildId, children]);
+    }, [selectedChildData, userData]);
+
 
     const handleTimeZoneChange = async (tz: string) => {
         setSelectedTimeZone(tz);
@@ -130,8 +145,6 @@ export default function DersPlanlaPage() {
             .sort((a, b) => a.startTime.seconds - b.startTime.seconds);
     }, [availableSlots, selectedDate, selectedTimeZone]);
     
-    const selectedChildData = useMemo(() => children?.find(c => c.id === selectedChildId), [children, selectedChildId]);
-    
     const handleSlotClick = (slot: { id: string, startTime: Timestamp }) => {
          if (!user || !userData) {
             toast({ variant: 'destructive', title: 'Hata', description: 'Giriş yapmalısınız.' });
@@ -143,16 +156,16 @@ export default function DersPlanlaPage() {
             return;
         }
 
-        const hasFreeTrial = !userData.hasUsedFreeTrial;
-        const hasChildLessons = (selectedChildData?.remainingLessons || 0) > 0;
+        const hasPackage = selectedChildData?.assignedPackage && selectedChildData?.remainingLessons > 0;
+        const canTakeFreeTrial = !selectedChildData?.hasUsedFreeTrial && (userData.freeTrialsUsed || 0) < MAX_FREE_TRIALS;
 
-        if (!hasFreeTrial && !hasChildLessons) {
-            toast({ variant: 'destructive', title: 'Ders Hakkı Kalmadı', description: 'Bu çocuk için atanmış ders paketi bulunmuyor veya ders hakkı kalmadı.' });
-            return;
+        if (bookingMode === 'free' && !canTakeFreeTrial) {
+             toast({ variant: 'destructive', title: 'Deneme Hakkı Yok', description: 'Bu çocuk için ücretsiz deneme dersi hakkı bulunmuyor veya aile limiti aşıldı.' });
+             return;
         }
-        
-        if (hasChildLessons && !hasFreeTrial && !selectedPackage) {
-            toast({ variant: 'destructive', title: 'Eksik Bilgi', description: 'Lütfen kullanmak istediğiniz ders paketini seçin.' });
+
+        if (bookingMode === 'paid' && !hasPackage) {
+            toast({ variant: 'destructive', title: 'Ders Hakkı Kalmadı', description: 'Bu çocuk için atanmış ders paketi bulunmuyor veya ders hakkı kalmadı.' });
             return;
         }
 
@@ -166,7 +179,6 @@ export default function DersPlanlaPage() {
         setIsBooking(true);
     
         const slotDocRef = doc(db, 'lesson-slots', selectedSlot.id);
-        const hasFreeTrial = !userData.hasUsedFreeTrial;
         const childDocRef = doc(db, 'users', user.uid, 'children', selectedChildId);
     
         try {
@@ -177,17 +189,18 @@ export default function DersPlanlaPage() {
                 status: 'booked',
                 bookedBy: user.uid,
                 childId: selectedChildId,
-                packageCode: hasFreeTrial ? 'FREE_TRIAL' : selectedPackage
+                packageCode: bookingMode === 'free' ? 'FREE_TRIAL' : selectedPackage
             };
             batch.update(slotDocRef, slotUpdate);
     
             let successMessage = '';
     
             // 2. Update user/child lesson counts
-            if (hasFreeTrial) {
-                batch.update(userDocRef, { hasUsedFreeTrial: true });
+            if (bookingMode === 'free') {
+                batch.update(userDocRef, { freeTrialsUsed: increment(1) });
+                batch.update(childDocRef, { hasUsedFreeTrial: true });
                 successMessage = 'Ücretsiz deneme dersiniz başarıyla planlandı.';
-            } else {
+            } else { // 'paid'
                 batch.update(childDocRef, { remainingLessons: increment(-1) });
                 successMessage = 'Dersiniz başarıyla planlandı. Çocuğunuzun kalan ders sayısı güncellendi.';
             }
@@ -196,7 +209,7 @@ export default function DersPlanlaPage() {
     
             // 3. Check if the package is finished after booking
             const updatedChildSnap = await getDoc(childDocRef);
-            if (updatedChildSnap.exists() && updatedChildSnap.data().remainingLessons === 0) {
+            if (bookingMode === 'paid' && updatedChildSnap.exists() && updatedChildSnap.data().remainingLessons === 0) {
                 const finishedPackage = updatedChildSnap.data().assignedPackage;
                 
                 const secondBatch = writeBatch(db);
@@ -242,9 +255,10 @@ export default function DersPlanlaPage() {
         }
     };
     
-    const hasBookingRights = !userData?.hasUsedFreeTrial || children?.some(c => c.remainingLessons > 0);
-    const selectedPackageDetails = getCourseDetailsFromPackageCode(selectedPackage || (userData?.hasUsedFreeTrial ? '' : 'FREE_TRIAL'));
-
+    const canTakeFreeTrial = !selectedChildData?.hasUsedFreeTrial && (userData?.freeTrialsUsed || 0) < MAX_FREE_TRIALS;
+    const hasPackage = selectedChildData?.assignedPackage && selectedChildData?.remainingLessons > 0;
+    const canBook = selectedChildId && ( (bookingMode === 'free' && canTakeFreeTrial) || (bookingMode === 'paid' && hasPackage) );
+    
     if (isUserLoading || areSlotsLoading || areChildrenLoading || !selectedTimeZone) {
         return (
             <div className="flex h-screen items-center justify-center">
@@ -326,20 +340,19 @@ export default function DersPlanlaPage() {
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                {selectedChildData?.assignedPackage && userData?.hasUsedFreeTrial && (
-                                    <div>
-                                        <Label htmlFor="package-select">Kullanılacak paket:</Label>
-                                        <Select value={selectedPackage} onValueChange={setSelectedPackage} disabled>
+                                {selectedChildId && (
+                                     <div>
+                                        <Label htmlFor="package-select">Ders Türü:</Label>
+                                        <Select value={bookingMode} onValueChange={(value) => setBookingMode(value as 'free' | 'paid')}>
                                             <SelectTrigger id="package-select" className="mt-2">
-                                                <SelectValue placeholder="Paket Seçin" />
+                                                <SelectValue placeholder="Ders Türü Seçin" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value={selectedChildData.assignedPackage}>
-                                                    {selectedChildData.assignedPackageName} ({selectedChildData.assignedPackage})
-                                                </SelectItem>
+                                                {canTakeFreeTrial && <SelectItem value="free">Ücretsiz Deneme Dersi</SelectItem>}
+                                                {hasPackage && <SelectItem value="paid">{selectedChildData.assignedPackageName}</SelectItem>}
                                             </SelectContent>
                                         </Select>
-                                    </div>
+                                     </div>
                                 )}
                             </div>
                         
@@ -355,7 +368,7 @@ export default function DersPlanlaPage() {
                                             variant="outline"
                                             className="h-12 text-base"
                                             onClick={() => handleSlotClick(slot)}
-                                            disabled={isBooking || !hasBookingRights}
+                                            disabled={isBooking || !canBook}
                                         >
                                             {formatInTimeZone(slot.startTime.toDate(), selectedTimeZone, 'HH:mm')}
                                         </Button>
@@ -368,19 +381,19 @@ export default function DersPlanlaPage() {
                             )}
                         </div>
                          <div className="mt-6 text-center">
-                           {!userData?.hasUsedFreeTrial ? (
+                            {!selectedChildId ? (
+                                 <Badge variant="destructive">Lütfen bir çocuk seçin.</Badge>
+                            ) : bookingMode === 'free' && canTakeFreeTrial ? (
                                 <Badge variant="default" className='bg-green-100 text-green-800'>
                                     <BookOpen className="w-3 h-3 mr-1"/>
-                                    Ücretsiz deneme dersi hakkınız mevcut!
+                                    Bu çocuk için deneme dersi hakkı mevcut.
                                 </Badge>
-                            ) : (selectedChildData && (selectedChildData.remainingLessons || 0) > 0) ? (
-                                <Badge>{selectedChildData.firstName} için Kalan Ders: {selectedChildData.remainingLessons}</Badge>
-                            ) : selectedChildId ? (
-                                <Badge variant="destructive">Bu çocuk için ders hakkı kalmadı.</Badge>
+                            ) : bookingMode === 'paid' && hasPackage ? (
+                                <Badge>Kalan Ders: {selectedChildData?.remainingLessons}</Badge>
                             ) : (
-                                <Badge variant="destructive">Lütfen bir çocuk seçin.</Badge>
+                                <Badge variant="destructive">Bu çocuk için seçilen türde ders hakkı yok.</Badge>
                             )}
-                        </div>
+                         </div>
                     </div>
                 </div>
             </Card>
@@ -415,7 +428,7 @@ export default function DersPlanlaPage() {
                             </div>
                              <div className="flex items-center gap-3">
                                 <Package className="w-5 h-5 text-muted-foreground"/>
-                                <p><strong>Paket:</strong> {!userData?.hasUsedFreeTrial ? 'Ücretsiz Deneme Dersi' : `${selectedPackageDetails?.courseName} (${selectedPackage})`}</p>
+                                <p><strong>Ders Türü:</strong> {bookingMode === 'free' ? 'Ücretsiz Deneme Dersi' : `${getCourseDetailsFromPackageCode(selectedPackage)?.courseName} (${selectedPackage})`}</p>
                             </div>
                         </div>
                     )}

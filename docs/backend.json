@@ -68,9 +68,9 @@
             "type": "number",
             "description": "The total number of UNASSIGNED lessons remaining from all purchased packages."
         },
-        "hasUsedFreeTrial": {
-            "type": "boolean",
-            "description": "Indicates if the user has already used their free trial lesson."
+        "freeTrialsUsed": {
+            "type": "number",
+            "description": "The number of free trial lessons used by the parent, max 3."
         },
         "timezone": {
             "type": "string",
@@ -104,8 +104,7 @@
         "dateOfBirth": { "type": "string", "format": "date", "description": "The child's date of birth." },
         "countryOfResidence": { "type": "string", "description": "The country where the child lives." },
         "level": { "type": "string", "description": "The current learning level of the child." },
-        "motherTongues": { "type": "string", "description": "Languages spoken by the mother." },
-        "fatherTongues": { "type": "string", "description": "Languages spoken by the father." },
+        "parentTongues": { "type": "string", "description": "Languages spoken by the parents." },
         "schoolLanguage": { "type": "string", "description": "The primary language of instruction at the child's school." },
         "schoolLiteracyStatus": {
             "type": "string",
@@ -127,7 +126,8 @@
         "assignedPackage": { "type": "string", "description": "The package code assigned to this child (e.g., '12K')." },
         "assignedPackageName": { "type": "string", "description": "The full name of the assigned package (e.g., 'Konuşma Kursu')." },
         "remainingLessons": { "type": "number", "description": "Number of lessons remaining from their assigned package." },
-        "finishedPackage": { "type": "string", "description": "The code of the last finished package by the child (e.g., '4B')." }
+        "finishedPackage": { "type": "string", "description": "The code of the last finished package by the child (e.g., '4B')." },
+        "hasUsedFreeTrial": { "type": "boolean", "description": "Indicates if this specific child has used their free trial lesson." }
       },
       "required": [
         "id",
@@ -135,8 +135,7 @@
         "firstName",
         "dateOfBirth",
         "countryOfResidence",
-        "motherTongues",
-        "fatherTongues",
+        "parentTongues",
         "schoolLanguage",
         "schoolLiteracyStatus",
         "turkishLiteracyLevel"
