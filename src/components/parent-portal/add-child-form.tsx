@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -29,6 +30,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Slider } from '@/components/ui/slider';
 import { Loader2, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -46,11 +48,12 @@ const difficulties = [
 
 const formSchema = z.object({
   firstName: z.string().min(1, 'İsim boş olamaz.'),
-  lastName: z.string().optional(),
   dateOfBirth: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Geçerli bir tarih girin." }),
   countryOfResidence: z.string().min(1, 'Yaşadığı ülke boş olamaz.'),
   parentTongues: z.string().min(1, "Ebeveyn dilleri boş olamaz."),
   schoolLanguage: z.string().min(1, "Okul dili boş olamaz."),
+  homeLanguageTurkishPercentage: z.number().min(0).max(100).default(50),
+  turkishExposureIntensity: z.enum(["low", "medium", "high"], { required_error: "Lütfen bir yoğunluk seçin." }),
   schoolLiteracyStatus: z.enum(["not-yet", "in-progress", "fluent"], {
     required_error: "Lütfen birini seçin.",
   }),
@@ -72,11 +75,11 @@ export function AddChildForm({ userId, onChildAdded }: { userId: string, onChild
     resolver: zodResolver(formSchema),
     defaultValues: {
       firstName: '',
-      lastName: '',
       dateOfBirth: '',
       countryOfResidence: '',
       parentTongues: '',
       schoolLanguage: '',
+      homeLanguageTurkishPercentage: 50,
       turkishDifficulties: [],
     },
   });
@@ -164,7 +167,7 @@ export function AddChildForm({ userId, onChildAdded }: { userId: string, onChild
             </div>
 
             {/* Bölüm 2 */}
-            <div className='space-y-4 p-4 border rounded-lg'>
+            <div className='space-y-6 p-4 border rounded-lg'>
                 <h3 className='font-semibold text-lg'>Bölüm 2 – Dil Ortamı</h3>
                 <FormField control={form.control} name="parentTongues" render={({ field }) => (
                     <FormItem>
@@ -177,6 +180,42 @@ export function AddChildForm({ userId, onChildAdded }: { userId: string, onChild
                     <FormItem>
                         <FormLabel>Çocuğun okul dili</FormLabel>
                         <FormControl><Input {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                <FormField control={form.control} name="homeLanguageTurkishPercentage" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Evde Türkçe Kullanım Oranı: {field.value}%</FormLabel>
+                        <FormControl>
+                            <Slider
+                                defaultValue={[50]}
+                                max={100}
+                                step={10}
+                                onValueChange={(value) => field.onChange(value[0])}
+                            />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                <FormField control={form.control} name="turkishExposureIntensity" render={({ field }) => (
+                    <FormItem className="space-y-3">
+                        <FormLabel>Türkçe Maruziyet Yoğunluğu</FormLabel>
+                        <FormControl>
+                            <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex items-center space-x-4">
+                                <FormItem className="flex items-center space-x-2 space-y-0">
+                                    <FormControl><RadioGroupItem value="low" /></FormControl>
+                                    <FormLabel className="font-normal">Düşük</FormLabel>
+                                </FormItem>
+                                <FormItem className="flex items-center space-x-2 space-y-0">
+                                    <FormControl><RadioGroupItem value="medium" /></FormControl>
+                                    <FormLabel className="font-normal">Orta</FormLabel>
+                                </FormItem>
+                                <FormItem className="flex items-center space-x-2 space-y-0">
+                                    <FormControl><RadioGroupItem value="high" /></FormControl>
+                                    <FormLabel className="font-normal">Yüksek</FormLabel>
+                                </FormItem>
+                            </RadioGroup>
+                        </FormControl>
                         <FormMessage />
                     </FormItem>
                 )} />
@@ -299,3 +338,4 @@ export function AddChildForm({ userId, onChildAdded }: { userId: string, onChild
     </Dialog>
   );
 }
+
