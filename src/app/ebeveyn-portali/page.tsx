@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, BarChart, Calendar, History, Video, Package, Heart, Shield, X, Lock, Infinity as InfinityIcon, Settings, Target, CreditCard, Clock, ChevronDown, MonitorPlay, FileText } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -75,9 +75,8 @@ const difficultiesMap: { [key: string]: string } = {
     "ingilizce-karistirma": "İngilizce karıştırma"
 };
 
-// Mock data for charts
-const pieData = [{ name: 'İngilizce', value: 70 }, { name: 'Türkçe', value: 25 }, { name: 'Diğer', value: 5 }];
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28'];
+
+const COLORS = ['#00C49F', '#0088FE', '#FFBB28'];
 
 const cefrData = {
     listening: { level: 'A1', score: 2 },
@@ -133,6 +132,21 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
     const age = dateOfBirth ? differenceInYears(new Date(), dateOfBirth) : 'N/A';
     const schoolLiteracy = schoolLiteracyStatusMap[child.schoolLiteracyStatus] || 'Belirtilmemiş';
     const turkishLiteracy = turkishLiteracyLevelMap[child.turkishLiteracyLevel] || 'Belirtilmemiş';
+    
+    const homeLanguagePieData = useMemo(() => {
+        const turkishPercentage = child.homeLanguageTurkishPercentage || 0;
+        return [
+            { name: 'Türkçe', value: turkishPercentage },
+            { name: 'Diğer Diller', value: 100 - turkishPercentage }
+        ];
+    }, [child.homeLanguageTurkishPercentage]);
+
+    const exposureMap: { [key: string]: { dots: string; label: string } } = {
+        low: { dots: "●○○", label: "Düşük" },
+        medium: { dots: "●●○", label: "Orta" },
+        high: { dots: "●●●", label: "Yüksek" },
+    };
+    const exposureInfo = exposureMap[child.turkishExposureIntensity] || exposureMap.low;
 
 
     return (
@@ -251,28 +265,31 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
                                         <h4 className="text-sm font-semibold mb-2">Ebeveyn Dilleri</h4>
                                         <p className="text-sm text-muted-foreground">{child.parentTongues}</p>
                                     </div>
-                                    <div>
+                                     <div>
                                         <h4 className="text-sm font-semibold mb-2">Evde Dil Kullanımı</h4>
                                         <div className="flex items-center gap-4">
                                             <div className="w-10 h-10">
                                                 <ResponsiveContainer width="100%" height="100%">
                                                     <PieChart>
-                                                        <Pie data={pieData} cx="50%" cy="50%" innerRadius={10} outerRadius={20} dataKey="value" paddingAngle={2}>
-                                                            {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                                                        <Pie data={homeLanguagePieData} cx="50%" cy="50%" innerRadius={10} outerRadius={20} dataKey="value" paddingAngle={2}>
+                                                            {homeLanguagePieData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                                                         </Pie>
                                                     </PieChart>
                                                 </ResponsiveContainer>
                                             </div>
                                             <div className="text-xs space-y-1">
-                                                <p className="flex items-center"><span className="w-2 h-2 rounded-full bg-[#0088FE] mr-2"></span>%70 İngilizce</p>
-                                                <p className="flex items-center"><span className="w-2 h-2 rounded-full bg-[#00C49F] mr-2"></span>%25 Türkçe</p>
-                                                <p className="flex items-center"><span className="w-2 h-2 rounded-full bg-[#FFBB28] mr-2"></span>%5 Diğer</p>
+                                                {homeLanguagePieData.map((entry, index) => (
+                                                     <p key={index} className="flex items-center">
+                                                        <span className="w-2 h-2 rounded-full mr-2" style={{backgroundColor: COLORS[index % COLORS.length]}}></span>
+                                                        %{entry.value} {entry.name}
+                                                    </p>
+                                                ))}
                                             </div>
                                         </div>
                                     </div>
                                     <div>
                                         <h4 className="text-sm font-semibold mb-1">Türkçe Maruziyet Yoğunluğu</h4>
-                                        <div className="flex items-center gap-2 text-sm"><span className="text-lg">●○○</span> (Düşük)</div>
+                                        <div className="flex items-center gap-2 text-sm"><span className="text-lg">{exposureInfo.dots}</span> ({exposureInfo.label})</div>
                                     </div>
                                      <div>
                                         <h4 className="text-sm font-semibold mb-2">Zorlanma Alanları</h4>
@@ -737,5 +754,3 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
-
-    
