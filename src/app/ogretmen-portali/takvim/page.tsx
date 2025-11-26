@@ -143,22 +143,22 @@ export default function TakvimYonetimiPage() {
     }, []);
 
     const lessonSlotsQuery = useMemoFirebase(() => {
-        if (!db) return null;
-        // The query doesn't need to be restricted by teacherId here, we will filter on the client
-        return query(collection(db, 'lesson-slots'));
-    }, [db]);
+        if (!db || !user) return null;
+        // Query only for slots belonging to the currently logged-in teacher
+        return query(collection(db, 'lesson-slots'), where('teacherId', '==', user.uid));
+    }, [db, user]);
 
     const { data: lessonSlots, isLoading: areSlotsLoading } = useCollection(lessonSlotsQuery);
 
     const activeDays = useMemo(() => {
-        if (!lessonSlots || !user) return [];
+        if (!lessonSlots) return [];
         return lessonSlots
-            .filter(slot => slot.teacherId === user.uid && slot.status === 'available')
+            .filter(slot => slot.status === 'available')
             .map(slot => slot.startTime.toDate());
-    }, [lessonSlots, user]);
+    }, [lessonSlots]);
     
     const slotsForSelectedDate = useMemo(() => {
-        if (!lessonSlots || !selectedDate) return new Map<string, SlotDetails>();
+        if (!lessonSlots || !selectedDate || !timeZone) return new Map<string, SlotDetails>();
         
         const slotsMap = new Map<string, SlotDetails>();
         
@@ -193,12 +193,6 @@ export default function TakvimYonetimiPage() {
         
         if (slot) {
             // A slot exists, so we're deleting it (closing the slot)
-            if (slot.teacherId !== user.uid) {
-                toast({ variant: 'destructive', title: 'Hata', description: 'Bu aralık başka bir öğretmene ait.' });
-                setIsSubmitting(prevState => ({ ...prevState, [time]: false }));
-                return;
-            }
-            
             const slotDocRef = doc(db, 'lesson-slots', slot.id);
             deleteDoc(slotDocRef)
                 .then(() => {
@@ -220,8 +214,6 @@ export default function TakvimYonetimiPage() {
              const newSlotData = {
                 teacherId: user.uid,
                 startTime: startTime,
-                // Duration is determined by the package parent chooses, not here.
-                // We can set a default or handle it dynamically. Let's set a default for now.
                 endTime: Timestamp.fromDate(new Date(startTime.toMillis() + 45 * 60 * 1000)),
                 status: 'available',
                 bookedBy: null,
@@ -290,38 +282,28 @@ export default function TakvimYonetimiPage() {
                             <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                                 {timeSlots.map(time => {
                                     const slot = slotsForSelectedDate.get(time);
-                                    const isBookedByStudent = slot?.status === 'booked';
-                                    const isAvailableForMe = slot?.status === 'available' && slot.teacherId === user?.uid;
-                                    const isClosed = !slot; // No slot document means it's "closed" or "off"
+                                    const isBooked = slot?.status === 'booked';
+                                    const isAvailable = slot?.status === 'available';
+                                    const isClosed = !slot;
 
                                     let variant: "default" | "destructive" | "outline" = 'outline';
-                                    let disabled = false;
-                                    let content: React.ReactNode = time;
-
-                                    if (isSubmitting[time]) {
-                                        disabled = true;
-                                        content = <Loader2 className="animate-spin" />;
-                                    } else if (isBookedByStudent) {
-                                        variant = 'destructive';
-                                    } else if (isAvailableForMe) {
-                                        variant = 'default';
-                                    } else if (isClosed) {
-                                        variant = 'outline';
-                                    } else { // Available but belongs to another teacher
-                                        variant = 'destructive';
-                                        disabled = true;
-                                    }
                                     
+                                    if (isBooked) {
+                                        variant = 'destructive';
+                                    } else if (isAvailable) {
+                                        variant = 'default';
+                                    }
+
                                     return (
                                         <Button
                                             key={time}
                                             variant={variant}
                                             className="h-12 text-base relative"
                                             onClick={() => handleTimeSlotClick(time)}
-                                            disabled={disabled || (isBookedByStudent && slot?.teacherId !== user?.uid)}
+                                            disabled={isSubmitting[time]}
                                         >
-                                            {content}
-                                            {isBookedByStudent && <CheckCircle className="w-4 h-4 absolute top-1 right-1 text-white"/>}
+                                            {isSubmitting[time] ? <Loader2 className="animate-spin" /> : time}
+                                            {isBooked && <CheckCircle className="w-4 h-4 absolute top-1 right-1 text-white"/>}
                                         </Button>
                                     );
                                 })}
@@ -348,4 +330,3 @@ export default function TakvimYonetimiPage() {
         </div>
     );
 }
-
