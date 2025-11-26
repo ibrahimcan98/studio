@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, doc } from 'firebase/firestore';
 import { Loader2, Calendar, History, User, BookOpen, Baby, MessageSquare, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -22,8 +22,6 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog"
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { ProgressPanel } from '@/components/shared/progress-panel';
 
@@ -37,74 +35,7 @@ const getCourseDetailsFromPackageCode = (code?: string) => {
     return course ? { courseName: course.title, duration: course.details.duration } : null;
 }
 
-function FeedbackDialog({ lesson, child, isOpen, onOpenChange, onFeedbackSaved }: { lesson: any, child: any, isOpen: boolean, onOpenChange: (open: boolean) => void, onFeedbackSaved: () => void }) {
-    const [feedback, setFeedback] = useState(lesson.feedback?.text || '');
-    const [isSaving, setIsSaving] = useState(false);
-    const db = useFirestore();
-    const { toast } = useToast();
-
-    const handleSave = async () => {
-        if (!feedback) {
-            toast({ variant: 'destructive', title: 'Hata', description: 'Geri bildirim boş olamaz.' });
-            return;
-        }
-        setIsSaving(true);
-        const lessonDocRef = doc(db, 'lesson-slots', lesson.id);
-        try {
-            await updateDoc(lessonDocRef, {
-                feedback: {
-                    text: feedback,
-                    createdAt: serverTimestamp()
-                }
-            });
-            toast({ title: 'Başarılı!', description: 'Geri bildirim kaydedildi.', className: 'bg-green-500 text-white' });
-            onFeedbackSaved();
-            onOpenChange(false);
-        } catch (error) {
-            console.error(error);
-            toast({ variant: 'destructive', title: 'Hata', description: 'Geri bildirim kaydedilemedi.' });
-        } finally {
-            setIsSaving(false);
-        }
-    }
-
-    return (
-        <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-md">
-                <div className='flex flex-col'>
-                    <DialogHeader>
-                        <DialogTitle>Ders Geri Bildirimi Ekle</DialogTitle>
-                        <DialogDescription>
-                            Öğrencinin ders performansı ve gelişimi hakkında notlarınızı ekleyin. Bu notlar veli tarafından görülecektir.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4 space-y-2 flex-1 flex flex-col">
-                        <Label htmlFor="feedback-text">Geri Bildirim</Label>
-                        <Textarea
-                            id="feedback-text"
-                            value={feedback}
-                            onChange={(e) => setFeedback(e.target.value)}
-                            placeholder="Örn: Ayşe bugün renkleri çok iyi öğrendi, özellikle kırmızı rengini hemen tanıdı..."
-                            rows={8}
-                            className="flex-1"
-                        />
-                    </div>
-                    <DialogFooter>
-                        <DialogClose asChild>
-                            <Button variant="outline">İptal</Button>
-                        </DialogClose>
-                        <Button onClick={handleSave} disabled={isSaving}>
-                            {isSaving ? <Loader2 className="animate-spin mr-2"/> : null}
-                            Kaydet
-                        </Button>
-                    </DialogFooter>
-                </div>
-            </DialogContent>
-        </Dialog>
-    )
-}
-
-function LessonCard({ lesson, onOpenFeedback }: { lesson: any, onOpenFeedback: () => void }) {
+function LessonCard({ lesson, onOpenProgressPanel }: { lesson: any, onOpenProgressPanel: () => void }) {
     const db = useFirestore();
 
     const childDocRef = useMemoFirebase(() => {
@@ -147,15 +78,7 @@ function LessonCard({ lesson, onOpenFeedback }: { lesson: any, onOpenFeedback: (
                 <>
                     <Separator />
                     <CardFooter className="flex-col items-start gap-3 pt-4">
-                        {lesson.feedback ? (
-                            <>
-                                <h4 className="font-semibold flex items-center gap-2 text-base"><MessageSquare className='w-5 h-5 text-primary'/> Kaydedilen Geri Bildirim:</h4>
-                                <p className='text-sm text-muted-foreground italic'>"{lesson.feedback.text}"</p>
-                                <Button variant="outline" size="sm" className="mt-2" onClick={onOpenFeedback}><Edit className='w-4 h-4 mr-2'/> Düzenle</Button>
-                            </>
-                        ) : (
-                            <Button onClick={onOpenFeedback}><Edit className='w-4 h-4 mr-2'/> Geri Bildirim Ekle</Button>
-                        )}
+                        <Button onClick={onOpenProgressPanel}><Edit className='w-4 h-4 mr-2'/> İlerleme Panelini Görüntüle</Button>
                     </CardFooter>
                 </>
             )}
@@ -167,21 +90,21 @@ export default function OgretmenDerslerimPage() {
     const { user, loading: userLoading } = useUser();
     const db = useFirestore();
     const [selectedLesson, setSelectedLesson] = useState<any | null>(null);
-    const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
+    const [isProgressPanelOpen, setIsProgressPanelOpen] = useState(false);
 
     const lessonsQuery = useMemoFirebase(() => {
         if (!user || !db) return null;
         return query(collection(db, 'lesson-slots'), where('teacherId', '==', user.uid), where('status', '==', 'booked'));
     }, [user, db]);
 
-    const { data: lessons, isLoading: lessonsLoading, refetch } = useCollection(lessonsQuery);
+    const { data: lessons, isLoading: lessonsLoading } = useCollection(lessonsQuery);
 
     const childDocRef = useMemoFirebase(() => {
         if (!db || !selectedLesson?.bookedBy || !selectedLesson?.childId) return null;
         return doc(db, 'users', selectedLesson.bookedBy, 'children', selectedLesson.childId);
     }, [db, selectedLesson]);
 
-    const { data: selectedChildData } = useDoc(childDocRef);
+    const { data: selectedChildData, isLoading: isChildDataLoading } = useDoc(childDocRef);
 
     const { upcomingLessons, pastLessons } = useMemo(() => {
         if (!lessons) return { upcomingLessons: [], pastLessons: [] };
@@ -197,9 +120,9 @@ export default function OgretmenDerslerimPage() {
         return { upcomingLessons: upcoming, pastLessons: past };
     }, [lessons]);
 
-    const handleOpenFeedbackDialog = (lesson: any) => {
+    const handleOpenProgressPanel = (lesson: any) => {
         setSelectedLesson(lesson);
-        setIsFeedbackDialogOpen(true);
+        setIsProgressPanelOpen(true);
     };
 
     if (userLoading || lessonsLoading) {
@@ -220,7 +143,7 @@ export default function OgretmenDerslerimPage() {
                         <CardContent>
                             {upcomingLessons.length > 0 ? (
                                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                    {upcomingLessons.map(lesson => <LessonCard key={lesson.id} lesson={lesson} onOpenFeedback={() => handleOpenFeedbackDialog(lesson)} />)}
+                                    {upcomingLessons.map(lesson => <LessonCard key={lesson.id} lesson={lesson} onOpenProgressPanel={() => handleOpenProgressPanel(lesson)} />)}
                                 </div>
                             ) : <p className="text-muted-foreground">Yaklaşan dersiniz bulunmuyor.</p>}
                         </CardContent>
@@ -232,22 +155,24 @@ export default function OgretmenDerslerimPage() {
                         <CardContent>
                              {pastLessons.length > 0 ? (
                                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                    {pastLessons.map(lesson => <LessonCard key={lesson.id} lesson={lesson} onOpenFeedback={() => handleOpenFeedbackDialog(lesson)} />)}
+                                    {pastLessons.map(lesson => <LessonCard key={lesson.id} lesson={lesson} onOpenProgressPanel={() => handleOpenProgressPanel(lesson)} />)}
                                 </div>
                             ) : <p className="text-muted-foreground">Henüz tamamlanmış bir dersiniz yok.</p>}
                         </CardContent>
                     </Card>
                 </TabsContent>
             </Tabs>
-            {selectedLesson && (
-                <FeedbackDialog 
-                    lesson={selectedLesson}
-                    child={selectedChildData}
-                    isOpen={isFeedbackDialogOpen}
-                    onOpenChange={setIsFeedbackDialogOpen}
-                    onFeedbackSaved={refetch}
-                />
-            )}
+             <Dialog open={isProgressPanelOpen} onOpenChange={setIsProgressPanelOpen}>
+                <DialogContent className="max-w-5xl h-[90vh]">
+                    {isChildDataLoading || !selectedChildData ? (
+                         <div className="flex h-full items-center justify-center">
+                            <Loader2 className="h-16 w-16 animate-spin text-primary" />
+                        </div>
+                    ) : (
+                        <ProgressPanel child={selectedChildData} />
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
