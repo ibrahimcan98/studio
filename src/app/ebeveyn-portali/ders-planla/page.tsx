@@ -455,7 +455,7 @@ export default function DersPlanlaPage() {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     {selectedSlot && (
-                         <div className="space-y-4 my-4">
+                         <div className="space-y-4 my-4 text-sm">
                             <div className="flex items-center gap-3">
                                 <User className="w-5 h-5 text-muted-foreground"/>
                                 <p><strong>Çocuk:</strong> {selectedChildData?.firstName}</p>
