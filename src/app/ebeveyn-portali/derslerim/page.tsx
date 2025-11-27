@@ -44,7 +44,7 @@ function LessonCard({ lesson }: { lesson: any }) {
 
     if (isChildLoading || isTeacherLoading) {
         return (
-            <Card className="p-4 flex items-center justify-center min-h-[150px]">
+            <Card className="p-4 flex items-center justify-center min-h-[220px]">
                 <Loader2 className="animate-spin text-primary" />
             </Card>
         );
@@ -55,11 +55,11 @@ function LessonCard({ lesson }: { lesson: any }) {
     const isPast = new Date() > lessonDate;
 
     return (
-        <Card className='flex flex-col'>
+        <Card className='flex flex-col bg-white'>
             <CardHeader>
                 <CardTitle className="flex justify-between items-start">
-                    <span className="text-lg">{packageDetails?.courseName || 'Ders'}</span>
-                     <Badge variant={isPast ? "outline" : "default"}>
+                    <span className="text-xl font-bold">{packageDetails?.courseName || 'Ders'}</span>
+                     <Badge variant={isPast ? "outline" : "default"} className={isPast ? "" : "bg-green-100 text-green-800"}>
                         {isPast ? 'Tamamlandı' : 'Yaklaşıyor'}
                     </Badge>
                 </CardTitle>
@@ -78,7 +78,7 @@ function LessonCard({ lesson }: { lesson: any }) {
                 </div>
                 <div className="flex items-center gap-2">
                     <BookOpen className="w-4 h-4 text-muted-foreground" />
-                    <span><strong>Paket:</strong> {lesson.packageCode === 'FREE_TRIAL' ? 'Ücretsiz Deneme' : lesson.packageCode}</span>
+                    <span><strong>Paket:</strong> {lesson.packageCode === 'FREE_TRIAL' ? 'Ücretsiz Deneme' : packageDetails?.courseName}</span>
                 </div>
             </CardContent>
             {isPast && lesson.feedback && (
