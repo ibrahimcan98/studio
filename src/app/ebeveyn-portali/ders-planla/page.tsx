@@ -41,6 +41,12 @@ const getCourseDetailsFromPackageCode = (code: string) => {
 
 const MAX_FREE_TRIALS = 3;
 
+// Static teacher list to avoid permission issues
+const teachers = [
+    { id: 'MpzNp3vXBnQiSnjN21fVyWxl1m33', firstName: 'Tuba', lastName: 'Kodak' },
+    { id: 'xlIxFqIdb9einW0BgpIFUM0RrXa2', firstName: 'İbrahim', lastName: 'Can' },
+];
+
 
 export default function DersPlanlaPage() {
     const router = useRouter();
@@ -55,7 +61,9 @@ export default function DersPlanlaPage() {
     const [bookingMode, setBookingMode] = useState<'free' | 'paid'>('paid');
     const [selectedTimeZone, setSelectedTimeZone] = useState<string>('');
     const [isConfirming, setIsConfirming] = useState(false);
-    const [selectedSlot, setSelectedSlot] = useState<{ id: string, startTime: Timestamp } | null>(null);
+    const [selectedSlot, setSelectedSlot] = useState<{ id: string, startTime: Timestamp, teacherId: string } | null>(null);
+    const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
+
 
     const userDocRef = useMemoFirebase(() => {
         if (!user || !db) return null;
@@ -124,9 +132,9 @@ export default function DersPlanlaPage() {
     };
 
     const lessonSlotsRef = useMemoFirebase(() => {
-        if (!db) return null;
-        return query(collection(db, 'lesson-slots'), where('status', '==', 'available'));
-    }, [db]);
+        if (!db || !selectedTeacherId) return null;
+        return query(collection(db, 'lesson-slots'), where('status', '==', 'available'), where('teacherId', '==', selectedTeacherId));
+    }, [db, selectedTeacherId]);
 
     const { data: availableSlots, isLoading: areSlotsLoading } = useCollection(lessonSlotsRef);
 
@@ -145,7 +153,7 @@ export default function DersPlanlaPage() {
             .sort((a, b) => a.startTime.seconds - b.startTime.seconds);
     }, [availableSlots, selectedDate, selectedTimeZone]);
     
-    const handleSlotClick = (slot: { id: string, startTime: Timestamp }) => {
+    const handleSlotClick = (slot: { id: string, startTime: Timestamp, teacherId: string }) => {
          if (!user || !userData) {
             toast({ variant: 'destructive', title: 'Hata', description: 'Giriş yapmalısınız.' });
             return;
@@ -257,9 +265,9 @@ export default function DersPlanlaPage() {
     
     const canTakeFreeTrial = !selectedChildData?.hasUsedFreeTrial && (userData?.freeTrialsUsed || 0) < MAX_FREE_TRIALS;
     const hasPackage = selectedChildData?.assignedPackage && selectedChildData?.remainingLessons > 0;
-    const canBook = selectedChildId && ( (bookingMode === 'free' && canTakeFreeTrial) || (bookingMode === 'paid' && hasPackage) );
+    const canBook = selectedChildId && selectedTeacherId && ( (bookingMode === 'free' && canTakeFreeTrial) || (bookingMode === 'paid' && hasPackage) );
     
-    if (isUserLoading || areSlotsLoading || areChildrenLoading || !selectedTimeZone) {
+    if (isUserLoading || areChildrenLoading || !selectedTimeZone) {
         return (
             <div className="flex h-screen items-center justify-center">
                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -282,55 +290,22 @@ export default function DersPlanlaPage() {
                     <div>
                         <h2 className="text-3xl font-bold tracking-tight">Ders Planla</h2>
                         <p className="text-muted-foreground">
-                            Öğretmenimizin müsait olduğu zamanlardan birini seçin.
+                            Öğretmenlerimizin müsait olduğu zamanlardan birini seçin.
                         </p>
                     </div>
                 </div>
             </div>
 
             <Card className="p-4 sm:p-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="flex flex-col items-center">
-                         <Calendar
-                            mode="single"
-                            selected={selectedDate}
-                            onSelect={setSelectedDate}
-                            locale={tr}
-                            modifiers={{
-                                available: availableDays,
-                            }}
-                            modifiersClassNames={{
-                                available: 'bg-primary/20 text-primary-foreground rounded-full',
-                            }}
-                            disabled={(date) => {
-                                const today = new Date();
-                                today.setHours(0, 0, 0, 0);
-                                if (date < today) return true;
-                                return !availableDays.some(availableDay => isSameDay(date, availableDay));
-                            }}
-                            className="rounded-md border"
-                        />
-                         <div className="mt-6 w-full max-w-sm">
-                            <Label htmlFor="timezone-select">Saat Diliminiz:</Label>
-                             <Select value={selectedTimeZone} onValueChange={handleTimeZoneChange}>
-                                <SelectTrigger id="timezone-select" className="mt-2">
-                                    <SelectValue placeholder="Saat dilimi seçin..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {timezones.map(tz => (
-                                        <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                         </div>
-                    </div>
-                    <div className="h-full">
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+                     <div className="space-y-6">
+                        {/* Step 1 */}
+                        <div className="space-y-2">
+                             <Label htmlFor="child-select" className="font-semibold text-lg">1. Adım: Öğrenci ve Ders Türü</Label>
+                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <Label htmlFor="child-select">Dersi alacak çocuk:</Label>
                                     <Select value={selectedChildId} onValueChange={setSelectedChildId}>
-                                        <SelectTrigger id="child-select" className="mt-2">
+                                        <SelectTrigger id="child-select" >
                                             <SelectValue placeholder="Çocuk Seçin" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -342,9 +317,8 @@ export default function DersPlanlaPage() {
                                 </div>
                                 {selectedChildId && (
                                      <div>
-                                        <Label htmlFor="package-select">Ders Türü:</Label>
                                         <Select value={bookingMode} onValueChange={(value) => setBookingMode(value as 'free' | 'paid')}>
-                                            <SelectTrigger id="package-select" className="mt-2">
+                                            <SelectTrigger id="package-select">
                                                 <SelectValue placeholder="Ders Türü Seçin" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -355,12 +329,79 @@ export default function DersPlanlaPage() {
                                      </div>
                                 )}
                             </div>
+                            <div className="mt-2 text-center sm:text-left">
+                                {!selectedChildId ? (
+                                    <Badge variant="outline">Lütfen bir çocuk seçin.</Badge>
+                                ) : bookingMode === 'free' && canTakeFreeTrial ? (
+                                    <Badge variant="default" className='bg-green-100 text-green-800'>
+                                        <BookOpen className="w-3 h-3 mr-1"/>
+                                        Bu çocuk için deneme dersi hakkı mevcut.
+                                    </Badge>
+                                ) : bookingMode === 'paid' && hasPackage ? (
+                                    <Badge>Kalan Ders: {selectedChildData?.remainingLessons}</Badge>
+                                ) : (
+                                    <Badge variant="destructive">Bu çocuk için seçilen türde ders hakkı yok.</Badge>
+                                )}
+                            </div>
+                        </div>
+
+                         {/* Step 2 */}
+                        <div className="space-y-2">
+                            <Label htmlFor="teacher-select" className="font-semibold text-lg">2. Adım: Öğretmen Seçimi</Label>
+                             <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId} disabled={!selectedChildId}>
+                                <SelectTrigger id="teacher-select">
+                                    <SelectValue placeholder="Öğretmen Seçin" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {teachers.map(teacher => (
+                                        <SelectItem key={teacher.id} value={teacher.id}>{teacher.firstName} {teacher.lastName}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                         
-                            <h3 className="text-lg font-semibold text-center lg:text-left">
-                                {selectedDate ? formatInTimeZone(selectedDate, selectedTimeZone, 'dd MMMM yyyy', { locale: tr }) : 'Bir tarih seçin'} için Müsait Saatler
-                                {selectedDate && <span className="text-sm text-muted-foreground ml-2">({selectedTimeZone})</span>}
-                            </h3>
-                            {selectedDate && slotsForSelectedDate.length > 0 ? (
+                         {/* Step 3 */}
+                        <div className="flex flex-col items-center">
+                            <Label className="font-semibold text-lg mb-2 self-start">3. Adım: Takvim</Label>
+                            <Calendar
+                                mode="single"
+                                selected={selectedDate}
+                                onSelect={setSelectedDate}
+                                locale={tr}
+                                modifiers={{
+                                    available: availableDays,
+                                }}
+                                modifiersClassNames={{
+                                    available: 'bg-primary/20 text-primary-foreground rounded-full',
+                                }}
+                                disabled={(date) => {
+                                    if (!selectedTeacherId) return true;
+                                    const today = new Date();
+                                    today.setHours(0, 0, 0, 0);
+                                    if (date < today) return true;
+                                    return !availableDays.some(availableDay => isSameDay(date, availableDay));
+                                }}
+                                className="rounded-md border"
+                            />
+                        </div>
+                    </div>
+                     <div className="h-full">
+                        <div className="space-y-6">
+                            <div>
+                                <h3 className="text-lg font-semibold text-center lg:text-left mb-2">
+                                     4. Adım: Müsait Saatler
+                                </h3>
+                                 <p className="text-sm text-muted-foreground text-center lg:text-left mb-4">
+                                     {selectedDate ? formatInTimeZone(selectedDate, selectedTimeZone, 'dd MMMM yyyy', { locale: tr }) : 'Bir tarih seçin'}
+                                     {selectedDate && <span className="text-xs text-muted-foreground ml-2">({selectedTimeZone})</span>}
+                                 </p>
+                            </div>
+                           
+                            {areSlotsLoading ? (
+                                 <div className="flex items-center justify-center h-48 border-2 border-dashed rounded-lg bg-muted/50">
+                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                </div>
+                            ) : selectedDate && slotsForSelectedDate.length > 0 ? (
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                     {slotsForSelectedDate.map(slot => (
                                         <Button
@@ -376,24 +417,25 @@ export default function DersPlanlaPage() {
                                 </div>
                             ) : (
                                 <div className="flex items-center justify-center h-48 border-2 border-dashed rounded-lg bg-muted/50">
-                                    <p className="text-muted-foreground">Bu tarih için müsait ders bulunmamaktadır.</p>
+                                    <p className="text-muted-foreground text-center px-4">
+                                        {selectedTeacherId ? "Bu tarih için müsait ders bulunmamaktadır." : "Lütfen bir öğretmen seçin."}
+                                    </p>
                                 </div>
                             )}
+                             <div className="mt-6 w-full max-w-sm mx-auto lg:mx-0">
+                                <Label htmlFor="timezone-select">Saat Diliminiz:</Label>
+                                <Select value={selectedTimeZone} onValueChange={handleTimeZoneChange}>
+                                    <SelectTrigger id="timezone-select" className="mt-2">
+                                        <SelectValue placeholder="Saat dilimi seçin..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {timezones.map(tz => (
+                                            <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
-                         <div className="mt-6 text-center">
-                            {!selectedChildId ? (
-                                 <Badge variant="destructive">Lütfen bir çocuk seçin.</Badge>
-                            ) : bookingMode === 'free' && canTakeFreeTrial ? (
-                                <Badge variant="default" className='bg-green-100 text-green-800'>
-                                    <BookOpen className="w-3 h-3 mr-1"/>
-                                    Bu çocuk için deneme dersi hakkı mevcut.
-                                </Badge>
-                            ) : bookingMode === 'paid' && hasPackage ? (
-                                <Badge>Kalan Ders: {selectedChildData?.remainingLessons}</Badge>
-                            ) : (
-                                <Badge variant="destructive">Bu çocuk için seçilen türde ders hakkı yok.</Badge>
-                            )}
-                         </div>
                     </div>
                 </div>
             </Card>
@@ -417,6 +459,10 @@ export default function DersPlanlaPage() {
                             <div className="flex items-center gap-3">
                                 <User className="w-5 h-5 text-muted-foreground"/>
                                 <p><strong>Çocuk:</strong> {selectedChildData?.firstName}</p>
+                            </div>
+                             <div className="flex items-center gap-3">
+                                <User className="w-5 h-5 text-muted-foreground"/>
+                                <p><strong>Öğretmen:</strong> {teachers.find(t => t.id === selectedSlot.teacherId)?.firstName}</p>
                             </div>
                             <div className="flex items-center gap-3">
                                 <CalendarIcon className="w-5 h-5 text-muted-foreground"/>
@@ -444,3 +490,4 @@ export default function DersPlanlaPage() {
         </div>
     );
 }
+
