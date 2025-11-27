@@ -12,7 +12,10 @@ service cloud.firestore {
     }
      
     match /users/{userId} {
-      allow get: if request.auth.uid == userId || isTeacher() || isAdmin();
+      // Allow a user to get their own doc.
+      // Allow a teacher or admin to get any user's doc.
+      // Allow any authenticated user to get a user doc if that user's role is 'teacher'.
+      allow get: if request.auth.uid == userId || isTeacher() || isAdmin() || (request.auth != null && get(/databases/$(database)/documents/users/$(userId)).data.role == 'teacher');
       allow list: if isTeacher() || isAdmin();
       allow create: if request.auth.uid == userId;
       allow update: if request.auth.uid == userId || isAdmin();
