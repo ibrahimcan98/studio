@@ -8,17 +8,17 @@
       "unlocked": true,
       "isPremium": false,
       "wordList": [
-        { "word": "inek", "image": "/images/hayvanlar/inek.png", "audio": "/audio/hayvanlar/inek.mp3" },
-        { "word": "kurbağa", "image": "/images/hayvanlar/kurbaga.png", "audio": "/audio/hayvanlar/kurbaga.mp3" },
-        { "word": "köpek", "image": "/images/hayvanlar/kopek.png", "audio": "/audio/hayvanlar/kopek.mp3" },
-        { "word": "zürafa", "image": "/images/hayvanlar/zurafa.png", "audio": "/audio/hayvanlar/zurafa.mp3" },
-        { "word": "panda", "image": "/images/hayvanlar/panda.png", "audio": "/audio/hayvanlar/panda.mp3" },
-        { "word": "kedi", "image": "/images/hayvanlar/kedi.png", "audio": "/audio/hayvanlar/kedi.mp3" },
+        { "word": "aslan", "image": "/images/hayvanlar/aslan.png", "audio": "/audio/hayvanlar/aslan.mp3" },
         { "word": "fil", "image": "/images/hayvanlar/fil.png", "audio": "/audio/hayvanlar/fil.mp3" },
+        { "word": "inek", "image": "/images/hayvanlar/inek.png", "audio": "/audio/hayvanlar/inek.mp3" },
+        { "word": "kedi", "image": "/images/hayvanlar/kedi.png", "audio": "/audio/hayvanlar/kedi.mp3" },
+        { "word": "köpek", "image": "/images/hayvanlar/kopek.png", "audio": "/audio/hayvanlar/kopek.mp3" },
+        { "word": "koyun", "image": "/images/hayvanlar/koyun.png", "audio": "/audio/hayvanlar/koyun.mp3" },
+        { "word": "kurbağa", "image": "/images/hayvanlar/kurbaga.png", "audio": "/audio/hayvanlar/kurbaga.mp3" },
         { "word": "kuş", "image": "/images/hayvanlar/kus.png", "audio": "/audio/hayvanlar/kus.mp3" },
         { "word": "maymun", "image": "/images/hayvanlar/maymun.png", "audio": "/audio/hayvanlar/maymun.mp3" },
-        { "word": "aslan", "image": "/images/hayvanlar/aslan.png", "audio": "/audio/hayvanlar/aslan.mp3" },
-        { "word": "koala", "image": "/images/hayvanlar/koala.png", "audio": "/audio/hayvanlar/koala.mp3" }
+        { "word": "panda", "image": "/images/hayvanlar/panda.png", "audio": "/audio/hayvanlar/panda.mp3" },
+        { "word": "zürafa", "image": "/images/hayvanlar/zurafa.png", "audio": "/audio/hayvanlar/zurafa.mp3" }
       ]
     },
     {

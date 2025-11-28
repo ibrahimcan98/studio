@@ -200,7 +200,7 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
 
     return (
         <div className="bg-blue-50 h-screen p-4 sm:p-8 flex flex-col">
-             <audio ref={audioRef} src={currentWord.audio} preload="auto" />
+             <audio ref={audioRef} src={currentWord.audio} />
             <header className="flex-shrink-0 mb-4">
                 <div className="w-full max-w-4xl mx-auto flex items-center justify-between relative">
                      <Button
