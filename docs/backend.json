@@ -100,12 +100,17 @@
           "description": "Reference to the User entity who is the parent of this child."
         },
         "firstName": { "type": "string", "description": "The child's first name." },
-        "lastName": { "type": "string", "description": "The child's last name." },
         "dateOfBirth": { "type": "string", "format": "date", "description": "The child's date of birth." },
         "countryOfResidence": { "type": "string", "description": "The country where the child lives." },
         "level": { "type": "string", "description": "The current learning level of the child." },
         "parentTongues": { "type": "string", "description": "Languages spoken by the parents." },
         "schoolLanguage": { "type": "string", "description": "The primary language of instruction at the child's school." },
+        "homeLanguageTurkishPercentage": { "type": "number", "description": "The percentage of Turkish spoken at home." },
+        "turkishExposureIntensity": { 
+            "type": "string", 
+            "enum": ["low", "medium", "high"], 
+            "description": "The intensity of the child's exposure to Turkish." 
+        },
         "schoolLiteracyStatus": {
             "type": "string",
             "enum": ["not-yet", "in-progress", "fluent"],
@@ -127,7 +132,31 @@
         "assignedPackageName": { "type": "string", "description": "The full name of the assigned package (e.g., 'Konuşma Kursu')." },
         "remainingLessons": { "type": "number", "description": "Number of lessons remaining from their assigned package." },
         "finishedPackage": { "type": "string", "description": "The code of the last finished package by the child (e.g., '4B')." },
-        "hasUsedFreeTrial": { "type": "boolean", "description": "Indicates if this specific child has used their free trial lesson." }
+        "hasUsedFreeTrial": { "type": "boolean", "description": "Indicates if this specific child has used their free trial lesson." },
+        "cefrProfile": {
+            "type": "object",
+            "description": "Teacher's assessment of the child's CEFR levels.",
+            "properties": {
+                "listening": { "type": "string", "enum": ["preA1", "A1", "A2", "B1", "B2", "C1", "C2"] },
+                "speaking": { "type": "string", "enum": ["preA1", "A1", "A2", "B1", "B2", "C1", "C2"] },
+                "reading": { "type": "string", "enum": ["preA1", "A1", "A2", "B1", "B2", "C1", "C2"] },
+                "writing": { "type": "string", "enum": ["preA1", "A1", "A2", "B1", "B2", "C1", "C2"] }
+            }
+        },
+        "speakingInitiative": {
+            "type": "number",
+            "description": "Teacher's assessment of the child's speaking initiative percentage (0-100)."
+        },
+        "attitude": {
+            "type": "string",
+            "enum": ["positive", "neutral", "shy"],
+            "description": "Teacher's assessment of the child's attitude in class."
+        },
+        "languageMixing": {
+            "type": "string",
+            "enum": ["always", "sometimes", "rarely", "never"],
+            "description": "Teacher's assessment of how often the child mixes languages."
+        }
       },
       "required": [
         "id",

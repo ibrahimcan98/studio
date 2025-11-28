@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { format, differenceInYears } from 'date-fns';
@@ -19,13 +18,22 @@ import {
     Frown,
     CheckCircle,
     TrendingDown,
+    TrendingUp,
+    Minus,
     Award,
-    MessageSquare
+    MessageSquare,
+    Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { useFirestore } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
 
 
 const difficultiesMap: { [key: string]: string } = {
@@ -42,16 +50,77 @@ const difficultiesMap: { [key: string]: string } = {
 
 const COLORS = ['#4FC3F7', '#FF8A65', '#E0E0E0'];
 
-const cefrData = {
-    listening: { level: '—', score: 0 },
-    speaking: { level: '—', score: 0 },
-    reading: { level: '—', score: 0 },
-    writing: { level: '—', score: 0 },
+const cefrLevels = ['preA1', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+const cefrScoreMapping: { [key: string]: number } = {
+    'preA1': 1, 'A1': 1, 'A2': 2, 'B1': 3, 'B2': 4, 'C1': 5, 'C2': 5
 };
 
+const tutumMap: { [key: string]: { emoji: React.ReactNode, label: string } } = {
+    positive: { emoji: <Smile className="w-7 h-7" />, label: 'Olumlu' },
+    neutral: { emoji: <Meh className="w-7 h-7" />, label: 'Nötr' },
+    shy: { emoji: <Frown className="w-7 h-7" />, label: 'Çekingen' }
+};
+
+const dilKaristirmaMap: { [key: string]: { icon: React.ReactNode, label: string, color: string } } = {
+    always: { icon: <TrendingDown />, label: 'Her zaman', color: 'text-red-500' },
+    sometimes: { icon: <TrendingDown />, label: 'Ara sıra', color: 'text-orange-500' },
+    rarely: { icon: <Minus />, label: 'Nadiren', color: 'text-gray-500' },
+    never: { icon: <TrendingUp />, label: 'Hiçbir zaman', color: 'text-green-500' }
+};
+
+
 export function ProgressPanel({ child }: { child: any }) {
+    const { toast } = useToast();
+    const db = useFirestore();
+    const [isSaving, setIsSaving] = useState(false);
     
-    const [assessmentView, setAssessmentView] = useState(0); // 0 for current, 1 for past
+    // State for editable fields
+    const [cefrProfile, setCefrProfile] = useState(child.cefrProfile || { listening: 'preA1', speaking: 'preA1', reading: 'preA1', writing: 'preA1' });
+    const [speakingInitiative, setSpeakingInitiative] = useState(child.speakingInitiative || 0);
+    const [attitude, setAttitude] = useState(child.attitude || 'neutral');
+    const [languageMixing, setLanguageMixing] = useState(child.languageMixing || 'rarely');
+
+    useEffect(() => {
+        setCefrProfile(child.cefrProfile || { listening: 'preA1', speaking: 'preA1', reading: 'preA1', writing: 'preA1' });
+        setSpeakingInitiative(child.speakingInitiative || 0);
+        setAttitude(child.attitude || 'neutral');
+        setLanguageMixing(child.languageMixing || 'rarely');
+    }, [child]);
+
+
+    const handleCefrChange = (skill: string, value: string) => {
+        setCefrProfile((prev: any) => ({ ...prev, [skill]: value }));
+    };
+    
+    const handleSave = async () => {
+        if (!db || !child) return;
+        setIsSaving(true);
+        const childDocRef = doc(db, 'users', child.userId, 'children', child.id);
+        
+        try {
+            await updateDoc(childDocRef, {
+                cefrProfile,
+                speakingInitiative,
+                attitude,
+                languageMixing
+            });
+            toast({
+                title: 'Kaydedildi',
+                description: `${child.firstName} için ilerleme paneli güncellendi.`,
+                className: 'bg-green-500 text-white'
+            });
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Hata',
+                description: 'Değişiklikler kaydedilirken bir sorun oluştu.'
+            });
+            console.error("Error updating progress panel:", error);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
 
     const dateOfBirth = child.dateOfBirth ? new Date(child.dateOfBirth) : null;
     const age = dateOfBirth ? differenceInYears(new Date(), dateOfBirth) : 'N/A';
@@ -71,14 +140,6 @@ export function ProgressPanel({ child }: { child: any }) {
     };
     const exposureInfo = exposureMap[child.turkishExposureIntensity] || exposureMap.low;
     
-     const tutumMap: { [key: string]: { emoji: React.ReactNode, label: string } } = {
-        positive: { emoji: <Smile className="w-7 h-7 text-gray-500" />, label: 'Olumlu' },
-        neutral: { emoji: <Meh className="w-7 h-7 text-gray-500" />, label: 'Nötr' },
-        shy: { emoji: <Frown className="w-7 h-7 text-gray-500" />, label: 'Çekingen' }
-    };
-    
-    const currentTutum = 'positive'; // This would be dynamic in a real scenario
-
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-4 h-full overflow-y-auto pr-4 font-body">
@@ -145,22 +206,28 @@ export function ProgressPanel({ child }: { child: any }) {
                     <CardTitle className="text-lg text-green-900">CEFR Profili</CardTitle>
                 </CardHeader>
                  <CardContent className="space-y-3">
-                    {Object.entries({
-                        'Dinleme': cefrData.listening,
-                        'Konuşma': cefrData.speaking,
-                        'Okuma': cefrData.reading,
-                        'Yazma': cefrData.writing
-                    }).map(([skill, data]) => (
-                         <div key={skill} className="grid grid-cols-[1fr_1fr_auto] items-center gap-x-3">
-                             <span className="capitalize text-sm font-medium text-gray-700">{skill}</span>
-                             <span className="font-bold text-sm text-gray-600">{data.level}</span>
-                             <div className="flex gap-1 items-center">
-                                {[...Array(5)].map((_, i) => (
-                                    <div key={i} className={`w-4 h-4 rounded-sm ${i < data.score ? 'bg-primary' : 'bg-green-200'}`}></div>
-                                ))}
+                    {Object.entries({ listening: 'Dinleme', speaking: 'Konuşma', reading: 'Okuma', writing: 'Yazma' }).map(([skill, label]) => {
+                        const level = cefrProfile[skill] || 'preA1';
+                        const score = cefrScoreMapping[level] || 0;
+                        return (
+                             <div key={skill} className="grid grid-cols-[1fr_80px_1fr] items-center gap-x-3">
+                                 <span className="capitalize text-sm font-medium text-gray-700">{label}</span>
+                                 <Select value={level} onValueChange={(value) => handleCefrChange(skill, value)}>
+                                    <SelectTrigger className="h-8">
+                                        <SelectValue placeholder="Seviye" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {cefrLevels.map(l => <SelectItem key={l} value={l}>{l.toUpperCase()}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                 <div className="flex gap-1 items-center">
+                                    {[...Array(5)].map((_, i) => (
+                                        <div key={i} className={`w-4 h-4 rounded-sm ${i < score ? 'bg-primary' : 'bg-green-200'}`}></div>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        )
+                    })}
                 </CardContent>
             </Card>
 
@@ -171,11 +238,8 @@ export function ProgressPanel({ child }: { child: any }) {
                 </CardHeader>
                 <CardContent className="space-y-5 pt-4">
                     <div>
-                        <h4 className="text-sm font-semibold text-gray-700">Konuşma İnisiyatifi</h4>
-                        <div className="flex items-center gap-2">
-                            <div className="text-3xl font-mono text-primary">(◐)</div>
-                            <span className="font-bold text-lg">0%</span>
-                        </div>
+                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Konuşma İnisiyatifi: {speakingInitiative}%</h4>
+                        <Slider value={[speakingInitiative]} onValueChange={(value) => setSpeakingInitiative(value[0])} max={100} step={10} />
                     </div>
                     <div className="space-y-2">
                          <h4 className="text-sm font-semibold text-gray-700">Tutum</h4>
@@ -184,17 +248,34 @@ export function ProgressPanel({ child }: { child: any }) {
                                  <motion.div 
                                      key={key} 
                                      whileHover={{ scale: 1.1 }} 
-                                     className={`flex flex-col items-center gap-1 cursor-pointer opacity-40`}
+                                     className={cn(
+                                        "flex flex-col items-center gap-1 cursor-pointer transition-colors",
+                                        attitude === key ? 'text-green-600' : 'text-gray-400 hover:text-gray-600'
+                                     )}
+                                     onClick={() => setAttitude(key)}
                                  >
                                      {value.emoji}
-                                     <span className={`text-xs font-medium text-gray-500`}>{value.label}</span>
+                                     <span className={`text-xs font-medium`}>{value.label}</span>
                                  </motion.div>
                              ))}
                          </div>
                      </div>
 
                     <div>
-                        <h4 className="text-sm font-semibold text-gray-700">Dil Karıştırma</h4>
+                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Dil Karıştırma</h4>
+                        <div className='flex items-center justify-around'>
+                             {Object.entries(dilKaristirmaMap).map(([key, value]) => (
+                                 <motion.div 
+                                     key={key} 
+                                     whileHover={{ scale: 1.1 }} 
+                                     className={cn("flex flex-col items-center gap-1 cursor-pointer", languageMixing === key ? value.color : 'text-gray-400')}
+                                     onClick={() => setLanguageMixing(key)}
+                                 >
+                                    <div className='w-8 h-8 flex items-center justify-center'>{value.icon}</div>
+                                    <span className='text-xs font-medium'>{value.label}</span>
+                                </motion.div>
+                            ))}
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -207,52 +288,22 @@ export function ProgressPanel({ child }: { child: any }) {
                 <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
                         <h4 className="font-semibold mb-2 text-gray-700 flex items-center gap-2"><Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />Güçlü Alanlar</h4>
-                        <div className="flex flex-col gap-2">
-                        </div>
                     </div>
                     <div>
                         <h4 className="font-semibold mb-2 text-gray-700 flex items-center gap-2"><Cloudy className="w-5 h-5 text-orange-500" />Gelişime Açık Alanlar</h4>
-                        <div className="flex flex-col gap-2">
-                        </div>
                     </div>
                     <div className="sm:col-span-2 mt-2">
                         <h4 className="font-semibold mb-2 text-gray-700 flex items-center gap-2"><Target className="w-5 h-5 text-red-500" />Önerilen Kurs</h4>
-                        <motion.div animate={{ scale: [1, 1.02, 1] }} transition={{ duration: 2, repeat: Infinity }}>
-                        </motion.div>
                     </div>
                 </CardContent>
             </Card>
-
-            <Card className="col-span-1 md:col-span-2 lg:col-span-3 rounded-2xl bg-gray-50 border-gray-200">
-                <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
-                    <div className="flex items-center gap-3">
-                         <MessageSquare className="w-6 h-6 text-gray-500" />
-                         <CardTitle className="text-lg text-gray-800">Öğretmen Değerlendirmesi</CardTitle>
-                    </div>
-                    <div className='flex items-center gap-2 text-sm font-medium'>
-                       <span>Geçmiş</span>
-                       <Slider
-                            defaultValue={[0]}
-                            max={1}
-                            step={1}
-                            className="w-16"
-                            onValueChange={(value) => setAssessmentView(value[0])}
-                        />
-                       <span>Güncel</span>
-                    </div>
-                </CardHeader>
-                <CardContent className="pt-4">
-                   {assessmentView === 0 ? (
-                       <div>
-                           {/* Current Assessment Content */}
-                       </div>
-                   ) : (
-                       <div>
-                           {/* Past Assessments Content */}
-                       </div>
-                   )}
-                </CardContent>
-            </Card>
+            
+            <div className="lg:col-span-3 flex justify-end">
+                <Button onClick={handleSave} disabled={isSaving}>
+                     {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Değişiklikleri Kaydet
+                </Button>
+            </div>
         </div>
     );
 }
