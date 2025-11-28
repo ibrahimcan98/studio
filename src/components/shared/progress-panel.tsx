@@ -210,7 +210,7 @@ export function ProgressPanel({ child }: { child: any }) {
                         const level = cefrProfile[skill] || 'preA1';
                         const score = cefrScoreMapping[level] || 0;
                         return (
-                             <div key={skill} className="grid grid-cols-[1fr_80px_1fr] items-center gap-x-3">
+                             <div key={skill} className="grid grid-cols-[1fr_90px_1fr] items-center gap-x-3">
                                  <span className="capitalize text-sm font-medium text-gray-700">{label}</span>
                                  <Select value={level} onValueChange={(value) => handleCefrChange(skill, value)}>
                                     <SelectTrigger className="h-8">
