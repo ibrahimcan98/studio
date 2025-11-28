@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -52,7 +53,7 @@ const COLORS = ['#4FC3F7', '#FF8A65', '#E0E0E0'];
 
 const cefrLevels = ['preA1', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 const cefrScoreMapping: { [key: string]: number } = {
-    'preA1': 1, 'A1': 1, 'A2': 2, 'B1': 3, 'B2': 4, 'C1': 5, 'C2': 5
+    'preA1': 0, 'A1': 1, 'A2': 2, 'B1': 3, 'B2': 4, 'C1': 5, 'C2': 5
 };
 
 const tutumMap: { [key: string]: { emoji: React.ReactNode, label: string } } = {
@@ -209,6 +210,7 @@ export function ProgressPanel({ child }: { child: any }) {
                     {Object.entries({ listening: 'Dinleme', speaking: 'Konuşma', reading: 'Okuma', writing: 'Yazma' }).map(([skill, label]) => {
                         const level = cefrProfile[skill] || 'preA1';
                         const score = cefrScoreMapping[level] || 0;
+                        const isC2 = level === 'C2';
                         return (
                              <div key={skill} className="grid grid-cols-[auto_90px_1fr] items-center gap-x-3">
                                  <span className="capitalize text-sm font-medium text-gray-700">{label}</span>
@@ -222,7 +224,11 @@ export function ProgressPanel({ child }: { child: any }) {
                                 </Select>
                                  <div className="flex gap-1 items-center">
                                     {[...Array(5)].map((_, i) => (
-                                        <div key={i} className={`w-4 h-4 rounded-sm ${i < score ? 'bg-primary' : 'bg-green-200'}`}></div>
+                                        isC2 ? (
+                                            <Star key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                                        ) : (
+                                            <div key={i} className={`w-3.5 h-3.5 rounded-full ${i < score ? 'bg-primary' : 'bg-green-200'}`}></div>
+                                        )
                                     ))}
                                 </div>
                             </div>
