@@ -50,7 +50,9 @@ export function WordCard({ wordList, childId, topicId }: WordCardProps) {
                 await audioRef.current.play();
             } catch (error) {
                 // Autoplay was prevented.
-                console.error("Audio play failed:", error);
+                if ((error as Error).name !== 'AbortError') {
+                    console.error("Audio play failed:", error);
+                }
             }
         }
     }, []);

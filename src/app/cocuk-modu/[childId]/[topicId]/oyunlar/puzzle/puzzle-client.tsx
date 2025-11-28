@@ -117,7 +117,9 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
                         }
                         await audioRef.current.play();
                     } catch (e) {
-                         console.error("Audio play failed:", e)
+                         if ((e as Error).name !== 'AbortError') {
+                            console.error("Audio play failed:", e)
+                         }
                     }
                 }
             }

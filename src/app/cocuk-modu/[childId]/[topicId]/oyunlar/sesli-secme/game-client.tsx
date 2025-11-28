@@ -80,7 +80,9 @@ export default function GameClient({ questions }: GameClientProps) {
             try {
                 await audioRef.current.play();
             } catch (error) {
-                console.error("Audio play failed:", error);
+                if ((error as Error).name !== 'AbortError') {
+                    console.error("Audio play failed:", error);
+                }
             }
         }
     }, [currentQuestion.audio]);
