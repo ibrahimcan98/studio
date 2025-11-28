@@ -226,7 +226,7 @@ export default function GameClient({ questions }: GameClientProps) {
                     );
                 })}
             </div>
-            <audio ref={audioRef} />
+            <audio ref={audioRef} src={currentQuestion.audio} preload="auto" />
         </div>
     );
 }
