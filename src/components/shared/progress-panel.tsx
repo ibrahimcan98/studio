@@ -156,7 +156,11 @@ export function ProgressPanel({ child }: { child: any }) {
                     </Avatar>
                     <p className="font-bold text-xl text-gray-800">{child.firstName}</p>
                     <p className="text-sm text-gray-600">ID: {child.id.substring(0, 6).toUpperCase()}</p>
-                    <p className="text-sm mt-2 text-gray-500">{age} yaş • {child.countryOfResidence.split(',')[0]} • Okul Dili: {child.schoolLanguage}</p>
+                    <div className="text-sm mt-2 text-gray-500 flex flex-col items-center">
+                        <span>{age} yaş</span>
+                        <span>{child.countryOfResidence.split(',')[0]}</span>
+                        <span>Okul Dili: {child.schoolLanguage}</span>
+                    </div>
                 </CardContent>
             </Card>
 
