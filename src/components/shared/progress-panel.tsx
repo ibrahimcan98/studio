@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -35,6 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
+import { COURSES } from '@/data/courses';
 
 
 const difficultiesMap: { [key: string]: string } = {
@@ -69,6 +71,15 @@ const dilKaristirmaMap: { [key: string]: { icon: React.ReactNode, label: string,
     never: { icon: <TrendingUp />, label: 'Hiçbir zaman', color: 'text-green-500' }
 };
 
+const summarySkills = [
+    { id: 'dinleme', label: 'Dinleme' },
+    { id: 'tutum', label: 'Tutum' },
+    { id: 'motivasyon', label: 'Motivasyon' },
+    { id: 'konusma', label: 'Konuşma akıcılığı' },
+    { id: 'okuryazarlik', label: 'Okuryazarlık' },
+    { id: 'maruziyet', label: 'Türkçe maruziyet' },
+];
+
 
 export function ProgressPanel({ child }: { child: any }) {
     const { toast } = useToast();
@@ -80,12 +91,19 @@ export function ProgressPanel({ child }: { child: any }) {
     const [speakingInitiative, setSpeakingInitiative] = useState(child.speakingInitiative || 0);
     const [attitude, setAttitude] = useState(child.attitude || 'neutral');
     const [languageMixing, setLanguageMixing] = useState(child.languageMixing || 'rarely');
+    const [strengths, setStrengths] = useState<string[]>(child.strengths || []);
+    const [weaknesses, setWeaknesses] = useState<string[]>(child.weaknesses || []);
+    const [recommendedCourse, setRecommendedCourse] = useState(child.recommendedCourse || '');
+
 
     useEffect(() => {
         setCefrProfile(child.cefrProfile || { listening: 'preA1', speaking: 'preA1', reading: 'preA1', writing: 'preA1' });
         setSpeakingInitiative(child.speakingInitiative || 0);
         setAttitude(child.attitude || 'neutral');
         setLanguageMixing(child.languageMixing || 'rarely');
+        setStrengths(child.strengths || []);
+        setWeaknesses(child.weaknesses || []);
+        setRecommendedCourse(child.recommendedCourse || '');
     }, [child]);
 
 
@@ -93,6 +111,27 @@ export function ProgressPanel({ child }: { child: any }) {
         setCefrProfile((prev: any) => ({ ...prev, [skill]: value }));
     };
     
+    const handleSummaryClick = (skillId: string, type: 'strength' | 'weakness') => {
+        const totalSelected = strengths.length + weaknesses.length;
+        const isStrength = strengths.includes(skillId);
+        const isWeakness = weaknesses.includes(skillId);
+
+        if (type === 'strength') {
+            if (isStrength) {
+                setStrengths(prev => prev.filter(s => s !== skillId));
+            } else if (!isWeakness && totalSelected < 3) {
+                setStrengths(prev => [...prev, skillId]);
+            }
+        } else if (type === 'weakness') {
+            if (isWeakness) {
+                setWeaknesses(prev => prev.filter(w => w !== skillId));
+            } else if (!isStrength && totalSelected < 3) {
+                setWeaknesses(prev => [...prev, skillId]);
+            }
+        }
+    };
+
+
     const handleSave = async () => {
         if (!db || !child) return;
         setIsSaving(true);
@@ -103,7 +142,10 @@ export function ProgressPanel({ child }: { child: any }) {
                 cefrProfile,
                 speakingInitiative,
                 attitude,
-                languageMixing
+                languageMixing,
+                strengths,
+                weaknesses,
+                recommendedCourse,
             });
             toast({
                 title: 'Kaydedildi',
@@ -295,15 +337,65 @@ export function ProgressPanel({ child }: { child: any }) {
                     <Award className="w-6 h-6 text-purple-500" />
                     <CardTitle className="text-lg text-purple-900">Öğrenme Profili Özeti</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div>
-                        <h4 className="font-semibold mb-2 text-gray-700 flex items-center gap-2"><Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />Güçlü Alanlar</h4>
+                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                     <div>
+                        <h4 className="font-semibold mb-3 text-gray-700 flex items-center gap-2">
+                            <Star className="w-5 h-5 text-green-500 fill-green-500" />
+                            Güçlü Alanlar
+                            <span className="text-xs text-muted-foreground">({strengths.length}/3)</span>
+                        </h4>
+                         <div className="flex flex-wrap gap-2">
+                            {summarySkills.map(skill => (
+                                <Badge
+                                    key={skill.id}
+                                    onClick={() => handleSummaryClick(skill.id, 'strength')}
+                                    className={cn(
+                                        'cursor-pointer transition-all',
+                                        strengths.includes(skill.id) 
+                                            ? 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200' 
+                                            : (weaknesses.includes(skill.id) ? 'bg-gray-200 text-gray-400 cursor-not-allowed border-transparent' : 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200')
+                                    )}
+                                >
+                                    {skill.label}
+                                </Badge>
+                            ))}
+                        </div>
                     </div>
                     <div>
-                        <h4 className="font-semibold mb-2 text-gray-700 flex items-center gap-2"><Cloudy className="w-5 h-5 text-orange-500" />Gelişime Açık Alanlar</h4>
+                        <h4 className="font-semibold mb-3 text-gray-700 flex items-center gap-2">
+                            <Cloudy className="w-5 h-5 text-orange-500" />
+                            Gelişime Açık Alanlar
+                             <span className="text-xs text-muted-foreground">({weaknesses.length}/3)</span>
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                            {summarySkills.map(skill => (
+                                <Badge
+                                    key={skill.id}
+                                    onClick={() => handleSummaryClick(skill.id, 'weakness')}
+                                    className={cn(
+                                        'cursor-pointer transition-all',
+                                        weaknesses.includes(skill.id) 
+                                            ? 'bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200' 
+                                            : (strengths.includes(skill.id) ? 'bg-gray-200 text-gray-400 cursor-not-allowed border-transparent' : 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200')
+                                    )}
+                                >
+                                    {skill.label}
+                                </Badge>
+                            ))}
+                        </div>
                     </div>
-                    <div className="sm:col-span-2 mt-2">
+                    <div className="sm:col-span-2 mt-4">
                         <h4 className="font-semibold mb-2 text-gray-700 flex items-center gap-2"><Target className="w-5 h-5 text-red-500" />Önerilen Kurs</h4>
+                         <Select value={recommendedCourse} onValueChange={setRecommendedCourse}>
+                            <SelectTrigger className="w-full sm:w-[250px]">
+                                <SelectValue placeholder="Kurs Seçin..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {COURSES.map(course => (
+                                    <SelectItem key={course.id} value={course.id}>{course.title}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                 </CardContent>
             </Card>
@@ -317,3 +409,5 @@ export function ProgressPanel({ child }: { child: any }) {
         </div>
     );
 }
+
+    
