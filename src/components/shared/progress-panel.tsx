@@ -145,8 +145,8 @@ export function ProgressPanel({ child }: { child: any }) {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-4 h-full overflow-y-auto pr-4 font-body">
 
-            <Card className="col-span-1 rounded-2xl bg-[#E3F2FD] border-blue-200">
-                <CardHeader className="flex-row items-center gap-3 space-y-0">
+            <Card className="w-full col-span-1 rounded-2xl bg-[#E3F2FD] border-blue-200">
+                <CardHeader className="flex-row items-center justify-center gap-3 space-y-0">
                     <UserIcon className="w-6 h-6 text-blue-500" />
                     <CardTitle className="text-lg text-blue-900">Profil Kartı</CardTitle>
                 </CardHeader>
