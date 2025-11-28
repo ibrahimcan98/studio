@@ -4,7 +4,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
 import { Loader2, Sparkles } from 'lucide-react';
 import { ChildHeader } from '@/components/child-mode/child-header';
 import { TopicCard } from '@/components/child-mode/topic-card';
@@ -42,7 +42,21 @@ export default function CocukModuPage() {
   const { data: userData } = useDoc(userDocRef);
   const isPremium = userData?.isPremium || false;
 
-  if (authLoading || childLoading || isAuthenticated === null) {
+  const handleTopicCompletion = async (topicId: string) => {
+      if (childDocRef && childData && !childData.completedTopics?.includes(topicId)) {
+        await updateDoc(childDocRef, {
+            completedTopics: arrayUnion(topicId)
+        });
+      }
+  };
+
+  const isTopicUnlocked = (index: number) => {
+      if (index === 0) return true;
+      const previousTopic = topics[index - 1];
+      return childData?.completedTopics?.includes(previousTopic.id) ?? false;
+  };
+
+  if (authLoading || childLoading || isAuthenticated === null || !childData) {
     return (
       <div className="flex h-screen items-center justify-center bg-amber-50">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -52,14 +66,6 @@ export default function CocukModuPage() {
 
   if (!isAuthenticated) {
     return null;
-  }
-  
-  if (!childData) {
-    return (
-        <div className="flex h-screen items-center justify-center bg-amber-50">
-            <p>Çocuk bilgileri bulunamadı.</p>
-        </div>
-    );
   }
 
   return (
@@ -86,18 +92,21 @@ export default function CocukModuPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-8">
-            {topics.map((topic) => (
+            {topics.map((topic, index) => {
+              const unlocked = isTopicUnlocked(index);
+              return (
                 <TopicCard 
                     key={topic.id}
                     topic={topic}
                     isPremium={isPremium}
-                    onClick={() => router.push(`/cocuk-modu/${childId}/${topic.id}`)}
+                    isLocked={!unlocked}
+                    onComplete={() => handleTopicCompletion(topic.id)}
+                    onClick={() => unlocked && router.push(`/cocuk-modu/${childId}/${topic.id}`)}
                 />
-            ))}
+              )
+            })}
         </div>
       </main>
     </div>
   );
 }
-
-    

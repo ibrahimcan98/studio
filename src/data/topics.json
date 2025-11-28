@@ -6,6 +6,7 @@
       "icon": "🦁",
       "words": 11,
       "unlocked": true,
+      "isPremium": false,
       "wordList": [
         { "word": "inek", "image": "/images/hayvanlar/inek.png", "audio": "/audio/hayvanlar/inek.mp3" },
         { "word": "kurbağa", "image": "/images/hayvanlar/kurbaga.png", "audio": "/audio/hayvanlar/kurbaga.mp3" },
@@ -26,6 +27,7 @@
       "icon": "🎨",
       "words": 7,
       "unlocked": true,
+      "isPremium": false,
       "wordList": [
         { "word": "pembe", "image": "/images/renkler/pembe.png", "audio": "/audio/renkler/pembe.mp3" },
         { "word": "kahverengi", "image": "/images/renkler/kahverengi.png", "audio": "/audio/renkler/kahverengi.mp3" },
@@ -42,6 +44,7 @@
       "icon": "❤️",
       "words": 10,
       "unlocked": true,
+      "isPremium": false,
       "wordList": [
         { "word": "anne", "image": "/images/aile-uyeleri/anne.png", "audio": "/audio/aile-uyeleri/anne.mp3" },
         { "word": "baba", "image": "/images/aile-uyeleri/baba.png", "audio": "/audio/aile-uyeleri/baba.mp3" },
@@ -61,6 +64,7 @@
       "icon": "💪",
       "words": 19,
       "unlocked": false,
+      "isPremium": true,
       "wordList": [
         { "word": "saç", "image": "/images/vucudumuz/sac.png", "audio": "/audio/vucudumuz/sac.mp3" },
         { "word": "alın", "image": "/images/vucudumuz/alin.png", "audio": "/audio/vucudumuz/alin.mp3" },
@@ -89,6 +93,7 @@
       "icon": "🍎",
       "words": 8,
       "unlocked": false,
+      "isPremium": true,
       "wordList": [
         { "word": "muz", "image": "/images/meyveler/muz.png", "audio": "/audio/meyveler/muz.mp3" },
         { "word": "portakal", "image": "/images/meyveler/portakal.png", "audio": "/audio/meyveler/portakal.mp3" },
@@ -106,6 +111,7 @@
       "icon": "🥕",
       "words": 6,
       "unlocked": false,
+      "isPremium": true,
       "wordList": [
         { "word": "havuç", "image": "/images/sebzeler/havuc.png", "audio": "/audio/sebzeler/havuc.mp3" },
         { "word": "salatalık", "image": "/images/sebzeler/salatalik.png", "audio": "/audio/sebzeler/salatalik.mp3" },
@@ -121,6 +127,7 @@
       "icon": "🔷",
       "words": 4,
       "unlocked": false,
+      "isPremium": false,
       "wordList": [
         { "word": "üçgen", "image": "/images/sekiller/ucgen.png", "audio": "/audio/sekiller/ucgen.mp3" },
         { "word": "dikdörtgen", "image": "/images/sekiller/dikdortgen.png", "audio": "/audio/sekiller/dikdortgen.mp3" },
@@ -134,6 +141,7 @@
       "icon": "😊",
       "words": 5,
       "unlocked": false,
+      "isPremium": false,
       "wordList": [
         { "word": "mutlu", "image": "/images/duygular/mutlu.png", "audio": "/audio/duygular/mutlu.mp3" },
         { "word": "üzgün", "image": "/images/duygular/uzgun.png", "audio": "/audio/duygular/uzgun.mp3" },
@@ -148,6 +156,7 @@
       "icon": "🌳",
       "words": 8,
       "unlocked": false,
+      "isPremium": false,
       "wordList": [
         { "word": "orman", "image": "/images/doga/orman.png", "audio": "/audio/doga/orman.mp3" },
         { "word": "çiçek", "image": "/images/doga/cicek.png", "audio": "/audio/doga/cicek.mp3" },
@@ -165,6 +174,7 @@
       "icon": "🍳",
       "words": 7,
       "unlocked": false,
+      "isPremium": true,
       "wordList": [
         { "word": "yumurta", "image": "/images/kahvalti/yumurta.png", "audio": "/audio/kahvalti/yumurta.mp3" },
         { "word": "zeytin", "image": "/images/kahvalti/zeytin.png", "audio": "/audio/kahvalti/zeytin.mp3" },
@@ -181,6 +191,7 @@
       "icon": "🍲",
       "words": 8,
       "unlocked": false,
+      "isPremium": true,
       "wordList": [
         { "word": "çorba", "image": "/images/aksam-yemegi/corba.png", "audio": "/audio/aksam-yemegi/corba.mp3" },
         { "word": "pilav", "image": "/images/aksam-yemegi/pilav.png", "audio": "/audio/aksam-yemegi/pilav.mp3" },
@@ -198,6 +209,7 @@
       "icon": "🍰",
       "words": 5,
       "unlocked": false,
+      "isPremium": true,
       "wordList": [
         { "word": "kek", "image": "/images/tatlilar/kek.png", "audio": "/audio/tatlilar/kek.mp3" },
         { "word": "kurabiye", "image": "/images/tatlilar/kurabiye.png", "audio": "/audio/tatlilar/kurabiye.mp3" },
@@ -212,6 +224,7 @@
       "icon": "👩‍⚕️",
       "words": 10,
       "unlocked": false,
+      "isPremium": true,
       "wordList": [
         { "word": "manav", "image": "/images/meslekler/manav.png", "audio": "/audio/meslekler/manav.mp3" },
         { "word": "veteriner", "image": "/images/meslekler/veteriner.png", "audio": "/audio/meslekler/veteriner.mp3" },

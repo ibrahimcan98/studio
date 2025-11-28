@@ -7,7 +7,7 @@ import topicsData from '@/data/topics.json';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { useEffect, useState, useCallback } from 'react';
 import { Loader2 } from 'lucide-react';
 import { ChildHeader } from '@/components/child-mode/child-header';
@@ -29,6 +29,7 @@ export default function GamesPage() {
     const db = useFirestore();
 
     const [topicName, setTopicName] = useState('');
+    const [allGamesCompleted, setAllGamesCompleted] = useState(false);
 
     const childDocRef = useMemoFirebase(() => {
         if (!db || !authUser?.uid || !childId) return null;
@@ -43,7 +44,6 @@ export default function GamesPage() {
     }, [db, authUser?.uid]);
 
     const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
-    const isPremium = userData?.isPremium || false;
 
     useEffect(() => {
         const topic = topicsData.find(t => t.id === topicId);
@@ -74,6 +74,21 @@ export default function GamesPage() {
         const completedKey = `${topicId}-${gameId}`;
         return childData.completedTopics.includes(completedKey);
     };
+    
+    // Check if all games are completed and update the topic as completed
+    useEffect(() => {
+        if (childData && games.every(game => isGameCompleted(game.id))) {
+            const markTopicAsCompleted = async () => {
+                if (childDocRef && !childData.completedTopics?.includes(topicId as string)) {
+                     await updateDoc(childDocRef, {
+                        completedTopics: arrayUnion(topicId as string)
+                    });
+                     setAllGamesCompleted(true);
+                }
+            };
+            markTopicAsCompleted();
+        }
+    }, [childData, games, childDocRef, topicId]);
 
     const isGameUnlocked = (gameIndex: number) => {
         if (gameIndex === 0) return true; // First game is always unlocked
@@ -85,6 +100,19 @@ export default function GamesPage() {
         return (
              <div className="flex h-screen items-center justify-center bg-amber-50">
                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
+            </div>
+        )
+    }
+
+    if (allGamesCompleted) {
+        return (
+             <div className="bg-green-100 h-screen flex flex-col items-center justify-center p-8 text-center">
+                <CheckCircle className="w-24 h-24 text-green-500 mb-6" />
+                <h1 className="text-4xl font-bold text-green-800 mb-2">Tebrikler!</h1>
+                <p className="text-lg text-green-700 mb-8">"{topicName}" konusundaki tüm oyunları tamamladın!</p>
+                <Button onClick={() => router.push(`/cocuk-modu/${childId}`)}>
+                    Yeni Konulara Geç
+                </Button>
             </div>
         )
     }
@@ -127,20 +155,18 @@ export default function GamesPage() {
                                 >
                                     <div className="flex items-center gap-4">
                                         <div className={`p-3 rounded-lg ${!unlocked ? 'bg-gray-300' : 'bg-gray-100'}`}>
-                                            {game.icon}
+                                           {unlocked ? game.icon : <Lock className="w-8 h-8 text-gray-400" />}
                                         </div>
                                         <div className="flex-1">
                                             <h3 className={`font-bold text-lg ${!unlocked ? 'text-gray-500' : 'text-gray-800'}`}>{game.name}</h3>
                                             <p className={`text-sm ${!unlocked ? 'text-gray-400' : 'text-muted-foreground'}`}>{game.description}</p>
                                         </div>
-                                        {!unlocked ? (
-                                            <Lock className="w-6 h-6 text-gray-400" />
-                                        ) : completed ? (
+                                        {unlocked && completed && (
                                             <div className="text-green-500 flex items-center gap-1 font-semibold text-sm">
                                                 <CheckCircle className="w-5 h-5"/>
                                                 <span>Tamamlandı</span>
                                             </div>
-                                        ): null}
+                                        )}
                                     </div>
                                 </Card>
                             );
@@ -151,5 +177,3 @@ export default function GamesPage() {
         </div>
     );
 }
-
-    
