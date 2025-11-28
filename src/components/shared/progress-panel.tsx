@@ -81,7 +81,7 @@ const summarySkills = [
 ];
 
 
-export function ProgressPanel({ child }: { child: any }) {
+export function ProgressPanel({ child, isEditable = false }: { child: any, isEditable?: boolean }) {
     const { toast } = useToast();
     const db = useFirestore();
     const [isSaving, setIsSaving] = useState(false);
@@ -112,6 +112,7 @@ export function ProgressPanel({ child }: { child: any }) {
     };
     
     const handleSummaryClick = (skillId: string, type: 'strength' | 'weakness') => {
+        if (!isEditable) return;
         const totalSelected = strengths.length + weaknesses.length;
         const isStrength = strengths.includes(skillId);
         const isWeakness = weaknesses.includes(skillId);
@@ -260,14 +261,18 @@ export function ProgressPanel({ child }: { child: any }) {
                         return (
                              <div key={skill} className="grid grid-cols-[auto_90px_1fr] items-center gap-x-3">
                                  <span className="capitalize text-sm font-medium text-gray-700">{label}</span>
-                                 <Select value={level} onValueChange={(value) => handleCefrChange(skill, value)}>
-                                    <SelectTrigger className="h-8">
-                                        <SelectValue placeholder="Seviye" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {cefrLevels.map(l => <SelectItem key={l} value={l}>{l.toUpperCase()}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
+                                 {isEditable ? (
+                                    <Select value={level} onValueChange={(value) => handleCefrChange(skill, value)}>
+                                        <SelectTrigger className="h-8">
+                                            <SelectValue placeholder="Seviye" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {cefrLevels.map(l => <SelectItem key={l} value={l}>{l.toUpperCase()}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                 ) : (
+                                    <Badge variant="secondary" className='justify-center'>{level.toUpperCase()}</Badge>
+                                 )}
                                  <div className="flex gap-1 items-center">
                                     {[...Array(5)].map((_, i) => (
                                         isC2 ? (
@@ -291,7 +296,7 @@ export function ProgressPanel({ child }: { child: any }) {
                 <CardContent className="space-y-5 pt-4">
                     <div>
                         <h4 className="text-sm font-semibold text-gray-700 mb-2">Konuşma İnisiyatifi: {speakingInitiative}%</h4>
-                        <Slider value={[speakingInitiative]} onValueChange={(value) => setSpeakingInitiative(value[0])} max={100} step={10} />
+                        <Slider value={[speakingInitiative]} onValueChange={(value) => setSpeakingInitiative(value[0])} max={100} step={10} disabled={!isEditable} />
                     </div>
                     <div className="space-y-2">
                          <h4 className="text-sm font-semibold text-gray-700">Tutum</h4>
@@ -299,12 +304,14 @@ export function ProgressPanel({ child }: { child: any }) {
                              {Object.entries(tutumMap).map(([key, value]) => (
                                  <motion.div 
                                      key={key} 
-                                     whileHover={{ scale: 1.1 }} 
+                                     whileHover={isEditable ? { scale: 1.1 } : {}}
                                      className={cn(
-                                        "flex flex-col items-center gap-1 cursor-pointer transition-colors",
-                                        attitude === key ? 'text-green-600' : 'text-gray-400 hover:text-gray-600'
+                                        "flex flex-col items-center gap-1 transition-colors",
+                                        isEditable && 'cursor-pointer',
+                                        attitude === key ? 'text-green-600' : 'text-gray-400',
+                                        isEditable && 'hover:text-gray-600',
                                      )}
-                                     onClick={() => setAttitude(key)}
+                                     onClick={() => isEditable && setAttitude(key)}
                                  >
                                      {value.emoji}
                                      <span className={`text-xs font-medium`}>{value.label}</span>
@@ -319,9 +326,9 @@ export function ProgressPanel({ child }: { child: any }) {
                              {Object.entries(dilKaristirmaMap).map(([key, value]) => (
                                  <motion.div 
                                      key={key} 
-                                     whileHover={{ scale: 1.1 }} 
-                                     className={cn("flex flex-col items-center gap-1 cursor-pointer", languageMixing === key ? value.color : 'text-gray-400')}
-                                     onClick={() => setLanguageMixing(key)}
+                                     whileHover={isEditable ? { scale: 1.1 } : {}} 
+                                     className={cn("flex flex-col items-center gap-1", isEditable && "cursor-pointer", languageMixing === key ? value.color : 'text-gray-400')}
+                                     onClick={() => isEditable && setLanguageMixing(key)}
                                  >
                                     <div className='w-8 h-8 flex items-center justify-center'>{value.icon}</div>
                                     <span className='text-xs font-medium'>{value.label}</span>
@@ -342,7 +349,7 @@ export function ProgressPanel({ child }: { child: any }) {
                         <h4 className="font-semibold mb-3 text-gray-700 flex items-center gap-2">
                             <Star className="w-5 h-5 text-green-500 fill-green-500" />
                             Güçlü Alanlar
-                            <span className="text-xs text-muted-foreground">({strengths.length}/6)</span>
+                            {isEditable && <span className="text-xs text-muted-foreground">({strengths.length}/6)</span>}
                         </h4>
                          <div className="flex flex-wrap gap-2">
                             {summarySkills.map(skill => (
@@ -350,10 +357,11 @@ export function ProgressPanel({ child }: { child: any }) {
                                     key={skill.id}
                                     onClick={() => handleSummaryClick(skill.id, 'strength')}
                                     className={cn(
-                                        'cursor-pointer transition-all',
+                                        'transition-all',
+                                        isEditable ? 'cursor-pointer' : 'cursor-default',
                                         strengths.includes(skill.id) 
                                             ? 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200' 
-                                            : (weaknesses.includes(skill.id) ? 'bg-gray-200 text-gray-400 cursor-not-allowed border-transparent' : 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200')
+                                            : (weaknesses.includes(skill.id) || (!isEditable && !strengths.includes(skill.id)) ? 'bg-gray-200 text-gray-400 border-transparent' + (isEditable && !weaknesses.includes(skill.id) ? ' cursor-not-allowed' : '') : 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200')
                                     )}
                                 >
                                     {skill.label}
@@ -365,7 +373,7 @@ export function ProgressPanel({ child }: { child: any }) {
                         <h4 className="font-semibold mb-3 text-gray-700 flex items-center gap-2">
                             <Cloudy className="w-5 h-5 text-orange-500" />
                             Gelişime Açık Alanlar
-                             <span className="text-xs text-muted-foreground">({weaknesses.length}/6)</span>
+                             {isEditable && <span className="text-xs text-muted-foreground">({weaknesses.length}/6)</span>}
                         </h4>
                         <div className="flex flex-wrap gap-2">
                             {summarySkills.map(skill => (
@@ -373,10 +381,11 @@ export function ProgressPanel({ child }: { child: any }) {
                                     key={skill.id}
                                     onClick={() => handleSummaryClick(skill.id, 'weakness')}
                                     className={cn(
-                                        'cursor-pointer transition-all',
+                                        'transition-all',
+                                        isEditable ? 'cursor-pointer' : 'cursor-default',
                                         weaknesses.includes(skill.id) 
                                             ? 'bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200' 
-                                            : (strengths.includes(skill.id) ? 'bg-gray-200 text-gray-400 cursor-not-allowed border-transparent' : 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200')
+                                            : (strengths.includes(skill.id) || (!isEditable && !weaknesses.includes(skill.id)) ? 'bg-gray-200 text-gray-400 border-transparent' + (isEditable && !strengths.includes(skill.id) ? ' cursor-not-allowed' : '') : 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200')
                                     )}
                                 >
                                     {skill.label}
@@ -386,26 +395,32 @@ export function ProgressPanel({ child }: { child: any }) {
                     </div>
                     <div className="sm:col-span-2 mt-4">
                         <h4 className="font-semibold mb-2 text-gray-700 flex items-center gap-2"><Target className="w-5 h-5 text-red-500" />Önerilen Kurs</h4>
-                         <Select value={recommendedCourse} onValueChange={setRecommendedCourse}>
-                            <SelectTrigger className="w-full sm:w-[250px]">
-                                <SelectValue placeholder="Kurs Seçin..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {COURSES.map(course => (
-                                    <SelectItem key={course.id} value={course.id}>{course.title}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                         {isEditable ? (
+                            <Select value={recommendedCourse} onValueChange={setRecommendedCourse}>
+                                <SelectTrigger className="w-full sm:w-[250px]">
+                                    <SelectValue placeholder="Kurs Seçin..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {COURSES.map(course => (
+                                        <SelectItem key={course.id} value={course.id}>{course.title}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                         ) : (
+                             <p className='font-semibold text-gray-800'>{COURSES.find(c => c.id === recommendedCourse)?.title || 'Belirtilmedi'}</p>
+                         )}
                     </div>
                 </CardContent>
             </Card>
             
-            <div className="lg:col-span-3 flex justify-end">
-                <Button onClick={handleSave} disabled={isSaving}>
-                     {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Değişiklikleri Kaydet
-                </Button>
-            </div>
+            {isEditable && (
+                <div className="lg:col-span-3 flex justify-end">
+                    <Button onClick={handleSave} disabled={isSaving}>
+                         {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Değişiklikleri Kaydet
+                    </Button>
+                </div>
+            )}
         </div>
     );
 }

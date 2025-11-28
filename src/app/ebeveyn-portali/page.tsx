@@ -163,7 +163,7 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
                             <DialogTitle className="text-3xl font-bold font-headline">{child.firstName} İlerleme Paneli</DialogTitle>
                             <DialogDescription>Çocuğunuzun Türkçe öğrenme yolculuğuna dair kapsamlı analiz ve raporlar.</DialogDescription>
                         </DialogHeader>
-                        <ProgressPanel child={child} />
+                        <ProgressPanel child={child} isEditable={false} />
                     </DialogContent>
                 </Dialog>
             </div>
@@ -404,4 +404,3 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
-
