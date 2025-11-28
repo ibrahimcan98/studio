@@ -4,7 +4,7 @@
       "id": "hayvanlar",
       "name": "Hayvanlar",
       "icon": "🦁",
-      "words": 11,
+      "words": 10,
       "unlocked": true,
       "isPremium": false,
       "wordList": [
@@ -13,7 +13,6 @@
         { "word": "inek", "image": "/images/hayvanlar/inek.png", "audio": "/audio/hayvanlar/inek.mp3" },
         { "word": "kedi", "image": "/images/hayvanlar/kedi.png", "audio": "/audio/hayvanlar/kedi.mp3" },
         { "word": "köpek", "image": "/images/hayvanlar/kopek.png", "audio": "/audio/hayvanlar/kopek.mp3" },
-        { "word": "koyun", "image": "/images/hayvanlar/koyun.png", "audio": "/audio/hayvanlar/koyun.mp3" },
         { "word": "kurbağa", "image": "/images/hayvanlar/kurbaga.png", "audio": "/audio/hayvanlar/kurbaga.mp3" },
         { "word": "kuş", "image": "/images/hayvanlar/kus.png", "audio": "/audio/hayvanlar/kus.mp3" },
         { "word": "maymun", "image": "/images/hayvanlar/maymun.png", "audio": "/audio/hayvanlar/maymun.mp3" },
