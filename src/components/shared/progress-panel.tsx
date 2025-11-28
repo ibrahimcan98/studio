@@ -119,13 +119,13 @@ export function ProgressPanel({ child }: { child: any }) {
         if (type === 'strength') {
             if (isStrength) {
                 setStrengths(prev => prev.filter(s => s !== skillId));
-            } else if (!isWeakness && totalSelected < 3) {
+            } else if (!isWeakness && totalSelected < 6) {
                 setStrengths(prev => [...prev, skillId]);
             }
         } else if (type === 'weakness') {
             if (isWeakness) {
                 setWeaknesses(prev => prev.filter(w => w !== skillId));
-            } else if (!isStrength && totalSelected < 3) {
+            } else if (!isStrength && totalSelected < 6) {
                 setWeaknesses(prev => [...prev, skillId]);
             }
         }
@@ -342,7 +342,7 @@ export function ProgressPanel({ child }: { child: any }) {
                         <h4 className="font-semibold mb-3 text-gray-700 flex items-center gap-2">
                             <Star className="w-5 h-5 text-green-500 fill-green-500" />
                             Güçlü Alanlar
-                            <span className="text-xs text-muted-foreground">({strengths.length}/3)</span>
+                            <span className="text-xs text-muted-foreground">({strengths.length}/6)</span>
                         </h4>
                          <div className="flex flex-wrap gap-2">
                             {summarySkills.map(skill => (
@@ -365,7 +365,7 @@ export function ProgressPanel({ child }: { child: any }) {
                         <h4 className="font-semibold mb-3 text-gray-700 flex items-center gap-2">
                             <Cloudy className="w-5 h-5 text-orange-500" />
                             Gelişime Açık Alanlar
-                             <span className="text-xs text-muted-foreground">({weaknesses.length}/3)</span>
+                             <span className="text-xs text-muted-foreground">({weaknesses.length}/6)</span>
                         </h4>
                         <div className="flex flex-wrap gap-2">
                             {summarySkills.map(skill => (
@@ -409,5 +409,3 @@ export function ProgressPanel({ child }: { child: any }) {
         </div>
     );
 }
-
-    
