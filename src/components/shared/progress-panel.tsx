@@ -14,11 +14,9 @@ import {
     Star,
     Cloudy,
     Target,
-    Milestone,
     Smile,
     Meh,
     Frown,
-    CheckCircle,
     TrendingDown,
     TrendingUp,
     Minus,
@@ -33,7 +31,7 @@ import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore } from '@/firebase';
+import { useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { COURSES } from '@/data/courses';
@@ -138,31 +136,35 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
         setIsSaving(true);
         const childDocRef = doc(db, 'users', child.userId, 'children', child.id);
         
-        try {
-            await updateDoc(childDocRef, {
-                cefrProfile,
-                speakingInitiative,
-                attitude,
-                languageMixing,
-                strengths,
-                weaknesses,
-                recommendedCourse,
+        const updatedData = {
+            cefrProfile,
+            speakingInitiative,
+            attitude,
+            languageMixing,
+            strengths,
+            weaknesses,
+            recommendedCourse,
+        };
+
+        updateDoc(childDocRef, updatedData)
+            .then(() => {
+                toast({
+                    title: 'Kaydedildi',
+                    description: `${child.firstName} için ilerleme paneli güncellendi.`,
+                    className: 'bg-green-500 text-white'
+                });
+            })
+            .catch((serverError) => {
+                const permissionError = new FirestorePermissionError({
+                    path: childDocRef.path,
+                    operation: 'update',
+                    requestResourceData: updatedData,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            })
+            .finally(() => {
+                setIsSaving(false);
             });
-            toast({
-                title: 'Kaydedildi',
-                description: `${child.firstName} için ilerleme paneli güncellendi.`,
-                className: 'bg-green-500 text-white'
-            });
-        } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: 'Hata',
-                description: 'Değişiklikler kaydedilirken bir sorun oluştu.'
-            });
-            console.error("Error updating progress panel:", error);
-        } finally {
-            setIsSaving(false);
-        }
     };
 
 
