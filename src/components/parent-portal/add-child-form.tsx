@@ -84,6 +84,16 @@ export function AddChildForm({ userId, onChildAdded }: { userId: string, onChild
     },
   });
 
+  const onInvalid = (errors: any) => {
+    const firstErrorKey = Object.keys(errors)[0];
+    if (firstErrorKey) {
+      const errorElement = document.querySelector(`[name="${firstErrorKey}"]`);
+      if (errorElement) {
+        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  };
+
   const onSubmit = async (values: AddChildFormValues) => {
     if (!db) return;
     setIsSubmitting(true);
@@ -136,7 +146,7 @@ export function AddChildForm({ userId, onChildAdded }: { userId: string, onChild
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 max-h-[70vh] overflow-y-auto p-1 pr-4">
+          <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-8 max-h-[70vh] overflow-y-auto p-1 pr-4">
             
             {/* Bölüm 1 */}
             <div className='space-y-4 p-4 border rounded-lg'>
