@@ -128,7 +128,14 @@ export default function OgretmenDerslerimPage() {
             else past.push(lesson);
         });
         upcoming.sort((a, b) => a.startTime.seconds - b.startTime.seconds);
-        past.sort((a, b) => b.startTime.seconds - a.startTime.seconds);
+        // Sort past lessons: those without feedback come first, then by date descending
+        past.sort((a, b) => {
+            const aNeedsFeedback = !a.feedback;
+            const bNeedsFeedback = !b.feedback;
+            if (aNeedsFeedback && !bNeedsFeedback) return -1;
+            if (!aNeedsFeedback && bNeedsFeedback) return 1;
+            return b.startTime.seconds - a.startTime.seconds;
+        });
         return { upcomingLessons: upcoming, pastLessons: past };
     }, [lessons]);
 
@@ -184,16 +191,17 @@ export default function OgretmenDerslerimPage() {
                             {isChildDataLoading || !selectedChildData ? 'Öğrenci verileri yükleniyor...' : 'Çocuğunuzun Türkçe öğrenme yolculuğuna dair kapsamlı analiz ve raporlar.'}
                         </DialogDescription>
                     </DialogHeader>
-                    {isChildDataLoading || !selectedChildData ? (
+                    {isChildDataLoading || !selectedChildData || !selectedLesson ? (
                          <div className="flex h-full items-center justify-center">
                             <Loader2 className="h-16 w-16 animate-spin text-primary" />
                         </div>
                     ) : (
-                        <ProgressPanel child={selectedChildData} isEditable={true} />
+                        <ProgressPanel child={selectedChildData} lessonId={selectedLesson.id} isEditable={true} />
                     )}
                 </DialogContent>
             </Dialog>
         </div>
     );
 }
+
 

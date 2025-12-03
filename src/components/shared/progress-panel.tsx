@@ -33,7 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { COURSES } from '@/data/courses';
 import { Textarea } from '../ui/textarea';
@@ -97,7 +97,7 @@ interface Feedback {
     createdAt: string;
 }
 
-export function ProgressPanel({ child, isEditable = false }: { child: any, isEditable?: boolean }) {
+export function ProgressPanel({ child, lessonId, isEditable = false }: { child: any, lessonId?: string, isEditable?: boolean }) {
     const { toast } = useToast();
     const db = useFirestore();
     const [isSaving, setIsSaving] = useState(false);
@@ -160,36 +160,55 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
         const childDocRef = doc(db, 'users', child.userId, 'children', child.id);
 
         const updatedHistory = feedbackHistory.map(fb => 
-            fb.id === editingFeedback.id ? { ...fb, text: editingFeedback.text } : fb
+            fb.id === editingFeedback.id ? { ...fb, text: editingFeedback.text, createdAt: new Date().toISOString() } : fb
         );
+        
+        const feedbackToUpdateInLesson = updatedHistory.find(fb => fb.id === editingFeedback.id);
 
-        updateDoc(childDocRef, { feedbackHistory: updatedHistory })
-            .then(() => {
-                toast({
-                    title: 'Güncellendi',
-                    description: 'Geri bildirim başarıyla güncellendi.',
-                    className: 'bg-green-500 text-white'
-                });
-                setFeedbackHistory(updatedHistory);
-                setEditingFeedback(null); // This will close the dialog via onOpenChange
-            })
-            .catch((serverError) => {
-                 const permissionError = new FirestorePermissionError({
-                    path: childDocRef.path,
-                    operation: 'update',
-                    requestResourceData: { feedbackHistory: updatedHistory },
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            })
-            .finally(() => {
-                setIsSaving(false);
+        const batch = writeBatch(db);
+        
+        // Update history in child document
+        batch.update(childDocRef, { feedbackHistory: updatedHistory });
+
+        // If this feedback is tied to a specific lesson, update that lesson too.
+        if (lessonId && feedbackToUpdateInLesson) {
+            const lessonDocRef = doc(db, 'lesson-slots', lessonId);
+            batch.update(lessonDocRef, { 
+                feedback: {
+                    text: feedbackToUpdateInLesson.text,
+                    createdAt: serverTimestamp()
+                }
+             });
+        }
+
+
+        try {
+            await batch.commit();
+            toast({
+                title: 'Güncellendi',
+                description: 'Geri bildirim başarıyla güncellendi.',
+                className: 'bg-green-500 text-white'
             });
+            setFeedbackHistory(updatedHistory);
+            setEditingFeedback(null); // This will close the dialog via onOpenChange
+        } catch (serverError) {
+             const permissionError = new FirestorePermissionError({
+                path: childDocRef.path,
+                operation: 'update',
+                requestResourceData: { feedbackHistory: updatedHistory },
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
 
     const handleSave = async () => {
         if (!db || !child) return;
         setIsSaving(true);
+        
+        const batch = writeBatch(db);
         const childDocRef = doc(db, 'users', child.userId, 'children', child.id);
         
         let updatedFeedbackHistory = [...feedbackHistory];
@@ -206,37 +225,48 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
 
         if (newFeedback.trim() !== "") {
              const feedbackEntry = {
-                id: Date.now().toString(),
+                id: lessonId || Date.now().toString(), // Use lessonId if available, otherwise fallback
                 text: newFeedback,
                 createdAt: new Date().toISOString()
             };
             updatedFeedbackHistory.push(feedbackEntry);
             updatedData.feedbackHistory = updatedFeedbackHistory;
+            
+            // Also update the specific lesson-slot if lessonId is provided
+            if (lessonId) {
+                const lessonDocRef = doc(db, 'lesson-slots', lessonId);
+                batch.update(lessonDocRef, {
+                    feedback: {
+                        text: newFeedback,
+                        createdAt: serverTimestamp()
+                    }
+                });
+            }
         }
+        
+        batch.update(childDocRef, updatedData);
 
-        updateDoc(childDocRef, updatedData)
-            .then(() => {
-                toast({
-                    title: 'Kaydedildi',
-                    description: `${child.firstName} için ilerleme paneli güncellendi.`,
-                    className: 'bg-green-500 text-white'
-                });
-                 if (newFeedback.trim() !== "") {
-                    setFeedbackHistory(updatedFeedbackHistory);
-                    setNewFeedback("");
-                }
-            })
-            .catch((serverError) => {
-                 const permissionError = new FirestorePermissionError({
-                    path: childDocRef.path,
-                    operation: 'update',
-                    requestResourceData: updatedData,
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            })
-            .finally(() => {
-                setIsSaving(false);
+        try {
+            await batch.commit();
+            toast({
+                title: 'Kaydedildi',
+                description: `${child.firstName} için ilerleme paneli güncellendi.`,
+                className: 'bg-green-500 text-white'
             });
+             if (newFeedback.trim() !== "") {
+                setFeedbackHistory(updatedFeedbackHistory);
+                setNewFeedback("");
+            }
+        } catch (serverError) {
+             const permissionError = new FirestorePermissionError({
+                path: childDocRef.path,
+                operation: 'update',
+                requestResourceData: updatedData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const dateOfBirth = child.dateOfBirth ? new Date(child.dateOfBirth) : null;
@@ -547,7 +577,7 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
                                 </CarouselItem>
                             ))}
                         </CarouselContent>
-                         <div className="flex items-center justify-center gap-2 mt-4">
+                        <div className="flex items-center justify-center gap-2 mt-4">
                             <CarouselPrevious className="static translate-y-0 hidden sm:flex" />
                             <CarouselNext className="static translate-y-0 hidden sm:flex" />
                         </div>

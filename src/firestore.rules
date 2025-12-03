@@ -18,14 +18,15 @@ service cloud.firestore {
       allow get: if request.auth.uid == userId || isTeacher() || isAdmin() || (request.auth != null && get(/databases/$(database)/documents/users/$(userId)).data.role == 'teacher');
       allow list: if isTeacher() || isAdmin();
       allow create: if request.auth.uid == userId;
-      allow update, delete: if request.auth.uid == userId || isAdmin();
+      allow update: if request.auth.uid == userId || isAdmin();
+      allow delete: if request.auth.uid == userId || isAdmin();
     }
 
     match /users/{userId}/children/{childId} {
       allow get, list: if request.auth.uid == userId || isTeacher() || isAdmin();
-      // A user can create/update their own child, or an admin can.
+      // A user can create/update their own child, a teacher can update, or an admin can.
       // create/update: The incoming child document's userId must match the parent's uid.
-      allow create, update: if (request.auth.uid == userId && request.resource.data.userId == userId) || isAdmin();
+      allow create, update: if (request.auth.uid == userId && request.resource.data.userId == userId) || isTeacher() || isAdmin();
       // delete: The parent must be the one deleting, checking the existing document.
       allow delete: if (request.auth.uid == userId && resource.data.userId == userId) || isAdmin();
     }
@@ -33,6 +34,10 @@ service cloud.firestore {
     match /lesson-slots/{slotId} {
         allow get, list: if request.auth != null;
         allow create: if isTeacher() || isAdmin();
+        // A user can book an available slot.
+        // The teacher of the slot can modify it.
+        // The user who booked can modify (e.g., cancel) it.
+        // An admin can modify it.
         allow update: if (request.auth != null && resource.data.status == 'available' && request.resource.data.status == 'booked') || 
                        (request.auth.uid == resource.data.teacherId) || 
                        (request.auth.uid == resource.data.bookedBy) || isAdmin();
