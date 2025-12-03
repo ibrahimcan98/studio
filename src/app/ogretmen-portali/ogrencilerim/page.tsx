@@ -24,8 +24,25 @@ import {
 
 
 // Constants
-const LESSON_PRICE_EURO = 10;
 const LESSON_DURATION_MINUTES = 30;
+
+const getLessonPrice = (packageCode: string | undefined): number => {
+    if (!packageCode) return 0;
+
+    if (packageCode === 'FREE_TRIAL') return 3;
+
+    // Extract letter from codes like '4B', '12K', '8G'
+    const courseType = packageCode.replace(/[0-9]/g, '');
+
+    switch (courseType) {
+        case 'B': return 3;  // Başlangıç
+        case 'K': return 4;  // Konuşma
+        case 'G': return 6;  // Gelişim
+        case 'A': return 6;  // Akademik
+        default: return 0;
+    }
+};
+
 
 function StatCard({ title, value, icon: Icon, unit }: { title: string, value: string | number, icon: React.ElementType, unit?: string }) {
   return (
@@ -63,7 +80,7 @@ const StudentCard = ({ student, lessons }: { student: any, lessons: any[] }) => 
     const studentLessons = lessons.filter(l => l.childId === student.childId);
     const totalLessons = studentLessons.length;
     const totalHours = (totalLessons * LESSON_DURATION_MINUTES) / 60;
-    const totalEarned = totalLessons * LESSON_PRICE_EURO;
+    const totalEarned = studentLessons.reduce((sum, lesson) => sum + getLessonPrice(lesson.packageCode), 0);
     const lastLesson = studentLessons.sort((a,b) => b.startTime.seconds - a.startTime.seconds)[0];
 
     return (
@@ -175,11 +192,7 @@ export default function OgrencilerimPage() {
     const { data: lessons, isLoading: lessonsLoading } = useCollection(lessonsQuery);
 
     const stats = useMemo(() => {
-        if (!lessons) return { totalStudents: 0, lessonsThisMonth: 0, hoursTaught: 0, earningsThisMonth: 0, uniqueStudents: [] };
-        
-        const now = new Date();
-        const monthStart = startOfMonth(now);
-        const monthEnd = endOfMonth(now);
+        if (!lessons) return { totalStudents: 0, totalLessons: 0, hoursTaught: 0, totalEarnings: 0, uniqueStudents: [] };
         
         const uniqueStudents = lessons.reduce((acc: any[], lesson) => {
             if (!acc.some(s => s.childId === lesson.childId)) {
@@ -188,16 +201,15 @@ export default function OgrencilerimPage() {
             return acc;
         }, []);
 
-        const lessonsThisMonth = lessons.filter(l => isWithinInterval(l.startTime.toDate(), { start: monthStart, end: monthEnd }));
-
-        const totalHoursTaught = (lessons.length * LESSON_DURATION_MINUTES) / 60;
-        const earningsThisMonth = lessonsThisMonth.length * LESSON_PRICE_EURO;
+        const totalLessons = lessons.length;
+        const totalHoursTaught = (totalLessons * LESSON_DURATION_MINUTES) / 60;
+        const totalEarnings = lessons.reduce((sum, lesson) => sum + getLessonPrice(lesson.packageCode), 0);
         
         return {
             totalStudents: uniqueStudents.length,
-            lessonsThisMonth: lessonsThisMonth.length,
+            totalLessons: totalLessons,
             hoursTaught: totalHoursTaught,
-            earningsThisMonth,
+            totalEarnings: totalEarnings,
             uniqueStudents,
         };
 
@@ -218,9 +230,9 @@ export default function OgrencilerimPage() {
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <StatCard title="Toplam Öğrenci" value={stats.totalStudents} icon={Users} />
-                <StatCard title="Bu Ayki Dersler" value={stats.lessonsThisMonth} icon={BookOpen} />
+                <StatCard title="Toplam Ders Sayısı" value={stats.totalLessons} icon={BookOpen} />
                 <StatCard title="Toplam Ders Saati" value={stats.hoursTaught.toFixed(1)} icon={Clock} unit="saat" />
-                <StatCard title="Bu Ayki Kazanç" value={`€${stats.earningsThisMonth.toFixed(2)}`} icon={Euro} />
+                <StatCard title="Toplam Kazanç" value={`€${stats.totalEarnings.toFixed(2)}`} icon={Euro} />
             </div>
 
             <Card>
