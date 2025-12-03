@@ -5,7 +5,7 @@
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
-import { Loader2, Calendar, History, User, BookOpen, Baby, MessageSquare, Edit } from 'lucide-react';
+import { Loader2, Calendar, History, User, BookOpen, Baby, MessageSquare, Edit, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog"
 import { useToast } from '@/hooks/use-toast';
 import { ProgressPanel } from '@/components/shared/progress-panel';
+import { cn } from '@/lib/utils';
 
 const getCourseDetailsFromPackageCode = (code?: string) => {
     if (!code) return null;
@@ -53,9 +54,10 @@ function LessonCard({ lesson, onOpenProgressPanel }: { lesson: any, onOpenProgre
     const packageDetails = getCourseDetailsFromPackageCode(lesson.packageCode);
     const lessonDate = lesson.startTime.toDate();
     const isPast = new Date() > lessonDate;
+    const needsFeedback = isPast && !lesson.feedback;
 
     return (
-        <Card className='flex flex-col'>
+        <Card className={cn('flex flex-col', needsFeedback && 'border-destructive')}>
             <CardHeader>
                 <CardTitle className="flex justify-between items-start">
                     <span className="text-lg">{packageDetails?.courseName || 'Ders'}</span>
@@ -74,12 +76,21 @@ function LessonCard({ lesson, onOpenProgressPanel }: { lesson: any, onOpenProgre
                     <BookOpen className="w-4 h-4 text-muted-foreground" />
                     <span><strong>Paket:</strong> {lesson.packageCode === 'FREE_TRIAL' ? 'Ücretsiz Deneme' : lesson.packageCode}</span>
                 </div>
+                {needsFeedback && (
+                     <Badge variant="destructive" className="mt-2">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        Geri Bildirim Bekliyor
+                    </Badge>
+                )}
             </CardContent>
             {isPast && (
                 <>
                     <Separator />
                     <CardFooter className="flex-col items-start gap-3 pt-4">
-                        <Button onClick={onOpenProgressPanel}><Edit className='w-4 h-4 mr-2'/> İlerleme Panelini Görüntüle</Button>
+                        <Button onClick={onOpenProgressPanel}>
+                            <Edit className='w-4 h-4 mr-2'/> 
+                            {needsFeedback ? "Geri Bildirim Ekle" : "İlerleme Panelini Görüntüle"}
+                        </Button>
                     </CardFooter>
                 </>
             )}
@@ -185,3 +196,4 @@ export default function OgretmenDerslerimPage() {
         </div>
     );
 }
+
