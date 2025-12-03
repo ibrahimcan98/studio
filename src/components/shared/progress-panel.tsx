@@ -166,7 +166,6 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
             updatedFeedbackHistory = updatedFeedbackHistory.map(fb =>
                 fb.id === editingFeedback.id ? { ...fb, text: editingFeedback.text } : fb
             );
-            setEditingFeedback(null);
         }
 
         const updatedData: any = {
@@ -196,10 +195,9 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
                     description: `${child.firstName} için ilerleme paneli güncellendi.`,
                     className: 'bg-green-500 text-white'
                 });
-                 if (newFeedback.trim() !== "") {
-                    setFeedbackHistory(updatedData.feedbackHistory);
-                    setNewFeedback("");
-                }
+                setFeedbackHistory(updatedData.feedbackHistory);
+                setNewFeedback("");
+                setEditingFeedback(null);
             })
             .catch((serverError) => {
                 const permissionError = new FirestorePermissionError({
@@ -213,15 +211,6 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
                 setIsSaving(false);
             });
     };
-    
-    const handleEditFeedbackSave = () => {
-        if (!editingFeedback) return;
-        const updatedHistory = feedbackHistory.map(fb => fb.id === editingFeedback.id ? editingFeedback : fb);
-        setFeedbackHistory(updatedHistory);
-        handleSave();
-    };
-
-
 
     const dateOfBirth = child.dateOfBirth ? new Date(child.dateOfBirth) : null;
     const age = dateOfBirth ? differenceInYears(new Date(), dateOfBirth) : 'N/A';
@@ -485,10 +474,14 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
                         <CarouselContent className="-ml-4">
                             {sortedFeedback.map((fb, index) => (
                                 <CarouselItem key={`${fb.id}-${index}`} className="pl-4 md:basis-1/2 lg:basis-1/3">
-                                     <Dialog onOpenChange={(isOpen) => !isOpen && setEditingFeedback(null)}>
+                                     <Dialog onOpenChange={(isOpen) => {
+                                         if (!isOpen) {
+                                             setEditingFeedback(null);
+                                         }
+                                     }}>
                                         <DialogTrigger asChild>
                                             <div className="p-1 h-full">
-                                                <Card className="h-full cursor-pointer hover:bg-muted">
+                                                <Card className="h-full cursor-pointer hover:bg-muted" onClick={() => setEditingFeedback(fb)}>
                                                     <CardContent className="flex flex-col gap-4 p-4">
                                                         <p className="text-sm text-muted-foreground flex-grow line-clamp-3">"{fb.text}"</p>
                                                         <span className="text-xs text-gray-400 self-end">{format(new Date(fb.createdAt), 'dd MMM yyyy, HH:mm', { locale: tr })}</span>
@@ -507,7 +500,7 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
                                                 <div className="py-4 space-y-2">
                                                     <Textarea
                                                         defaultValue={fb.text}
-                                                        onChange={(e) => setEditingFeedback({ ...fb, text: e.target.value })}
+                                                        onChange={(e) => setEditingFeedback(prev => prev ? { ...prev, text: e.target.value } : null)}
                                                         rows={6}
                                                     />
                                                 </div>
@@ -516,7 +509,7 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
                                             )}
                                              {isEditable && (
                                                 <DialogFooter>
-                                                    <Button onClick={handleEditFeedbackSave}>Değişiklikleri Kaydet</Button>
+                                                    <Button onClick={handleSave}>Değişiklikleri Kaydet</Button>
                                                 </DialogFooter>
                                             )}
                                         </DialogContent>
@@ -555,3 +548,4 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
         </div>
     );
 }
+
