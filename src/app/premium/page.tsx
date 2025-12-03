@@ -1,9 +1,10 @@
+
 'use client';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Crown, Zap, Star, Award, CheckCircle, Shield, Lock, Infinity as InfinityIcon } from 'lucide-react';
+import { Crown, Zap, Star, Award, CheckCircle, Shield, Lock, Infinity as InfinityIcon, CreditCard } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, updateDoc } from 'firebase/firestore';
 import { useRouter } from "next/navigation";
@@ -13,6 +14,17 @@ import Link from 'next/link';
 import { addMonths } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { 
+    Dialog, 
+    DialogContent, 
+    DialogHeader, 
+    DialogTitle, 
+    DialogDescription, 
+    DialogFooter, 
+    DialogTrigger 
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 
 const premiumFeatures = [
@@ -52,6 +64,8 @@ export default function PremiumPage() {
     const router = useRouter();
     const { toast } = useToast();
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+
 
     const userDocRef = useMemoFirebase(() => {
         if (!user || !db) return null;
@@ -66,7 +80,9 @@ export default function PremiumPage() {
         }
     }, [isUserDataLoading, userData, router]);
 
-    const handlePurchase = async () => {
+    const handlePurchase = async (e: React.FormEvent) => {
+        e.preventDefault();
+
         if (!user || !db) {
             toast({
                 variant: 'destructive',
@@ -99,7 +115,8 @@ export default function PremiumPage() {
                 description: 'Premium üyeliğiniz başarıyla aktif edildi.',
                 className: 'bg-green-500 text-white',
             });
-
+            
+            setIsDialogOpen(false);
             router.push('/ebeveyn-portali');
 
         } catch (error) {
@@ -134,38 +151,77 @@ export default function PremiumPage() {
                 </div>
                 
                 <div className="flex justify-center mb-16">
-                     <Card className={cn(`flex flex-col h-full transition-all shadow-lg w-full max-w-sm`, 'border-primary border-2 transform lg:-translate-y-4 bg-gradient-to-br from-yellow-300 to-orange-400 text-white' )}>
-                        <CardHeader className="items-center text-center">
-                            <Badge className="mb-4 bg-white text-orange-500 hover:bg-white/90">Aylık Plan</Badge>
-                            <CardTitle className="text-2xl">Premium</CardTitle>
-                            <div className="flex items-baseline gap-2 mt-4">
-                            <span className="text-4xl font-extrabold">14 €</span>
-                            <span className={cn("font-semibold", "text-white/80")}>/ ay</span>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="flex-1">
-                            <ul className={cn("text-sm space-y-2 text-left px-4", "text-white/90")}>
-                                    <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400"/>Sınırsız can</li>
-                                    <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400"/>Tüm kategoriler açık</li>
-                                    <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400"/>Özel rozetler</li>
-                                    <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400"/>Reklamsız deneyim</li>
-                            </ul>
-                        </CardContent>
-                        <CardFooter>
-                            <Button
-                                className={cn("w-full font-bold", 'bg-white text-orange-500 hover:bg-gray-100')}
-                                onClick={handlePurchase}
-                                disabled={isProcessing}
-                            >
-                                {isProcessing ? (
-                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                ) : (
-                                    <Crown className="mr-2 h-5 w-5" />
-                                )}
-                                {isProcessing ? 'İşleniyor...' : 'Şimdi Premium Ol'}
-                            </Button>
-                        </CardFooter>
-                    </Card>
+                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                        <DialogTrigger asChild>
+                             <Card className={cn(`flex flex-col h-full transition-all shadow-lg w-full max-w-sm cursor-pointer`, 'border-primary border-2 transform lg:-translate-y-4 bg-gradient-to-br from-yellow-300 to-orange-400 text-white' )}>
+                                <CardHeader className="items-center text-center">
+                                    <Badge className="mb-4 bg-white text-orange-500 hover:bg-white/90">Aylık Plan</Badge>
+                                    <CardTitle className="text-2xl">Premium</CardTitle>
+                                    <div className="flex items-baseline gap-2 mt-4">
+                                    <span className="text-4xl font-extrabold">14 €</span>
+                                    <span className={cn("font-semibold", "text-white/80")}>/ ay</span>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="flex-1">
+                                    <ul className={cn("text-sm space-y-2 text-left px-4", "text-white/90")}>
+                                            <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400"/>Sınırsız can</li>
+                                            <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400"/>Tüm kategoriler açık</li>
+                                            <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400"/>Özel rozetler</li>
+                                            <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400"/>Reklamsız deneyim</li>
+                                    </ul>
+                                </CardContent>
+                                <CardFooter>
+                                    <Button
+                                        className={cn("w-full font-bold", 'bg-white text-orange-500 hover:bg-gray-100')}
+                                        disabled={isProcessing}
+                                    >
+                                        <Crown className="mr-2 h-5 w-5" />
+                                        Şimdi Premium Ol
+                                    </Button>
+                                </CardFooter>
+                            </Card>
+                        </DialogTrigger>
+                        <DialogContent>
+                             <DialogHeader>
+                                <DialogTitle>Ödeme Bilgileri</DialogTitle>
+                                <DialogDescription>
+                                    Premium üyelik için ödeme bilgilerinizi girin.
+                                </DialogDescription>
+                            </DialogHeader>
+                             <form onSubmit={handlePurchase}>
+                                <div className="space-y-4 py-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="card-number">Kart Numarası</Label>
+                                        <Input id="card-number" placeholder="•••• •••• •••• ••••" required disabled={isProcessing} />
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div className="space-y-2 col-span-2">
+                                            <Label htmlFor="expiry-date">Son Kullanma Tarihi</Label>
+                                            <Input id="expiry-date" placeholder="AA / YY" required disabled={isProcessing} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="cvc">CVC</Label>
+                                            <Input id="cvc" placeholder="•••" required disabled={isProcessing} />
+                                        </div>
+                                    </div>
+                                        <div className="space-y-2">
+                                        <Label htmlFor="card-holder">Kart Sahibi</Label>
+                                        <Input id="card-holder" placeholder="Ad Soyad" required disabled={isProcessing} />
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <Button type="submit" className="w-full" disabled={isProcessing}>
+                                         {isProcessing ? (
+                                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                        ) : (
+                                            <CreditCard className="mr-2" />
+                                        )}
+                                        {isProcessing ? 'İşleniyor...' : '14 € Ödemeyi Onayla ve Abone Ol'}
+                                    </Button>
+                                </DialogFooter>
+                            </form>
+                        </DialogContent>
+                    </Dialog>
                 </div>
 
 
