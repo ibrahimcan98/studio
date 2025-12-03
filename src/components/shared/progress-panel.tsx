@@ -262,7 +262,7 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
                         </Avatar>
                         <p className="font-bold text-xl text-gray-800">{child.firstName}</p>
                         <p className="text-sm text-gray-600">ID: {child.id.substring(0, 6).toUpperCase()}</p>
-                        <div className="text-sm mt-2 text-gray-500 flex flex-col items-center">
+                         <div className="text-sm mt-2 text-gray-500 flex flex-col items-center">
                             <span>{age} yaş</span>
                             <span>{child.countryOfResidence.split(',')[0]}</span>
                             <span>Okul Dili: {child.schoolLanguage}</span>
@@ -483,8 +483,8 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
                 {sortedFeedback.length > 0 ? (
                      <Carousel className="w-full">
                         <CarouselContent className="-ml-4">
-                            {sortedFeedback.map((fb) => (
-                                <CarouselItem key={fb.id} className="pl-4 md:basis-1/2 lg:basis-1/3">
+                            {sortedFeedback.map((fb, index) => (
+                                <CarouselItem key={`${fb.id}-${index}`} className="pl-4 md:basis-1/2 lg:basis-1/3">
                                      <Dialog onOpenChange={(isOpen) => !isOpen && setEditingFeedback(null)}>
                                         <DialogTrigger asChild>
                                             <div className="p-1 h-full">
