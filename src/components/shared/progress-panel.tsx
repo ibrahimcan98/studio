@@ -39,6 +39,16 @@ import { COURSES } from '@/data/courses';
 import { Textarea } from '../ui/textarea';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Separator } from '../ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+
 
 const difficultiesMap: { [key: string]: string } = {
     "kelime": "Kelime",
@@ -81,6 +91,11 @@ const summarySkills = [
     { id: 'maruziyet', label: 'Türkçe maruziyet' },
 ];
 
+interface Feedback {
+    id: string;
+    text: string;
+    createdAt: string;
+}
 
 export function ProgressPanel({ child, isEditable = false }: { child: any, isEditable?: boolean }) {
     const { toast } = useToast();
@@ -96,7 +111,8 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
     const [weaknesses, setWeaknesses] = useState<string[]>(child.weaknesses || []);
     const [recommendedCourse, setRecommendedCourse] = useState(child.recommendedCourse || '');
     const [newFeedback, setNewFeedback] = useState("");
-    const [feedbackHistory, setFeedbackHistory] = useState(child.feedbackHistory || []);
+    const [feedbackHistory, setFeedbackHistory] = useState<Feedback[]>(child.feedbackHistory || []);
+    const [editingFeedback, setEditingFeedback] = useState<Feedback | null>(null);
 
 
     useEffect(() => {
@@ -143,6 +159,16 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
         setIsSaving(true);
         const childDocRef = doc(db, 'users', child.userId, 'children', child.id);
         
+        let updatedFeedbackHistory = [...feedbackHistory];
+
+        // Handle editing existing feedback
+        if (editingFeedback) {
+            updatedFeedbackHistory = updatedFeedbackHistory.map(fb =>
+                fb.id === editingFeedback.id ? { ...fb, text: editingFeedback.text } : fb
+            );
+            setEditingFeedback(null);
+        }
+
         const updatedData: any = {
             cefrProfile,
             speakingInitiative,
@@ -151,14 +177,16 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
             strengths,
             weaknesses,
             recommendedCourse,
+            feedbackHistory: updatedFeedbackHistory,
         };
 
         if (newFeedback.trim() !== "") {
-            const feedbackEntry = {
+             const feedbackEntry = {
+                id: Date.now().toString(),
                 text: newFeedback,
                 createdAt: new Date().toISOString()
             };
-            updatedData.feedbackHistory = arrayUnion(feedbackEntry);
+            updatedData.feedbackHistory.push(feedbackEntry);
         }
 
         updateDoc(childDocRef, updatedData)
@@ -168,8 +196,8 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
                     description: `${child.firstName} için ilerleme paneli güncellendi.`,
                     className: 'bg-green-500 text-white'
                 });
-                if(newFeedback.trim() !== "") {
-                    setFeedbackHistory((prev: any) => [...prev, {text: newFeedback, createdAt: new Date().toISOString()}]);
+                 if (newFeedback.trim() !== "") {
+                    setFeedbackHistory(updatedData.feedbackHistory);
                     setNewFeedback("");
                 }
             })
@@ -185,6 +213,14 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
                 setIsSaving(false);
             });
     };
+    
+    const handleEditFeedbackSave = () => {
+        if (!editingFeedback) return;
+        const updatedHistory = feedbackHistory.map(fb => fb.id === editingFeedback.id ? editingFeedback : fb);
+        setFeedbackHistory(updatedHistory);
+        handleSave();
+    };
+
 
 
     const dateOfBirth = child.dateOfBirth ? new Date(child.dateOfBirth) : null;
@@ -447,16 +483,44 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
                 {sortedFeedback.length > 0 ? (
                      <Carousel className="w-full">
                         <CarouselContent className="-ml-4">
-                            {sortedFeedback.map((fb: any, index: number) => (
-                                <CarouselItem key={index} className="pl-4 md:basis-1/2 lg:basis-1/3">
-                                    <div className="p-1">
-                                        <Card>
-                                            <CardContent className="flex flex-col gap-4 p-4">
-                                                <p className="text-sm text-muted-foreground flex-grow">"{fb.text}"</p>
-                                                <span className="text-xs text-gray-400 self-end">{format(new Date(fb.createdAt), 'dd MMM yyyy, HH:mm', { locale: tr })}</span>
-                                            </CardContent>
-                                        </Card>
-                                    </div>
+                            {sortedFeedback.map((fb) => (
+                                <CarouselItem key={fb.id} className="pl-4 md:basis-1/2 lg:basis-1/3">
+                                     <Dialog onOpenChange={(isOpen) => !isOpen && setEditingFeedback(null)}>
+                                        <DialogTrigger asChild>
+                                            <div className="p-1 h-full">
+                                                <Card className="h-full cursor-pointer hover:bg-muted">
+                                                    <CardContent className="flex flex-col gap-4 p-4">
+                                                        <p className="text-sm text-muted-foreground flex-grow line-clamp-3">"{fb.text}"</p>
+                                                        <span className="text-xs text-gray-400 self-end">{format(new Date(fb.createdAt), 'dd MMM yyyy, HH:mm', { locale: tr })}</span>
+                                                    </CardContent>
+                                                </Card>
+                                            </div>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                            <DialogHeader>
+                                                <DialogTitle>Geri Bildirim Detayı</DialogTitle>
+                                                 <DialogDescription>
+                                                    {format(new Date(fb.createdAt), 'dd MMMM yyyy, HH:mm', { locale: tr })}
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                             {isEditable ? (
+                                                <div className="py-4 space-y-2">
+                                                    <Textarea
+                                                        defaultValue={fb.text}
+                                                        onChange={(e) => setEditingFeedback({ ...fb, text: e.target.value })}
+                                                        rows={6}
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <p className="py-4">{fb.text}</p>
+                                            )}
+                                             {isEditable && (
+                                                <DialogFooter>
+                                                    <Button onClick={handleEditFeedbackSave}>Değişiklikleri Kaydet</Button>
+                                                </DialogFooter>
+                                            )}
+                                        </DialogContent>
+                                    </Dialog>
                                 </CarouselItem>
                             ))}
                         </CarouselContent>

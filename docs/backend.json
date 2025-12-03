@@ -177,10 +177,11 @@
           "items": {
             "type": "object",
             "properties": {
+              "id": { "type": "string", "description": "Unique identifier for the feedback entry." },
               "text": { "type": "string", "description": "The content of the feedback." },
               "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the feedback was created." }
             },
-            "required": ["text", "createdAt"]
+            "required": ["id", "text", "createdAt"]
           }
         }
       },
