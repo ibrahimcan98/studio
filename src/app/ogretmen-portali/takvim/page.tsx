@@ -22,7 +22,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { formatInTimeZone, toZonedTime, zonedTimeToUtc } from 'date-fns-tz';
+import { formatInTimeZone, toZonedTime, toDate } from 'date-fns-tz';
 import { COURSES } from '@/data/courses';
 
 
@@ -180,10 +180,9 @@ export default function TakvimYonetimiPage() {
 
         const [hours, minutes] = time.split(':').map(Number);
         
-        // Create date in Turkey's timezone, then convert to UTC for Timestamp
-        const zonedDate = set(startOfDay(selectedDate), { hours, minutes });
-        const utcDate = zonedTimeToUtc(zonedDate, turkeyTimeZone);
-        const startTime = Timestamp.fromDate(utcDate);
+        const dateString = `${format(selectedDate, 'yyyy-MM-dd')}T${time}:00`;
+        const dateInTurkeyTz = toDate(dateString, { timeZone: turkeyTimeZone });
+        const startTime = Timestamp.fromDate(dateInTurkeyTz);
 
         setIsSubmitting(prevState => ({ ...prevState, [time]: true }));
         
@@ -253,7 +252,7 @@ export default function TakvimYonetimiPage() {
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen">
             <div>
                  <p className="text-muted-foreground mb-1">Hoş geldin, {getTeacherName()}!</p>
-                <h2 className="text-3xl font-bold tracking-tight">Müsaitlik Takvimi</h2>
+                <h2 className="text-3xl font-bold tracking-tight">Müsaitlik Takvimi (Türkiye Saati)</h2>
             </div>
             
             <Card className="p-4 sm:p-6">
