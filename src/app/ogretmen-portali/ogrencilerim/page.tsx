@@ -4,13 +4,15 @@
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, getDocs } from 'firebase/firestore';
-import { Loader2, Users, BookOpen, Clock, Euro, ArrowRight } from 'lucide-react';
+import { Loader2, Users, BookOpen, Clock, Euro, ArrowRight, ChevronDown, User as UserIcon, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
 
 // Constants
 const LESSON_PRICE_EURO = 10;
@@ -32,21 +34,20 @@ function StatCard({ title, value, icon: Icon, unit }: { title: string, value: st
   );
 }
 
-const StudentRow = ({ student, lessons }: { student: any, lessons: any[] }) => {
+const StudentCard = ({ student, lessons }: { student: any, lessons: any[] }) => {
     const db = useFirestore();
     const childDocRef = useMemoFirebase(() => {
         if (!db || !student.userId || !student.childId) return null;
         return doc(db, 'users', student.userId, 'children', student.childId);
     }, [db, student.userId, student.childId]);
     const { data: childData, isLoading: isChildLoading } = useDoc(childDocRef);
+    const [isOpen, setIsOpen] = useState(false);
 
     if (isChildLoading) {
         return (
-            <TableRow>
-                <TableCell colSpan={8} className="text-center">
-                    <Loader2 className="mx-auto h-6 w-6 animate-spin" />
-                </TableCell>
-            </TableRow>
+            <Card className="p-4 flex items-center justify-center min-h-[120px]">
+                <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+            </Card>
         );
     }
     
@@ -57,20 +58,63 @@ const StudentRow = ({ student, lessons }: { student: any, lessons: any[] }) => {
     const lastLesson = studentLessons.sort((a,b) => b.startTime.seconds - a.startTime.seconds)[0];
 
     return (
-        <TableRow>
-            <TableCell className="font-medium">{childData?.firstName}</TableCell>
-            <TableCell>{childData?.level || 'N/A'}</TableCell>
-            <TableCell>{childData?.assignedPackageName || 'N/A'}</TableCell>
-            <TableCell>
-                {lastLesson ? format(lastLesson.startTime.toDate(), 'dd MMM yyyy', { locale: tr }) : 'N/A'}
-            </TableCell>
-            <TableCell>{totalLessons}</TableCell>
-            <TableCell>{totalHours.toFixed(1)}</TableCell>
-            <TableCell>€{totalEarned.toFixed(2)}</TableCell>
-            <TableCell>
-                <Button variant="outline" size="sm" disabled>Detaylar</Button>
-            </TableCell>
-        </TableRow>
+         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+            <Card className="overflow-hidden">
+                <CollapsibleTrigger asChild>
+                    <div className='flex items-center p-4 cursor-pointer hover:bg-muted/50'>
+                         <Avatar className="h-12 w-12 mr-4">
+                            <AvatarFallback className="bg-primary/20 text-primary font-bold text-lg">
+                                {childData?.firstName?.charAt(0)}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                            <p className="font-bold text-lg">{childData?.firstName}</p>
+                            <p className="text-sm text-muted-foreground">{childData?.level || 'N/A'}</p>
+                        </div>
+                        <Badge variant="secondary" className="mr-4">{totalLessons} Ders</Badge>
+                        <Button variant="ghost" size="sm" className="data-[state=open]:rotate-180">
+                            <ChevronDown className="h-5 w-5" />
+                        </Button>
+                    </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                    <div className="px-6 pb-4 space-y-4 pt-2">
+                        <Separator />
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div className="flex items-center gap-2">
+                                <BookOpen className="w-4 h-4 text-muted-foreground" />
+                                <div>
+                                    <p className="font-semibold">{childData?.assignedPackageName || 'N/A'}</p>
+                                    <p className="text-xs text-muted-foreground">Kurs</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Calendar className="w-4 h-4 text-muted-foreground" />
+                                <div>
+                                    <p className="font-semibold">{lastLesson ? format(lastLesson.startTime.toDate(), 'dd MMM yyyy', { locale: tr }) : 'N/A'}</p>
+                                    <p className="text-xs text-muted-foreground">Son Ders</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Clock className="w-4 h-4 text-muted-foreground" />
+                                <div>
+                                    <p className="font-semibold">{totalHours.toFixed(1)} Saat</p>
+                                    <p className="text-xs text-muted-foreground">Toplam Süre</p>
+                                </div>
+                            </div>
+                             <div className="flex items-center gap-2">
+                                <Euro className="w-4 h-4 text-muted-foreground" />
+                                <div>
+                                    <p className="font-semibold">€{totalEarned.toFixed(2)}</p>
+                                    <p className="text-xs text-muted-foreground">Toplam Kazanç</p>
+                                </div>
+                            </div>
+                        </div>
+                         <Button variant="outline" size="sm" className="w-full mt-2" disabled>Öğrenci Detayları</Button>
+                    </div>
+                </CollapsibleContent>
+            </Card>
+        </Collapsible>
     );
 };
 
@@ -135,43 +179,27 @@ export default function OgrencilerimPage() {
                 <StatCard title="Bu Ayki Kazanç" value={`€${stats.earningsThisMonth.toFixed(2)}`} icon={Euro} />
             </div>
 
-            <div className="grid grid-cols-1 gap-8">
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>Öğrencilerim</CardTitle>
-                        <CardDescription>Tüm öğrencilerinizin bir listesi ve temel istatistikleri.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Öğrenci</TableHead>
-                                    <TableHead>Seviye</TableHead>
-                                    <TableHead>Kurs</TableHead>
-                                    <TableHead>Son Ders</TableHead>
-                                    <TableHead>Toplam Ders</TableHead>
-                                    <TableHead>Toplam Saat</TableHead>
-                                    <TableHead>Toplam Kazanç</TableHead>
-                                    <TableHead>İşlemler</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {stats.uniqueStudents.length > 0 ? (
-                                    stats.uniqueStudents.map(student => (
-                                        <StudentRow key={student.childId} student={student} lessons={lessons || []}/>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={8} className="h-24 text-center">
-                                            Henüz öğrenciniz bulunmuyor.
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Öğrencilerim</CardTitle>
+                    <CardDescription>Tüm öğrencilerinizin bir listesi ve temel istatistikleri.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {lessonsLoading ? (
+                        <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
+                    ) : stats.uniqueStudents.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {stats.uniqueStudents.map(student => (
+                                <StudentCard key={student.childId} student={student} lessons={lessons || []}/>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="h-24 text-center flex items-center justify-center text-muted-foreground">
+                            Henüz öğrenciniz bulunmuyor.
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
         </div>
     );
 }
