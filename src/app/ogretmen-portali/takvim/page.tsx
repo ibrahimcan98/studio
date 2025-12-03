@@ -22,7 +22,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { formatInTimeZone, toZonedTime, zonedTimeToUtc } from 'date-fns-tz';
 import { COURSES } from '@/data/courses';
 
 
@@ -136,15 +136,10 @@ export default function TakvimYonetimiPage() {
     const [isSubmitting, setIsSubmitting] = useState<Record<string, boolean>>({});
     const [selectedSlot, setSelectedSlot] = useState<SlotDetails | null>(null);
     const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
-    const [timeZone, setTimeZone] = useState('');
-
-    useEffect(() => {
-        setTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
-    }, []);
+    const turkeyTimeZone = 'Europe/Istanbul';
 
     const lessonSlotsQuery = useMemoFirebase(() => {
         if (!db || !user) return null;
-        // Query only for slots belonging to the currently logged-in teacher
         return query(collection(db, 'lesson-slots'), where('teacherId', '==', user.uid));
     }, [db, user]);
 
@@ -154,24 +149,23 @@ export default function TakvimYonetimiPage() {
         if (!lessonSlots) return [];
         return lessonSlots
             .filter(slot => slot.status === 'available')
-            .map(slot => slot.startTime.toDate());
-    }, [lessonSlots]);
+            .map(slot => toZonedTime(slot.startTime.toDate(), turkeyTimeZone));
+    }, [lessonSlots, turkeyTimeZone]);
     
     const slotsForSelectedDate = useMemo(() => {
-        if (!lessonSlots || !selectedDate || !timeZone) return new Map<string, SlotDetails>();
+        if (!lessonSlots || !selectedDate) return new Map<string, SlotDetails>();
         
         const slotsMap = new Map<string, SlotDetails>();
         
         lessonSlots.forEach(slot => {
-            // Compare dates in the teacher's local timezone
-            const localSlotDate = toZonedTime(slot.startTime.seconds * 1000, timeZone);
-            if (isSameDay(localSlotDate, selectedDate)) {
-                const time = format(localSlotDate, 'HH:mm');
+            const zonedSlotDate = toZonedTime(slot.startTime.toDate(), turkeyTimeZone);
+            if (isSameDay(zonedSlotDate, selectedDate)) {
+                const time = format(zonedSlotDate, 'HH:mm');
                 slotsMap.set(time, slot as SlotDetails);
             }
         });
         return slotsMap;
-    }, [lessonSlots, selectedDate, timeZone]);
+    }, [lessonSlots, selectedDate, turkeyTimeZone]);
     
     const handleTimeSlotClick = (time: string) => {
         const slot = slotsForSelectedDate.get(time);
@@ -185,9 +179,11 @@ export default function TakvimYonetimiPage() {
         if (!selectedDate || !user || !db) return;
 
         const [hours, minutes] = time.split(':').map(Number);
-        // Create the date in the local timezone of the teacher's browser
-        const slotDateTime = set(startOfDay(selectedDate), { hours, minutes });
-        const startTime = Timestamp.fromDate(slotDateTime);
+        
+        // Create date in Turkey's timezone, then convert to UTC for Timestamp
+        const zonedDate = set(startOfDay(selectedDate), { hours, minutes });
+        const utcDate = zonedTimeToUtc(zonedDate, turkeyTimeZone);
+        const startTime = Timestamp.fromDate(utcDate);
 
         setIsSubmitting(prevState => ({ ...prevState, [time]: true }));
         
