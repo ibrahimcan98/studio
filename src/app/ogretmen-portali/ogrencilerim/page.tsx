@@ -4,15 +4,24 @@
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, getDocs } from 'firebase/firestore';
-import { Loader2, Users, BookOpen, Clock, Euro, ArrowRight, ChevronDown, User as UserIcon, Calendar } from 'lucide-react';
+import { Loader2, Users, BookOpen, Clock, Euro, ArrowRight, ChevronDown, User as UserIcon, Calendar, Edit } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import { ProgressPanel } from '@/components/shared/progress-panel';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+
 
 // Constants
 const LESSON_PRICE_EURO = 10;
@@ -41,7 +50,7 @@ const StudentCard = ({ student, lessons }: { student: any, lessons: any[] }) => 
         return doc(db, 'users', student.userId, 'children', student.childId);
     }, [db, student.userId, student.childId]);
     const { data: childData, isLoading: isChildLoading } = useDoc(childDocRef);
-    const [isOpen, setIsOpen] = useState(false);
+    const [isProgressPanelOpen, setIsProgressPanelOpen] = useState(false);
 
     if (isChildLoading) {
         return (
@@ -58,29 +67,41 @@ const StudentCard = ({ student, lessons }: { student: any, lessons: any[] }) => 
     const lastLesson = studentLessons.sort((a,b) => b.startTime.seconds - a.startTime.seconds)[0];
 
     return (
-         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-            <Card className="overflow-hidden">
-                <CollapsibleTrigger asChild>
-                    <div className='flex items-center p-4 cursor-pointer hover:bg-muted/50'>
-                         <Avatar className="h-12 w-12 mr-4">
-                            <AvatarFallback className="bg-primary/20 text-primary font-bold text-lg">
-                                {childData?.firstName?.charAt(0)}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                            <p className="font-bold text-lg">{childData?.firstName}</p>
-                            <p className="text-sm text-muted-foreground">{childData?.level || 'N/A'}</p>
+         <>
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Card className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow">
+                        <div className='flex items-center p-4'>
+                            <Avatar className="h-12 w-12 mr-4">
+                                <AvatarFallback className="bg-primary/20 text-primary font-bold text-lg">
+                                    {childData?.firstName?.charAt(0)}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                                <p className="font-bold text-lg">{childData?.firstName}</p>
+                                <p className="text-sm text-muted-foreground">{childData?.level || 'N/A'}</p>
+                            </div>
+                            <Badge variant="secondary" className="mr-4">{totalLessons} Ders</Badge>
                         </div>
-                        <Badge variant="secondary" className="mr-4">{totalLessons} Ders</Badge>
-                        <Button variant="ghost" size="sm" className="data-[state=open]:rotate-180">
-                            <ChevronDown className="h-5 w-5" />
-                        </Button>
-                    </div>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                    <div className="px-6 pb-4 space-y-4 pt-2">
+                    </Card>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-4">
+                             <Avatar className="h-16 w-16">
+                                <AvatarFallback className="bg-primary/20 text-primary font-bold text-2xl">
+                                    {childData?.firstName?.charAt(0)}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div>
+                               <p className="text-2xl font-bold">{childData?.firstName}</p>
+                               <p className="text-base font-normal text-muted-foreground">{childData?.level || 'N/A'}</p>
+                            </div>
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4 space-y-4">
                         <Separator />
-                        <div className="grid grid-cols-2 gap-4 text-sm">
+                         <div className="grid grid-cols-2 gap-4 text-sm">
                             <div className="flex items-center gap-2">
                                 <BookOpen className="w-4 h-4 text-muted-foreground" />
                                 <div>
@@ -110,11 +131,34 @@ const StudentCard = ({ student, lessons }: { student: any, lessons: any[] }) => 
                                 </div>
                             </div>
                         </div>
-                         <Button variant="outline" size="sm" className="w-full mt-2" disabled>Öğrenci Detayları</Button>
+                        <Separator />
+                        <Button className='w-full' onClick={() => setIsProgressPanelOpen(true)}>
+                            <Edit className='w-4 h-4 mr-2'/> İlerleme Panelini Görüntüle
+                        </Button>
                     </div>
-                </CollapsibleContent>
-            </Card>
-        </Collapsible>
+                </DialogContent>
+            </Dialog>
+
+             <Dialog open={isProgressPanelOpen} onOpenChange={setIsProgressPanelOpen}>
+                <DialogContent className="max-w-5xl h-[90vh]">
+                    <DialogHeader>
+                        <DialogTitle className="text-3xl font-bold font-headline">
+                            {isChildLoading || !childData ? 'Yükleniyor...' : `${childData.firstName} İlerleme Paneli`}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {isChildLoading || !childData ? 'Öğrenci verileri yükleniyor...' : 'Çocuğun Türkçe öğrenme yolculuğuna dair kapsamlı analiz ve raporlar.'}
+                        </DialogDescription>
+                    </DialogHeader>
+                    {isChildLoading || !childData ? (
+                         <div className="flex h-full items-center justify-center">
+                            <Loader2 className="h-16 w-16 animate-spin text-primary" />
+                        </div>
+                    ) : (
+                        <ProgressPanel child={childData} isEditable={true} />
+                    )}
+                </DialogContent>
+            </Dialog>
+        </>
     );
 };
 
@@ -188,7 +232,7 @@ export default function OgrencilerimPage() {
                     {lessonsLoading ? (
                         <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
                     ) : stats.uniqueStudents.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {stats.uniqueStudents.map(student => (
                                 <StudentCard key={student.childId} student={student} lessons={lessons || []}/>
                             ))}
