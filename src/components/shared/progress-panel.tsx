@@ -202,7 +202,6 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
             strengths,
             weaknesses,
             recommendedCourse,
-            // feedbackHistory is managed separately now for updates, only new additions here
         };
 
         if (newFeedback.trim() !== "") {
