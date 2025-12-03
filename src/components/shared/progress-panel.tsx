@@ -46,6 +46,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogTrigger,
 } from "@/components/ui/dialog"
 
 
@@ -220,7 +221,7 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
                     description: `${child.firstName} için ilerleme paneli güncellendi.`,
                     className: 'bg-green-500 text-white'
                 });
-                if (newFeedback.trim() !== "") {
+                 if (newFeedback.trim() !== "") {
                     setFeedbackHistory(updatedFeedbackHistory);
                     setNewFeedback("");
                 }
@@ -547,8 +548,8 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
                             ))}
                         </CarouselContent>
                          <div className="flex items-center justify-center gap-2 mt-4">
-                            <CarouselPrevious className="static translate-y-0" />
-                            <CarouselNext className="static translate-y-0" />
+                            <CarouselPrevious className="static translate-y-0 hidden sm:flex" />
+                            <CarouselNext className="static translate-y-0 hidden sm:flex" />
                         </div>
                     </Carousel>
                 ) : (
@@ -579,3 +580,5 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
         </div>
     );
 }
+
+    
