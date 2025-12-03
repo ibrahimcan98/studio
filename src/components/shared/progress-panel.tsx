@@ -152,6 +152,39 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
             }
         }
     };
+    
+    const handleUpdateFeedback = async () => {
+        if (!db || !child || !editingFeedback) return;
+        
+        setIsSaving(true);
+        const childDocRef = doc(db, 'users', child.userId, 'children', child.id);
+
+        const updatedHistory = feedbackHistory.map(fb => 
+            fb.id === editingFeedback.id ? { ...fb, text: editingFeedback.text } : fb
+        );
+
+        updateDoc(childDocRef, { feedbackHistory: updatedHistory })
+            .then(() => {
+                toast({
+                    title: 'Güncellendi',
+                    description: 'Geri bildirim başarıyla güncellendi.',
+                    className: 'bg-green-500 text-white'
+                });
+                setFeedbackHistory(updatedHistory);
+                setEditingFeedback(null); // This will close the dialog via onOpenChange
+            })
+            .catch((serverError) => {
+                 const permissionError = new FirestorePermissionError({
+                    path: childDocRef.path,
+                    operation: 'update',
+                    requestResourceData: { feedbackHistory: updatedHistory },
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            })
+            .finally(() => {
+                setIsSaving(false);
+            });
+    };
 
 
     const handleSave = async () => {
@@ -161,13 +194,6 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
         
         let updatedFeedbackHistory = [...feedbackHistory];
 
-        // Handle editing existing feedback
-        if (editingFeedback) {
-            updatedFeedbackHistory = updatedFeedbackHistory.map(fb =>
-                fb.id === editingFeedback.id ? { ...fb, text: editingFeedback.text } : fb
-            );
-        }
-
         const updatedData: any = {
             cefrProfile,
             speakingInitiative,
@@ -176,7 +202,7 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
             strengths,
             weaknesses,
             recommendedCourse,
-            feedbackHistory: updatedFeedbackHistory,
+            // feedbackHistory is managed separately now for updates, only new additions here
         };
 
         if (newFeedback.trim() !== "") {
@@ -185,7 +211,8 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
                 text: newFeedback,
                 createdAt: new Date().toISOString()
             };
-            updatedData.feedbackHistory.push(feedbackEntry);
+            updatedFeedbackHistory.push(feedbackEntry);
+            updatedData.feedbackHistory = updatedFeedbackHistory;
         }
 
         updateDoc(childDocRef, updatedData)
@@ -195,9 +222,10 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
                     description: `${child.firstName} için ilerleme paneli güncellendi.`,
                     className: 'bg-green-500 text-white'
                 });
-                setFeedbackHistory(updatedData.feedbackHistory);
-                setNewFeedback("");
-                setEditingFeedback(null);
+                if (newFeedback.trim() !== "") {
+                    setFeedbackHistory(updatedFeedbackHistory);
+                    setNewFeedback("");
+                }
             })
             .catch((serverError) => {
                 const permissionError = new FirestorePermissionError({
@@ -509,7 +537,10 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
                                             )}
                                              {isEditable && (
                                                 <DialogFooter>
-                                                    <Button onClick={handleSave}>Değişiklikleri Kaydet</Button>
+                                                    <Button onClick={handleUpdateFeedback} disabled={isSaving}>
+                                                        {isSaving && <Loader2 className='animate-spin mr-2 h-4 w-4'/>}
+                                                        Değişiklikleri Güncelle
+                                                    </Button>
                                                 </DialogFooter>
                                             )}
                                         </DialogContent>
@@ -548,4 +579,3 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
         </div>
     );
 }
-
