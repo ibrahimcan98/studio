@@ -46,7 +46,6 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 
 
@@ -227,7 +226,7 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
                 }
             })
             .catch((serverError) => {
-                const permissionError = new FirestorePermissionError({
+                 const permissionError = new FirestorePermissionError({
                     path: childDocRef.path,
                     operation: 'update',
                     requestResourceData: updatedData,
@@ -547,8 +546,10 @@ export function ProgressPanel({ child, isEditable = false }: { child: any, isEdi
                                 </CarouselItem>
                             ))}
                         </CarouselContent>
-                        <CarouselPrevious className="hidden sm:flex" />
-                        <CarouselNext className="hidden sm:flex" />
+                         <div className="flex items-center justify-center gap-2 mt-4">
+                            <CarouselPrevious className="static translate-y-0" />
+                            <CarouselNext className="static translate-y-0" />
+                        </div>
                     </Carousel>
                 ) : (
                     <p className='text-sm text-muted-foreground'>Henüz geri bildirim eklenmemiş.</p>
