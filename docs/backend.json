@@ -156,6 +156,32 @@
             "type": "string",
             "enum": ["always", "sometimes", "rarely", "never"],
             "description": "Teacher's assessment of how often the child mixes languages."
+        },
+        "strengths": {
+            "type": "array",
+            "description": "Teacher-assessed strengths of the student.",
+            "items": { "type": "string" }
+        },
+        "weaknesses": {
+            "type": "array",
+            "description": "Teacher-assessed areas for improvement for the student.",
+            "items": { "type": "string" }
+        },
+        "recommendedCourse": {
+            "type": "string",
+            "description": "The course recommended by the teacher for this student."
+        },
+        "feedbackHistory": {
+          "type": "array",
+          "description": "A history of feedback provided by teachers.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "text": { "type": "string", "description": "The content of the feedback." },
+              "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the feedback was created." }
+            },
+            "required": ["text", "createdAt"]
+          }
         }
       },
       "required": [
