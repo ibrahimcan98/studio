@@ -132,11 +132,10 @@ export default function TakvimYonetimiPage() {
 
     const { data: lessonSlots, isLoading: areSlotsLoading, refetch } = useCollection(lessonSlotsQuery);
 
-    // Effect to populate the weekly template from existing slots on initial load
     useEffect(() => {
-        if (lessonSlots && lessonSlots.length > 0) {
+        if (!areSlotsLoading && lessonSlots) {
             const newTemplate = new Map<number, Set<string>>();
-            for (let i = 0; i < 7; i++) {
+             for (let i = 0; i < 7; i++) {
                 newTemplate.set(i, new Set());
             }
             lessonSlots.forEach(slot => {
@@ -150,7 +149,7 @@ export default function TakvimYonetimiPage() {
             setWeekTemplate(newTemplate);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [areSlotsLoading]); // Run only once after the initial data load
+    }, [areSlotsLoading]);
 
     const slotsForSelectedDate = useMemo(() => {
         if (!lessonSlots) return new Map<string, SlotDetails>();
@@ -216,8 +215,7 @@ export default function TakvimYonetimiPage() {
             if (dragMode === 'available' && !existingSlot) {
                 const dateString = format(selectedDate, 'yyyy-MM-dd');
                 const slotDateTimeString = `${dateString}T${time}:00`;
-                // Create the date object in the target timezone to ensure it's correct from the start
-                const slotDate = toZonedTime(slotDateTimeString, turkeyTimeZone);
+                const slotDate = new Date(slotDateTimeString);
                 
                 const newSlotRef = doc(collection(db, 'lesson-slots'));
                 batch.set(newSlotRef, {
