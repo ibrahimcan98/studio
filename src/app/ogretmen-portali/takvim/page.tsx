@@ -363,8 +363,7 @@ export default function TakvimYonetimiPage() {
                             </div>
                         </div>
                         <div className='space-y-4'>
-                            {dayNames.filter(d => d !== 'Pazar').map((dayName, index) => {
-                                const dayIndex = (index + 1) % 7; // Monday = 1...
+                            {dayNames.map((dayName, dayIndex) => {
                                 const daySlots = weekTemplate.get(dayIndex) || new Set();
                                 const slotsMap = new Map<string, any>();
                                 daySlots.forEach(time => slotsMap.set(time, {status: 'available'}));
