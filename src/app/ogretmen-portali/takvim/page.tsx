@@ -245,10 +245,10 @@ export default function TakvimYonetimiPage() {
 
         slotsToAdd.forEach(slot => {
             const newSlotRef = doc(collection(db, 'lesson-slots'));
-            const dateInTurkey = createDateInTurkeyTimeZone(selectedDate, format(slot.startTime.toDate(), 'HH:mm'));
+            // Use the already correctly-zoned startTime from the staged slot
             batch.set(newSlotRef, {
                 teacherId: user.uid,
-                startTime: Timestamp.fromDate(dateInTurkey),
+                startTime: slot.startTime,
                 status: 'available',
             });
         });
