@@ -126,6 +126,25 @@ export default function TakvimYonetimiPage() {
 
     const { data: lessonSlots, isLoading: areSlotsLoading, refetch } = useCollection(lessonSlotsQuery);
 
+     useEffect(() => {
+        if (lessonSlots) {
+            const newTemplate = new Map<number, Set<string>>();
+            lessonSlots.forEach(slot => {
+                if(slot.status === 'available') {
+                    const zonedTime = toZonedTime(slot.startTime.toDate(), turkeyTimeZone);
+                    const day = getDay(zonedTime);
+                    const time = format(zonedTime, 'HH:mm');
+                    if (!newTemplate.has(day)) {
+                        newTemplate.set(day, new Set());
+                    }
+                    newTemplate.get(day)?.add(time);
+                }
+            });
+             setWeekTemplate(newTemplate);
+        }
+    }, [lessonSlots]);
+
+
     const slotsForSelectedDate = useMemo(() => {
         if (!lessonSlots) return new Map<string, SlotDetails>();
         const slotsMap = new Map<string, SlotDetails>();
