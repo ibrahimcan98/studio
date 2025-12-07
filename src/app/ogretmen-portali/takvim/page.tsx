@@ -121,7 +121,6 @@ export default function TakvimYonetimiPage() {
 
     const lessonSlotsQuery = useMemoFirebase(() => {
         if (!db || !user) return null;
-        // Simplified query to avoid composite index.
         return query(collection(db, 'lesson-slots'), where('teacherId', '==', user.uid));
     }, [db, user]);
 
@@ -137,6 +136,9 @@ export default function TakvimYonetimiPage() {
                     const zonedTime = toZonedTime(slot.startTime.toDate(), turkeyTimeZone);
                     const day = getDay(zonedTime);
                     const time = format(zonedTime, 'HH:mm');
+                    if (!newTemplate.has(day)) {
+                        newTemplate.set(day, new Set());
+                    }
                     newTemplate.get(day)?.add(time);
                 }
             });
@@ -271,45 +273,61 @@ export default function TakvimYonetimiPage() {
     
     const handleSaveTemplate = async () => {
         if (!user || !db) return;
-        
+
         setIsSavingTemplate(true);
         toast({ title: "Şablon Kaydediliyor...", description: "Bu işlem biraz zaman alabilir. Lütfen bekleyin." });
 
-        const batch = writeBatch(db);
-
-        // 1. Delete all future available slots for this teacher
-        const q = query(collection(db, 'lesson-slots'), 
-            where('teacherId', '==', user.uid),
-            where('status', '==', 'available'),
-            where('startTime', '>=', Timestamp.fromDate(new Date()))
-        );
-        const slotsToDeleteSnap = await getDocs(q);
-        slotsToDeleteSnap.forEach(doc => batch.delete(doc.ref));
-
-        // 2. Create new slots based on the template for the next year
-        const today = new Date();
-        for (let i = 0; i < 365; i++) {
-            const date = addDays(today, i);
-            const dayOfWeek = getDay(date); // Sunday is 0, Monday is 1
-            const templateDaySlots = weekTemplate.get(dayOfWeek);
-            
-            templateDaySlots?.forEach(time => {
-                const slotDate = toZonedTime(`${format(date, 'yyyy-MM-dd')}T${time}:00`, turkeyTimeZone);
-                const newSlotRef = doc(collection(db, 'lesson-slots'));
-                batch.set(newSlotRef, {
-                    teacherId: user.uid,
-                    startTime: Timestamp.fromDate(slotDate),
-                    status: 'available',
-                });
-            });
-        }
-
         try {
-            await batch.commit();
-            toast({ title: "Başarılı!", description: "Haftalık şablonunuz kaydedildi ve gelecek bir yıl için takviminiz güncellendi.", className: "bg-green-500 text-white" });
-            refetch(); // Refetch all slots to update the view
-            setCalendarKey(Date.now()); // Force calendar to re-render
-        } catch(e) {
+            // 1. Fetch all future available slots to be deleted
+            const q = query(
+                collection(db, 'lesson-slots'),
+                where('teacherId', '==', user.uid),
+                where('status', '==', 'available'),
+                where('startTime', '>=', Timestamp.fromDate(new Date()))
+            );
+            const slotsToDeleteSnap = await getDocs(q);
+            const slotsToDeleteRefs = slotsToDeleteSnap.docs.map(d => d.ref);
+
+            // 2. Prepare new slots to be created
+            const slotsToAdd: any[] = [];
+            const today = new Date();
+            for (let i = 0; i < 90; i++) { // Generate for next 90 days
+                const date = addDays(today, i);
+                const dayOfWeek = getDay(date);
+                const templateDaySlots = weekTemplate.get(dayOfWeek);
+                templateDaySlots?.forEach(time => {
+                    const slotDate = toZonedTime(`${format(date, 'yyyy-MM-dd')}T${time}:00`, turkeyTimeZone);
+                    slotsToAdd.push({
+                        teacherId: user.uid,
+                        startTime: Timestamp.fromDate(slotDate),
+                        status: 'available',
+                    });
+                });
+            }
+
+            // 3. Process deletions in batches
+            for (let i = 0; i < slotsToDeleteRefs.length; i += 500) {
+                const batch = writeBatch(db);
+                const chunk = slotsToDeleteRefs.slice(i, i + 500);
+                chunk.forEach(ref => batch.delete(ref));
+                await batch.commit();
+            }
+
+            // 4. Process additions in batches
+            for (let i = 0; i < slotsToAdd.length; i += 500) {
+                const batch = writeBatch(db);
+                const chunk = slotsToAdd.slice(i, i + 500);
+                chunk.forEach(slotData => {
+                    const newSlotRef = doc(collection(db, 'lesson-slots'));
+                    batch.set(newSlotRef, slotData);
+                });
+                await batch.commit();
+            }
+
+            toast({ title: "Başarılı!", description: "Haftalık şablonunuz kaydedildi ve gelecek 90 gün için takviminiz güncellendi.", className: "bg-green-500 text-white" });
+            refetch();
+            setCalendarKey(Date.now());
+        } catch (e) {
             console.error("Failed to save template", e);
             toast({ variant: 'destructive', title: "Hata!", description: "Şablon kaydedilirken bir hata oluştu." });
         } finally {
@@ -406,13 +424,13 @@ export default function TakvimYonetimiPage() {
                             </div>
                         </div>
                         <div className='space-y-4'>
-                            {weekDates.map((date) => {
-                                const dayIndex = getDay(date);
-                                const dayName = format(date, 'EEEE', { locale: tr });
+                            {Array.from({ length: 7 }).map((_, i) => {
+                                const dayIndex = (i + 1) % 7; // Monday is 1, Sunday is 0
+                                const dayName = format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i), 'EEEE', { locale: tr });
                                 const daySlots = weekTemplate.get(dayIndex) || new Set();
                                 const slotsMap = new Map<string, any>();
-                                daySlots.forEach(time => slotsMap.set(time, {status: 'available'}));
-                                
+                                daySlots.forEach(time => slotsMap.set(time, { status: 'available' }));
+
                                 return (
                                     <div key={dayIndex} className="grid grid-cols-[100px_1fr] gap-4 items-start">
                                         <h4 className="font-semibold text-right pt-2">{dayName}</h4>
@@ -445,4 +463,3 @@ export default function TakvimYonetimiPage() {
         </div>
     );
 }
-
