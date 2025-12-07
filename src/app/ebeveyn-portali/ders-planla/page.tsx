@@ -394,7 +394,14 @@ export default function DersPlanlaPage() {
                                 </div>
                                 {selectedChildId && (
                                      <div>
-                                        <Select value={bookingMode} onValueChange={(value) => setBookingMode(value as 'free' | 'paid')}>
+                                        <Select value={bookingMode} onValueChange={(value) => {
+                                            setBookingMode(value as 'free' | 'paid');
+                                            if (value === 'free') {
+                                                setSelectedPackage('FREE_TRIAL');
+                                            } else if (selectedChildData?.assignedPackage) {
+                                                setSelectedPackage(selectedChildData.assignedPackage);
+                                            }
+                                        }}>
                                             <SelectTrigger id="package-select">
                                                 <SelectValue placeholder="Ders Türü Seçin" />
                                             </SelectTrigger>
@@ -568,3 +575,5 @@ export default function DersPlanlaPage() {
         </div>
     );
 }
+
+    
