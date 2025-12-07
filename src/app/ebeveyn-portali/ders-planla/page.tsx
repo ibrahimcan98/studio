@@ -4,15 +4,15 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, doc, updateDoc, where, query, increment, Timestamp, writeBatch, getDoc, arrayRemove } from 'firebase/firestore';
+import { collection, doc, updateDoc, where, query, increment, Timestamp, writeBatch, getDocs, getDoc, arrayRemove } from 'firebase/firestore';
 import { Loader2, ArrowLeft, Info, BookOpen, User, Calendar as CalendarIcon, Package, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
-import { isSameDay, toDate, addMinutes, isBefore } from 'date-fns';
+import { toZonedTime, formatInTimeZone, format } from 'date-fns-tz';
+import { isSameDay, toDate, addMinutes, isBefore, addDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from '@/components/ui/label';
@@ -447,6 +447,7 @@ export default function DersPlanlaPage() {
                                     const today = new Date();
                                     today.setHours(0, 0, 0, 0);
                                     if (date < today) return true;
+                                    if (date > addDays(today, 30)) return true; // Disable dates more than 30 days in the future
                                     return !availableDays.some(availableDay => isSameDay(date, availableDay));
                                 }}
                                 className="rounded-md border"
