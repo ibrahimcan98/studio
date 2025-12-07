@@ -569,6 +569,4 @@ export default function DersPlanlaPage() {
     );
 }
 
-
-    
     
