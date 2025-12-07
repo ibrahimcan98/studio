@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { useUser, useFirestore, errorEmitter, FirestorePermissionError, useMemoFirebase, useCollection } from '@/firebase';
+import { useUser, useFirestore, useCollection, errorEmitter, FirestorePermissionError, useMemoFirebase } from '@/firebase';
 import { collection, query, where, addDoc, Timestamp, writeBatch, getDocs, doc } from 'firebase/firestore';
 import { Loader2, Calendar as CalendarIcon, Clock, Square, CheckSquare, Trash2, AlertTriangle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -379,22 +379,44 @@ export default function TakvimYonetimiPage() {
                                 <h3 className="text-lg font-semibold mb-4 text-center lg:text-left">
                                     {format(selectedDate, 'dd MMMM yyyy', { locale: tr })} için Saatler
                                 </h3>
-                                 <TimeGrid 
-                                    slots={slotsForSelectedDate}
-                                    onMouseDown={(time) => {
-                                        const slot = slotsForSelectedDate.get(time);
-                                        if (slot?.status === 'booked') return;
-                                        setIsDragging(true);
-                                        setDragStartSlot(time);
-                                        setDragEndSlot(time);
-                                        setDragMode(slot?.status === 'available' ? 'closed' : 'available');
-                                    }}
-                                    onMouseEnter={(time) => isDragging && setDragEndSlot(time)}
-                                    onSlotClick={handleSlotClick}
-                                    isDragging={isDragging}
-                                    dragSelection={dragSelection}
-                                    dragMode={dragMode}
-                                />
+                                 {slotsForSelectedDate.size > 0 ? (
+                                     <TimeGrid 
+                                        slots={slotsForSelectedDate}
+                                        onMouseDown={(time) => {
+                                            const slot = slotsForSelectedDate.get(time);
+                                            if (slot?.status === 'booked') return;
+                                            setIsDragging(true);
+                                            setDragStartSlot(time);
+                                            setDragEndSlot(time);
+                                            setDragMode(slot?.status === 'available' ? 'closed' : 'available');
+                                        }}
+                                        onMouseEnter={(time) => isDragging && setDragEndSlot(time)}
+                                        onSlotClick={handleSlotClick}
+                                        isDragging={isDragging}
+                                        dragSelection={dragSelection}
+                                        dragMode={dragMode}
+                                    />
+                                 ) : (
+                                     <div 
+                                        className="relative border-2 border-dashed rounded-lg p-2 bg-background min-h-[400px] flex items-center justify-center text-center text-muted-foreground"
+                                        onMouseDown={(e) => {
+                                            const rect = e.currentTarget.getBoundingClientRect();
+                                            const y = e.clientY - rect.top;
+                                            const totalHeight = e.currentTarget.offsetHeight;
+                                            const timeIndex = Math.floor((y / totalHeight) * timeSlots.length);
+                                            const time = timeSlots[Math.max(0, Math.min(timeSlots.length - 1, timeIndex))];
+                                            setIsDragging(true);
+                                            setDragStartSlot(time);
+                                            setDragEndSlot(time);
+                                            setDragMode('available');
+                                        }}
+                                     >
+                                        Bu gün için ayarlanmış müsait zaman aralığı yok.
+                                        <br/>
+                                        Sürükleyerek yeni aralık ekleyebilirsiniz.
+                                    </div>
+                                 )}
+
                                 <div className="flex flex-wrap gap-x-4 gap-y-2 mt-6 text-sm text-muted-foreground">
                                     <div className="flex items-center gap-2"><Square className="w-4 h-4 bg-primary/80 rounded-sm"/> Müsait</div>
                                     <div className="flex items-center gap-2"><Square className="w-4 h-4 border bg-background rounded-sm"/> Kapalı</div>
