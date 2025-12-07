@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { useUser, useFirestore, errorEmitter, FirestorePermissionError, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, errorEmitter, FirestorePermissionError, useMemoFirebase, useCollection } from '@/firebase';
 import { collection, query, where, addDoc, Timestamp, writeBatch, getDocs, doc } from 'firebase/firestore';
 import { Loader2, Calendar, Clock, Square, CheckSquare, Trash2, AlertTriangle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,6 @@ import { cn } from '@/lib/utils';
 import { LessonDetailsDialog } from './lesson-details-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { useCollection } from '@/firebase/firestore/use-collection';
 
 
 type SlotDetails = {
@@ -363,7 +362,9 @@ export default function TakvimYonetimiPage() {
                             </div>
                         </div>
                         <div className='space-y-4'>
-                            {dayNames.map((dayName, dayIndex) => {
+                            {weekDates.map((date) => {
+                                const dayIndex = getDay(date);
+                                const dayName = format(date, 'EEEE', { locale: tr });
                                 const daySlots = weekTemplate.get(dayIndex) || new Set();
                                 const slotsMap = new Map<string, any>();
                                 daySlots.forEach(time => slotsMap.set(time, {status: 'available'}));
