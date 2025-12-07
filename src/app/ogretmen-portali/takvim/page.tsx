@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { useUser, useFirestore, errorEmitter, FirestorePermissionError, useCollection } from '@/firebase';
+import { useUser, useFirestore, errorEmitter, FirestorePermissionError, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, addDoc, Timestamp, writeBatch, getDocs, doc } from 'firebase/firestore';
 import { Loader2, Calendar, Clock, Square, CheckSquare, Trash2, AlertTriangle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -117,7 +117,7 @@ export default function TakvimYonetimiPage() {
     const [confirmTemplateSave, setConfirmTemplateSave] = useState(false);
 
 
-    const lessonSlotsQuery = useMemo(() => {
+    const lessonSlotsQuery = useMemoFirebase(() => {
         if (!db || !user) return null;
         return query(collection(db, 'lesson-slots'), where('teacherId', '==', user.uid));
     }, [db, user]);
@@ -399,3 +399,5 @@ export default function TakvimYonetimiPage() {
     );
 }
 
+
+    
