@@ -367,8 +367,9 @@ export default function TakvimYonetimiPage() {
             }
 
             toast({ title: "Başarılı!", description: "Haftalık şablonunuz kaydedildi ve gelecek 90 gün için takviminiz güncellendi.", className: "bg-green-500 text-white" });
-            refetch();
+            await refetch();
             setCalendarKey(Date.now());
+            setIsTemplateLoaded(false); // Force reload of template from new data
         } catch (e) {
             console.error("Failed to save template", e);
             toast({ variant: 'destructive', title: "Hata!", description: "Şablon kaydedilirken bir hata oluştu." });
@@ -505,3 +506,5 @@ export default function TakvimYonetimiPage() {
         </div>
     );
 }
+
+    
