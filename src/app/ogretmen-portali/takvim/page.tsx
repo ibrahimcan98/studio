@@ -3,12 +3,12 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useUser, useFirestore, useCollection, errorEmitter, FirestorePermissionError, useMemoFirebase } from '@/firebase';
-import { collection, query, where, addDoc, Timestamp, writeBatch, getDocs, doc } from 'firebase/firestore';
+import { collection, query, where, addDoc, Timestamp, writeBatch, getDocs, doc, deleteDoc } from 'firebase/firestore';
 import { Loader2, Square, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { format, isSameDay } from 'date-fns';
+import { format, isSameDay, getDay, addDays, startOfDay } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
@@ -52,54 +52,6 @@ function TimeGrid({
     dragSelection: Set<string>;
     dragMode: 'available' | 'closed' | null;
 }) {
-     if (slots.size === 0) {
-        return (
-            <div className="relative border rounded-lg p-2 bg-background max-h-[400px] overflow-y-auto"
-                onMouseDown={(e) => {
-                    // Find the approximate time slot based on click position
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const y = e.clientY - rect.top;
-                    const totalHeight = e.currentTarget.scrollHeight;
-                    const timeIndex = Math.floor((y / totalHeight) * timeSlots.length);
-                    const time = timeSlots[timeIndex];
-                    if (time) onMouseDown(time);
-                }}
-            >
-                {timeSlots.map((time) => {
-                    const minutes = parseInt(time.split(':')[1]);
-                    const isFullHour = minutes === 0;
-                    const isQuarterHour = [15, 30, 45].includes(minutes);
-
-                    let dynamicStatus;
-                     if (isDragging && dragSelection.has(time)) {
-                        dynamicStatus = dragMode;
-                    }
-
-                    return (
-                        <div
-                            key={time}
-                            className={cn("flex items-center h-6")}
-                            onMouseEnter={() => onMouseEnter(time)}
-                        >
-                            <div className="text-xs text-muted-foreground w-16 text-right pr-2 shrink-0">
-                                {isFullHour && <span className="font-semibold">{time}</span>}
-                                {isQuarterHour && <span className="text-gray-400">{time}</span>}
-                            </div>
-                            <div
-                                className={cn(
-                                    "flex-1 h-full border-l",
-                                    isFullHour ? "border-t-2 border-t-gray-300" : "border-t border-t-gray-200",
-                                     dynamicStatus === 'available' ? 'bg-primary/80 cursor-pointer' :
-                                        'hover:bg-muted cursor-pointer'
-                                )}
-                                onClick={() => onSlotClick(time)}
-                            />
-                        </div>
-                    )
-                })}
-            </div>
-        );
-    }
     return (
         <div className="relative border rounded-lg p-2 bg-background max-h-[400px] overflow-y-auto">
             {timeSlots.map((time) => {
@@ -156,6 +108,7 @@ export default function TakvimYonetimiPage() {
     const [dragMode, setDragMode] = useState<'available' | 'closed' | null>(null);
     
     const [calendarKey, setCalendarKey] = useState(Date.now());
+    const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
 
 
     const lessonSlotsQuery = useMemoFirebase(() => {
@@ -163,7 +116,7 @@ export default function TakvimYonetimiPage() {
         return query(collection(db, 'lesson-slots'), where('teacherId', '==', user.uid));
     }, [db, user]);
 
-    const { data: lessonSlots, isLoading: areSlotsLoading } = useCollection(lessonSlotsQuery);
+    const { data: lessonSlots, isLoading: areSlotsLoading, refetch } = useCollection(lessonSlotsQuery);
 
 
     const slotsForSelectedDate = useMemo(() => {
@@ -228,8 +181,8 @@ export default function TakvimYonetimiPage() {
         slotsToUpdate.forEach(time => {
             const existingSlot = slotsForSelectedDate.get(time);
             if (dragMode === 'available' && !existingSlot) {
-                const slotDate = new Date(`${format(selectedDate, 'yyyy-MM-dd')}T${time}:00`);
-
+                const slotDate = toZonedTime(new Date(`${format(selectedDate, 'yyyy-MM-dd')}T${time}:00`), turkeyTimeZone);
+                
                 const newSlotRef = doc(collection(db, 'lesson-slots'));
                 batch.set(newSlotRef, {
                     teacherId: user.uid,
@@ -243,8 +196,79 @@ export default function TakvimYonetimiPage() {
 
         try {
             await batch.commit();
+            refetch();
         } catch (serverError) {
             errorEmitter.emit('permission-error', new FirestorePermissionError({ operation: 'write', path: 'lesson-slots' }));
+        }
+    };
+
+    const handleApplyTemplateToFutureDays = async () => {
+        if (!db || !user || !selectedDate) return;
+        setIsApplyingTemplate(true);
+
+        const dayOfWeekToApply = getDay(selectedDate); // Sunday = 0, Monday = 1, ...
+        
+        // 1. Get the template from the currently selected day
+        const templateTimes = Array.from(slotsForSelectedDate.keys()).filter(time => slotsForSelectedDate.get(time)?.status === 'available');
+
+        // 2. Find all future available slots for this teacher on the same day of the week
+        const q = query(
+            collection(db, 'lesson-slots'),
+            where('teacherId', '==', user.uid),
+            where('status', '==', 'available'),
+            where('startTime', '>', startOfDay(new Date()))
+        );
+
+        const batch = writeBatch(db);
+
+        try {
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach(docSnap => {
+                const slotData = docSnap.data();
+                const slotDate = slotData.startTime.toDate();
+                if (getDay(slotDate) === dayOfWeekToApply) {
+                    batch.delete(docSnap.ref);
+                }
+            });
+
+            // 3. Apply the template for the next year
+            for (let i = 0; i < 52; i++) {
+                let futureDate = addDays(selectedDate, i * 7);
+                // Ensure we are on the correct day of the week
+                while (getDay(futureDate) !== dayOfWeekToApply) {
+                    futureDate = addDays(futureDate, 1);
+                }
+                
+                 if(startOfDay(futureDate) < startOfDay(new Date())) continue;
+
+                templateTimes.forEach(time => {
+                    const slotDateTime = toZonedTime(new Date(`${format(futureDate, 'yyyy-MM-dd')}T${time}`), turkeyTimeZone);
+                    const newSlotRef = doc(collection(db, 'lesson-slots'));
+                    batch.set(newSlotRef, {
+                        teacherId: user.uid,
+                        startTime: Timestamp.fromDate(slotDateTime),
+                        status: 'available',
+                    });
+                });
+            }
+
+            await batch.commit();
+            await refetch();
+            toast({
+                title: 'Şablon Uygulandı',
+                description: `Seçili saatler, gelecekteki tüm ${format(selectedDate, 'EEEE', {locale: tr})} günlerine uygulandı.`,
+                className: 'bg-green-500 text-white'
+            });
+
+        } catch (error) {
+            console.error('Error applying template: ', error);
+             toast({
+                variant: 'destructive',
+                title: 'Hata',
+                description: 'Şablon uygulanırken bir sorun oluştu.',
+            });
+        } finally {
+            setIsApplyingTemplate(false);
         }
     };
     
@@ -311,10 +335,18 @@ export default function TakvimYonetimiPage() {
                             dragSelection={dragSelection}
                             dragMode={dragMode}
                         />
-                        <div className="flex flex-wrap gap-x-4 gap-y-2 mt-6 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-2"><Square className="w-4 h-4 bg-primary/80 rounded-sm"/> Müsait</div>
-                            <div className="flex items-center gap-2"><Square className="w-4 h-4 border bg-background rounded-sm"/> Kapalı</div>
-                            <div className="flex items-center gap-2"><Square className="w-4 h-4 bg-destructive/80 rounded-sm"/> Rezerve</div>
+                        <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-4">
+                            <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                                <div className="flex items-center gap-2"><Square className="w-4 h-4 bg-primary/80 rounded-sm"/> Müsait</div>
+                                <div className="flex items-center gap-2"><Square className="w-4 h-4 border bg-background rounded-sm"/> Kapalı</div>
+                                <div className="flex items-center gap-2"><Square className="w-4 h-4 bg-destructive/80 rounded-sm"/> Rezerve</div>
+                            </div>
+                            <Button onClick={handleApplyTemplateToFutureDays} disabled={isApplyingTemplate}>
+                                 {isApplyingTemplate ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : null}
+                                Tüm {format(selectedDate, 'EEEE', { locale: tr })} günlerine uygula
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -324,4 +356,3 @@ export default function TakvimYonetimiPage() {
         </div>
     );
 }
-
