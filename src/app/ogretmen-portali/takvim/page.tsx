@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError, useDoc } from '@/firebase';
 import { collection, query, where, addDoc, deleteDoc, Timestamp, doc } from 'firebase/firestore';
 import { Loader2, CheckCircle, User, Baby, Info, BookOpen } from 'lucide-react';
@@ -10,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { format, set, startOfDay, isSameDay, differenceInYears } from 'date-fns';
+import { format, set, startOfDay, isSameDay, differenceInYears, addMinutes, getHours, getMinutes } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import {
   Dialog,
@@ -19,17 +18,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatInTimeZone, toZonedTime, toDate } from 'date-fns-tz';
 import { COURSES } from '@/data/courses';
+import { cn } from '@/lib/utils';
 
-
-const timeSlots = [
-    '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', 
-    '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'
-];
 
 type SlotDetails = {
     id: string;
@@ -190,9 +182,6 @@ export default function TakvimYonetimiPage() {
             // A slot exists, so we're deleting it (closing the slot)
             const slotDocRef = doc(db, 'lesson-slots', slot.id);
             deleteDoc(slotDocRef)
-                .then(() => {
-                    toast({ title: 'Kapatıldı', description: `${time} saati müsaitlikten kaldırıldı.` });
-                })
                 .catch(async (serverError) => {
                     const contextualError = new FirestorePermissionError({
                         operation: 'delete',
@@ -209,15 +198,12 @@ export default function TakvimYonetimiPage() {
              const newSlotData = {
                 teacherId: user.uid,
                 startTime: startTime,
-                endTime: Timestamp.fromDate(new Date(startTime.toMillis() + 45 * 60 * 1000)),
+                endTime: Timestamp.fromDate(addMinutes(startTime.toDate(), 5)),
                 status: 'available',
                 bookedBy: null,
                 childId: null,
             };
             addDoc(collection(db, 'lesson-slots'), newSlotData)
-                .then(() => {
-                     toast({ title: 'Açıldı', description: `${time} saati müsait olarak eklendi.`, className: 'bg-green-500 text-white' });
-                })
                 .catch(async (serverError) => {
                     const contextualError = new FirestorePermissionError({
                         operation: 'create',
@@ -243,6 +229,17 @@ export default function TakvimYonetimiPage() {
         return 'Öğretmen';
     };
 
+    const timeSlots = useMemo(() => {
+        const slots = [];
+        for (let h = 9; h < 21; h++) {
+            for (let m = 0; m < 60; m += 5) {
+                const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                slots.push(time);
+            }
+        }
+        return slots;
+    }, []);
+
 
     if (areSlotsLoading) {
         return <div className="flex h-screen items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
@@ -256,8 +253,8 @@ export default function TakvimYonetimiPage() {
             </div>
             
             <Card className="p-4 sm:p-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="flex justify-center">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="flex justify-center lg:col-span-1">
                         <Calendar
                             mode="single"
                             selected={selectedDate}
@@ -269,38 +266,43 @@ export default function TakvimYonetimiPage() {
                             className="rounded-md border"
                         />
                     </div>
-                    <div>
+                    <div className="lg:col-span-2">
                         <h3 className="text-lg font-semibold mb-4 text-center lg:text-left">
                             {selectedDate ? format(selectedDate, 'dd MMMM yyyy', { locale: tr }) : 'Bir tarih seçin'} için Saatler
                         </h3>
                         {selectedDate ? (
-                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                                {timeSlots.map(time => {
-                                    const slot = slotsForSelectedDate.get(time);
-                                    const isBooked = slot?.status === 'booked';
-                                    const isAvailable = slot?.status === 'available';
-                                    const isClosed = !slot;
-
-                                    let variant: "default" | "destructive" | "outline" = 'outline';
-                                    
-                                    if (isBooked) {
-                                        variant = 'destructive';
-                                    } else if (isAvailable) {
-                                        variant = 'default';
-                                    }
+                            <div className="relative border rounded-lg p-2 bg-background max-h-[400px] overflow-y-auto">
+                                {timeSlots.map((time, index) => {
+                                     const slotData = slotsForSelectedDate.get(time);
+                                     const isBooked = slotData?.status === 'booked';
+                                     const isAvailable = slotData?.status === 'available';
+                                     const minutes = parseInt(time.split(':')[1]);
 
                                     return (
-                                        <Button
+                                        <div 
                                             key={time}
-                                            variant={variant}
-                                            className="h-12 text-base relative"
-                                            onClick={() => handleTimeSlotClick(time)}
-                                            disabled={isSubmitting[time]}
+                                            className={cn("flex items-center h-6", minutes === 0 && index !== 0 && "mt-1")}
                                         >
-                                            {isSubmitting[time] ? <Loader2 className="animate-spin" /> : time}
-                                            {isBooked && <CheckCircle className="w-4 h-4 absolute top-1 right-1 text-white"/>}
-                                        </Button>
-                                    );
+                                            {minutes === 0 && (
+                                                <span className="text-xs text-muted-foreground w-12 text-right pr-2">{time}</span>
+                                            )}
+                                            {minutes !== 0 && (
+                                                <div className="w-12"></div>
+                                            )}
+                                            <div 
+                                                className={cn(
+                                                    "flex-1 h-full border-l border-b",
+                                                    minutes === 0 ? "border-t" : "border-t-0",
+                                                    isBooked ? 'bg-destructive/80 cursor-pointer' :
+                                                    isAvailable ? 'bg-primary/80 cursor-pointer' :
+                                                    'hover:bg-muted cursor-pointer'
+                                                )}
+                                                onClick={() => handleTimeSlotClick(time)}
+                                            >
+                                                {isSubmitting[time] && <Loader2 className="w-4 h-4 animate-spin text-white mx-auto mt-0.5"/>}
+                                            </div>
+                                        </div>
+                                    )
                                 })}
                             </div>
                         ) : (
@@ -309,13 +311,10 @@ export default function TakvimYonetimiPage() {
                             </div>
                         )}
                         <div className="flex flex-col gap-2 mt-6 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-sm bg-primary"></div> Müsait (Açık)</div>
+                            <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-sm bg-primary/80"></div> Müsait (Açık)</div>
                             <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-sm border bg-background"></div> Kapalı</div>
                              <div className="flex items-center gap-2">
-                                <div className="relative w-4 h-4 rounded-sm bg-destructive">
-                                    <CheckCircle className="w-3 h-3 absolute top-0.5 right-0.5 text-white"/>
-                                </div> 
-                                Rezerve Edilmiş
+                                <div className="w-4 h-4 rounded-sm bg-destructive/80"></div> Rezerve Edilmiş
                             </div>
                         </div>
                     </div>
