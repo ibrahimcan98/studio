@@ -166,14 +166,14 @@ export default function TakvimYonetimiPage() {
     const { data: lessonSlots, isLoading: areSlotsLoading, refetch } = useCollection(lessonSlotsQuery);
 
      useEffect(() => {
-        if (lessonSlots && !isTemplateLoaded && lessonSlots.length > 0) {
+        if (lessonSlots && !isTemplateLoaded) {
             const newTemplate = new Map<number, Set<string>>();
              for (let i = 0; i < 7; i++) {
                 newTemplate.set(i, new Set());
             }
 
             lessonSlots.forEach(slot => {
-                if(slot.status === 'available') {
+                 if (slot.status === 'available') {
                     const zonedTime = toZonedTime(slot.startTime.toDate(), turkeyTimeZone);
                     const day = getDay(zonedTime);
                     const time = format(zonedTime, 'HH:mm');
@@ -185,8 +185,6 @@ export default function TakvimYonetimiPage() {
             });
              setWeekTemplate(newTemplate);
              setIsTemplateLoaded(true);
-        } else if (lessonSlots && !isTemplateLoaded && lessonSlots.length === 0) {
-            setIsTemplateLoaded(true);
         }
     }, [lessonSlots, isTemplateLoaded]);
 
@@ -381,7 +379,7 @@ export default function TakvimYonetimiPage() {
     };
 
 
-    if (userLoading || areSlotsLoading) {
+    if (userLoading || areSlotsLoading || !isTemplateLoaded) {
         return <div className="flex h-screen items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
     }
     
@@ -507,4 +505,3 @@ export default function TakvimYonetimiPage() {
         </div>
     );
 }
-
