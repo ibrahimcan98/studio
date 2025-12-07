@@ -4,13 +4,13 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useUser, useFirestore, useCollection, errorEmitter, FirestorePermissionError, useMemoFirebase } from '@/firebase';
 import { collection, query, where, addDoc, Timestamp, writeBatch, getDocs, doc, deleteDoc } from 'firebase/firestore';
-import { Loader2, Square, Trash2 } from 'lucide-react';
+import { Loader2, Square, Trash2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { format, isSameDay, getDay, addDays, startOfDay } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
+import { toDate } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
 import { LessonDetailsDialog } from './lesson-details-dialog';
 import { Calendar } from '@/components/ui/calendar';
@@ -102,13 +102,16 @@ export default function TakvimYonetimiPage() {
     const [selectedSlot, setSelectedSlot] = useState<SlotDetails | null>(null);
     const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
     
+    // State to hold the "draft" or "staged" slots for the selected day
+    const [stagedSlots, setStagedSlots] = useState<Map<string, SlotDetails>>(new Map());
+
     const [isDragging, setIsDragging] = useState(false);
     const [dragStartSlot, setDragStartSlot] = useState<string | null>(null);
     const [dragEndSlot, setDragEndSlot] = useState<string | null>(null);
     const [dragMode, setDragMode] = useState<'available' | 'closed' | null>(null);
     
-    const [calendarKey, setCalendarKey] = useState(Date.now());
     const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
+    const [isApplyingChanges, setIsApplyingChanges] = useState(false);
 
 
     const lessonSlotsQuery = useMemoFirebase(() => {
@@ -118,30 +121,36 @@ export default function TakvimYonetimiPage() {
 
     const { data: lessonSlots, isLoading: areSlotsLoading, refetch } = useCollection(lessonSlotsQuery);
 
-
-    const slotsForSelectedDate = useMemo(() => {
+    // This useMemo gets the original, saved slots from Firestore for the selected day.
+    const originalSlotsForSelectedDate = useMemo(() => {
         if (!lessonSlots) return new Map<string, SlotDetails>();
         const slotsMap = new Map<string, SlotDetails>();
         lessonSlots.forEach(slot => {
-            const zonedSlotDate = toZonedTime(slot.startTime.toDate(), turkeyTimeZone);
+            const zonedSlotDate = toDate(slot.startTime.toDate());
             if (isSameDay(zonedSlotDate, selectedDate)) {
-                const time = formatInTimeZone(zonedSlotDate, turkeyTimeZone, 'HH:mm');
+                const time = format(zonedSlotDate, 'HH:mm');
                 slotsMap.set(time, slot as SlotDetails);
             }
         });
         return slotsMap;
     }, [lessonSlots, selectedDate]);
     
+    // This useEffect populates the "staged" slots when the selected day changes.
+    useEffect(() => {
+        setStagedSlots(new Map(originalSlotsForSelectedDate));
+    }, [originalSlotsForSelectedDate]);
+
+
     const availableDays = useMemo(() => {
         if (!lessonSlots) return [];
         return lessonSlots
             .filter(slot => slot.status === 'available')
-            .map(slot => toZonedTime(slot.startTime.toDate(), turkeyTimeZone));
+            .map(slot => toDate(slot.startTime.toDate()));
     }, [lessonSlots]);
 
 
     const handleSlotClick = (time: string) => {
-        const slot = slotsForSelectedDate.get(time);
+        const slot = stagedSlots.get(time);
         if (slot?.status === 'booked') {
             setSelectedSlot(slot);
             setIsDetailsDialogOpen(true);
@@ -166,41 +175,94 @@ export default function TakvimYonetimiPage() {
         return getSlotsInDragRange(dragStartSlot, dragEndSlot);
     }, [isDragging, dragStartSlot, dragEndSlot]);
 
-    const handleMouseUp = async () => {
-        if (!isDragging || !dragMode || !user || !db || !selectedDate) {
+    const handleMouseDown = (time: string) => {
+        const slot = stagedSlots.get(time);
+        if (slot?.status === 'booked') return;
+        setIsDragging(true);
+        setDragStartSlot(time);
+        setDragEndSlot(time);
+        setDragMode(slot?.status === 'available' ? 'closed' : 'available');
+    };
+
+    const handleMouseUp = () => {
+        if (!isDragging || !dragMode || !user || !selectedDate) {
             resetDragState();
             return;
         }
 
         const slotsToUpdate = dragSelection;
-        resetDragState();
+        
+        setStagedSlots(prevStaged => {
+            const newStaged = new Map(prevStaged);
+            slotsToUpdate.forEach(time => {
+                const existingSlot = newStaged.get(time);
+                if (existingSlot?.status === 'booked') return; // Don't change booked slots
 
-        if (slotsToUpdate.size === 0) return;
+                if (dragMode === 'available' && !existingSlot) {
+                     const slotDate = new Date(`${format(selectedDate, 'yyyy-MM-dd')}T${time}:00`);
+                     newStaged.set(time, {
+                        id: `new-${time}`, // Temporary ID for new slots
+                        status: 'available',
+                        teacherId: user.uid,
+                        startTime: Timestamp.fromDate(slotDate)
+                     });
+                } else if (dragMode === 'closed' && existingSlot) {
+                    newStaged.delete(time);
+                }
+            });
+            return newStaged;
+        });
+
+        resetDragState();
+    };
+
+    const handleApplyChanges = async () => {
+        if (!db || !user || !selectedDate) return;
+        setIsApplyingChanges(true);
+
+        const originalAvailable = Array.from(originalSlotsForSelectedDate.values()).filter(s => s.status === 'available');
+        const stagedAvailable = Array.from(stagedSlots.values()).filter(s => s.status === 'available');
+
+        const slotsToDelete = originalAvailable.filter(orig => !stagedAvailable.some(staged => staged.id === orig.id));
+        const slotsToAdd = stagedAvailable.filter(staged => staged.id.startsWith('new-'));
+
+        if (slotsToDelete.length === 0 && slotsToAdd.length === 0) {
+            toast({ title: 'Değişiklik Yok', description: 'Kaydedilecek yeni bir değişiklik yapmadınız.'});
+            setIsApplyingChanges(false);
+            return;
+        }
+
         const batch = writeBatch(db);
 
-        slotsToUpdate.forEach(time => {
-            const existingSlot = slotsForSelectedDate.get(time);
-            if (dragMode === 'available' && !existingSlot) {
-                const slotDate = toZonedTime(new Date(`${format(selectedDate, 'yyyy-MM-dd')}T${time}:00`), turkeyTimeZone);
-                
-                const newSlotRef = doc(collection(db, 'lesson-slots'));
-                batch.set(newSlotRef, {
-                    teacherId: user.uid,
-                    startTime: Timestamp.fromDate(slotDate),
-                    status: 'available',
-                });
-            } else if (dragMode === 'closed' && existingSlot && existingSlot.status === 'available') {
-                batch.delete(doc(db, 'lesson-slots', existingSlot.id));
-            }
+        slotsToDelete.forEach(slot => {
+            batch.delete(doc(db, 'lesson-slots', slot.id));
+        });
+
+        slotsToAdd.forEach(slot => {
+            const newSlotRef = doc(collection(db, 'lesson-slots'));
+            batch.set(newSlotRef, {
+                teacherId: user.uid,
+                startTime: slot.startTime,
+                status: 'available',
+            });
         });
 
         try {
             await batch.commit();
-            refetch();
-        } catch (serverError) {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({ operation: 'write', path: 'lesson-slots' }));
+            await refetch();
+            toast({
+                title: 'Kaydedildi',
+                description: 'Günlük programınız başarıyla güncellendi.',
+                className: 'bg-green-500 text-white'
+            });
+        } catch (error) {
+            console.error("Error applying daily changes:", error);
+            toast({ variant: 'destructive', title: 'Hata', description: 'Değişiklikler kaydedilirken bir hata oluştu.' });
+        } finally {
+            setIsApplyingChanges(false);
         }
     };
+
 
     const handleApplyTemplateToFutureDays = async () => {
         if (!db || !user || !selectedDate) return;
@@ -208,10 +270,10 @@ export default function TakvimYonetimiPage() {
 
         const dayOfWeekToApply = getDay(selectedDate); // Sunday = 0, Monday = 1, ...
         
-        // 1. Get the template from the currently selected day
-        const templateTimes = Array.from(slotsForSelectedDate.keys()).filter(time => slotsForSelectedDate.get(time)?.status === 'available');
+        // Use the staged slots as the template
+        const templateTimes = Array.from(stagedSlots.keys()).filter(time => stagedSlots.get(time)?.status === 'available');
 
-        // 2. Find all future available slots for this teacher on the same day of the week
+        // Find all future available slots for this teacher on the same day of the week to delete them
         const q = query(
             collection(db, 'lesson-slots'),
             where('teacherId', '==', user.uid),
@@ -231,18 +293,13 @@ export default function TakvimYonetimiPage() {
                 }
             });
 
-            // 3. Apply the template for the next year
+            // Apply the new template for the next year
             for (let i = 0; i < 52; i++) {
                 let futureDate = addDays(selectedDate, i * 7);
-                // Ensure we are on the correct day of the week
-                while (getDay(futureDate) !== dayOfWeekToApply) {
-                    futureDate = addDays(futureDate, 1);
-                }
-                
-                 if(startOfDay(futureDate) < startOfDay(new Date())) continue;
+                if(startOfDay(futureDate) < startOfDay(new Date())) continue;
 
                 templateTimes.forEach(time => {
-                    const slotDateTime = toZonedTime(new Date(`${format(futureDate, 'yyyy-MM-dd')}T${time}`), turkeyTimeZone);
+                    const slotDateTime = new Date(`${format(futureDate, 'yyyy-MM-dd')}T${time}`);
                     const newSlotRef = doc(collection(db, 'lesson-slots'));
                     batch.set(newSlotRef, {
                         teacherId: user.uid,
@@ -279,11 +336,17 @@ export default function TakvimYonetimiPage() {
         setDragMode(null);
     };
 
+    // Global mouse up listener to end drag operation
     useEffect(() => {
-        window.addEventListener('mouseup', handleMouseUp);
-        return () => window.removeEventListener('mouseup', handleMouseUp);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isDragging, dragStartSlot, dragEndSlot, selectedDate]);
+        const handleGlobalMouseUp = () => {
+            if (isDragging) {
+                handleMouseUp();
+            }
+        };
+
+        window.addEventListener('mouseup', handleGlobalMouseUp);
+        return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+    }, [isDragging]); // Rerun if isDragging changes
 
 
     if (userLoading || areSlotsLoading) {
@@ -301,7 +364,6 @@ export default function TakvimYonetimiPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="flex justify-center lg:col-span-1">
                         <Calendar
-                            key={calendarKey}
                             mode="single"
                             selected={selectedDate}
                             onSelect={(date) => date && setSelectedDate(date)}
@@ -320,15 +382,8 @@ export default function TakvimYonetimiPage() {
                             {format(selectedDate, 'dd MMMM yyyy', { locale: tr })} için Saatler
                         </h3>
                             <TimeGrid 
-                            slots={slotsForSelectedDate}
-                            onMouseDown={(time) => {
-                                const slot = slotsForSelectedDate.get(time);
-                                if (slot?.status === 'booked') return;
-                                setIsDragging(true);
-                                setDragStartSlot(time);
-                                setDragEndSlot(time);
-                                setDragMode(slot?.status === 'available' ? 'closed' : 'available');
-                            }}
+                            slots={stagedSlots}
+                            onMouseDown={handleMouseDown}
                             onMouseEnter={(time) => isDragging && setDragEndSlot(time)}
                             onSlotClick={handleSlotClick}
                             isDragging={isDragging}
@@ -341,12 +396,16 @@ export default function TakvimYonetimiPage() {
                                 <div className="flex items-center gap-2"><Square className="w-4 h-4 border bg-background rounded-sm"/> Kapalı</div>
                                 <div className="flex items-center gap-2"><Square className="w-4 h-4 bg-destructive/80 rounded-sm"/> Rezerve</div>
                             </div>
-                            <Button onClick={handleApplyTemplateToFutureDays} disabled={isApplyingTemplate}>
-                                 {isApplyingTemplate ? (
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                ) : null}
-                                Tüm {format(selectedDate, 'EEEE', { locale: tr })} günlerine uygula
-                            </Button>
+                            <div className='flex items-center gap-2'>
+                                <Button onClick={handleApplyChanges} disabled={isApplyingChanges}>
+                                    {isApplyingChanges ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                    Değişiklikleri Uygula
+                                </Button>
+                                <Button onClick={handleApplyTemplateToFutureDays} disabled={isApplyingTemplate}>
+                                    {isApplyingTemplate ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                    Tüm {format(selectedDate, 'EEEE', { locale: tr })} günlerine uygula
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
