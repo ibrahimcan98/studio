@@ -4,18 +4,19 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useUser, useFirestore, errorEmitter, FirestorePermissionError, useMemoFirebase, useCollection } from '@/firebase';
 import { collection, query, where, addDoc, Timestamp, writeBatch, getDocs, doc } from 'firebase/firestore';
-import { Loader2, Calendar, Clock, Square, CheckSquare, Trash2, AlertTriangle, X } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, Clock, Square, CheckSquare, Trash2, AlertTriangle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { format, addDays, getDay, startOfWeek, isSameDay } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { toDate, toZonedTime } from 'date-fns-tz';
+import { toZonedTime } from 'date-fns-tz';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from '@/lib/utils';
 import { LessonDetailsDialog } from './lesson-details-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Calendar } from '@/components/ui/calendar';
 
 
 type SlotDetails = {
@@ -28,7 +29,6 @@ type SlotDetails = {
     packageCode?: string;
 };
 
-const dayNames = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
 const turkeyTimeZone = 'Europe/Istanbul';
 
 const timeSlots = Array.from({ length: (20 - 9) * 12 }, (_, i) => {
@@ -116,11 +116,11 @@ export default function TakvimYonetimiPage() {
     const [currentDragDay, setCurrentDragDay] = useState<number | null>(null);
     const [isSavingTemplate, setIsSavingTemplate] = useState(false);
     const [confirmTemplateSave, setConfirmTemplateSave] = useState(false);
+    const [calendarKey, setCalendarKey] = useState(Date.now());
 
 
     const lessonSlotsQuery = useMemoFirebase(() => {
         if (!db || !user) return null;
-        // Simplified query to avoid composite index requirement
         return query(collection(db, 'lesson-slots'), where('teacherId', '==', user.uid));
     }, [db, user]);
 
@@ -130,7 +130,7 @@ export default function TakvimYonetimiPage() {
         if (!lessonSlots) return new Map<string, SlotDetails>();
         const slotsMap = new Map<string, SlotDetails>();
         lessonSlots.forEach(slot => {
-            const zonedSlotDate = toDate(slot.startTime.toDate(), { timeZone: turkeyTimeZone });
+            const zonedSlotDate = toZonedTime(slot.startTime.toDate(), turkeyTimeZone);
             if (isSameDay(zonedSlotDate, selectedDate)) {
                 const time = format(zonedSlotDate, 'HH:mm');
                 slotsMap.set(time, slot as SlotDetails);
@@ -138,6 +138,14 @@ export default function TakvimYonetimiPage() {
         });
         return slotsMap;
     }, [lessonSlots, selectedDate]);
+    
+    const availableDays = useMemo(() => {
+        if (!lessonSlots) return [];
+        return lessonSlots
+            .filter(slot => slot.status === 'available')
+            .map(slot => toZonedTime(slot.startTime.toDate(), turkeyTimeZone));
+    }, [lessonSlots]);
+
 
     const handleSlotClick = (time: string) => {
         const slot = slotsForSelectedDate.get(time);
@@ -180,7 +188,7 @@ export default function TakvimYonetimiPage() {
         slotsToUpdate.forEach(time => {
             const existingSlot = slotsForSelectedDate.get(time);
             if (dragMode === 'available' && !existingSlot) {
-                const slotDate = toDate(`${format(selectedDate, 'yyyy-MM-dd')}T${time}:00`, { timeZone: turkeyTimeZone });
+                const slotDate = toZonedTime(`${format(selectedDate, 'yyyy-MM-dd')}T${time}:00`, turkeyTimeZone);
                 const newSlotRef = doc(collection(db, 'lesson-slots'));
                 batch.set(newSlotRef, {
                     teacherId: user.uid,
@@ -264,7 +272,7 @@ export default function TakvimYonetimiPage() {
             const templateDaySlots = weekTemplate.get(dayOfWeek);
             
             templateDaySlots?.forEach(time => {
-                const slotDate = toDate(`${format(date, 'yyyy-MM-dd')}T${time}:00`, { timeZone: turkeyTimeZone });
+                const slotDate = toZonedTime(`${format(date, 'yyyy-MM-dd')}T${time}:00`, turkeyTimeZone);
                 const newSlotRef = doc(collection(db, 'lesson-slots'));
                 batch.set(newSlotRef, {
                     teacherId: user.uid,
@@ -278,6 +286,7 @@ export default function TakvimYonetimiPage() {
             await batch.commit();
             toast({ title: "Başarılı!", description: "Haftalık şablonunuz kaydedildi ve gelecek bir yıl için takviminiz güncellendi.", className: "bg-green-500 text-white" });
             refetch(); // Refetch all slots to update the view
+            setCalendarKey(Date.now()); // Force calendar to re-render
         } catch(e) {
             console.error("Failed to save template", e);
             toast({ variant: 'destructive', title: "Hata!", description: "Şablon kaydedilirken bir hata oluştu." });
@@ -292,7 +301,7 @@ export default function TakvimYonetimiPage() {
         return <div className="flex h-screen items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
     }
     
-    const weekDates = Array.from({length: 7}, (_, i) => addDays(startOfWeek(selectedDate, {weekStartsOn: 1}), i));
+    const weekDates = Array.from({length: 7}, (_, i) => addDays(startOfWeek(new Date(), {weekStartsOn: 1}), i));
 
     return (
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen">
@@ -311,7 +320,20 @@ export default function TakvimYonetimiPage() {
                     <Card className="p-4 sm:p-6 mt-4">
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                             <div className="flex justify-center lg:col-span-1">
-                               <input type="date" value={format(selectedDate, 'yyyy-MM-dd')} onChange={(e) => setSelectedDate(new Date(e.target.value))} className='p-2 border rounded-md'/>
+                                <Calendar
+                                    key={calendarKey}
+                                    mode="single"
+                                    selected={selectedDate}
+                                    onSelect={(date) => date && setSelectedDate(date)}
+                                    locale={tr}
+                                    modifiers={{
+                                        available: availableDays,
+                                    }}
+                                    modifiersClassNames={{
+                                        available: 'bg-primary/20 text-primary-foreground rounded-full',
+                                    }}
+                                    className="rounded-md border"
+                                />
                             </div>
                             <div className="lg:col-span-2">
                                 <h3 className="text-lg font-semibold mb-4 text-center lg:text-left">
