@@ -10,7 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { isSameDay, getDay, addDays, startOfDay, parse, format as formatDateFn } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { toZonedTime, format, formatInTimeZone, parseFromTimeZone } from 'date-fns-tz';
+import { toZonedTime, format, formatInTimeZone } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
 import { LessonDetailsDialog } from './lesson-details-dialog';
 import { Calendar } from '@/components/ui/calendar';
@@ -27,6 +27,14 @@ type SlotDetails = {
 };
 
 const turkeyTimeZone = 'Europe/Istanbul';
+
+// Helper function to create a date object correctly in the target timezone
+const createDateInTurkeyTimeZone = (date: Date, time: string): Date => {
+  const dateStr = formatDateFn(date, 'yyyy-MM-dd');
+  const dateTimeStr = `${dateStr}T${time}:00`;
+  return toZonedTime(dateTimeStr, turkeyTimeZone);
+};
+
 
 const timeSlots = Array.from({ length: (20 - 9) * 12 }, (_, i) => {
     const totalMinutes = 9 * 60 + i * 5;
@@ -196,14 +204,12 @@ export default function TakvimYonetimiPage() {
                 if (existingSlot?.status === 'booked') return; 
 
                 if (dragMode === 'available' && !existingSlot) {
-                     const dateStr = formatDateFn(selectedDate, 'yyyy-MM-dd');
-                     const zonedTime = parseFromTimeZone(`${dateStr} ${time}`, { timeZone: turkeyTimeZone });
-                     
+                     const dateInTurkey = createDateInTurkeyTimeZone(selectedDate, time);
                      newStaged.set(time, {
                         id: `new-${time}`, 
                         status: 'available',
                         teacherId: user.uid,
-                        startTime: Timestamp.fromDate(zonedTime)
+                        startTime: Timestamp.fromDate(dateInTurkey)
                      });
                 } else if (dragMode === 'closed' && existingSlot) {
                     newStaged.delete(time);
@@ -239,9 +245,10 @@ export default function TakvimYonetimiPage() {
 
         slotsToAdd.forEach(slot => {
             const newSlotRef = doc(collection(db, 'lesson-slots'));
+            const dateInTurkey = createDateInTurkeyTimeZone(selectedDate, format(slot.startTime.toDate(), 'HH:mm'));
             batch.set(newSlotRef, {
                 teacherId: user.uid,
-                startTime: slot.startTime,
+                startTime: Timestamp.fromDate(dateInTurkey),
                 status: 'available',
             });
         });
@@ -294,10 +301,8 @@ export default function TakvimYonetimiPage() {
                 let futureDate = addDays(selectedDate, i * 7);
                 if(startOfDay(futureDate) < startOfDay(new Date())) continue;
 
-                const dateStr = formatDateFn(futureDate, 'yyyy-MM-dd');
-
                 templateTimes.forEach(time => {
-                    const slotDateTimeInTurkey = parseFromTimeZone(`${dateStr} ${time}`, { timeZone: turkeyTimeZone });
+                    const slotDateTimeInTurkey = createDateInTurkeyTimeZone(futureDate, time);
                     const newSlotRef = doc(collection(db, 'lesson-slots'));
                     batch.set(newSlotRef, {
                         teacherId: user.uid,
