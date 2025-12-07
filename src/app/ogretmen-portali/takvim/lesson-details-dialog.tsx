@@ -3,7 +3,8 @@
 
 import { useMemo } from 'react';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc, differenceInYears } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
+import { differenceInYears } from 'date-fns';
 import { Loader2, User, Baby, BookOpen } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
