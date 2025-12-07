@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { useUser, useFirestore, errorEmitter, FirestorePermissionError, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, errorEmitter, FirestorePermissionError, useMemoFirebase } from '@/firebase';
 import { collection, query, where, addDoc, Timestamp, writeBatch, getDocs, doc } from 'firebase/firestore';
 import { Loader2, Calendar, Clock, Square, CheckSquare, Trash2, AlertTriangle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,12 +10,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { format, addDays, getDay, startOfWeek, isSameDay } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { formatInTimeZone, toDate, toZonedTime } from 'date-fns-tz';
+import { toDate, toZonedTime } from 'date-fns-tz';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from '@/lib/utils';
 import { LessonDetailsDialog } from './lesson-details-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { useCollection } from '@/firebase/firestore/use-collection';
+
 
 type SlotDetails = {
     id: string;
@@ -119,6 +121,7 @@ export default function TakvimYonetimiPage() {
 
     const lessonSlotsQuery = useMemoFirebase(() => {
         if (!db || !user) return null;
+        // Simplified query to avoid composite index requirement
         return query(collection(db, 'lesson-slots'), where('teacherId', '==', user.uid));
     }, [db, user]);
 
@@ -313,7 +316,7 @@ export default function TakvimYonetimiPage() {
                             </div>
                             <div className="lg:col-span-2">
                                 <h3 className="text-lg font-semibold mb-4 text-center lg:text-left">
-                                    {formatInTimeZone(selectedDate, turkeyTimeZone, 'dd MMMM yyyy', { locale: tr })} için Saatler
+                                    {format(selectedDate, 'dd MMMM yyyy', { locale: tr })} için Saatler
                                 </h3>
                                  <TimeGrid 
                                     slots={slotsForSelectedDate}
@@ -398,6 +401,3 @@ export default function TakvimYonetimiPage() {
         </div>
     );
 }
-
-
-    
