@@ -10,7 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { isSameDay, getDay, addDays, startOfDay, parse, format as formatDateFn } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { toZonedTime, format, formatInTimeZone, zonedTimeToUtc } from 'date-fns-tz';
+import { toZonedTime, format, formatInTimeZone, parseFromTimeZone } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
 import { LessonDetailsDialog } from './lesson-details-dialog';
 import { Calendar } from '@/components/ui/calendar';
@@ -197,7 +197,7 @@ export default function TakvimYonetimiPage() {
 
                 if (dragMode === 'available' && !existingSlot) {
                      const dateStr = formatDateFn(selectedDate, 'yyyy-MM-dd');
-                     const zonedTime = zonedTimeToUtc(`${dateStr}T${time}:00`, turkeyTimeZone);
+                     const zonedTime = parseFromTimeZone(`${dateStr} ${time}`, { timeZone: turkeyTimeZone });
                      
                      newStaged.set(time, {
                         id: `new-${time}`, 
@@ -241,7 +241,7 @@ export default function TakvimYonetimiPage() {
             const newSlotRef = doc(collection(db, 'lesson-slots'));
             batch.set(newSlotRef, {
                 teacherId: user.uid,
-                startTime: slot.startTime, // Already a correct Timestamp
+                startTime: slot.startTime,
                 status: 'available',
             });
         });
@@ -297,7 +297,7 @@ export default function TakvimYonetimiPage() {
                 const dateStr = formatDateFn(futureDate, 'yyyy-MM-dd');
 
                 templateTimes.forEach(time => {
-                    const slotDateTimeInTurkey = zonedTimeToUtc(`${dateStr}T${time}:00`, turkeyTimeZone);
+                    const slotDateTimeInTurkey = parseFromTimeZone(`${dateStr} ${time}`, { timeZone: turkeyTimeZone });
                     const newSlotRef = doc(collection(db, 'lesson-slots'));
                     batch.set(newSlotRef, {
                         teacherId: user.uid,
