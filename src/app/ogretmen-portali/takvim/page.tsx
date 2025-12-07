@@ -8,7 +8,7 @@ import { Loader2, Square, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { isSameDay, getDay, addDays, startOfDay } from 'date-fns';
+import { isSameDay, getDay, addDays, startOfDay, parse, format as formatDate } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { toZonedTime, format, formatInTimeZone } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
@@ -196,14 +196,14 @@ export default function TakvimYonetimiPage() {
                 if (existingSlot?.status === 'booked') return; 
 
                 if (dragMode === 'available' && !existingSlot) {
-                     const dateStr = format(selectedDate, 'yyyy-MM-dd');
-                     const slotDateTime = toZonedTime(`${dateStr}T${time}:00`, turkeyTimeZone);
+                     const dateStr = formatDate(selectedDate, 'yyyy-MM-dd');
+                     const localDate = new Date(`${dateStr}T${time}:00`);
                      
                      newStaged.set(time, {
                         id: `new-${time}`, 
                         status: 'available',
                         teacherId: user.uid,
-                        startTime: Timestamp.fromDate(slotDateTime)
+                        startTime: Timestamp.fromDate(localDate)
                      });
                 } else if (dragMode === 'closed' && existingSlot) {
                     newStaged.delete(time);
@@ -239,9 +239,11 @@ export default function TakvimYonetimiPage() {
 
         slotsToAdd.forEach(slot => {
             const newSlotRef = doc(collection(db, 'lesson-slots'));
+             // Convert startTime from local Date object to a Timestamp for Firestore
+             const zonedTime = toZonedTime(slot.startTime.toDate(), turkeyTimeZone);
             batch.set(newSlotRef, {
                 teacherId: user.uid,
-                startTime: slot.startTime,
+                startTime: Timestamp.fromDate(zonedTime),
                 status: 'available',
             });
         });
@@ -294,7 +296,7 @@ export default function TakvimYonetimiPage() {
                 let futureDate = addDays(selectedDate, i * 7);
                 if(startOfDay(futureDate) < startOfDay(new Date())) continue;
 
-                const dateStr = format(futureDate, 'yyyy-MM-dd');
+                const dateStr = formatDate(futureDate, 'yyyy-MM-dd');
 
                 templateTimes.forEach(time => {
                     const slotDateTime = toZonedTime(`${dateStr}T${time}:00`, turkeyTimeZone);
@@ -412,5 +414,7 @@ export default function TakvimYonetimiPage() {
         </div>
     );
 }
+
+    
 
     
