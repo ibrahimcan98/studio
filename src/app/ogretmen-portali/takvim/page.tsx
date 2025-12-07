@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -143,8 +144,13 @@ export default function TakvimYonetimiPage() {
     const [dragEndSlot, setDragEndSlot] = useState<string | null>(null);
     const [dragMode, setDragMode] = useState<'available' | 'closed' | null>(null);
     
-    // State for weekly template
-    const [weekTemplate, setWeekTemplate] = useState<Map<number, Set<string>>>(new Map(Array.from({length: 7}, (_, i) => [i, new Set()])));
+    const [weekTemplate, setWeekTemplate] = useState<Map<number, Set<string>>>(() => {
+        const map = new Map<number, Set<string>>();
+        for (let i = 0; i < 7; i++) {
+            map.set(i, new Set());
+        }
+        return map;
+    });
     const [currentDragDay, setCurrentDragDay] = useState<number | null>(null);
     const [isSavingTemplate, setIsSavingTemplate] = useState(false);
     const [confirmTemplateSave, setConfirmTemplateSave] = useState(false);
@@ -160,24 +166,27 @@ export default function TakvimYonetimiPage() {
     const { data: lessonSlots, isLoading: areSlotsLoading, refetch } = useCollection(lessonSlotsQuery);
 
      useEffect(() => {
-        // This effect should only run ONCE when the component mounts and `lessonSlots` are available.
-        if (lessonSlots && !isTemplateLoaded) {
+        if (lessonSlots && !isTemplateLoaded && lessonSlots.length > 0) {
             const newTemplate = new Map<number, Set<string>>();
-             Array.from({length: 7}, (_, i) => newTemplate.set(i, new Set()));
+             for (let i = 0; i < 7; i++) {
+                newTemplate.set(i, new Set());
+            }
 
             lessonSlots.forEach(slot => {
                 if(slot.status === 'available') {
                     const zonedTime = toZonedTime(slot.startTime.toDate(), turkeyTimeZone);
                     const day = getDay(zonedTime);
                     const time = format(zonedTime, 'HH:mm');
-                    if (!newTemplate.has(day)) {
-                        newTemplate.set(day, new Set());
-                    }
-                    newTemplate.get(day)?.add(time);
+                    
+                    const daySlots = newTemplate.get(day) || new Set();
+                    daySlots.add(time);
+                    newTemplate.set(day, daySlots);
                 }
             });
              setWeekTemplate(newTemplate);
-             setIsTemplateLoaded(true); // Mark as loaded to prevent re-running
+             setIsTemplateLoaded(true);
+        } else if (lessonSlots && !isTemplateLoaded && lessonSlots.length === 0) {
+            setIsTemplateLoaded(true);
         }
     }, [lessonSlots, isTemplateLoaded]);
 
@@ -498,3 +507,4 @@ export default function TakvimYonetimiPage() {
         </div>
     );
 }
+
