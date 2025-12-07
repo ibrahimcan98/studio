@@ -30,9 +30,36 @@ const turkeyTimeZone = 'Europe/Istanbul';
 
 // Helper function to create a date object correctly in the target timezone
 const createDateInTurkeyTimeZone = (date: Date, time: string): Date => {
-  const dateStr = formatDateFn(date, 'yyyy-MM-dd');
-  const dateTimeStr = `${dateStr}T${time}:00`;
-  return toZonedTime(dateTimeStr, turkeyTimeZone);
+  const [hours, minutes] = time.split(':').map(Number);
+  
+  // Create a date object. This object is in the browser's local timezone.
+  const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), hours, minutes);
+
+  // Get the difference in minutes between UTC and the local time.
+  // A positive value means the local time is ahead of UTC (e.g., UTC+3).
+  // A negative value means the local time is behind UTC (e.g., UTC-5).
+  const timezoneOffsetMinutes = localDate.getTimezoneOffset();
+
+  // Create a new Date object based on the local time's components, but interpreted as UTC.
+  // This "tricks" the Date object into thinking it's UTC, avoiding double-offsetting.
+  const utcDate = new Date(Date.UTC(
+    localDate.getFullYear(),
+    localDate.getMonth(),
+    localDate.getDate(),
+    localDate.getHours(),
+    localDate.getMinutes()
+  ));
+
+  // Now, manually adjust this UTC time to be the correct time for Turkey (UTC+3)
+  // We subtract the local offset to get back to "true" UTC, then add Turkey's offset.
+  // Turkey is UTC+3, which is -180 minutes offset from UTC.
+  const turkeyOffsetMinutes = -180;
+  
+  // The final timestamp is the UTC time, minus the browser's offset (to get to true UTC),
+  // and then minus Turkey's offset (to shift it to Turkey's time).
+  const finalTimestamp = utcDate.getTime() - (timezoneOffsetMinutes * 60 * 1000) - (turkeyOffsetMinutes * 60 * 1000);
+
+  return new Date(finalTimestamp);
 };
 
 
