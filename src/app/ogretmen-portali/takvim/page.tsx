@@ -346,7 +346,7 @@ export default function TakvimYonetimiPage() {
 
         window.addEventListener('mouseup', handleGlobalMouseUp);
         return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
-    }, [isDragging]); // Rerun if isDragging changes
+    }, [isDragging, handleMouseUp]); // Rerun if isDragging changes
 
 
     if (userLoading || areSlotsLoading) {
@@ -354,7 +354,7 @@ export default function TakvimYonetimiPage() {
     }
     
     return (
-        <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen">
+        <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen" onMouseUp={handleMouseUp}>
              <div>
                 <h2 className="text-3xl font-bold tracking-tight">Müsaitlik Takvimi (Türkiye Saati)</h2>
                  <p className="text-muted-foreground">Belirli bir gün için müsaitlik durumunuzu düzenleyin.</p>
