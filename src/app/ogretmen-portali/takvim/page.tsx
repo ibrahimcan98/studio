@@ -2,15 +2,15 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { useUser, useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useUser, useFirestore, errorEmitter, FirestorePermissionError, useCollection } from '@/firebase';
 import { collection, query, where, addDoc, Timestamp, writeBatch, getDocs, doc } from 'firebase/firestore';
 import { Loader2, Calendar, Clock, Square, CheckSquare, Trash2, AlertTriangle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { format, addDays, getDay, add, startOfWeek, isSameDay } from 'date-fns';
+import { format, addDays, getDay, startOfWeek, isSameDay } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { formatInTimeZone, toDate } from 'date-fns-tz';
+import { formatInTimeZone, toDate, toZonedTime } from 'date-fns-tz';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from '@/lib/utils';
 import { LessonDetailsDialog } from './lesson-details-dialog';
