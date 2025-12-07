@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError, useDoc } from '@/firebase';
-import { collection, query, where, addDoc, deleteDoc, Timestamp, doc } from 'firebase/firestore';
+import { collection, query, where, addDoc, deleteDoc, Timestamp, doc, writeBatch } from 'firebase/firestore';
 import { Loader2, CheckCircle, User, Baby, Info, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -18,7 +18,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
-import { formatInTimeZone, toZonedTime, toDate } from 'date-fns-tz';
+import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { COURSES } from '@/data/courses';
 import { cn } from '@/lib/utils';
 
@@ -125,9 +125,15 @@ export default function TakvimYonetimiPage() {
     const { toast } = useToast();
 
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-    const [isSubmitting, setIsSubmitting] = useState<Record<string, boolean>>({});
     const [selectedSlot, setSelectedSlot] = useState<SlotDetails | null>(null);
     const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+    
+    // State for drag-to-select functionality
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStartSlot, setDragStartSlot] = useState<string | null>(null);
+    const [dragEndSlot, setDragEndSlot] = useState<string | null>(null);
+    const [dragMode, setDragMode] = useState<'available' | 'closed' | null>(null);
+
     const turkeyTimeZone = 'Europe/Istanbul';
 
     const lessonSlotsQuery = useMemoFirebase(() => {
@@ -144,6 +150,16 @@ export default function TakvimYonetimiPage() {
             .map(slot => toZonedTime(slot.startTime.toDate(), turkeyTimeZone));
     }, [lessonSlots, turkeyTimeZone]);
     
+    const timeSlots = useMemo(() => {
+        const slots = [];
+        for (let h = 9; h < 21; h++) {
+            for (let m = 0; m < 60; m += 5) {
+                slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+            }
+        }
+        return slots;
+    }, []);
+    
     const slotsForSelectedDate = useMemo(() => {
         if (!lessonSlots || !selectedDate) return new Map<string, SlotDetails>();
         
@@ -159,7 +175,7 @@ export default function TakvimYonetimiPage() {
         return slotsMap;
     }, [lessonSlots, selectedDate, turkeyTimeZone]);
     
-    const handleTimeSlotClick = (time: string) => {
+    const handleSlotClick = (time: string) => {
         const slot = slotsForSelectedDate.get(time);
         
         if (slot?.status === 'booked') {
@@ -167,84 +183,110 @@ export default function TakvimYonetimiPage() {
             setIsDetailsDialogOpen(true);
             return;
         }
+    };
+    
+     const getSlotsToUpdate = () => {
+        if (!dragStartSlot || !dragEndSlot) return [];
+        const startIndex = timeSlots.indexOf(dragStartSlot);
+        const endIndex = timeSlots.indexOf(dragEndSlot);
+        if (startIndex === -1 || endIndex === -1) return [];
 
-        if (!selectedDate || !user || !db) return;
+        const [start, end] = [Math.min(startIndex, endIndex), Math.max(startIndex, endIndex)];
+        return timeSlots.slice(start, end + 1);
+    };
 
-        const [hours, minutes] = time.split(':').map(Number);
+    const handleMouseDown = (time: string) => {
+        const slot = slotsForSelectedDate.get(time);
+        if (slot?.status === 'booked') return;
         
-        const dateString = `${format(selectedDate, 'yyyy-MM-dd')}T${time}:00`;
-        const dateInTurkeyTz = toDate(dateString, { timeZone: turkeyTimeZone });
-        const startTime = Timestamp.fromDate(dateInTurkeyTz);
+        setIsDragging(true);
+        setDragStartSlot(time);
+        setDragEndSlot(time);
+        setDragMode(slot?.status === 'available' ? 'closed' : 'available');
+    };
 
-        setIsSubmitting(prevState => ({ ...prevState, [time]: true }));
-        
-        if (slot) {
-            // A slot exists, so we're deleting it (closing the slot)
-            const slotDocRef = doc(db, 'lesson-slots', slot.id);
-            deleteDoc(slotDocRef)
-                .catch(async (serverError) => {
-                    const contextualError = new FirestorePermissionError({
-                        operation: 'delete',
-                        path: slotDocRef.path,
-                    });
-                    errorEmitter.emit('permission-error', contextualError);
-                })
-                .finally(() => {
-                    setIsSubmitting(prevState => ({ ...prevState, [time]: false }));
-                });
-
-        } else {
-             // No slot exists, so we're creating one (opening the slot)
-             const newSlotData = {
-                teacherId: user.uid,
-                startTime: startTime,
-                endTime: Timestamp.fromDate(addMinutes(startTime.toDate(), 5)),
-                status: 'available',
-                bookedBy: null,
-                childId: null,
-            };
-            addDoc(collection(db, 'lesson-slots'), newSlotData)
-                .catch(async (serverError) => {
-                    const contextualError = new FirestorePermissionError({
-                        operation: 'create',
-                        path: 'lesson-slots',
-                        requestResourceData: newSlotData
-                    });
-                    errorEmitter.emit('permission-error', contextualError);
-                })
-                .finally(() => {
-                    setIsSubmitting(prevState => ({ ...prevState, [time]: false }));
-                });
+    const handleMouseEnter = (time: string) => {
+        if (isDragging) {
+            setDragEndSlot(time);
         }
     };
+
+    const handleMouseUp = async () => {
+        if (!isDragging || !dragMode || !user || !db || !selectedDate) {
+            resetDragState();
+            return;
+        }
+
+        const slotsToUpdate = getSlotsToUpdate();
+        resetDragState(); // Reset UI state immediately for responsiveness
+        
+        if (slotsToUpdate.length === 0) return;
+
+        const batch = writeBatch(db);
+
+        if (dragMode === 'available') {
+            slotsToUpdate.forEach(time => {
+                const existingSlot = slotsForSelectedDate.get(time);
+                if (!existingSlot) { // Only add if it doesn't exist
+                    const slotDate = toDate(`${format(selectedDate, 'yyyy-MM-dd')}T${time}:00`, { timeZone: turkeyTimeZone });
+                    const newSlotRef = doc(collection(db, 'lesson-slots'));
+                    batch.set(newSlotRef, {
+                        teacherId: user.uid,
+                        startTime: Timestamp.fromDate(slotDate),
+                        endTime: Timestamp.fromDate(addMinutes(slotDate, 5)),
+                        status: 'available',
+                    });
+                }
+            });
+        } else { // 'closed' mode
+            slotsToUpdate.forEach(time => {
+                const existingSlot = slotsForSelectedDate.get(time);
+                if (existingSlot && existingSlot.status === 'available') {
+                    const slotDocRef = doc(db, 'lesson-slots', existingSlot.id);
+                    batch.delete(slotDocRef);
+                }
+            });
+        }
+        
+        try {
+            await batch.commit();
+        } catch (serverError) {
+             const permissionError = new FirestorePermissionError({
+                operation: 'write',
+                path: 'lesson-slots',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        }
+    };
+    
+    const resetDragState = () => {
+        setIsDragging(false);
+        setDragStartSlot(null);
+        setDragEndSlot(null);
+        setDragMode(null);
+    };
+
+    useEffect(() => {
+        // Add mouseup listener to the window to catch mouse releases outside the component
+        window.addEventListener('mouseup', handleMouseUp);
+        return () => {
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isDragging, dragStartSlot, dragEndSlot]); // Re-create listener if state changes
+    
 
     const getTeacherName = () => {
-        if (user?.displayName) {
-            return user.displayName.split(' ')[0];
-        }
-        if (user?.email) {
-            const emailName = user.email.split('@')[0];
-            return emailName.charAt(0).toUpperCase() + emailName.slice(1);
-        }
+        if (user?.displayName) { return user.displayName.split(' ')[0]; }
+        if (user?.email) { const emailName = user.email.split('@')[0]; return emailName.charAt(0).toUpperCase() + emailName.slice(1); }
         return 'Öğretmen';
     };
-
-    const timeSlots = useMemo(() => {
-        const slots = [];
-        for (let h = 9; h < 21; h++) {
-            for (let m = 0; m < 60; m += 5) {
-                const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-                slots.push(time);
-            }
-        }
-        return slots;
-    }, []);
-
 
     if (areSlotsLoading) {
         return <div className="flex h-screen items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
     }
 
+    const slotsInSelection = getSlotsToUpdate();
+    
     return (
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen">
             <div>
@@ -271,36 +313,39 @@ export default function TakvimYonetimiPage() {
                             {selectedDate ? format(selectedDate, 'dd MMMM yyyy', { locale: tr }) : 'Bir tarih seçin'} için Saatler
                         </h3>
                         {selectedDate ? (
-                            <div className="relative border rounded-lg p-2 bg-background max-h-[400px] overflow-y-auto">
-                                {timeSlots.map((time, index) => {
+                            <div className="relative border rounded-lg p-2 bg-background max-h-[400px] overflow-y-auto" onMouseLeave={resetDragState}>
+                                {timeSlots.map((time) => {
                                      const slotData = slotsForSelectedDate.get(time);
-                                     const isBooked = slotData?.status === 'booked';
-                                     const isAvailable = slotData?.status === 'available';
                                      const minutes = parseInt(time.split(':')[1]);
+                                     const isFullHour = minutes === 0;
+                                     const isQuarterHour = [15, 30, 45].includes(minutes);
+                                     
+                                     let dynamicStatus = slotData?.status;
+                                     if(isDragging && slotsInSelection.includes(time) && slotData?.status !== 'booked') {
+                                         dynamicStatus = dragMode ?? slotData?.status;
+                                     }
 
                                     return (
                                         <div 
                                             key={time}
-                                            className={cn("flex items-center h-6", minutes === 0 && index !== 0 && "mt-1")}
+                                            className={cn("flex items-center h-6")}
+                                            onMouseDown={() => handleMouseDown(time)}
+                                            onMouseEnter={() => handleMouseEnter(time)}
                                         >
-                                            {minutes === 0 && (
-                                                <span className="text-xs text-muted-foreground w-12 text-right pr-2">{time}</span>
-                                            )}
-                                            {minutes !== 0 && (
-                                                <div className="w-12"></div>
-                                            )}
+                                            <div className="text-xs text-muted-foreground w-16 text-right pr-2 shrink-0">
+                                                {isFullHour && <span className="font-semibold">{time}</span>}
+                                                {isQuarterHour && <span className="text-gray-400">{time}</span>}
+                                            </div>
                                             <div 
                                                 className={cn(
-                                                    "flex-1 h-full border-l border-b",
-                                                    minutes === 0 ? "border-t" : "border-t-0",
-                                                    isBooked ? 'bg-destructive/80 cursor-pointer' :
-                                                    isAvailable ? 'bg-primary/80 cursor-pointer' :
+                                                    "flex-1 h-full border-l",
+                                                    isFullHour ? "border-t-2 border-t-gray-300" : "border-t border-t-gray-200",
+                                                    dynamicStatus === 'booked' ? 'bg-destructive/80 cursor-not-allowed' :
+                                                    dynamicStatus === 'available' ? 'bg-primary/80 cursor-pointer' :
                                                     'hover:bg-muted cursor-pointer'
                                                 )}
-                                                onClick={() => handleTimeSlotClick(time)}
-                                            >
-                                                {isSubmitting[time] && <Loader2 className="w-4 h-4 animate-spin text-white mx-auto mt-0.5"/>}
-                                            </div>
+                                                onClick={() => handleSlotClick(time)}
+                                            />
                                         </div>
                                     )
                                 })}
