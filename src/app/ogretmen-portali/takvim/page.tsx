@@ -56,7 +56,7 @@ function TimeGrid({
     dragSelection: Set<string>;
     dragMode: 'available' | 'closed' | null;
 }) {
-    if (slots.size === 0 && !isDragging) {
+     if (slots.size === 0 && !isDragging) {
         return (
             <div 
                 className="relative border-2 border-dashed rounded-lg p-2 bg-background min-h-[400px] flex items-center justify-center text-center text-muted-foreground cursor-cell"
@@ -87,6 +87,7 @@ function TimeGrid({
             </div>
         )
     }
+
 
     return (
         <div className="relative border rounded-lg p-2 bg-background max-h-[400px] overflow-y-auto">
@@ -166,6 +167,9 @@ export default function TakvimYonetimiPage() {
     const { data: lessonSlots, isLoading: areSlotsLoading, refetch } = useCollection(lessonSlotsQuery);
 
      useEffect(() => {
+        // This effect runs only once when the component mounts and lessonSlots are loaded.
+        // It sets the initial state of the weekly template from the database.
+        // After this initial load, the weekTemplate state is only managed by user interactions.
         if (lessonSlots && !isTemplateLoaded) {
             const newTemplate = new Map<number, Set<string>>();
              for (let i = 0; i < 7; i++) {
@@ -175,7 +179,7 @@ export default function TakvimYonetimiPage() {
             lessonSlots.forEach(slot => {
                  if (slot.status === 'available') {
                     const zonedTime = toZonedTime(slot.startTime.toDate(), turkeyTimeZone);
-                    const day = getDay(zonedTime);
+                    const day = getDay(zonedTime); // Sunday = 0, Monday = 1, etc.
                     const time = format(zonedTime, 'HH:mm');
                     
                     const daySlots = newTemplate.get(day) || new Set();
@@ -184,7 +188,7 @@ export default function TakvimYonetimiPage() {
                 }
             });
              setWeekTemplate(newTemplate);
-             setIsTemplateLoaded(true);
+             setIsTemplateLoaded(true); // Mark as loaded to prevent this effect from running again
         }
     }, [lessonSlots, isTemplateLoaded]);
 
@@ -320,7 +324,6 @@ export default function TakvimYonetimiPage() {
         toast({ title: "Şablon Kaydediliyor...", description: "Bu işlem biraz zaman alabilir. Lütfen bekleyin." });
 
         try {
-            // 1. Fetch all future available slots to be deleted
             const q = query(
                 collection(db, 'lesson-slots'),
                 where('teacherId', '==', user.uid),
@@ -330,10 +333,9 @@ export default function TakvimYonetimiPage() {
             const slotsToDeleteSnap = await getDocs(q);
             const slotsToDeleteRefs = slotsToDeleteSnap.docs.map(d => d.ref);
 
-            // 2. Prepare new slots to be created
             const slotsToAdd: any[] = [];
             const today = new Date();
-            for (let i = 0; i < 90; i++) { // Generate for next 90 days
+            for (let i = 0; i < 90; i++) { 
                 const date = addDays(today, i);
                 const dayOfWeek = getDay(date);
                 const templateDaySlots = weekTemplate.get(dayOfWeek);
@@ -347,7 +349,6 @@ export default function TakvimYonetimiPage() {
                 });
             }
 
-            // 3. Process deletions in batches
             for (let i = 0; i < slotsToDeleteRefs.length; i += 500) {
                 const batch = writeBatch(db);
                 const chunk = slotsToDeleteRefs.slice(i, i + 500);
@@ -355,7 +356,6 @@ export default function TakvimYonetimiPage() {
                 await batch.commit();
             }
 
-            // 4. Process additions in batches
             for (let i = 0; i < slotsToAdd.length; i += 500) {
                 const batch = writeBatch(db);
                 const chunk = slotsToAdd.slice(i, i + 500);
@@ -369,7 +369,7 @@ export default function TakvimYonetimiPage() {
             toast({ title: "Başarılı!", description: "Haftalık şablonunuz kaydedildi ve gelecek 90 gün için takviminiz güncellendi.", className: "bg-green-500 text-white" });
             await refetch();
             setCalendarKey(Date.now());
-            setIsTemplateLoaded(false); // Force reload of template from new data
+            // No need to set isTemplateLoaded to false, keep the UI state
         } catch (e) {
             console.error("Failed to save template", e);
             toast({ variant: 'destructive', title: "Hata!", description: "Şablon kaydedilirken bir hata oluştu." });
@@ -467,9 +467,9 @@ export default function TakvimYonetimiPage() {
                             </div>
                         </div>
                         <div className='space-y-4'>
-                            {weekDates.map((date) => {
-                                const dayIndex = getDay(date);
-                                const dayName = format(date, 'EEEE', { locale: tr });
+                           {[...Array(7)].map((_, i) => {
+                                const dayIndex = (i + 1) % 7; // Monday=1, ..., Sunday=0
+                                const dayName = format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i), 'EEEE', { locale: tr });
                                 const daySlots = weekTemplate.get(dayIndex) || new Set();
                                 const slotsMap = new Map<string, any>();
                                 daySlots.forEach(time => slotsMap.set(time, { status: 'available' }));
@@ -496,7 +496,7 @@ export default function TakvimYonetimiPage() {
                                         </div>
                                     </div>
                                 )
-                            })}
+                           })}
                         </div>
                     </Card>
                 </TabsContent>
@@ -506,5 +506,7 @@ export default function TakvimYonetimiPage() {
         </div>
     );
 }
+
+    
 
     
