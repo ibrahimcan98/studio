@@ -150,7 +150,9 @@ export default function DersPlanlaPage() {
 
     const availableDays = useMemo(() => {
         if (!availableSlots || !selectedTimeZone) return [];
-        return availableSlots.map(slot => toZonedTime(slot.startTime.seconds * 1000, selectedTimeZone));
+        return availableSlots
+            .filter(slot => slot.startTime.toDate() > new Date()) // Filter for future slots
+            .map(slot => toZonedTime(slot.startTime.seconds * 1000, selectedTimeZone));
     }, [availableSlots, selectedTimeZone]);
     
     const slotsForSelectedDate = useMemo(() => {
@@ -560,3 +562,5 @@ export default function DersPlanlaPage() {
     );
 }
 
+
+    
