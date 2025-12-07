@@ -55,6 +55,49 @@ function TimeGrid({
     dragSelection: Set<string>;
     dragMode: 'available' | 'closed' | null;
 }) {
+    if (slots.size === 0) {
+        return (
+            <div className="relative border rounded-lg p-2 bg-background max-h-[400px] overflow-y-auto"
+                onMouseDown={(e) => {
+                    const time = timeSlots[Math.floor((e.nativeEvent.offsetY - 10) / 24 * timeSlots.length)];
+                    if (time) onMouseDown(time);
+                }}
+            >
+                {timeSlots.map((time) => {
+                    const minutes = parseInt(time.split(':')[1]);
+                    const isFullHour = minutes === 0;
+                    const isQuarterHour = [15, 30, 45].includes(minutes);
+
+                    let dynamicStatus;
+                     if (isDragging && dragSelection.has(time)) {
+                        dynamicStatus = dragMode;
+                    }
+
+                    return (
+                        <div
+                            key={time}
+                            className={cn("flex items-center h-6")}
+                            onMouseEnter={() => onMouseEnter(time)}
+                        >
+                            <div className="text-xs text-muted-foreground w-16 text-right pr-2 shrink-0">
+                                {isFullHour && <span className="font-semibold">{time}</span>}
+                                {isQuarterHour && <span className="text-gray-400">{time}</span>}
+                            </div>
+                            <div
+                                className={cn(
+                                    "flex-1 h-full border-l",
+                                    isFullHour ? "border-t-2 border-t-gray-300" : "border-t border-t-gray-200",
+                                     dynamicStatus === 'available' ? 'bg-primary/80 cursor-pointer' :
+                                        'hover:bg-muted cursor-pointer'
+                                )}
+                                onClick={() => onSlotClick(time)}
+                            />
+                        </div>
+                    )
+                })}
+            </div>
+        );
+    }
     return (
         <div className="relative border rounded-lg p-2 bg-background max-h-[400px] overflow-y-auto">
             {timeSlots.map((time) => {
@@ -132,6 +175,26 @@ export default function TakvimYonetimiPage() {
 
     const { data: lessonSlots, isLoading: areSlotsLoading, refetch } = useCollection(lessonSlotsQuery);
 
+    useEffect(() => {
+        if (lessonSlots && activeTab === 'weekly') {
+            const newTemplate = new Map<number, Set<string>>();
+             for (let i = 0; i < 7; i++) {
+                newTemplate.set(i, new Set());
+            }
+            lessonSlots.forEach(slot => {
+                if (slot.status === 'available') {
+                    const zonedTime = toZonedTime(slot.startTime.toDate(), turkeyTimeZone);
+                    const dayOfWeek = getDay(zonedTime);
+                    const time = format(zonedTime, 'HH:mm');
+                    newTemplate.get(dayOfWeek)?.add(time);
+                }
+            });
+            setWeekTemplate(newTemplate);
+        }
+    // Only run this when lessonSlots data is fetched or activeTab changes to 'weekly'
+    }, [lessonSlots, activeTab]);
+
+
     const slotsForSelectedDate = useMemo(() => {
         if (!lessonSlots) return new Map<string, SlotDetails>();
         const slotsMap = new Map<string, SlotDetails>();
@@ -194,9 +257,7 @@ export default function TakvimYonetimiPage() {
         slotsToUpdate.forEach(time => {
             const existingSlot = slotsForSelectedDate.get(time);
             if (dragMode === 'available' && !existingSlot) {
-                const dateString = format(selectedDate, 'yyyy-MM-dd');
-                const slotDateTimeString = `${dateString}T${time}:00`;
-                const slotDate = new Date(slotDateTimeString);
+                const slotDate = toZonedTime(`${format(selectedDate, 'yyyy-MM-dd')}T${time}:00`, turkeyTimeZone);
                 
                 const newSlotRef = doc(collection(db, 'lesson-slots'));
                 batch.set(newSlotRef, {
@@ -449,11 +510,3 @@ export default function TakvimYonetimiPage() {
         </div>
     );
 }
-
-    
-
-    
-
-    
-
-    
