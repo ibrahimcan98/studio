@@ -18,7 +18,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
-import { formatInTimeZone, toDate } from 'date-fns-tz';
+import { formatInTimeZone, toDate, toZonedTime } from 'date-fns-tz';
 import { COURSES } from '@/data/courses';
 import { cn } from '@/lib/utils';
 
