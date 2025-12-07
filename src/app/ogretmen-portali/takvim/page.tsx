@@ -10,7 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { format, addDays, getDay, startOfWeek, isSameDay } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { toZonedTime } from 'date-fns-tz';
+import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from '@/lib/utils';
 import { LessonDetailsDialog } from './lesson-details-dialog';
@@ -55,39 +55,6 @@ function TimeGrid({
     dragSelection: Set<string>;
     dragMode: 'available' | 'closed' | null;
 }) {
-     if (slots.size === 0 && !isDragging) {
-        return (
-            <div 
-                className="relative border-2 border-dashed rounded-lg p-2 bg-background min-h-[400px] flex items-center justify-center text-center text-muted-foreground cursor-cell"
-                onMouseDown={(e) => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const y = e.clientY - rect.top;
-                    const slotHeight = e.currentTarget.scrollHeight / timeSlots.length;
-                    const timeIndex = Math.floor(y / slotHeight);
-                    const time = timeSlots[Math.max(0, Math.min(timeSlots.length - 1, timeIndex))];
-                    onMouseDown(time);
-                }}
-                onMouseEnter={(e) => {
-                     if (isDragging) {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        const y = e.clientY - rect.top;
-                        const slotHeight = e.currentTarget.scrollHeight / timeSlots.length;
-                        const timeIndex = Math.floor(y / slotHeight);
-                        const time = timeSlots[Math.max(0, Math.min(timeSlots.length - 1, timeIndex))];
-                        onMouseEnter(time);
-                     }
-                }}
-            >
-                <div>
-                    Bu gün için ayarlanmış müsait zaman aralığı yok.
-                    <br/>
-                    Sürükleyerek yeni aralık ekleyebilirsiniz.
-                </div>
-            </div>
-        )
-    }
-
-
     return (
         <div className="relative border rounded-lg p-2 bg-background max-h-[400px] overflow-y-auto">
             {timeSlots.map((time) => {
@@ -146,7 +113,6 @@ export default function TakvimYonetimiPage() {
     
     const [weekTemplate, setWeekTemplate] = useState<Map<number, Set<string>>>(() => {
         const map = new Map<number, Set<string>>();
-        // Initialize with empty sets for each day
         for (let i = 0; i < 7; i++) {
             map.set(i, new Set());
         }
@@ -166,6 +132,25 @@ export default function TakvimYonetimiPage() {
 
     const { data: lessonSlots, isLoading: areSlotsLoading, refetch } = useCollection(lessonSlotsQuery);
 
+    // Effect to populate the weekly template from existing slots on initial load
+    useEffect(() => {
+        if (lessonSlots && lessonSlots.length > 0) {
+            const newTemplate = new Map<number, Set<string>>();
+            for (let i = 0; i < 7; i++) {
+                newTemplate.set(i, new Set());
+            }
+            lessonSlots.forEach(slot => {
+                 if (slot.status === 'available') {
+                    const zonedDate = toZonedTime(slot.startTime.toDate(), turkeyTimeZone);
+                    const dayOfWeek = getDay(zonedDate);
+                    const time = formatInTimeZone(zonedDate, turkeyTimeZone, 'HH:mm');
+                    newTemplate.get(dayOfWeek)?.add(time);
+                }
+            });
+            setWeekTemplate(newTemplate);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [areSlotsLoading]); // Run only once after the initial data load
 
     const slotsForSelectedDate = useMemo(() => {
         if (!lessonSlots) return new Map<string, SlotDetails>();
@@ -173,7 +158,7 @@ export default function TakvimYonetimiPage() {
         lessonSlots.forEach(slot => {
             const zonedSlotDate = toZonedTime(slot.startTime.toDate(), turkeyTimeZone);
             if (isSameDay(zonedSlotDate, selectedDate)) {
-                const time = format(zonedSlotDate, 'HH:mm');
+                const time = formatInTimeZone(zonedSlotDate, turkeyTimeZone, 'HH:mm');
                 slotsMap.set(time, slot as SlotDetails);
             }
         });
@@ -231,6 +216,7 @@ export default function TakvimYonetimiPage() {
             if (dragMode === 'available' && !existingSlot) {
                 const dateString = format(selectedDate, 'yyyy-MM-dd');
                 const slotDateTimeString = `${dateString}T${time}:00`;
+                // Create the date object in the target timezone to ensure it's correct from the start
                 const slotDate = toZonedTime(slotDateTimeString, turkeyTimeZone);
                 
                 const newSlotRef = doc(collection(db, 'lesson-slots'));
@@ -289,7 +275,8 @@ export default function TakvimYonetimiPage() {
         const finalMouseUp = activeTab === 'daily' ? handleMouseUp : handleWeeklyMouseUp;
         window.addEventListener('mouseup', finalMouseUp);
         return () => window.removeEventListener('mouseup', finalMouseUp);
-    }, [isDragging, dragStartSlot, dragEndSlot, activeTab, selectedDate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isDragging, dragStartSlot, dragEndSlot, activeTab, selectedDate, weekTemplate]);
     
     const handleSaveTemplate = async () => {
         if (!user || !db) return;
@@ -305,7 +292,16 @@ export default function TakvimYonetimiPage() {
                 where('startTime', '>=', Timestamp.fromDate(new Date()))
             );
             const slotsToDeleteSnap = await getDocs(q);
-            const slotsToDeleteRefs = slotsToDeleteSnap.docs.map(d => d.ref);
+            
+            const deleteBatches = [];
+            for (let i = 0; i < slotsToDeleteSnap.docs.length; i += 500) {
+                const batch = writeBatch(db);
+                const chunk = slotsToDeleteSnap.docs.slice(i, i + 500);
+                chunk.forEach(doc => batch.delete(doc.ref));
+                deleteBatches.push(batch.commit());
+            }
+            await Promise.all(deleteBatches);
+
 
             const slotsToAdd: any[] = [];
             const today = new Date();
@@ -322,16 +318,6 @@ export default function TakvimYonetimiPage() {
                     });
                 });
             }
-            
-            const deleteBatches = [];
-            for (let i = 0; i < slotsToDeleteRefs.length; i += 500) {
-                const batch = writeBatch(db);
-                const chunk = slotsToDeleteRefs.slice(i, i + 500);
-                chunk.forEach(ref => batch.delete(ref));
-                deleteBatches.push(batch.commit());
-            }
-            await Promise.all(deleteBatches);
-
 
             const addBatches = [];
             for (let i = 0; i < slotsToAdd.length; i += 500) {
@@ -364,8 +350,6 @@ export default function TakvimYonetimiPage() {
         return <div className="flex h-screen items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
     }
     
-    const weekDates = Array.from({length: 7}, (_, i) => addDays(startOfWeek(new Date(), {weekStartsOn: 1}), i));
-
     return (
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen">
              <div>
@@ -486,6 +470,8 @@ export default function TakvimYonetimiPage() {
         </div>
     );
 }
+
+    
 
     
 
