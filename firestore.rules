@@ -27,7 +27,7 @@ service cloud.firestore {
       // A user can create/update their own child, a teacher can update, or an admin can.
       // create/update: The incoming child document's userId must match the parent's uid.
       allow create, update: if (request.auth.uid == userId && request.resource.data.userId == userId) || isTeacher() || isAdmin();
-      // delete: The parent must be the one deleting, checking the existing document.
+      // delete: The parent must be the one deleting, checking the existing document's userId.
       allow delete: if (request.auth.uid == userId && resource.data.userId == userId) || isAdmin();
     }
 
