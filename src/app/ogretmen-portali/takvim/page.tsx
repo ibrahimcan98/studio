@@ -55,6 +55,38 @@ function TimeGrid({
     dragSelection: Set<string>;
     dragMode: 'available' | 'closed' | null;
 }) {
+    if (slots.size === 0 && !isDragging) {
+        return (
+            <div 
+                className="relative border-2 border-dashed rounded-lg p-2 bg-background min-h-[400px] flex items-center justify-center text-center text-muted-foreground cursor-cell"
+                onMouseDown={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const y = e.clientY - rect.top;
+                    const slotHeight = e.currentTarget.scrollHeight / timeSlots.length;
+                    const timeIndex = Math.floor(y / slotHeight);
+                    const time = timeSlots[Math.max(0, Math.min(timeSlots.length - 1, timeIndex))];
+                    onMouseDown(time);
+                }}
+                onMouseEnter={(e) => {
+                     if (isDragging) {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const y = e.clientY - rect.top;
+                        const slotHeight = e.currentTarget.scrollHeight / timeSlots.length;
+                        const timeIndex = Math.floor(y / slotHeight);
+                        const time = timeSlots[Math.max(0, Math.min(timeSlots.length - 1, timeIndex))];
+                        onMouseEnter(time);
+                     }
+                }}
+            >
+                <div>
+                    Bu gün için ayarlanmış müsait zaman aralığı yok.
+                    <br/>
+                    Sürükleyerek yeni aralık ekleyebilirsiniz.
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className="relative border rounded-lg p-2 bg-background max-h-[400px] overflow-y-auto">
             {timeSlots.map((time) => {
@@ -117,6 +149,7 @@ export default function TakvimYonetimiPage() {
     const [isSavingTemplate, setIsSavingTemplate] = useState(false);
     const [confirmTemplateSave, setConfirmTemplateSave] = useState(false);
     const [calendarKey, setCalendarKey] = useState(Date.now());
+    const [isTemplateLoaded, setIsTemplateLoaded] = useState(false);
 
 
     const lessonSlotsQuery = useMemoFirebase(() => {
@@ -127,7 +160,8 @@ export default function TakvimYonetimiPage() {
     const { data: lessonSlots, isLoading: areSlotsLoading, refetch } = useCollection(lessonSlotsQuery);
 
      useEffect(() => {
-        if (lessonSlots) {
+        // This effect should only run ONCE when the component mounts and `lessonSlots` are available.
+        if (lessonSlots && !isTemplateLoaded) {
             const newTemplate = new Map<number, Set<string>>();
              Array.from({length: 7}, (_, i) => newTemplate.set(i, new Set()));
 
@@ -143,8 +177,9 @@ export default function TakvimYonetimiPage() {
                 }
             });
              setWeekTemplate(newTemplate);
+             setIsTemplateLoaded(true); // Mark as loaded to prevent re-running
         }
-    }, [lessonSlots]);
+    }, [lessonSlots, isTemplateLoaded]);
 
 
     const slotsForSelectedDate = useMemo(() => {
@@ -379,44 +414,22 @@ export default function TakvimYonetimiPage() {
                                 <h3 className="text-lg font-semibold mb-4 text-center lg:text-left">
                                     {format(selectedDate, 'dd MMMM yyyy', { locale: tr })} için Saatler
                                 </h3>
-                                 {slotsForSelectedDate.size > 0 ? (
-                                     <TimeGrid 
-                                        slots={slotsForSelectedDate}
-                                        onMouseDown={(time) => {
-                                            const slot = slotsForSelectedDate.get(time);
-                                            if (slot?.status === 'booked') return;
-                                            setIsDragging(true);
-                                            setDragStartSlot(time);
-                                            setDragEndSlot(time);
-                                            setDragMode(slot?.status === 'available' ? 'closed' : 'available');
-                                        }}
-                                        onMouseEnter={(time) => isDragging && setDragEndSlot(time)}
-                                        onSlotClick={handleSlotClick}
-                                        isDragging={isDragging}
-                                        dragSelection={dragSelection}
-                                        dragMode={dragMode}
-                                    />
-                                 ) : (
-                                     <div 
-                                        className="relative border-2 border-dashed rounded-lg p-2 bg-background min-h-[400px] flex items-center justify-center text-center text-muted-foreground"
-                                        onMouseDown={(e) => {
-                                            const rect = e.currentTarget.getBoundingClientRect();
-                                            const y = e.clientY - rect.top;
-                                            const totalHeight = e.currentTarget.offsetHeight;
-                                            const timeIndex = Math.floor((y / totalHeight) * timeSlots.length);
-                                            const time = timeSlots[Math.max(0, Math.min(timeSlots.length - 1, timeIndex))];
-                                            setIsDragging(true);
-                                            setDragStartSlot(time);
-                                            setDragEndSlot(time);
-                                            setDragMode('available');
-                                        }}
-                                     >
-                                        Bu gün için ayarlanmış müsait zaman aralığı yok.
-                                        <br/>
-                                        Sürükleyerek yeni aralık ekleyebilirsiniz.
-                                    </div>
-                                 )}
-
+                                 <TimeGrid 
+                                    slots={slotsForSelectedDate}
+                                    onMouseDown={(time) => {
+                                        const slot = slotsForSelectedDate.get(time);
+                                        if (slot?.status === 'booked') return;
+                                        setIsDragging(true);
+                                        setDragStartSlot(time);
+                                        setDragEndSlot(time);
+                                        setDragMode(slot?.status === 'available' ? 'closed' : 'available');
+                                    }}
+                                    onMouseEnter={(time) => isDragging && setDragEndSlot(time)}
+                                    onSlotClick={handleSlotClick}
+                                    isDragging={isDragging}
+                                    dragSelection={dragSelection}
+                                    dragMode={dragMode}
+                                />
                                 <div className="flex flex-wrap gap-x-4 gap-y-2 mt-6 text-sm text-muted-foreground">
                                     <div className="flex items-center gap-2"><Square className="w-4 h-4 bg-primary/80 rounded-sm"/> Müsait</div>
                                     <div className="flex items-center gap-2"><Square className="w-4 h-4 border bg-background rounded-sm"/> Kapalı</div>
@@ -446,9 +459,9 @@ export default function TakvimYonetimiPage() {
                             </div>
                         </div>
                         <div className='space-y-4'>
-                            {Array.from({ length: 7 }).map((_, i) => {
-                                const dayIndex = (i + 1) % 7; // Monday is 1, Sunday is 0
-                                const dayName = format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i), 'EEEE', { locale: tr });
+                            {weekDates.map((date) => {
+                                const dayIndex = getDay(date);
+                                const dayName = format(date, 'EEEE', { locale: tr });
                                 const daySlots = weekTemplate.get(dayIndex) || new Set();
                                 const slotsMap = new Map<string, any>();
                                 daySlots.forEach(time => slotsMap.set(time, { status: 'available' }));
