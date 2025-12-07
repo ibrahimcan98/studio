@@ -121,6 +121,7 @@ export default function TakvimYonetimiPage() {
 
     const lessonSlotsQuery = useMemoFirebase(() => {
         if (!db || !user) return null;
+        // Simplified query to avoid composite index.
         return query(collection(db, 'lesson-slots'), where('teacherId', '==', user.uid));
     }, [db, user]);
 
@@ -129,14 +130,13 @@ export default function TakvimYonetimiPage() {
      useEffect(() => {
         if (lessonSlots) {
             const newTemplate = new Map<number, Set<string>>();
+             Array.from({length: 7}, (_, i) => newTemplate.set(i, new Set()));
+
             lessonSlots.forEach(slot => {
                 if(slot.status === 'available') {
                     const zonedTime = toZonedTime(slot.startTime.toDate(), turkeyTimeZone);
                     const day = getDay(zonedTime);
                     const time = format(zonedTime, 'HH:mm');
-                    if (!newTemplate.has(day)) {
-                        newTemplate.set(day, new Set());
-                    }
                     newTemplate.get(day)?.add(time);
                 }
             });
@@ -445,3 +445,4 @@ export default function TakvimYonetimiPage() {
         </div>
     );
 }
+
