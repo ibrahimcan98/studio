@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -147,16 +146,17 @@ export default function TakvimYonetimiPage() {
     
     const [weekTemplate, setWeekTemplate] = useState<Map<number, Set<string>>>(() => {
         const map = new Map<number, Set<string>>();
+        // Initialize with empty sets for each day
         for (let i = 0; i < 7; i++) {
             map.set(i, new Set());
         }
         return map;
     });
+
     const [currentDragDay, setCurrentDragDay] = useState<number | null>(null);
     const [isSavingTemplate, setIsSavingTemplate] = useState(false);
     const [confirmTemplateSave, setConfirmTemplateSave] = useState(false);
     const [calendarKey, setCalendarKey] = useState(Date.now());
-    const [isTemplateLoaded, setIsTemplateLoaded] = useState(false);
 
 
     const lessonSlotsQuery = useMemoFirebase(() => {
@@ -165,32 +165,6 @@ export default function TakvimYonetimiPage() {
     }, [db, user]);
 
     const { data: lessonSlots, isLoading: areSlotsLoading, refetch } = useCollection(lessonSlotsQuery);
-
-     useEffect(() => {
-        // This effect runs only once when the component mounts and lessonSlots are loaded.
-        // It sets the initial state of the weekly template from the database.
-        // After this initial load, the weekTemplate state is only managed by user interactions.
-        if (lessonSlots && !isTemplateLoaded) {
-            const newTemplate = new Map<number, Set<string>>();
-             for (let i = 0; i < 7; i++) {
-                newTemplate.set(i, new Set());
-            }
-
-            lessonSlots.forEach(slot => {
-                 if (slot.status === 'available') {
-                    const zonedTime = toZonedTime(slot.startTime.toDate(), turkeyTimeZone);
-                    const day = getDay(zonedTime); // Sunday = 0, Monday = 1, etc.
-                    const time = format(zonedTime, 'HH:mm');
-                    
-                    const daySlots = newTemplate.get(day) || new Set();
-                    daySlots.add(time);
-                    newTemplate.set(day, daySlots);
-                }
-            });
-             setWeekTemplate(newTemplate);
-             setIsTemplateLoaded(true); // Mark as loaded to prevent this effect from running again
-        }
-    }, [lessonSlots, isTemplateLoaded]);
 
 
     const slotsForSelectedDate = useMemo(() => {
@@ -348,14 +322,18 @@ export default function TakvimYonetimiPage() {
                     });
                 });
             }
-
+            
+            const deleteBatches = [];
             for (let i = 0; i < slotsToDeleteRefs.length; i += 500) {
                 const batch = writeBatch(db);
                 const chunk = slotsToDeleteRefs.slice(i, i + 500);
                 chunk.forEach(ref => batch.delete(ref));
-                await batch.commit();
+                deleteBatches.push(batch.commit());
             }
+            await Promise.all(deleteBatches);
 
+
+            const addBatches = [];
             for (let i = 0; i < slotsToAdd.length; i += 500) {
                 const batch = writeBatch(db);
                 const chunk = slotsToAdd.slice(i, i + 500);
@@ -363,13 +341,15 @@ export default function TakvimYonetimiPage() {
                     const newSlotRef = doc(collection(db, 'lesson-slots'));
                     batch.set(newSlotRef, slotData);
                 });
-                await batch.commit();
+                addBatches.push(batch.commit());
             }
-
-            toast({ title: "Başarılı!", description: "Haftalık şablonunuz kaydedildi ve gelecek 90 gün için takviminiz güncellendi.", className: "bg-green-500 text-white" });
+            await Promise.all(addBatches);
+            
             await refetch();
             setCalendarKey(Date.now());
-            // No need to set isTemplateLoaded to false, keep the UI state
+
+            toast({ title: "Başarılı!", description: "Haftalık şablonunuz kaydedildi ve gelecek 90 gün için takviminiz güncellendi.", className: "bg-green-500 text-white" });
+            
         } catch (e) {
             console.error("Failed to save template", e);
             toast({ variant: 'destructive', title: "Hata!", description: "Şablon kaydedilirken bir hata oluştu." });
@@ -380,7 +360,7 @@ export default function TakvimYonetimiPage() {
     };
 
 
-    if (userLoading || areSlotsLoading || !isTemplateLoaded) {
+    if (userLoading || areSlotsLoading) {
         return <div className="flex h-screen items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
     }
     
