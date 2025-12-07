@@ -327,7 +327,7 @@ export default function DersPlanlaPage() {
                 });
             }
            
-            router.push('/ebeveyn-portali/paketlerim');
+            router.push('/ebeveyn-portali/dersler');
 
         } catch(error) {
              const errorMessage = (error instanceof Error) ? error.message : 'Ders planlanırken bir hata oluştu.';
@@ -568,5 +568,3 @@ export default function DersPlanlaPage() {
         </div>
     );
 }
-
-    
