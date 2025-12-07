@@ -143,15 +143,22 @@ export default function DersPlanlaPage() {
 
     const lessonSlotsRef = useMemoFirebase(() => {
         if (!db || !selectedTeacherId) return null;
-        return query(collection(db, 'lesson-slots'), where('status', '==', 'available'), where('teacherId', '==', selectedTeacherId));
+        // Simplified query to avoid composite index. Filtering by status will happen client-side.
+        return query(collection(db, 'lesson-slots'), where('teacherId', '==', selectedTeacherId));
     }, [db, selectedTeacherId]);
 
-    const { data: availableSlots, isLoading: areSlotsLoading } = useCollection(lessonSlotsRef);
+    const { data: allTeacherSlots, isLoading: areSlotsLoading } = useCollection(lessonSlotsRef);
+
+    const availableSlots = useMemo(() => {
+        if (!allTeacherSlots) return [];
+        // Client-side filtering for status and time
+        return allTeacherSlots.filter(slot => slot.status === 'available' && slot.startTime.toDate() > new Date());
+    }, [allTeacherSlots]);
+
 
     const availableDays = useMemo(() => {
         if (!availableSlots || !selectedTimeZone) return [];
         return availableSlots
-            .filter(slot => slot.startTime.toDate() > new Date()) // Filter for future slots
             .map(slot => toZonedTime(slot.startTime.seconds * 1000, selectedTimeZone));
     }, [availableSlots, selectedTimeZone]);
     
@@ -563,4 +570,5 @@ export default function DersPlanlaPage() {
 }
 
 
+    
     
