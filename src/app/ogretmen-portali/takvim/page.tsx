@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useUser, useFirestore, useCollection, errorEmitter, FirestorePermissionError, useMemoFirebase } from '@/firebase';
 import { collection, query, where, addDoc, Timestamp, writeBatch, getDocs, doc, deleteDoc } from 'firebase/firestore';
-import { Loader2, Square } from 'lucide-react';
+import { Loader2, Square, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -14,7 +14,6 @@ import { toZonedTime, format, formatInTimeZone } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
 import { LessonDetailsDialog } from './lesson-details-dialog';
 import { Calendar } from '@/components/ui/calendar';
-import { Save } from 'lucide-react';
 
 
 type SlotDetails = {
@@ -125,7 +124,6 @@ export default function TakvimYonetimiPage() {
         if (!lessonSlots) return new Map<string, SlotDetails>();
         const slotsMap = new Map<string, SlotDetails>();
         lessonSlots.forEach(slot => {
-            // Always interpret and filter dates in TR time
             const zonedSlotDate = toZonedTime(slot.startTime.toDate(), turkeyTimeZone);
             if (isSameDay(zonedSlotDate, selectedDate)) {
                 const time = format(zonedSlotDate, 'HH:mm');
@@ -414,3 +412,5 @@ export default function TakvimYonetimiPage() {
         </div>
     );
 }
+
+    
