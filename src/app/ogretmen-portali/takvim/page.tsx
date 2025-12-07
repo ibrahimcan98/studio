@@ -188,7 +188,10 @@ export default function TakvimYonetimiPage() {
         slotsToUpdate.forEach(time => {
             const existingSlot = slotsForSelectedDate.get(time);
             if (dragMode === 'available' && !existingSlot) {
-                const slotDate = toZonedTime(`${format(selectedDate, 'yyyy-MM-dd')}T${time}:00`, turkeyTimeZone);
+                const dateString = format(selectedDate, 'yyyy-MM-dd');
+                const slotDateTimeString = `${dateString}T${time}:00`;
+                const slotDate = toZonedTime(slotDateTimeString, turkeyTimeZone);
+                
                 const newSlotRef = doc(collection(db, 'lesson-slots'));
                 batch.set(newSlotRef, {
                     teacherId: user.uid,
