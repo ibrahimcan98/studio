@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatInTimeZone } from 'date-fns-tz';
 import { tr } from 'date-fns/locale';
-import { addMinutes, isSameDay } from 'date-fns';
+import { addMinutes, startOfMinute } from 'date-fns';
 import { COURSES } from '@/data/courses';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -75,7 +75,7 @@ function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
                 </CardTitle>
                 <CardDescription>
                     {formatInTimeZone(lesson.startTime, timeZone, 'dd MMMM yyyy, ')}
-                    {startTimeStr} - {endTimeStr} ({timeZone.split('/').pop()})
+                    {startTimeStr} - {endTimeStr} ({timeZone.split('/').pop()?.replace('_', ' ')})
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-sm flex-grow">
@@ -134,34 +134,41 @@ export default function DerslerimPage() {
 
     const groupedLessons = useMemo(() => {
         if (!lessonSlots) return [];
-        
-        const sortedSlots = [...lessonSlots].sort((a, b) => a.startTime.seconds - b.startTime.seconds);
-        
-        const lessonsMap: { [key: string]: any } = {};
 
-        sortedSlots.forEach(slot => {
-            const key = `${slot.childId}-${slot.teacherId}-${formatInTimeZone(slot.startTime.toDate(), 'Europe/Istanbul', 'yyyy-MM-dd')}`;
+        const lessonsMap: { [key: string]: any[] } = {};
+
+        lessonSlots.forEach(slot => {
+            const packageDetails = getCourseDetailsFromPackageCode(slot.packageCode);
+            if (!packageDetails) return;
+
+            const duration = packageDetails.duration;
+            const slotTime = slot.startTime.toDate();
             
+            // Find the 00, 20, 30, 40, etc. minute mark that this slot belongs to.
+            const sessionBlockMinutes = duration + 5;
+            const minutesSinceMidnight = slotTime.getUTCHours() * 60 + slotTime.getUTCMinutes();
+            const blockIndex = Math.floor(minutesSinceMidnight / sessionBlockMinutes);
+            const sessionStartMinutes = blockIndex * sessionBlockMinutes;
+            
+            const sessionStartDate = startOfMinute(
+                new Date(Date.UTC(slotTime.getUTCFullYear(), slotTime.getUTCMonth(), slotTime.getUTCDate(), 0, sessionStartMinutes))
+            );
+
+            // A more robust key that is unique per actual lesson instance
+            const key = `${slot.childId}-${sessionStartDate.toISOString()}`;
+
             if (!lessonsMap[key]) {
-                 lessonsMap[key] = [slot];
-            } else {
-                const lastSlot = lessonsMap[key][lessonsMap[key].length - 1];
-                const expectedNextTime = addMinutes(lastSlot.startTime.toDate(), 5);
-                if (slot.startTime.toDate().getTime() === expectedNextTime.getTime()) {
-                    lessonsMap[key].push(slot);
-                } else {
-                     lessonsMap[`${key}-${slot.id}`] = [slot]; // Start a new group for non-consecutive slots on the same day
-                }
+                lessonsMap[key] = [];
             }
+            lessonsMap[key].push(slot);
         });
-        
+
         return Object.values(lessonsMap).map(group => {
             const firstSlot = group[0];
             const packageDetails = getCourseDetailsFromPackageCode(firstSlot.packageCode);
-            const duration = packageDetails?.duration || 30; // Default to 30 mins
+            const duration = packageDetails?.duration || 30;
             const calculatedEndTime = addMinutes(firstSlot.startTime.toDate(), duration);
             
-            // Get feedback from the last slot in the group, as it's the most likely to have it.
             const feedback = group[group.length - 1]?.feedback || null;
 
             return {
@@ -170,14 +177,14 @@ export default function DerslerimPage() {
                 startTime: firstSlot.startTime.toDate(),
                 endTime: calculatedEndTime,
                 slots: group,
-                feedback: feedback, // Add feedback to the grouped lesson
+                feedback: feedback,
             };
         });
 
     }, [lessonSlots]);
-
+    
     const { upcomingLessons, pastLessons } = useMemo(() => {
-        if (!groupedLessons) return { upcoming: [], past: [] };
+        if (!groupedLessons) return { upcomingLessons: [], pastLessons: [] };
         const now = new Date();
         const upcoming: any[] = [];
         const past: any[] = [];
