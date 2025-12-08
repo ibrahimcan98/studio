@@ -59,11 +59,10 @@ function LessonCard({ lesson }: { lesson: any }) {
         );
     }
 
-    const packageDetails = getCourseDetailsFromPackageCode(lesson.packageCode);
     const isPast = new Date() > lesson.endTime;
     const startTimeStr = formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr });
     const endTimeStr = formatInTimeZone(lesson.endTime, 'Europe/Istanbul', 'HH:mm', { locale: tr });
-
+    const packageDetails = getCourseDetailsFromPackageCode(lesson.packageCode);
 
     return (
         <Card className='flex flex-col bg-white'>
@@ -177,7 +176,7 @@ export default function DerslerimPage() {
         upcoming.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
         past.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
 
-        return { upcomingLessons, pastLessons };
+        return { upcomingLessons: upcoming, pastLessons: past };
     }, [groupedLessons]);
 
     if (userLoading || lessonsLoading) {
