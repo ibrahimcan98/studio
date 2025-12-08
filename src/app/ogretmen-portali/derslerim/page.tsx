@@ -189,7 +189,7 @@ export default function OgretmenDerslerimPage() {
             if (!aNeedsFeedback && bNeedsFeedback) return 1;
             return b.startTime.getTime() - a.startTime.getTime();
         });
-        return { upcomingLessons, pastLessons };
+        return { upcomingLessons: upcoming, pastLessons: past };
     }, [groupedLessons]);
 
     const handleOpenProgressPanel = (lesson: any) => {
@@ -256,6 +256,7 @@ export default function OgretmenDerslerimPage() {
         </div>
     );
 }
+
 
 
 
