@@ -11,20 +11,29 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatInTimeZone } from 'date-fns-tz';
 import { tr } from 'date-fns/locale';
+import { addMinutes, isSameDay } from 'date-fns';
 import { COURSES } from '@/data/courses';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
-
 const getCourseDetailsFromPackageCode = (code?: string) => {
     if (!code) return null;
-    if (code === 'FREE_TRIAL') return { courseName: 'Ücretsiz Deneme Dersi', duration: '30 dakika' };
+    if (code === 'FREE_TRIAL') return { courseName: 'Ücretsiz Deneme Dersi', duration: 30 };
     
     const courseCodeMap: { [key: string]: string } = { 'B': 'baslangic', 'K': 'konusma', 'G': 'gelisim', 'A': 'akademik' };
     const courseId = courseCodeMap[code.replace(/[0-9]/g, '')];
     const course = COURSES.find(c => c.id === courseId);
-    return course ? { courseName: course.title, duration: course.details.duration } : null;
-}
+    
+    if (!course) return null;
+
+    let duration = 30; // Default
+    if (course.id === 'baslangic') duration = 20;
+    if (course.id === 'konusma') duration = 30;
+    if (course.id === 'gelisim' || course.id === 'akademik') duration = 45;
+
+    return { courseName: course.title, duration };
+};
+
 
 function LessonCard({ lesson }: { lesson: any }) {
     const db = useFirestore();
@@ -44,27 +53,30 @@ function LessonCard({ lesson }: { lesson: any }) {
 
     if (isChildLoading || isTeacherLoading) {
         return (
-            <Card className="p-4 flex items-center justify-center min-h-[150px]">
+            <Card className="p-4 flex items-center justify-center min-h-[220px]">
                 <Loader2 className="animate-spin text-primary" />
             </Card>
         );
     }
 
     const packageDetails = getCourseDetailsFromPackageCode(lesson.packageCode);
-    const lessonDate = lesson.startTime.toDate();
-    const isPast = new Date() > lessonDate;
+    const isPast = new Date() > lesson.endTime;
+    const startTimeStr = formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr });
+    const endTimeStr = formatInTimeZone(lesson.endTime, 'Europe/Istanbul', 'HH:mm', { locale: tr });
+
 
     return (
-        <Card className='flex flex-col'>
+        <Card className='flex flex-col bg-white'>
             <CardHeader>
                 <CardTitle className="flex justify-between items-start">
-                    <span className="text-lg">{packageDetails?.courseName || 'Ders'}</span>
-                     <Badge variant={isPast ? "outline" : "default"}>
+                    <span className="text-xl font-bold">{packageDetails?.courseName || 'Ders'}</span>
+                     <Badge variant={isPast ? "outline" : "default"} className={isPast ? "" : "bg-green-100 text-green-800"}>
                         {isPast ? 'Tamamlandı' : 'Yaklaşıyor'}
                     </Badge>
                 </CardTitle>
                 <CardDescription>
-                    {formatInTimeZone(lessonDate, 'Europe/Istanbul', 'dd MMMM yyyy, HH:mm', { locale: tr })} (TSİ)
+                    {formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'dd MMMM yyyy, ', { locale: tr })}
+                    {startTimeStr} - {endTimeStr} (TSİ)
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-sm flex-grow">
@@ -78,7 +90,7 @@ function LessonCard({ lesson }: { lesson: any }) {
                 </div>
                 <div className="flex items-center gap-2">
                     <BookOpen className="w-4 h-4 text-muted-foreground" />
-                    <span><strong>Paket:</strong> {lesson.packageCode === 'FREE_TRIAL' ? 'Ücretsiz Deneme' : lesson.packageCode}</span>
+                    <span><strong>Paket:</strong> {lesson.packageCode === 'FREE_TRIAL' ? 'Ücretsiz Deneme' : packageDetails?.courseName}</span>
                 </div>
             </CardContent>
             {isPast && lesson.feedback && (
@@ -105,16 +117,57 @@ export default function DerslerimPage() {
         return query(collection(db, 'lesson-slots'), where('bookedBy', '==', user.uid));
     }, [user, db]);
 
-    const { data: lessons, isLoading: lessonsLoading } = useCollection(bookedLessonsQuery);
+    const { data: lessonSlots, isLoading: lessonsLoading } = useCollection(bookedLessonsQuery);
+
+    const groupedLessons = useMemo(() => {
+        if (!lessonSlots) return [];
+        
+        const sortedSlots = [...lessonSlots].sort((a, b) => a.startTime.seconds - b.startTime.seconds);
+        
+        const lessonsMap: { [key: string]: any } = {};
+
+        sortedSlots.forEach(slot => {
+            const key = `${slot.childId}-${slot.teacherId}-${formatInTimeZone(slot.startTime.toDate(), 'Europe/Istanbul', 'yyyy-MM-dd')}`;
+            
+            if (!lessonsMap[key]) {
+                 lessonsMap[key] = [slot];
+            } else {
+                const lastSlot = lessonsMap[key][lessonsMap[key].length - 1];
+                const expectedNextTime = addMinutes(lastSlot.startTime.toDate(), 5);
+                if (slot.startTime.toDate().getTime() === expectedNextTime.getTime()) {
+                    lessonsMap[key].push(slot);
+                } else {
+                     lessonsMap[`${key}-${slot.id}`] = [slot]; // Start a new group for the same day
+                }
+            }
+        });
+        
+        return Object.values(lessonsMap).map(group => {
+            const firstSlot = group[0];
+            const packageDetails = getCourseDetailsFromPackageCode(firstSlot.packageCode);
+            const duration = packageDetails?.duration || 30; // Default to 30 mins
+            // The actual end time should be based on the number of slots, not the package duration
+            const calculatedEndTime = addMinutes(firstSlot.startTime.toDate(), group.length * 5);
+
+            return {
+                ...firstSlot,
+                id: firstSlot.id,
+                startTime: firstSlot.startTime.toDate(),
+                endTime: calculatedEndTime,
+                slots: group,
+            };
+        });
+
+    }, [lessonSlots]);
 
     const { upcomingLessons, pastLessons } = useMemo(() => {
-        if (!lessons) return { upcomingLessons: [], pastLessons: [] };
+        if (!groupedLessons) return { upcomingLessons: [], pastLessons: [] };
         const now = new Date();
         const upcoming: any[] = [];
         const past: any[] = [];
 
-        lessons.forEach(lesson => {
-            if (lesson.startTime.toDate() > now) {
+        groupedLessons.forEach(lesson => {
+            if (lesson.endTime > now) {
                 upcoming.push(lesson);
             } else {
                 past.push(lesson);
@@ -122,11 +175,11 @@ export default function DerslerimPage() {
         });
 
         // Sort both lists
-        upcoming.sort((a, b) => a.startTime.seconds - b.startTime.seconds);
-        past.sort((a, b) => b.startTime.seconds - a.startTime.seconds);
+        upcoming.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+        past.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
 
-        return { upcomingLessons: upcoming, pastLessons: past };
-    }, [lessons]);
+        return { upcomingLessons, pastLessons };
+    }, [groupedLessons]);
 
     if (userLoading || lessonsLoading) {
         return (

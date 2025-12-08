@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatInTimeZone } from 'date-fns-tz';
+import { addMinutes } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { COURSES } from '@/data/courses';
 import { Badge } from '@/components/ui/badge';
@@ -29,12 +30,20 @@ import { cn } from '@/lib/utils';
 
 const getCourseDetailsFromPackageCode = (code?: string) => {
     if (!code) return null;
-    if (code === 'FREE_TRIAL') return { courseName: 'Ücretsiz Deneme Dersi', duration: '30 dakika' };
+    if (code === 'FREE_TRIAL') return { courseName: 'Ücretsiz Deneme Dersi', duration: 30 };
     
     const courseCodeMap: { [key: string]: string } = { 'B': 'baslangic', 'K': 'konusma', 'G': 'gelisim', 'A': 'akademik' };
     const courseId = courseCodeMap[code.replace(/[0-9]/g, '')];
     const course = COURSES.find(c => c.id === courseId);
-    return course ? { courseName: course.title, duration: course.details.duration } : null;
+    
+    if (!course) return null;
+
+    let duration = 30; // Default
+    if (course.id === 'baslangic') duration = 20;
+    if (course.id === 'konusma') duration = 30;
+    if (course.id === 'gelisim' || course.id === 'akademik') duration = 45;
+
+    return { courseName: course.title, duration };
 }
 
 function LessonCard({ lesson, onOpenProgressPanel }: { lesson: any, onOpenProgressPanel: () => void }) {
@@ -52,9 +61,11 @@ function LessonCard({ lesson, onOpenProgressPanel }: { lesson: any, onOpenProgre
     }
 
     const packageDetails = getCourseDetailsFromPackageCode(lesson.packageCode);
-    const lessonDate = lesson.startTime.toDate();
-    const isPast = new Date() > lessonDate;
+    const isPast = new Date() > lesson.endTime;
     const needsFeedback = isPast && !lesson.feedback;
+
+    const startTimeStr = formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr });
+    const endTimeStr = formatInTimeZone(lesson.endTime, 'Europe/Istanbul', 'HH:mm', { locale: tr });
 
     return (
         <Card className={cn('flex flex-col', needsFeedback && 'border-destructive')}>
@@ -64,7 +75,8 @@ function LessonCard({ lesson, onOpenProgressPanel }: { lesson: any, onOpenProgre
                     <Badge variant={isPast ? "outline" : "default"}>{isPast ? 'Tamamlandı' : 'Yaklaşıyor'}</Badge>
                 </CardTitle>
                 <CardDescription>
-                    {formatInTimeZone(lessonDate, 'Europe/Istanbul', 'dd MMMM yyyy, HH:mm', { locale: tr })} (TSİ)
+                    {formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'dd MMMM yyyy, ', { locale: tr })}
+                    {startTimeStr} - {endTimeStr} (TSİ)
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-sm flex-grow">
@@ -109,7 +121,7 @@ export default function OgretmenDerslerimPage() {
         return query(collection(db, 'lesson-slots'), where('teacherId', '==', user.uid), where('status', '==', 'booked'));
     }, [user, db]);
 
-    const { data: lessons, isLoading: lessonsLoading } = useCollection(lessonsQuery);
+    const { data: lessonSlots, isLoading: lessonsLoading } = useCollection(lessonsQuery);
 
     const childDocRef = useMemoFirebase(() => {
         if (!db || !selectedLesson?.bookedBy || !selectedLesson?.childId) return null;
@@ -118,26 +130,67 @@ export default function OgretmenDerslerimPage() {
 
     const { data: selectedChildData, isLoading: isChildDataLoading } = useDoc(childDocRef);
 
+    const groupedLessons = useMemo(() => {
+        if (!lessonSlots) return [];
+        
+        const sortedSlots = [...lessonSlots].sort((a, b) => a.startTime.seconds - b.startTime.seconds);
+        
+        const lessonsMap: { [key: string]: any } = {};
+
+        sortedSlots.forEach(slot => {
+            const key = `${slot.childId}-${formatInTimeZone(slot.startTime.toDate(), 'Europe/Istanbul', 'yyyy-MM-dd')}`;
+            
+            if (!lessonsMap[key]) {
+                 lessonsMap[key] = [slot];
+            } else {
+                const lastSlot = lessonsMap[key][lessonsMap[key].length - 1];
+                const expectedNextTime = addMinutes(lastSlot.startTime.toDate(), 5);
+                if (slot.startTime.toDate().getTime() === expectedNextTime.getTime()) {
+                    lessonsMap[key].push(slot);
+                } else {
+                     lessonsMap[`${key}-${slot.id}`] = [slot];
+                }
+            }
+        });
+        
+        return Object.values(lessonsMap).map(group => {
+            const firstSlot = group[0];
+            const calculatedEndTime = addMinutes(firstSlot.startTime.toDate(), group.length * 5);
+
+            // Find feedback from the last slot in the group, as it's the most likely place for it.
+            const feedback = group[group.length - 1]?.feedback || null;
+
+            return {
+                ...firstSlot,
+                id: firstSlot.id, 
+                startTime: firstSlot.startTime.toDate(),
+                endTime: calculatedEndTime,
+                slots: group,
+                feedback: feedback, // Add aggregated feedback to the lesson object
+            };
+        });
+    }, [lessonSlots]);
+
+
     const { upcomingLessons, pastLessons } = useMemo(() => {
-        if (!lessons) return { upcomingLessons: [], pastLessons: [] };
+        if (!groupedLessons) return { upcomingLessons: [], pastLessons: [] };
         const now = new Date();
         const upcoming: any[] = [];
         const past: any[] = [];
-        lessons.forEach(lesson => {
-            if (lesson.startTime.toDate() > now) upcoming.push(lesson);
+        groupedLessons.forEach(lesson => {
+            if (lesson.endTime > now) upcoming.push(lesson);
             else past.push(lesson);
         });
-        upcoming.sort((a, b) => a.startTime.seconds - b.startTime.seconds);
-        // Sort past lessons: those without feedback come first, then by date descending
+        upcoming.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
         past.sort((a, b) => {
             const aNeedsFeedback = !a.feedback;
             const bNeedsFeedback = !b.feedback;
             if (aNeedsFeedback && !bNeedsFeedback) return -1;
             if (!aNeedsFeedback && bNeedsFeedback) return 1;
-            return b.startTime.seconds - a.startTime.seconds;
+            return b.startTime.getTime() - a.startTime.getTime();
         });
-        return { upcomingLessons: upcoming, pastLessons: past };
-    }, [lessons]);
+        return { upcomingLessons, pastLessons };
+    }, [groupedLessons]);
 
     const handleOpenProgressPanel = (lesson: any) => {
         setSelectedLesson(lesson);
@@ -203,5 +256,6 @@ export default function OgretmenDerslerimPage() {
         </div>
     );
 }
+
 
 
