@@ -155,8 +155,10 @@ export default function OgretmenDerslerimPage() {
         
         return Object.values(lessonsMap).map(group => {
             const firstSlot = group[0];
-            const calculatedEndTime = addMinutes(firstSlot.startTime.toDate(), group.length * 5);
-
+            const packageDetails = getCourseDetailsFromPackageCode(firstSlot.packageCode);
+            const duration = packageDetails?.duration || 30; // Default to 30 mins
+            const calculatedEndTime = addMinutes(firstSlot.startTime.toDate(), duration);
+            
             // Find feedback from the last slot in the group, as it's the most likely place for it.
             const feedback = group[group.length - 1]?.feedback || null;
 
@@ -189,7 +191,7 @@ export default function OgretmenDerslerimPage() {
             if (!aNeedsFeedback && bNeedsFeedback) return 1;
             return b.startTime.getTime() - a.startTime.getTime();
         });
-        return { upcomingLessons: upcoming, pastLessons: past };
+        return { upcomingLessons, pastLessons };
     }, [groupedLessons]);
 
     const handleOpenProgressPanel = (lesson: any) => {
@@ -256,7 +258,4 @@ export default function OgretmenDerslerimPage() {
         </div>
     );
 }
-
-
-
 

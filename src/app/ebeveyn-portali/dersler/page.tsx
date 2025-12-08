@@ -146,8 +146,7 @@ export default function DerslerimPage() {
             const firstSlot = group[0];
             const packageDetails = getCourseDetailsFromPackageCode(firstSlot.packageCode);
             const duration = packageDetails?.duration || 30; // Default to 30 mins
-            // The actual end time should be based on the number of slots, not the package duration
-            const calculatedEndTime = addMinutes(firstSlot.startTime.toDate(), group.length * 5);
+            const calculatedEndTime = addMinutes(firstSlot.startTime.toDate(), duration);
 
             return {
                 ...firstSlot,
