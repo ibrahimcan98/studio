@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatInTimeZone } from 'date-fns-tz';
-import { addMinutes } from 'date-fns';
+import { addMinutes, startOfMinute } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { COURSES } from '@/data/courses';
 import { Badge } from '@/components/ui/badge';
@@ -132,35 +132,44 @@ export default function OgretmenDerslerimPage() {
 
     const groupedLessons = useMemo(() => {
         if (!lessonSlots) return [];
-        
+    
+        const lessonsMap: { [key: string]: any[] } = {};
+    
         const sortedSlots = [...lessonSlots].sort((a, b) => a.startTime.seconds - b.startTime.seconds);
-        
-        const lessonsMap: { [key: string]: any } = {};
-
+    
         sortedSlots.forEach(slot => {
-            const key = `${slot.childId}-${formatInTimeZone(slot.startTime.toDate(), 'Europe/Istanbul', 'yyyy-MM-dd')}`;
+            const packageDetails = getCourseDetailsFromPackageCode(slot.packageCode);
+            if (!packageDetails) return;
+    
+            const duration = packageDetails.duration;
+            const slotTime = slot.startTime.toDate();
             
+            const sessionBlockMinutes = duration + 5;
+            const minutesSinceMidnight = slotTime.getUTCHours() * 60 + slotTime.getUTCMinutes();
+            const blockIndex = Math.floor(minutesSinceMidnight / sessionBlockMinutes);
+            const sessionStartMinutes = blockIndex * sessionBlockMinutes;
+            
+            const sessionStartDate = startOfMinute(
+                new Date(Date.UTC(slotTime.getUTCFullYear(), slotTime.getUTCMonth(), slotTime.getUTCDate(), 0, sessionStartMinutes))
+            );
+    
+            const key = `${slot.childId}-${sessionStartDate.toISOString()}`;
+    
             if (!lessonsMap[key]) {
-                 lessonsMap[key] = [slot];
-            } else {
-                const lastSlot = lessonsMap[key][lessonsMap[key].length - 1];
-                const expectedNextTime = addMinutes(lastSlot.startTime.toDate(), 5);
-                if (slot.startTime.toDate().getTime() === expectedNextTime.getTime()) {
-                    lessonsMap[key].push(slot);
-                } else {
-                     lessonsMap[`${key}-${slot.id}`] = [slot];
-                }
+                lessonsMap[key] = [];
             }
+            lessonsMap[key].push(slot);
         });
         
         return Object.values(lessonsMap).map(group => {
             const firstSlot = group[0];
-            const packageDetails = getCourseDetailsFromPackageCode(firstSlot.packageCode);
-            const duration = packageDetails?.duration || 30; // Default to 30 mins
-            const calculatedEndTime = addMinutes(firstSlot.startTime.toDate(), duration);
+            const lastSlot = group[group.length - 1];
             
-            const feedback = group[group.length - 1]?.feedback || null;
-
+            // Bitiş saatini, son slotun başlangıcına 5 dakika ekleyerek hesapla
+            const calculatedEndTime = addMinutes(lastSlot.startTime.toDate(), 5);
+            
+            const feedback = group.find(s => s.feedback)?.feedback || null;
+    
             return {
                 ...firstSlot,
                 id: firstSlot.id, 
@@ -257,6 +266,3 @@ export default function OgretmenDerslerimPage() {
         </div>
     );
 }
-
-
-    

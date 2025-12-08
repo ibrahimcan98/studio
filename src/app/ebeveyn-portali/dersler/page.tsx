@@ -134,17 +134,19 @@ export default function DerslerimPage() {
 
     const groupedLessons = useMemo(() => {
         if (!lessonSlots) return [];
-
+    
         const lessonsMap: { [key: string]: any[] } = {};
-
-        lessonSlots.forEach(slot => {
+    
+        const sortedSlots = [...lessonSlots].sort((a, b) => a.startTime.seconds - b.startTime.seconds);
+    
+        sortedSlots.forEach(slot => {
             const packageDetails = getCourseDetailsFromPackageCode(slot.packageCode);
             if (!packageDetails) return;
-
+    
             const duration = packageDetails.duration;
             const slotTime = slot.startTime.toDate();
             
-            // Find the 00, 20, 30, 40, etc. minute mark that this slot belongs to.
+            // Find the 0, 20, 40 etc. or 0, 30 etc. minute mark that this slot belongs to.
             const sessionBlockMinutes = duration + 5;
             const minutesSinceMidnight = slotTime.getUTCHours() * 60 + slotTime.getUTCMinutes();
             const blockIndex = Math.floor(minutesSinceMidnight / sessionBlockMinutes);
@@ -153,24 +155,25 @@ export default function DerslerimPage() {
             const sessionStartDate = startOfMinute(
                 new Date(Date.UTC(slotTime.getUTCFullYear(), slotTime.getUTCMonth(), slotTime.getUTCDate(), 0, sessionStartMinutes))
             );
-
+    
             // A more robust key that is unique per actual lesson instance
             const key = `${slot.childId}-${sessionStartDate.toISOString()}`;
-
+    
             if (!lessonsMap[key]) {
                 lessonsMap[key] = [];
             }
             lessonsMap[key].push(slot);
         });
-
+    
         return Object.values(lessonsMap).map(group => {
             const firstSlot = group[0];
-            const packageDetails = getCourseDetailsFromPackageCode(firstSlot.packageCode);
-            const duration = packageDetails?.duration || 30;
-            const calculatedEndTime = addMinutes(firstSlot.startTime.toDate(), duration);
+            const lastSlot = group[group.length - 1]; // Last consecutive slot in the group
             
-            const feedback = group[group.length - 1]?.feedback || null;
-
+            // The real end time is 5 minutes after the start of the last slot.
+            const calculatedEndTime = addMinutes(lastSlot.startTime.toDate(), 5);
+            
+            const feedback = group.find(s => s.feedback)?.feedback || null;
+    
             return {
                 ...firstSlot,
                 id: firstSlot.id,
@@ -180,8 +183,9 @@ export default function DerslerimPage() {
                 feedback: feedback,
             };
         });
-
+    
     }, [lessonSlots]);
+    
     
     const { upcomingLessons, pastLessons } = useMemo(() => {
         if (!groupedLessons) return { upcomingLessons: [], pastLessons: [] };
