@@ -37,17 +37,11 @@ export function LessonDetailsDialog({ slot, isOpen, onOpenChange }: { slot: Slot
     const db = useFirestore();
     const turkeyTimeZone = 'Europe/Istanbul';
 
-    const parentDocRef = useMemoFirebase(() => {
-        if (!db || !slot?.bookedBy) return null;
-        return doc(db, 'users', slot.bookedBy);
-    }, [db, slot?.bookedBy]);
-
     const childDocRef = useMemoFirebase(() => {
         if (!db || !slot?.bookedBy || !slot?.childId) return null;
         return doc(db, 'users', slot.bookedBy, 'children', slot.childId);
     }, [db, slot?.bookedBy, slot?.childId]);
 
-    const { data: parentData, isLoading: isParentLoading } = useDoc(parentDocRef);
     const { data: childData, isLoading: isChildLoading } = useDoc(childDocRef);
 
     if (!slot) return null;
@@ -64,7 +58,7 @@ export function LessonDetailsDialog({ slot, isOpen, onOpenChange }: { slot: Slot
                          {formatInTimeZone(slot.startTime.toDate(), turkeyTimeZone, 'dd MMMM yyyy, HH:mm', { locale: tr })} (Türkiye Saati)
                     </DialogDescription>
                 </DialogHeader>
-                {isParentLoading || isChildLoading ? (
+                {isChildLoading ? (
                     <div className="flex justify-center items-center h-48">
                         <Loader2 className="animate-spin text-primary" />
                     </div>
@@ -81,16 +75,6 @@ export function LessonDetailsDialog({ slot, isOpen, onOpenChange }: { slot: Slot
                                 </CardContent>
                             </Card>
                         )}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-lg flex items-center gap-2"><User /> Veli Bilgileri</CardTitle>
-                            </CardHeader>
-                            <CardContent className="text-sm space-y-2">
-                                <p><strong>İsim:</strong> {parentData?.firstName} {parentData?.lastName}</p>
-                                <p><strong>Email:</strong> {parentData?.email}</p>
-                                <p><strong>Saat Dilimi:</strong> {parentData?.timezone}</p>
-                            </CardContent>
-                        </Card>
                         <Card>
                              <CardHeader>
                                 <CardTitle className="text-lg flex items-center gap-2"><Baby /> Çocuk Bilgileri</CardTitle>
