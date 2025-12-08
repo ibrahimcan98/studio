@@ -159,7 +159,6 @@ export default function OgretmenDerslerimPage() {
             const duration = packageDetails?.duration || 30; // Default to 30 mins
             const calculatedEndTime = addMinutes(firstSlot.startTime.toDate(), duration);
             
-            // Find feedback from the last slot in the group, as it's the most likely place for it.
             const feedback = group[group.length - 1]?.feedback || null;
 
             return {
@@ -168,7 +167,7 @@ export default function OgretmenDerslerimPage() {
                 startTime: firstSlot.startTime.toDate(),
                 endTime: calculatedEndTime,
                 slots: group,
-                feedback: feedback, // Add aggregated feedback to the lesson object
+                feedback: feedback,
             };
         });
     }, [lessonSlots]);
@@ -191,7 +190,7 @@ export default function OgretmenDerslerimPage() {
             if (!aNeedsFeedback && bNeedsFeedback) return 1;
             return b.startTime.getTime() - a.startTime.getTime();
         });
-        return { upcomingLessons, pastLessons };
+        return { upcomingLessons: upcoming, pastLessons: past };
     }, [groupedLessons]);
 
     const handleOpenProgressPanel = (lesson: any) => {
@@ -259,3 +258,5 @@ export default function OgretmenDerslerimPage() {
     );
 }
 
+
+    
