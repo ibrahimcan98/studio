@@ -12,7 +12,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { toZonedTime, formatInTimeZone, format } from 'date-fns-tz';
-import { isSameDay, toDate, addMinutes, isBefore, addDays, differenceInHours } from 'date-fns';
+import { isSameDay, toDate, addMinutes, isBefore, addDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from '@/components/ui/label';
@@ -188,10 +188,6 @@ export default function DersPlanlaPage() {
         for (let i = 0; i <= fiveMinSlots.length - requiredConsecutiveSlots; i++) {
             const potentialStartTime = fiveMinSlots[i];
             
-            if (differenceInHours(potentialStartTime.startTimeObj, now) < 12) {
-                continue;
-            }
-
             if (validStartTimes.some(s => s.startTimeObj >= potentialStartTime.startTimeObj)) {
                 continue;
             }
@@ -217,15 +213,6 @@ export default function DersPlanlaPage() {
     const handleSlotClick = (slot: { id: string, startTime: Timestamp, teacherId: string }) => {
          if (!user || !userData) {
             toast({ variant: 'destructive', title: 'Hata', description: 'Giriş yapmalısınız.' });
-            return;
-        }
-
-        if (differenceInHours(slot.startTime.toDate(), new Date()) < 12) {
-            toast({
-                variant: "destructive",
-                title: "Planlama Hatası",
-                description: "Ders başlangıcına 12 saatten az bir süre kala rezervasyon yapılamaz.",
-            });
             return;
         }
 
