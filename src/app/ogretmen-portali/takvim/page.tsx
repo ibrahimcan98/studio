@@ -31,25 +31,27 @@ const turkeyTimeZone = 'Europe/Istanbul';
 // Helper function to create a date object correctly in the target timezone.
 const createDateInTurkeyTimeZone = (date: Date, time: string): Date => {
   const [hours, minutes] = time.split(':').map(Number);
-  const year = date.getFullYear();
-  const month = date.getMonth(); // 0-11
-  const day = date.getDate();
-
-  // Create a UTC timestamp based on the components for Turkey time.
-  // Date.UTC creates a timestamp assuming the inputs are for UTC.
-  // Since Turkey is UTC+3, we need to subtract 3 hours from the UTC time
-  // to get the correct UTC timestamp that will represent 9:00 in Turkey.
-  const utcTimestamp = Date.UTC(year, month, day, hours, minutes);
   
-  // Turkey is UTC+3, which means we subtract 3 hours to get the correct UTC representation.
+  // Get date components in UTC to avoid local timezone influence
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth(); // 0-11
+  const day = date.getUTCDate();
+
+  // Create a UTC timestamp by directly providing the components.
+  // This represents the "wall clock" time in UTC.
+  const utcTimestamp = Date.UTC(year, month, day, hours, minutes);
+
+  // Turkey is UTC+3. To make our UTC time represent 09:00 in Turkey,
+  // we need to subtract 3 hours from the UTC time we created.
+  // E.g., 09:00 UTC is 12:00 in Turkey. We want 06:00 UTC to be 09:00 in Turkey.
   const turkeyUtcOffset = 3 * 60 * 60 * 1000;
   
   return new Date(utcTimestamp - turkeyUtcOffset);
 };
 
 
-const timeSlots = Array.from({ length: (20 - 9) * 12 }, (_, i) => {
-    const totalMinutes = 9 * 60 + i * 5;
+const timeSlots = Array.from({ length: (24 - 8) * 12 }, (_, i) => {
+    const totalMinutes = 8 * 60 + i * 5;
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
@@ -430,5 +432,7 @@ export default function TakvimYonetimiPage() {
     );
 }
 
+
+    
 
     
