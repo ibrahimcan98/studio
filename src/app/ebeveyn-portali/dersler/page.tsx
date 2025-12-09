@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatInTimeZone } from 'date-fns-tz';
 import { tr } from 'date-fns/locale';
-import { addMinutes, startOfMinute } from 'date-fns';
+import { addMinutes } from 'date-fns';
 import { COURSES } from '@/data/courses';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -134,35 +134,34 @@ export default function DerslerimPage() {
 
     const groupedLessons = useMemo(() => {
         if (!lessonSlots) return [];
-    
+
         const lessonsMap: { [key: string]: any[] } = {};
-    
+
         const sortedSlots = [...lessonSlots].sort((a, b) => a.startTime.seconds - b.startTime.seconds);
-    
+
         sortedSlots.forEach(slot => {
             const packageDetails = getCourseDetailsFromPackageCode(slot.packageCode);
             if (!packageDetails) return;
-    
+
             const duration = packageDetails.duration;
             const slotTime = slot.startTime.toDate();
             
-            const sessionBlockMinutes = duration + 5;
+            const sessionBlockMinutes = duration + 5; // Total block size including break
             const minutesSinceMidnight = slotTime.getUTCHours() * 60 + slotTime.getUTCMinutes();
+            
+            // Find the start of the session block this slot belongs to
             const blockIndex = Math.floor(minutesSinceMidnight / sessionBlockMinutes);
             const sessionStartMinutes = blockIndex * sessionBlockMinutes;
+            const sessionStartDate = new Date(Date.UTC(slotTime.getUTCFullYear(), slotTime.getUTCMonth(), slotTime.getUTCDate(), 0, sessionStartMinutes));
             
-            const sessionStartDate = startOfMinute(
-                new Date(Date.UTC(slotTime.getUTCFullYear(), slotTime.getUTCMonth(), slotTime.getUTCDate(), 0, sessionStartMinutes))
-            );
-    
             const key = `${slot.childId}-${slot.teacherId}-${sessionStartDate.toISOString()}`;
-    
+
             if (!lessonsMap[key]) {
                 lessonsMap[key] = [];
             }
             lessonsMap[key].push(slot);
         });
-    
+
         return Object.values(lessonsMap).map(group => {
             const firstSlot = group[0];
             const packageDetails = getCourseDetailsFromPackageCode(firstSlot.packageCode);
@@ -171,7 +170,7 @@ export default function DerslerimPage() {
             const calculatedEndTime = addMinutes(firstSlot.startTime.toDate(), duration);
             
             const feedback = group.find(s => s.feedback)?.feedback || null;
-    
+
             return {
                 ...firstSlot,
                 id: firstSlot.id,
@@ -181,7 +180,7 @@ export default function DerslerimPage() {
                 feedback: feedback,
             };
         });
-    
+
     }, [lessonSlots]);
     
     

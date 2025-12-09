@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -10,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatInTimeZone } from 'date-fns-tz';
-import { addMinutes, startOfMinute } from 'date-fns';
+import { addMinutes } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { COURSES } from '@/data/courses';
 import { Badge } from '@/components/ui/badge';
@@ -146,14 +145,13 @@ export default function OgretmenDerslerimPage() {
             
             const sessionBlockMinutes = duration + 5;
             const minutesSinceMidnight = slotTime.getUTCHours() * 60 + slotTime.getUTCMinutes();
+
+            // A simplified key based on the slot's own time rounded down to the session block
             const blockIndex = Math.floor(minutesSinceMidnight / sessionBlockMinutes);
             const sessionStartMinutes = blockIndex * sessionBlockMinutes;
+            const sessionStartDate = new Date(Date.UTC(slotTime.getUTCFullYear(), slotTime.getUTCMonth(), slotTime.getUTCDate(), 0, sessionStartMinutes));
             
-            const sessionStartDate = startOfMinute(
-                new Date(Date.UTC(slotTime.getUTCFullYear(), slotTime.getUTCMonth(), slotTime.getUTCDate(), 0, sessionStartMinutes))
-            );
-    
-            const key = `${slot.childId}-${sessionStartDate.toISOString()}`;
+            const key = `${slot.childId}-${slot.teacherId}-${sessionStartDate.toISOString()}`;
     
             if (!lessonsMap[key]) {
                 lessonsMap[key] = [];
@@ -165,7 +163,7 @@ export default function OgretmenDerslerimPage() {
             const firstSlot = group[0];
             const lastSlot = group[group.length - 1];
             
-            // Bitiş saatini, son slotun başlangıcına 5 dakika ekleyerek hesapla
+            // Calculate end time by adding 5 minutes to the start of the last slot in the group.
             const calculatedEndTime = addMinutes(lastSlot.startTime.toDate(), 5);
             
             const feedback = group.find(s => s.feedback)?.feedback || null;
