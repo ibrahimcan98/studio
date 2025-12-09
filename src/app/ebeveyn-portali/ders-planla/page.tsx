@@ -536,6 +536,8 @@ export default function DersPlanlaPage() {
     const hasPackage = selectedChildData?.assignedPackage && selectedChildData?.remainingLessons > 0;
     const canBook = selectedChildId && selectedTeacherId && ( (bookingMode === 'free' && canTakeFreeTrial) || (bookingMode === 'paid' && hasPackage) );
     
+    const selectedTeacher = useMemo(() => teachers.find(t => t.id === selectedTeacherId), [selectedTeacherId]);
+    
     if (isUserLoading || areChildrenLoading || !selectedTimeZone) {
         return (
             <div className="flex h-screen items-center justify-center">
@@ -627,21 +629,24 @@ export default function DersPlanlaPage() {
                          {/* Step 2 */}
                         <div className="space-y-2">
                             <Label htmlFor="teacher-select" className="font-semibold text-lg">2. Adım: Öğretmen Seçimi</Label>
-                            <div className="flex items-center gap-2">
-                                <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId} disabled={!selectedChildId}>
-                                    <SelectTrigger id="teacher-select">
-                                        <SelectValue placeholder="Öğretmen Seçin" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {teachers && teachers.map(teacher => (
-                                            <SelectItem key={teacher.id} value={teacher.id}>
-                                                {teacher.firstName}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                {selectedTeacherId && <TeacherProfileDialog teacherId={selectedTeacherId} />}
-                            </div>
+                            <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId} disabled={!selectedChildId}>
+                                <SelectTrigger id="teacher-select">
+                                    <SelectValue placeholder="Öğretmen Seçin" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {teachers && teachers.map(teacher => (
+                                        <SelectItem key={teacher.id} value={teacher.id}>
+                                            {teacher.firstName}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {selectedTeacher && (
+                                <div className="mt-2 space-y-1">
+                                    <p className="text-sm font-medium text-muted-foreground">Seçilen Öğretmen: {selectedTeacher.firstName}</p>
+                                    <TeacherProfileDialog teacherId={selectedTeacherId} />
+                                </div>
+                            )}
                         </div>
                         
                          {/* Step 3 */}
@@ -775,5 +780,3 @@ export default function DersPlanlaPage() {
         </div>
     );
 }
-
-    
