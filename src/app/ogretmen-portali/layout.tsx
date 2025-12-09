@@ -4,7 +4,7 @@
 import { useUser } from '@/firebase';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
-import { Loader2, LogOut, Calendar, Users, Briefcase } from 'lucide-react';
+import { Loader2, LogOut, Calendar, Users, Briefcase, User } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
@@ -59,6 +59,11 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
       href: '/ogretmen-portali/ogrencilerim',
       label: 'Öğrencilerim',
       icon: Users
+    },
+    {
+      href: '/ogretmen-portali/profilim',
+      label: 'Profilim',
+      icon: User
     }
   ];
   

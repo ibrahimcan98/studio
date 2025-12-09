@@ -24,6 +24,10 @@
           "description": "The user's email address.",
           "format": "email"
         },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The user's phone number."
+        },
         "profileImageUrl": {
           "type": "string",
           "description": "URL of the user's profile image.",
@@ -75,6 +79,22 @@
         "timezone": {
             "type": "string",
             "description": "The IANA timezone identifier for the user (e.g., 'Europe/Dublin')."
+        },
+        "bio": {
+          "type": "string",
+          "description": "A short biography for teacher profiles."
+        },
+        "hobbies": {
+            "type": "array",
+            "description": "A list of hobbies for teacher profiles.",
+            "items": {
+                "type": "string"
+            }
+        },
+        "introVideoUrl": {
+          "type": "string",
+          "description": "URL of the teacher's introduction video.",
+          "format": "uri"
         }
       },
       "required": [
@@ -177,7 +197,7 @@
           "items": {
             "type": "object",
             "properties": {
-              "id": { "type": "string", "description": "Unique identifier for the feedback entry." },
+              "id": { "type": "string", "description": "Unique identifier for the feedback entry. Often the lessonId." },
               "text": { "type": "string", "description": "The content of the feedback." },
               "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the feedback was created." }
             },
@@ -367,7 +387,8 @@
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "anonymous",
+      "phone"
     ]
   },
   "firestore": {
