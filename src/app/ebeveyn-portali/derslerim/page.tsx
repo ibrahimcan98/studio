@@ -34,6 +34,12 @@ const getCourseDetailsFromPackageCode = (code?: string) => {
     return { courseName: course.title, duration };
 };
 
+// Static teacher list to ensure names are always available
+const teachers = [
+    { id: 'MpzNp3vXBnQiSnjN21fVyWxl1m33', firstName: 'Tuba', lastName: 'Kodak' },
+    { id: 'xlIxFqIdb9einW0BgpIFUM0RrXa2', firstName: 'İbrahim', lastName: 'Can' },
+];
+
 
 function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
     const db = useFirestore();
@@ -43,15 +49,12 @@ function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
         return doc(db, 'users', lesson.bookedBy, 'children', lesson.childId);
     }, [db, lesson.bookedBy, lesson.childId]);
 
-    const teacherDocRef = useMemoFirebase(() => {
-        if (!db || !lesson.teacherId) return null;
-        return doc(db, 'users', lesson.teacherId);
-    }, [db, lesson.teacherId]);
-
     const { data: childData, isLoading: isChildLoading } = useDoc(childDocRef);
-    const { data: teacherData, isLoading: isTeacherLoading } = useDoc(teacherDocRef);
+    
+    const teacher = useMemo(() => teachers.find(t => t.id === lesson.teacherId), [lesson.teacherId]);
 
-    if (isChildLoading || isTeacherLoading) {
+
+    if (isChildLoading) {
         return (
             <Card className="p-4 flex items-center justify-center min-h-[220px]">
                 <Loader2 className="animate-spin text-primary" />
@@ -85,7 +88,7 @@ function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
                 </div>
                  <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-muted-foreground" />
-                    <span><strong>Öğretmen:</strong> {teacherData?.firstName} {teacherData?.lastName}</span>
+                    <span><strong>Öğretmen:</strong> {teacher?.firstName} {teacher?.lastName}</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <BookOpen className="w-4 h-4 text-muted-foreground" />
