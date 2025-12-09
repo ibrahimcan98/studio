@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, useFirebaseApp } from '@/firebase';
 import { doc, updateDoc, collection, query, where } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Loader2, User, Image as ImageIcon, Video, BookOpen, Users, Heart, Save, Upload, Edit2 } from 'lucide-react';
@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
+import { FirebaseApp } from 'firebase/app';
 
 function StatCard({ title, value, icon: Icon }: { title: string, value: string | number, icon: React.ElementType }) {
     return (
@@ -32,7 +33,8 @@ function StatCard({ title, value, icon: Icon }: { title: string, value: string |
 export default function OgretmenProfilimPage() {
     const { user: authUser, loading: authLoading } = useUser();
     const db = useFirestore();
-    const storage = getStorage();
+    const firebaseApp = useFirebaseApp();
+    const storage = getStorage(firebaseApp);
     const { toast } = useToast();
 
     const userDocRef = useMemoFirebase(() => {
@@ -213,7 +215,7 @@ export default function OgretmenProfilimPage() {
 
                 {/* Stats and Media */}
                 <div className="lg:col-span-2 space-y-8">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-2 gap-6">
                        <StatCard title="Verilen Ders" value={lessons?.length || 0} icon={BookOpen} />
                        <StatCard title="Toplam Öğrenci" value={uniqueStudents} icon={Users} />
                     </div>
