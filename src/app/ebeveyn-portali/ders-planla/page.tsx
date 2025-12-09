@@ -61,11 +61,15 @@ const teachers = [
 ];
 
 function TeacherProfileDialog({ teacherId }: { teacherId: string }) {
+    const { user, loading: userLoading } = useUser();
     const db = useFirestore();
+    const [isOpen, setIsOpen] = useState(false);
+
     const teacherDocRef = useMemoFirebase(() => {
-        if (!db || !teacherId) return null;
+        // Only fetch if the dialog is open and the user is authenticated
+        if (!db || !teacherId || !isOpen || !user) return null;
         return doc(db, 'users', teacherId);
-    }, [db, teacherId]);
+    }, [db, teacherId, isOpen, user]);
 
     const { data: teacherData, isLoading } = useDoc(teacherDocRef);
     
@@ -84,7 +88,7 @@ function TeacherProfileDialog({ teacherId }: { teacherId: string }) {
     const embedUrl = getEmbedUrl(teacherData?.introVideoUrl || '');
 
     return (
-        <Dialog>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="h-auto px-2 py-1 text-xs">
                     <Eye className="w-3 h-3 mr-1" />
@@ -93,12 +97,12 @@ function TeacherProfileDialog({ teacherId }: { teacherId: string }) {
             </DialogTrigger>
             <DialogContent className="max-w-md">
                 <DialogHeader>
-                    {isLoading || !teacherData ? (
+                    {isLoading || userLoading ? (
                         <div className="flex items-center gap-4">
                             <Loader2 className="w-5 h-5 animate-spin" />
                             <DialogTitle>Yükleniyor...</DialogTitle>
                         </div>
-                    ) : (
+                    ) : teacherData ? (
                          <div className="flex flex-col items-center text-center gap-4 pt-8">
                             <Avatar className="w-24 h-24">
                                 <AvatarImage src={teacherData.profileImageUrl} />
@@ -109,9 +113,13 @@ function TeacherProfileDialog({ teacherId }: { teacherId: string }) {
                                <DialogDescription>Uzman Türkçe Öğretmeni</DialogDescription>
                             </div>
                         </div>
+                    ) : (
+                         <div className="flex items-center gap-4">
+                            <DialogTitle>Profil Bulunamadı</DialogTitle>
+                        </div>
                     )}
                 </DialogHeader>
-                {!isLoading && teacherData && (
+                {!isLoading && !userLoading && teacherData && (
                     <div className="py-4 space-y-4 max-h-[50vh] overflow-y-auto">
                         {teacherData.bio && (
                             <div>
