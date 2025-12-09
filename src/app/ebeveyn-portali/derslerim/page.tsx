@@ -36,8 +36,6 @@ const getCourseDetailsFromPackageCode = (code?: string) => {
 
 // Static teacher list to ensure names are always available
 const teachers = [
-    { id: 'MpzNp3vXBnQiSnjN21fVyWxl1m33', firstName: 'Tuba', lastName: 'Kodak' },
-    { id: 'xlIxFqIdb9einW0BgpIFUM0RrXa2', firstName: 'İbrahim', lastName: 'Can' },
     { id: 'O2mQCONyczVkAXcgAMBSPpeIfJw2', firstName: 'Tuğba', lastName: 'Öz' },
 ];
 
@@ -145,7 +143,7 @@ export default function DerslerimPage() {
         lessonSlots.forEach(slot => {
             const startTime = slot.startTime.toDate();
             // Use UTC date string to avoid timezone issues with grouping keys
-            const sessionDate = formatInTimeZone(startTime, 'UTC', 'yyyy-MM-dd');
+            const sessionDate = formatInTimeZone(startTime, 'UTC', 'yyyy-MM-dd-HH-mm');
             const sessionKey = `${sessionDate}-${slot.childId}-${slot.teacherId}`;
     
             if (!sessions[sessionKey]) {
@@ -283,5 +281,3 @@ export default function DerslerimPage() {
         </div>
     );
 }
-
-    

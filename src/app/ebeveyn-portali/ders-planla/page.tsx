@@ -57,8 +57,6 @@ const MAX_FREE_TRIALS = 3;
 
 // Static teacher list to avoid permission issues
 const teachers = [
-    { id: 'MpzNp3vXBnQiSnjN21fVyWxl1m33', firstName: 'Tuba', lastName: 'Kodak' },
-    { id: 'xlIxFqIdb9einW0BgpIFUM0RrXa2', firstName: 'İbrahim', lastName: 'Can' },
     { id: 'O2mQCONyczVkAXcgAMBSPpeIfJw2', firstName: 'Tuğba', lastName: 'Öz' },
 ];
 
@@ -769,5 +767,3 @@ export default function DersPlanlaPage() {
         </div>
     );
 }
-
-    
