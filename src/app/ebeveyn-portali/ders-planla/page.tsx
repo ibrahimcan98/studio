@@ -627,21 +627,21 @@ export default function DersPlanlaPage() {
                          {/* Step 2 */}
                         <div className="space-y-2">
                             <Label htmlFor="teacher-select" className="font-semibold text-lg">2. Adım: Öğretmen Seçimi</Label>
-                             <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId} disabled={!selectedChildId}>
-                                <SelectTrigger id="teacher-select">
-                                    <SelectValue placeholder="Öğretmen Seçin" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {teachers && teachers.map(teacher => (
-                                        <SelectItem key={teacher.id} value={teacher.id}>
-                                            <div className="flex items-center justify-between w-full">
-                                                <span>{teacher.firstName}</span>
-                                            </div>
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            {selectedTeacherId && <TeacherProfileDialog teacherId={selectedTeacherId} />}
+                            <div className="flex items-center gap-2">
+                                <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId} disabled={!selectedChildId}>
+                                    <SelectTrigger id="teacher-select">
+                                        <SelectValue placeholder="Öğretmen Seçin" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {teachers && teachers.map(teacher => (
+                                            <SelectItem key={teacher.id} value={teacher.id}>
+                                                {teacher.firstName}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {selectedTeacherId && <TeacherProfileDialog teacherId={selectedTeacherId} />}
+                            </div>
                         </div>
                         
                          {/* Step 3 */}
@@ -775,3 +775,5 @@ export default function DersPlanlaPage() {
         </div>
     );
 }
+
+    
