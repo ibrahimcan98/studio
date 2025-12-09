@@ -34,9 +34,12 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 
+const teachers = [
+    { id: 'O2mQCONyczVkAXcgAMBSPpeIfJw2', firstName: 'Tuba Kodak' },
+];
 
 const getCourseDetailsFromPackageCode = (code: string) => {
-    if (code === 'FREE_TRIAL') return { courseName: 'Ücretsiz Deneme Dersi', lessons: 1, duration: 30 };
+    if (code === 'FREE_TRIAL') return { courseName: 'Ücretsiz Deneme Dersi', duration: 30 };
 
     const courseCodeMap: { [key: string]: string } = { 'B': 'baslangic', 'K': 'konusma', 'G': 'gelisim', 'A': 'akademik' };
     const courseId = courseCodeMap[code.replace(/[0-9]/g, '')];
@@ -62,7 +65,6 @@ function TeacherProfileDialog({ teacherId }: { teacherId: string }) {
     const [isOpen, setIsOpen] = useState(false);
 
     const teacherDocRef = useMemoFirebase(() => {
-        // Only fetch if the dialog is open and the user is authenticated
         if (!db || !teacherId || !isOpen || !user) return null;
         return doc(db, 'users', teacherId);
     }, [db, teacherId, isOpen, user]);
@@ -269,14 +271,6 @@ export default function DersPlanlaPage() {
     }, [db, user?.uid]);
 
     const { data: children, isLoading: areChildrenLoading, refetch: refetchChildren } = useCollection(childrenRef);
-
-    const teachersQuery = useMemoFirebase(() => {
-        if (!db) return null;
-        return query(collection(db, 'users'), where('role', '==', 'teacher'));
-    }, [db]);
-
-    const { data: teachers, isLoading: areTeachersLoading } = useCollection(teachersQuery);
-
 
     const selectedChildData = useMemo(() => children?.find(c => c.id === selectedChildId), [children, selectedChildId]);
     
@@ -543,7 +537,7 @@ export default function DersPlanlaPage() {
     const hasPackage = selectedChildData?.assignedPackage && selectedChildData?.remainingLessons > 0;
     const canBook = selectedChildId && selectedTeacherId && ( (bookingMode === 'free' && canTakeFreeTrial) || (bookingMode === 'paid' && hasPackage) );
     
-    if (isUserLoading || areChildrenLoading || !selectedTimeZone || areTeachersLoading) {
+    if (isUserLoading || areChildrenLoading || !selectedTimeZone) {
         return (
             <div className="flex h-screen items-center justify-center">
                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -685,7 +679,7 @@ export default function DersPlanlaPage() {
                                 </h3>
                                  <p className="text-sm text-muted-foreground text-center lg:text-left mb-4">
                                      {selectedDate ? formatInTimeZone(selectedDate, selectedTimeZone, 'dd MMMM yyyy', { locale: tr }) : 'Bir tarih seçin'}
-                                     {selectedDate && <span className="text-xs text-muted-foreground ml-2">({selectedTimeZone})</span>}
+                                     {selectedDate && <span className="text-xs text-muted-foreground ml-2">({selectedTimeZone.split('/').pop()?.replace('_', ' ')})</span>}
                                  </p>
                             </div>
                            
@@ -762,7 +756,7 @@ export default function DersPlanlaPage() {
                             </div>
                              <div className="flex items-center gap-3">
                                 <Clock className="w-5 h-5 text-muted-foreground"/>
-                                <p><strong>Saat:</strong> {formatInTimeZone(selectedSlot.startTime.toDate(), selectedTimeZone, 'HH:mm')} ({selectedTimeZone})</p>
+                                <p><strong>Saat:</strong> {formatInTimeZone(selectedSlot.startTime.toDate(), selectedTimeZone, 'HH:mm')} ({selectedTimeZone.split('/').pop()?.replace('_', ' ')})</p>
                             </div>
                              <div className="flex items-center gap-3">
                                 <Package className="w-5 h-5 text-muted-foreground"/>
@@ -782,5 +776,3 @@ export default function DersPlanlaPage() {
         </div>
     );
 }
-
-    
