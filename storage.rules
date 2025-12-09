@@ -1,9 +1,14 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Allow teachers to read, write, update and delete their own profile files
+    // Allow public read access to all files
+    match /{allPaths=**} {
+      allow read;
+    }
+
+    // Allow authenticated teachers to write ONLY to their own profile folder
     match /teacher-profiles/{userId}/{allPaths=**} {
-      allow read, write, update, delete: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
