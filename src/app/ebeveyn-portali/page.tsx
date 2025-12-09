@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
-import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, Settings, Target, CreditCard, Clock, ChevronDown, MonitorPlay, FileText, CheckCircle, MessageCircle, TrendingUp, TrendingDown, Book, BrainCircuit, Globe, Smile, Meh, Frown, Languages, Milestone, Cloudy, GraduationCap, User as UserIcon, X, Lock, Infinity as InfinityIcon, Heart, Package } from 'lucide-react';
+import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, Settings, Target, CreditCard, Clock, ChevronDown, MonitorPlay, FileText, CheckCircle, MessageCircle, TrendingUp, TrendingDown, Book, BrainCircuit, Globe, Smile, Meh, Frown, Languages, Milestone, Cloudy, GraduationCap, User as UserIcon, X, Lock, Infinity as InfinityIcon, Heart, Package, AlertTriangle } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -43,6 +43,8 @@ import { collection, doc, deleteDoc, updateDoc, getDoc, query, where, getDocs, w
 import { SetPinDialog } from '@/components/child-mode/set-pin-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { ProgressPanel } from '@/components/shared/progress-panel';
+import { cn } from '@/lib/utils';
+
 
 const MAX_LIVES = 5;
 const MAX_FREE_TRIALS = 3;
@@ -78,12 +80,47 @@ function PremiumBadge() {
 
 function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, isPremium: boolean, currentLives: number, onDelete: (id: string, assignedPackage: string | null, remainingLessons: number) => void }) {
     const { toast } = useToast();
+    const router = useRouter();
     
     const displayLives = Math.max(0, currentLives);
     const hasActivePackage = child.assignedPackage && child.remainingLessons > 0;
+    const isProfileIncomplete = child.isProfileComplete === false;
+
+    const handleIncompleteClick = (e: React.MouseEvent) => {
+        if (isProfileIncomplete) {
+            e.preventDefault();
+            e.stopPropagation();
+            toast({
+                variant: 'destructive',
+                title: 'Profil Eksik',
+                description: 'Bu çocuğun profil bilgileri eksik. Lütfen düzenleyerek tüm bilgileri doldurun.',
+            });
+        }
+    }
     
     return (
-        <Card className="relative flex flex-col items-center text-center p-6 space-y-4 hover:shadow-lg transition-shadow group rounded-2xl">
+        <Card 
+            className={cn(
+                "relative flex flex-col items-center text-center p-6 space-y-4 hover:shadow-lg transition-shadow group rounded-2xl",
+                isProfileIncomplete && "border-destructive border-2"
+            )}
+            onClick={handleIncompleteClick}
+        >
+             {isProfileIncomplete && (
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className="absolute top-2 right-2 text-destructive cursor-help">
+                                <AlertTriangle className="w-5 h-5"/>
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Bu profil eksik. Atama yapabilmek için lütfen düzenleyip kaydedin.</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            )}
+
             <AlertDialog>
                 <AlertDialogTrigger asChild>
                     <Button variant="ghost" size="icon" className="absolute top-2 left-2 h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive">
@@ -404,3 +441,5 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
+
+    

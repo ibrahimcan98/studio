@@ -4,15 +4,15 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, doc, updateDoc, where, query, increment, Timestamp, writeBatch, getDocs, getDoc, arrayRemove } from 'firebase/firestore';
-import { Loader2, ArrowLeft, Info, BookOpen, User, Calendar as CalendarIcon, Package, Clock } from 'lucide-react';
+import { collection, doc, updateDoc, where, query, increment, Timestamp, writeBatch, getDocs, getDoc, arrayRemove, addDoc } from 'firebase/firestore';
+import { Loader2, ArrowLeft, Info, BookOpen, User, Calendar as CalendarIcon, Package, Clock, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { toZonedTime, formatInTimeZone, format } from 'date-fns-tz';
-import { isSameDay, toDate, addMinutes, isBefore, addDays } from 'date-fns';
+import { isSameDay, toDate, addMinutes, isBefore, addDays, differenceInYears } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from '@/components/ui/label';
@@ -29,6 +29,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+
 
 const getCourseDetailsFromPackageCode = (code: string) => {
     if (code === 'FREE_TRIAL') return { courseName: 'Ücretsiz Deneme Dersi', lessons: 1, duration: 30 };
@@ -56,6 +59,88 @@ const teachers = [
     { id: 'xlIxFqIdb9einW0BgpIFUM0RrXa2', firstName: 'İbrahim', lastName: 'Can' },
 ];
 
+function QuickAddChildDialog({ userId, onChildAdded }: { userId: string, onChildAdded: () => void }) {
+    const [open, setOpen] = useState(false);
+    const [firstName, setFirstName] = useState('');
+    const [dob, setDob] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+    const db = useFirestore();
+    const { toast } = useToast();
+
+    const handleQuickAdd = async () => {
+        if (!db || !userId || !firstName || !dob) {
+            toast({ variant: 'destructive', title: 'Hata', description: 'Lütfen tüm alanları doldurun.' });
+            return;
+        }
+
+        const age = differenceInYears(new Date(), new Date(dob));
+        if (age < 2 || age > 18) {
+            toast({ variant: 'destructive', title: 'Geçersiz Yaş', description: 'Çocuğun yaşı 2 ile 18 arasında olmalıdır.' });
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            await addDoc(collection(db, 'users', userId, 'children'), {
+                userId: userId,
+                firstName: firstName,
+                dateOfBirth: format(new Date(dob), "yyyy-MM-dd"),
+                rozet: 0,
+                completedTopics: [],
+                remainingLessons: 0,
+                assignedPackage: null,
+                assignedPackageName: null,
+                hasUsedFreeTrial: false,
+                isProfileComplete: false, // Mark as incomplete
+            });
+
+            toast({ title: 'Başarılı!', description: `${firstName} eklendi. Şimdi deneme dersini planlayabilirsiniz.` });
+            onChildAdded();
+            setOpen(false);
+            setFirstName('');
+            setDob('');
+        } catch (error) {
+            console.error('Quick add child error:', error);
+            toast({ variant: 'destructive', title: 'Hata', description: 'Çocuk eklenirken bir sorun oluştu.' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button className="bg-green-600 hover:bg-green-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Çocuk Ekle
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Hızlı Çocuk Ekle</DialogTitle>
+                    <DialogDescription>Deneme dersi planlamak için çocuğunuzun temel bilgilerini girin.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="quick-add-name">İsim</Label>
+                        <Input id="quick-add-name" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Çocuğun adı" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="quick-add-dob">Doğum Tarihi</Label>
+                        <Input id="quick-add-dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setOpen(false)}>İptal</Button>
+                    <Button onClick={handleQuickAdd} disabled={isSaving}>
+                        {isSaving && <Loader2 className="animate-spin mr-2" />}
+                        Ekle ve Devam Et
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
 
 export default function DersPlanlaPage() {
     const router = useRouter();
@@ -86,7 +171,7 @@ export default function DersPlanlaPage() {
         return collection(db, 'users', user.uid, 'children');
     }, [db, user?.uid]);
 
-    const { data: children, isLoading: areChildrenLoading } = useCollection(childrenRef);
+    const { data: children, isLoading: areChildrenLoading, refetch: refetchChildren } = useCollection(childrenRef);
 
     const selectedChildData = useMemo(() => children?.find(c => c.id === selectedChildId), [children, selectedChildId]);
     
@@ -380,7 +465,7 @@ export default function DersPlanlaPage() {
                         <div className="space-y-2">
                              <Label htmlFor="child-select" className="font-semibold text-lg">1. Adım: Öğrenci ve Ders Türü</Label>
                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
+                                <div className="flex items-center gap-2">
                                     <Select value={selectedChildId} onValueChange={setSelectedChildId}>
                                         <SelectTrigger id="child-select" >
                                             <SelectValue placeholder="Çocuk Seçin" />
@@ -391,6 +476,9 @@ export default function DersPlanlaPage() {
                                             ))}
                                         </SelectContent>
                                     </Select>
+                                     {user && children && children.length === 0 && (
+                                        <QuickAddChildDialog userId={user.uid} onChildAdded={refetchChildren} />
+                                    )}
                                 </div>
                                 {selectedChildId && (
                                      <div>
@@ -575,3 +663,5 @@ export default function DersPlanlaPage() {
         </div>
     );
 }
+
+    

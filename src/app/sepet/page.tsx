@@ -57,8 +57,8 @@ export default function SepetPage() {
 
     const handleProceedToPayment = () => {
         if (!user) {
-            toast({ variant: 'destructive', title: 'Hata', description: 'Ödeme yapmak için giriş yapmalısınız.' });
-            router.push('/login');
+            toast({ variant: 'destructive', title: 'Giriş Gerekli', description: 'Ödeme yapmak için giriş yapmalısınız.' });
+            router.push('/login?redirect=/sepet');
             return;
         }
         if (!user.emailVerified) {
@@ -335,3 +335,5 @@ export default function SepetPage() {
         </div>
     );
 }
+
+    
