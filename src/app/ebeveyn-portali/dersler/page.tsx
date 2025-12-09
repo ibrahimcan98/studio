@@ -63,8 +63,8 @@ function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
     }
 
     const isPast = new Date() > lesson.endTime;
-    const startTimeStr = formatInTimeZone(lesson.startTime, timeZone, 'HH:mm');
-    const endTimeStr = formatInTimeZone(lesson.endTime, timeZone, 'HH:mm');
+    const startTimeStr = formatInTimeZone(lesson.startTime, timeZone, 'HH:mm', { locale: tr });
+    const endTimeStr = formatInTimeZone(lesson.endTime, timeZone, 'HH:mm', { locale: tr });
     const packageDetails = getCourseDetailsFromPackageCode(lesson.packageCode);
 
     return (
@@ -77,7 +77,7 @@ function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
                     </Badge>
                 </CardTitle>
                 <CardDescription>
-                    {formatInTimeZone(lesson.startTime, timeZone, 'dd MMMM yyyy, ')}
+                    {formatInTimeZone(lesson.startTime, timeZone, 'dd MMMM yyyy, ', { locale: tr })}
                     {startTimeStr} - {endTimeStr} ({timeZone.split('/').pop()?.replace('_', ' ')})
                 </CardDescription>
             </CardHeader>
@@ -140,48 +140,69 @@ export default function DerslerimPage() {
 
     const groupedLessons = useMemo(() => {
         if (!lessonSlots) return [];
-    
+
         const sessions: { [key: string]: any[] } = {};
-    
-        // Group slots by a composite key of date, childId, and teacherId
+
         lessonSlots.forEach(slot => {
             const startTime = slot.startTime.toDate();
-            // Use UTC date string to avoid timezone issues with grouping keys
-            const sessionDate = formatInTimeZone(startTime, 'UTC', 'yyyy-MM-dd-HH-mm');
-            const sessionKey = `${sessionDate}-${slot.childId}-${slot.teacherId}`;
-    
+            const sessionDate = startOfDay(startTime).toISOString();
+            const sessionKey = `${sessionDate}-${slot.childId}-${slot.teacherId}-${slot.packageCode}`;
+
             if (!sessions[sessionKey]) {
                 sessions[sessionKey] = [];
             }
             sessions[sessionKey].push(slot);
         });
-    
-        // Process each session to create a single lesson object
-        return Object.values(sessions).map(sessionSlots => {
-            // Sort slots within the session to find the earliest
+        
+        return Object.values(sessions).flatMap(sessionSlots => {
+            if (sessionSlots.length === 0) return [];
             sessionSlots.sort((a, b) => a.startTime.seconds - b.startTime.seconds);
-            
-            const firstSlot = sessionSlots[0];
-            const startTime = firstSlot.startTime.toDate();
-            const packageDetails = getCourseDetailsFromPackageCode(firstSlot.packageCode);
-            const duration = packageDetails ? packageDetails.duration : 30;
-            const endTime = addMinutes(startTime, duration);
-    
-            // Find if any slot in the session has feedback
-            const feedbackSlot = sessionSlots.find(s => s.feedback);
 
-            return {
-                id: firstSlot.id, // Use the ID of the first slot as a representative ID
-                startTime: startTime,
-                endTime: endTime,
-                childId: firstSlot.childId,
-                teacherId: firstSlot.teacherId, // Keep the teacherId
-                bookedBy: firstSlot.bookedBy,
-                packageCode: firstSlot.packageCode,
-                feedback: feedbackSlot ? feedbackSlot.feedback : null
-            };
+            const lessons: any[] = [];
+            let currentLesson: any = null;
+
+            for (const slot of sessionSlots) {
+                if (!currentLesson) {
+                    currentLesson = { ...slot, slots: [slot] };
+                } else {
+                    const lastSlotTime = currentLesson.slots[currentLesson.slots.length - 1].startTime.toDate();
+                    const currentSlotTime = slot.startTime.toDate();
+                    const timeDiff = (currentSlotTime.getTime() - lastSlotTime.getTime()) / (1000 * 60);
+
+                    if (timeDiff <= 5) { // If slots are 5 minutes apart or less, group them
+                        currentLesson.slots.push(slot);
+                    } else {
+                        lessons.push(currentLesson);
+                        currentLesson = { ...slot, slots: [slot] };
+                    }
+                }
+            }
+            if (currentLesson) {
+                lessons.push(currentLesson);
+            }
+            
+            return lessons.map(lesson => {
+                const firstSlot = lesson.slots[0];
+                const startTime = firstSlot.startTime.toDate();
+                const packageDetails = getCourseDetailsFromPackageCode(firstSlot.packageCode);
+                const duration = packageDetails ? packageDetails.duration : 30;
+                const endTime = addMinutes(startTime, duration);
+
+                const feedbackSlot = lesson.slots.find((s: any) => s.feedback);
+
+                return {
+                    id: firstSlot.id,
+                    startTime: startTime,
+                    endTime: endTime,
+                    childId: firstSlot.childId,
+                    teacherId: firstSlot.teacherId,
+                    bookedBy: firstSlot.bookedBy,
+                    packageCode: firstSlot.packageCode,
+                    feedback: feedbackSlot ? feedbackSlot.feedback : null
+                };
+            });
         });
-    
+
     }, [lessonSlots]);
     
     

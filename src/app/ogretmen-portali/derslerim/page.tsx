@@ -131,43 +131,70 @@ export default function OgretmenDerslerimPage() {
 
     const groupedLessons = useMemo(() => {
         if (!lessonSlots) return [];
-    
-        const lessonsMap: { [key: string]: any } = {};
-    
-        const sortedSlots = [...lessonSlots].sort((a, b) => a.startTime.seconds - b.startTime.seconds);
-    
-        sortedSlots.forEach(slot => {
-            const packageDetails = getCourseDetailsFromPackageCode(slot.packageCode);
-            if (!packageDetails) return;
-    
+
+        const sessions: { [key: string]: any[] } = {};
+
+        lessonSlots.forEach(slot => {
             const startTime = slot.startTime.toDate();
-            const sessionDay = startOfDay(startTime).toISOString();
-            const sessionKey = `${slot.childId}-${slot.teacherId}-${sessionDay}`;
-    
-            if (!lessonsMap[sessionKey]) {
-                lessonsMap[sessionKey] = {
-                    ...slot,
-                    id: slot.id,
-                    startTime: startTime,
-                    slots: [slot],
-                    feedback: slot.feedback || null,
-                };
-            } else {
-                lessonsMap[sessionKey].slots.push(slot);
-                if (slot.feedback) {
-                    lessonsMap[sessionKey].feedback = slot.feedback;
-                }
+            const sessionDate = startOfDay(startTime).toISOString();
+            const sessionKey = `${sessionDate}-${slot.childId}-${slot.teacherId}-${slot.packageCode}`;
+
+            if (!sessions[sessionKey]) {
+                sessions[sessionKey] = [];
             }
+            sessions[sessionKey].push(slot);
         });
         
-        return Object.values(lessonsMap).map(lesson => {
-            const packageDetails = getCourseDetailsFromPackageCode(lesson.packageCode);
-            const duration = packageDetails ? packageDetails.duration : 30;
-            return {
-                ...lesson,
-                endTime: addMinutes(lesson.startTime, duration)
-            };
+        return Object.values(sessions).flatMap(sessionSlots => {
+            if (sessionSlots.length === 0) return [];
+            sessionSlots.sort((a, b) => a.startTime.seconds - b.startTime.seconds);
+
+            const lessons: any[] = [];
+            let currentLesson: any = null;
+
+            for (const slot of sessionSlots) {
+                if (!currentLesson) {
+                    currentLesson = { ...slot, slots: [slot] };
+                } else {
+                    const lastSlotTime = currentLesson.slots[currentLesson.slots.length - 1].startTime.toDate();
+                    const currentSlotTime = slot.startTime.toDate();
+                    const timeDiff = (currentSlotTime.getTime() - lastSlotTime.getTime()) / (1000 * 60);
+
+                    if (timeDiff <= 5) { // If slots are 5 minutes apart or less, group them
+                        currentLesson.slots.push(slot);
+                    } else {
+                        lessons.push(currentLesson);
+                        currentLesson = { ...slot, slots: [slot] };
+                    }
+                }
+            }
+            if (currentLesson) {
+                lessons.push(currentLesson);
+            }
+            
+            return lessons.map(lesson => {
+                const firstSlot = lesson.slots[0];
+                const startTime = firstSlot.startTime.toDate();
+                const packageDetails = getCourseDetailsFromPackageCode(firstSlot.packageCode);
+                const duration = packageDetails ? packageDetails.duration : 30;
+                const endTime = addMinutes(startTime, duration);
+
+                const feedbackSlot = lesson.slots.find((s: any) => s.feedback);
+
+                return {
+                    id: firstSlot.id,
+                    startTime: startTime,
+                    endTime: endTime,
+                    childId: firstSlot.childId,
+                    teacherId: firstSlot.teacherId,
+                    bookedBy: firstSlot.bookedBy,
+                    packageCode: firstSlot.packageCode,
+                    feedback: feedbackSlot ? feedbackSlot.feedback : null,
+                    slots: lesson.slots // Pass slots for feedback submission
+                };
+            });
         });
+
     }, [lessonSlots]);
 
 
