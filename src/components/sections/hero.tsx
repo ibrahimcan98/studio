@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -13,7 +14,7 @@ export default function Hero() {
   const router = useRouter();
 
   const handleCtaClick = () => {
-    router.push('/login');
+    router.push('/register');
   };
 
   return (

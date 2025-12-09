@@ -50,7 +50,7 @@ export default function Header() {
     if (isLoggedIn) {
       router.push('/ebeveyn-portali');
     } else {
-      router.push('/login');
+      router.push('/register');
     }
   };
   
@@ -74,7 +74,7 @@ export default function Header() {
   
   const handleFreeTrialClick = () => {
       setMobileMenuOpen(false);
-      router.push('/login');
+      router.push('/register');
   }
 
   const UserMenu = () => {
