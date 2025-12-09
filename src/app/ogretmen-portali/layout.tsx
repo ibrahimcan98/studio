@@ -59,11 +59,6 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
       href: '/ogretmen-portali/ogrencilerim',
       label: 'Öğrencilerim',
       icon: Users
-    },
-    {
-      href: '/ogretmen-portali/profilim',
-      label: 'Profilim',
-      icon: User
     }
   ];
   
