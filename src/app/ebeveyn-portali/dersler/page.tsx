@@ -1,8 +1,9 @@
 
+
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { Loader2, ArrowLeft, Calendar, Clock, User, BookOpen, Baby, History, MessageSquare } from 'lucide-react';
@@ -34,6 +35,11 @@ const getCourseDetailsFromPackageCode = (code?: string) => {
     return { courseName: course.title, duration };
 };
 
+// Static teacher list to ensure names are always available
+const teachers = [
+    { id: 'O2mQCONyczVkAXcgAMBSPpeIfJw2', firstName: 'Tuba', lastName: 'Kodak' },
+];
+
 
 function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
     const db = useFirestore();
@@ -43,15 +49,12 @@ function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
         return doc(db, 'users', lesson.bookedBy, 'children', lesson.childId);
     }, [db, lesson.bookedBy, lesson.childId]);
 
-    const teacherDocRef = useMemoFirebase(() => {
-        if (!db || !lesson.teacherId) return null;
-        return doc(db, 'users', lesson.teacherId);
-    }, [db, lesson.teacherId]);
-
     const { data: childData, isLoading: isChildLoading } = useDoc(childDocRef);
-    const { data: teacherData, isLoading: isTeacherLoading } = useDoc(teacherDocRef);
+    
+    const teacher = useMemo(() => teachers.find(t => t.id === lesson.teacherId), [lesson.teacherId]);
 
-    if (isChildLoading || isTeacherLoading) {
+
+    if (isChildLoading) {
         return (
             <Card className="p-4 flex items-center justify-center min-h-[220px]">
                 <Loader2 className="animate-spin text-primary" />
@@ -85,7 +88,7 @@ function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
                 </div>
                  <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-muted-foreground" />
-                    <span><strong>Öğretmen:</strong> {teacherData?.firstName} {teacherData?.lastName}</span>
+                    <span><strong>Öğretmen:</strong> {teacher?.firstName} {teacher?.lastName}</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <BookOpen className="w-4 h-4 text-muted-foreground" />
@@ -108,6 +111,9 @@ function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
 
 export default function DerslerimPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const initialTab = searchParams.get('tab') === 'past' ? 'past' : 'upcoming';
+
     const { user, loading: userLoading } = useUser();
     const db = useFirestore();
 
@@ -135,40 +141,45 @@ export default function DerslerimPage() {
     const groupedLessons = useMemo(() => {
         if (!lessonSlots) return [];
     
-        const lessonsMap: { [key: string]: any } = {};
+        const sessions: { [key: string]: any[] } = {};
     
-        const sortedSlots = [...lessonSlots].sort((a, b) => a.startTime.seconds - b.startTime.seconds);
-    
-        sortedSlots.forEach(slot => {
-            const packageDetails = getCourseDetailsFromPackageCode(slot.packageCode);
-            if (!packageDetails) return;
-    
+        // Group slots by a composite key of date, childId, and teacherId
+        lessonSlots.forEach(slot => {
             const startTime = slot.startTime.toDate();
-            // A session is uniquely identified by child, teacher, and the day of the lesson.
-            const sessionDay = startOfDay(startTime).toISOString();
-            const sessionKey = `${slot.childId}-${slot.teacherId}-${sessionDay}`;
+            // Use UTC date string to avoid timezone issues with grouping keys
+            const sessionDate = formatInTimeZone(startTime, 'UTC', 'yyyy-MM-dd-HH-mm');
+            const sessionKey = `${sessionDate}-${slot.childId}-${slot.teacherId}`;
     
-            if (!lessonsMap[sessionKey]) {
-                 lessonsMap[sessionKey] = {
-                    ...slot, // Use first slot as base
-                    id: slot.id,
-                    startTime: startTime, // Earliest start time
-                    slots: [slot],
-                 };
-            } else {
-                 lessonsMap[sessionKey].slots.push(slot);
-                 // No need to update startTime as they are sorted
+            if (!sessions[sessionKey]) {
+                sessions[sessionKey] = [];
             }
+            sessions[sessionKey].push(slot);
         });
     
-        // Post-process to calculate correct endTime for each grouped lesson
-        return Object.values(lessonsMap).map(lesson => {
-             const packageDetails = getCourseDetailsFromPackageCode(lesson.packageCode);
-             const duration = packageDetails ? packageDetails.duration : 30; // default duration
-             return {
-                ...lesson,
-                endTime: addMinutes(lesson.startTime, duration)
-             }
+        // Process each session to create a single lesson object
+        return Object.values(sessions).map(sessionSlots => {
+            // Sort slots within the session to find the earliest
+            sessionSlots.sort((a, b) => a.startTime.seconds - b.startTime.seconds);
+            
+            const firstSlot = sessionSlots[0];
+            const startTime = firstSlot.startTime.toDate();
+            const packageDetails = getCourseDetailsFromPackageCode(firstSlot.packageCode);
+            const duration = packageDetails ? packageDetails.duration : 30;
+            const endTime = addMinutes(startTime, duration);
+    
+            // Find if any slot in the session has feedback
+            const feedbackSlot = sessionSlots.find(s => s.feedback);
+
+            return {
+                id: firstSlot.id, // Use the ID of the first slot as a representative ID
+                startTime: startTime,
+                endTime: endTime,
+                childId: firstSlot.childId,
+                teacherId: firstSlot.teacherId, // Keep the teacherId
+                bookedBy: firstSlot.bookedBy,
+                packageCode: firstSlot.packageCode,
+                feedback: feedbackSlot ? feedbackSlot.feedback : null
+            };
         });
     
     }, [lessonSlots]);
@@ -214,7 +225,7 @@ export default function DerslerimPage() {
                 </div>
             </div>
 
-            <Tabs defaultValue="upcoming" className="w-full">
+            <Tabs defaultValue={initialTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="upcoming">
                         <Calendar className="mr-2 h-4 w-4" />

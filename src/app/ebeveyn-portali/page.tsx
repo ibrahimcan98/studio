@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
-import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, Settings, Target, CreditCard, Clock, ChevronDown, MonitorPlay, FileText, CheckCircle, MessageCircle, TrendingUp, TrendingDown, Book, BrainCircuit, Globe, Smile, Meh, Frown, Languages, Milestone, Cloudy, GraduationCap, User as UserIcon, X, Lock, Infinity as InfinityIcon, Heart, Package, AlertTriangle } from 'lucide-react';
+import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, Settings, Target, CreditCard, Clock, ChevronDown, MonitorPlay, FileText, CheckCircle, MessageCircle, TrendingUp, TrendingDown, Book, BrainCircuit, Globe, Smile, Meh, Frown, Languages, Milestone, Cloudy, GraduationCap, User as UserIcon, X, Lock, Infinity as InfinityIcon, Heart, Package, AlertTriangle, Calendar, History } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -376,7 +376,7 @@ export default function EbeveynPortaliPage() {
         </Card>
       </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
            <Card className="flex flex-col justify-between p-6 bg-gradient-to-br from-green-100 to-teal-100 border-green-200 hover:shadow-lg transition-shadow">
               {hasUsedFreeTrial ? (
                 <div>
@@ -391,9 +391,29 @@ export default function EbeveynPortaliPage() {
               )}
               <Button asChild className="mt-4 w-fit bg-green-600 hover:bg-green-700 text-white">
                   <Link href="/ebeveyn-portali/ders-planla">
-                    {hasUsedFreeTrial ? "Dersleri Yönet" : "Hemen Planla"}
+                    {hasUsedFreeTrial ? "Ders Planla" : "Hemen Planla"}
                   </Link>
               </Button>
+            </Card>
+
+            <Card className="flex flex-col justify-between p-6 bg-gradient-to-br from-blue-100 to-indigo-100 border-blue-200 hover:shadow-lg transition-shadow">
+                <div>
+                    <h3 className="text-xl font-bold flex items-center gap-2"><Calendar className="text-blue-600"/> Yaklaşan Dersler</h3>
+                    <p className="text-muted-foreground mt-2">Planlanmış gelecek derslerinizi görüntüleyin.</p>
+                </div>
+                <Button asChild className="mt-4 w-fit bg-blue-500 hover:bg-blue-600 text-white">
+                    <Link href="/ebeveyn-portali/dersler">Dersleri Görüntüle</Link>
+                </Button>
+            </Card>
+
+             <Card className="flex flex-col justify-between p-6 bg-gradient-to-br from-purple-100 to-pink-100 border-purple-200 hover:shadow-lg transition-shadow">
+                <div>
+                    <h3 className="text-xl font-bold flex items-center gap-2"><History className="text-purple-600"/> Geçmiş Dersler</h3>
+                    <p className="text-muted-foreground mt-2">Tamamlanmış derslerinizi ve geri bildirimleri inceleyin.</p>
+                </div>
+                <Button asChild className="mt-4 w-fit bg-purple-500 hover:bg-purple-600 text-white">
+                    <Link href="/ebeveyn-portali/dersler?tab=past">Arşive Git</Link>
+                </Button>
             </Card>
 
             <Card className="flex flex-col justify-between p-6 bg-gradient-to-br from-orange-100 to-amber-100 border-orange-200 hover:shadow-lg transition-shadow">
