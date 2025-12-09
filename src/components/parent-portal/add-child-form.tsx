@@ -92,18 +92,41 @@ export function AddChildForm({ userId, onChildAdded, child, childId, children }:
       schoolLanguage: '',
       homeLanguageTurkishPercentage: 50,
       turkishDifficulties: [],
+      turkishExposureIntensity: undefined,
+      schoolLiteracyStatus: undefined,
+      turkishLiteracyLevel: undefined,
     },
   });
 
   useEffect(() => {
-    if (isEditMode && child) {
-        form.reset({
-            ...child,
-            dateOfBirth: child.dateOfBirth ? format(parseISO(child.dateOfBirth), 'yyyy-MM-dd') : '',
-            homeLanguageTurkishPercentage: child.homeLanguageTurkishPercentage || 50
-        });
-    } else {
-        form.reset();
+    if (open) {
+        if (isEditMode && child) {
+            form.reset({
+                firstName: child.firstName || '',
+                dateOfBirth: child.dateOfBirth ? format(parseISO(child.dateOfBirth), 'yyyy-MM-dd') : '',
+                countryOfResidence: child.countryOfResidence || '',
+                parentTongues: child.parentTongues || '',
+                schoolLanguage: child.schoolLanguage || '',
+                homeLanguageTurkishPercentage: child.homeLanguageTurkishPercentage || 50,
+                turkishDifficulties: child.turkishDifficulties || [],
+                turkishExposureIntensity: child.turkishExposureIntensity,
+                schoolLiteracyStatus: child.schoolLiteracyStatus,
+                turkishLiteracyLevel: child.turkishLiteracyLevel,
+            });
+        } else {
+            form.reset({
+                firstName: '',
+                dateOfBirth: '',
+                countryOfResidence: '',
+                parentTongues: '',
+                schoolLanguage: '',
+                homeLanguageTurkishPercentage: 50,
+                turkishDifficulties: [],
+                turkishExposureIntensity: undefined,
+                schoolLiteracyStatus: undefined,
+                turkishLiteracyLevel: undefined,
+            });
+        }
     }
   }, [isEditMode, child, form, open]);
 
