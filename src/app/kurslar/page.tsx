@@ -104,9 +104,9 @@ export default function KurslarPage() {
             <header className="py-16 md:py-24 text-center">
                  <h1 className="text-5xl md:text-6xl font-bold mb-6">KURSLAR</h1>
                  <Button asChild variant="outline" className="bg-white rounded-full py-6 px-8 shadow-lg hover:shadow-xl transition-shadow border-gray-200">
-                    <a href="https://wa.me/yourwhatsappnumber" target="_blank" rel="noopener noreferrer">
+                    <a href="https://wa.me/+905058029734" target="_blank" rel="noopener noreferrer">
                         <WhatsAppIcon className="w-6 h-6 mr-3 text-green-500 fill-green-500" />
-                        <span className="font-semibold">WhatsApp üzerinden ücretsiz deneme dersi planlayalım!</span>
+                        <span className="font-semibold">İndirimsiz almayın! Bizimle iletişime geçin, promosyon kodu ile indirim kazanın.</span>
                     </a>
                 </Button>
             </header>
@@ -167,7 +167,7 @@ export default function KurslarPage() {
                                     </div>
                                     <h3 className="text-xl font-bold mb-4">Paketlerle ilgili bilgi almak için tıkla</h3>
                                     <Button asChild className="bg-white text-orange-500 hover:bg-gray-100 font-bold">
-                                        <a href="https://wa.me/yourwhatsappnumber" target="_blank" rel="noopener noreferrer">WhatsApp'ta Sohbet Et</a>
+                                        <a href="https://wa.me/+905058029734" target="_blank" rel="noopener noreferrer">WhatsApp'ta Sohbet Et</a>
                                     </Button>
                                 </div>
                             </div>
@@ -239,7 +239,7 @@ export default function KurslarPage() {
                                     </div>
                                     <h3 className="text-xl font-bold mb-4">Paketlerle ilgili bilgi almak için tıkla</h3>
                                     <Button asChild className="bg-white text-orange-500 hover:bg-gray-100 font-bold">
-                                        <a href="https://wa.me/yourwhatsappnumber" target="_blank" rel="noopener noreferrer">WhatsApp'ta Sohbet Et</a>
+                                        <a href="https://wa.me/+905058029734" target="_blank" rel="noopener noreferrer">WhatsApp'ta Sohbet Et</a>
                                     </Button>
                                 </div>
                             </div>
@@ -311,7 +311,7 @@ export default function KurslarPage() {
                                     </div>
                                     <h3 className="text-xl font-bold mb-4">Paketlerle ilgili bilgi almak için tıkla</h3>
                                     <Button asChild className="bg-white text-orange-500 hover:bg-gray-100 font-bold">
-                                        <a href="https://wa.me/yourwhatsappnumber" target="_blank" rel="noopener noreferrer">WhatsApp'ta Sohbet Et</a>
+                                        <a href="https://wa.me/+905058029734" target="_blank" rel="noopener noreferrer">WhatsApp'ta Sohbet Et</a>
                                     </Button>
                                 </div>
                             </div>
@@ -427,9 +427,9 @@ export default function KurslarPage() {
                     <div className="container max-w-4xl mx-auto">
                         <div className="inline-block p-1 rounded-full bg-gradient-to-r from-teal-400 to-green-500 mb-8">
                              <Button asChild size="lg" className="bg-[#25D366] hover:bg-[#25D366]/90 text-white rounded-full text-lg font-bold px-8 py-6 h-auto">
-                                <a href="https://wa.me/yourwhatsappnumber" target="_blank" rel="noopener noreferrer">
+                                <a href="https://wa.me/+905058029734" target="_blank" rel="noopener noreferrer">
                                     <WhatsAppIcon className="w-6 h-6 mr-3 fill-white" />
-                                    WhatsApp üzerinden ücretsiz deneme dersi planlayalım!
+                                    İndirimsiz almayın! Bizimle iletişime geçin, promosyon kodu ile indirim kazanın.
                                 </a>
                             </Button>
                         </div>
