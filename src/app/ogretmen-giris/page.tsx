@@ -59,7 +59,7 @@ export default function OgretmenGirisPage() {
             };
             break;
         case 'test@test.com':
-            profileData = { firstName: 'Tuğba', lastName: 'Öz' };
+            profileData = { firstName: 'Tuba', lastName: 'Kodak' };
             break;
     }
 

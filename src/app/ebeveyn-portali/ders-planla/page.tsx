@@ -57,7 +57,7 @@ const MAX_FREE_TRIALS = 3;
 
 // Static teacher list to avoid permission issues
 const teachers = [
-    { id: 'O2mQCONyczVkAXcgAMBSPpeIfJw2', firstName: 'Tuğba', lastName: 'Öz' },
+    { id: 'O2mQCONyczVkAXcgAMBSPpeIfJw2', firstName: 'Tuba', lastName: 'Kodak' },
 ];
 
 function TeacherProfileDialog({ teacherId }: { teacherId: string }) {

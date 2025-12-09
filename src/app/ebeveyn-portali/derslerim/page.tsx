@@ -36,7 +36,7 @@ const getCourseDetailsFromPackageCode = (code?: string) => {
 
 // Static teacher list to ensure names are always available
 const teachers = [
-    { id: 'O2mQCONyczVkAXcgAMBSPpeIfJw2', firstName: 'Tuğba', lastName: 'Öz' },
+    { id: 'O2mQCONyczVkAXcgAMBSPpeIfJw2', firstName: 'Tuba', lastName: 'Kodak' },
 ];
 
 
