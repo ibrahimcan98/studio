@@ -10,15 +10,10 @@ import { useRouter } from 'next/navigation';
 
 export default function Hero() {
   const heroImage = PlaceHolderImages.find(img => img.id === 'hero-child');
-  const { user } = useUser();
   const router = useRouter();
 
-  const handleStartClick = () => {
-    if (user) {
-      router.push('/ebeveyn-portali');
-    } else {
-      router.push('/login');
-    }
+  const handleCtaClick = () => {
+    router.push('/login');
   };
 
   return (
@@ -32,8 +27,7 @@ export default function Hero() {
             Duolingo tarzı harita, canlı dersler ve aile paneliyle güvenli, eğlenceli ve etkili.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-            <Button size="lg" className="font-bold" onClick={handleStartClick}>Hemen Başla</Button>
-            <Button size="lg" variant="secondary" className="font-bold">Ücretsiz Deneme</Button>
+            <Button size="lg" className="font-bold text-lg h-14" onClick={handleCtaClick}>Ücretsiz Deneme Dersini Hemen Planla</Button>
           </div>
         </div>
         <div className="relative flex justify-center h-full min-h-[400px] lg:min-h-[600px]">

@@ -71,6 +71,11 @@ export default function Header() {
     await signOut(auth);
     router.push('/');
   };
+  
+  const handleFreeTrialClick = () => {
+      setMobileMenuOpen(false);
+      router.push('/login');
+  }
 
   const UserMenu = () => {
     const { user } = useUser();
@@ -164,7 +169,7 @@ export default function Header() {
         
         <div className="flex items-center justify-end gap-2 md:gap-4">
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-              <button onClick={() => router.push(isLoggedIn ? '/ebeveyn-portali' : '/login')} className="transition-colors hover:text-foreground/80 text-foreground/60">
+              <button onClick={handlePortalClick} className="transition-colors hover:text-foreground/80 text-foreground/60">
               Ebeveyn Portalı
             </button>
             {navLinks.map((link) => {
@@ -191,7 +196,7 @@ export default function Header() {
             </Button>
           </nav>
           
-            <Button variant="secondary" className="font-semibold hidden md:inline-flex">Ücretsiz Deneme</Button>
+            <Button variant="secondary" className="font-semibold hidden md:inline-flex" onClick={handleFreeTrialClick}>Ücretsiz Deneme</Button>
 
             <div className="hidden md:flex items-center gap-2">
               <UserMenu />
@@ -232,7 +237,7 @@ export default function Header() {
                              <button onClick={() => handleLinkClick('/sepet')} className="text-lg font-medium transition-colors hover:text-foreground/80 text-left">
                                 Sepet ({isCartLoaded ? cartItemCount : 0})
                             </button>
-                            <Button variant="secondary" className="w-full justify-center p-2 h-auto font-medium text-lg" onClick={() => {}}>
+                            <Button variant="secondary" className="w-full justify-center p-2 h-auto font-medium text-lg" onClick={handleFreeTrialClick}>
                                 Ücretsiz Deneme
                             </Button>
                              {!isLoggedIn && (
