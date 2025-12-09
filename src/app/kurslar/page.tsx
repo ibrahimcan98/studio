@@ -1,12 +1,8 @@
 
 'use server'; // Convert this to a server component to fetch data on the server
-import { useState } from 'react';
-import { COURSES, Course } from "@/data/courses";
+import { COURSES } from "@/data/courses";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { Button } from "@/components/ui/button";
-import { CourseCard } from "@/components/courses/course-card";
-import { CheckCircle, Info, BookOpen, ShoppingCart, ShieldCheck, Lock as LockIcon, Heart, Globe } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import Footer from "@/components/layout/footer";
 import { getExchangeRates } from '@/ai/flows/exchange-rate-flow';
 import { KurslarClientPage } from './kurslar-client';
@@ -51,4 +47,3 @@ export default async function KurslarPage() {
         </div>
     );
 }
-
