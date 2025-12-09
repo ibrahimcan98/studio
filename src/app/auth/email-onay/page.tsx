@@ -2,15 +2,36 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, ArrowRight } from "lucide-react";
+import { CheckCircle, ArrowRight, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@/firebase";
+import { useEffect } from "react";
 
 export default function EmailOnayPage() {
     const router = useRouter();
+    const { user, loading } = useUser();
+
+    useEffect(() => {
+        // When the user object is available, force a reload to get the latest emailVerified status.
+        if (user) {
+            user.reload().then(() => {
+                // After reloading, the onAuthStateChanged listener in useUser will fire with the updated user object.
+                // We can then safely redirect.
+            });
+        }
+    }, [user]);
 
     const handleRedirect = () => {
         router.push('/ebeveyn-portali/ayarlar');
     };
+
+    if (loading) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+        );
+    }
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
