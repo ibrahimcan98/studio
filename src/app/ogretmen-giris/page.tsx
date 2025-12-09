@@ -52,7 +52,11 @@ export default function OgretmenGirisPage() {
             profileData = { firstName: 'İbrahim', lastName: 'Can' };
             break;
         case 'tubakodak@turkcocukakademisii.com':
-            profileData = { firstName: 'Tuba', lastName: 'Kodak' };
+            profileData = { 
+              firstName: 'Tuba', 
+              lastName: 'Kodak',
+              introVideoUrl: 'https://www.kapwing.com/e/69381bf8c74b018ff07301e3'
+            };
             break;
         case 'test@test.com':
             profileData = { firstName: 'Tuğba', lastName: 'Öz' };
@@ -79,6 +83,9 @@ export default function OgretmenGirisPage() {
       }
        if (profileData.lastName && currentData?.lastName !== profileData.lastName) {
         updates.lastName = profileData.lastName;
+      }
+      if (profileData.introVideoUrl && currentData?.introVideoUrl !== profileData.introVideoUrl) {
+        updates.introVideoUrl = profileData.introVideoUrl;
       }
 
       if (Object.keys(updates).length > 0) {

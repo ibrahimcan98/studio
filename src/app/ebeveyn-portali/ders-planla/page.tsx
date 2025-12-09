@@ -71,6 +71,20 @@ function TeacherProfileDialog({ teacherId }: { teacherId: string }) {
 
     const { data: teacherData, isLoading } = useDoc(teacherDocRef);
     
+    const getEmbedUrl = (url: string) => {
+        if (!url) return null;
+        if (url.includes('youtube.com/watch?v=')) {
+            const videoId = url.split('v=')[1].split('&')[0];
+            return `https://www.youtube.com/embed/${videoId}`;
+        }
+        if (url.includes('kapwing.com/e/')) {
+            return url;
+        }
+        return null;
+    }
+
+    const embedUrl = getEmbedUrl(teacherData?.introVideoUrl || '');
+
     return (
         <Dialog>
             <DialogTrigger asChild>
@@ -115,14 +129,14 @@ function TeacherProfileDialog({ teacherId }: { teacherId: string }) {
                                 </div>
                             </div>
                         )}
-                        {teacherData.introVideoUrl && (
+                        {embedUrl && (
                              <div>
                                 <h4 className="font-semibold mb-2">Tanıtım Videosu</h4>
                                 <div className="aspect-video rounded-lg overflow-hidden">
                                      <iframe
                                         className="w-full h-full"
-                                        src={`https://www.youtube.com/embed/${teacherData.introVideoUrl.split('v=')[1]}`}
-                                        title="YouTube video player"
+                                        src={embedUrl}
+                                        title="Embedded video player"
                                         frameBorder="0"
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                         allowFullScreen>
