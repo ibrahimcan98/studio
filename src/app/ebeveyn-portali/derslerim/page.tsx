@@ -11,22 +11,31 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatInTimeZone } from 'date-fns-tz';
 import { tr } from 'date-fns/locale';
+import { addMinutes, startOfDay } from 'date-fns';
 import { COURSES } from '@/data/courses';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
-
 const getCourseDetailsFromPackageCode = (code?: string) => {
     if (!code) return null;
-    if (code === 'FREE_TRIAL') return { courseName: 'Ücretsiz Deneme Dersi', duration: '30 dakika' };
+    if (code === 'FREE_TRIAL') return { courseName: 'Ücretsiz Deneme Dersi', duration: 30 };
     
     const courseCodeMap: { [key: string]: string } = { 'B': 'baslangic', 'K': 'konusma', 'G': 'gelisim', 'A': 'akademik' };
     const courseId = courseCodeMap[code.replace(/[0-9]/g, '')];
     const course = COURSES.find(c => c.id === courseId);
-    return course ? { courseName: course.title, duration: course.details.duration } : null;
-}
+    
+    if (!course) return null;
 
-function LessonCard({ lesson }: { lesson: any }) {
+    let duration = 30; // Default
+    if (course.id === 'baslangic') duration = 20;
+    if (course.id === 'konusma') duration = 30;
+    if (course.id === 'gelisim' || course.id === 'akademik') duration = 45;
+
+    return { courseName: course.title, duration };
+};
+
+
+function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
     const db = useFirestore();
 
     const childDocRef = useMemoFirebase(() => {
@@ -50,9 +59,10 @@ function LessonCard({ lesson }: { lesson: any }) {
         );
     }
 
+    const isPast = new Date() > lesson.endTime;
+    const startTimeStr = formatInTimeZone(lesson.startTime, timeZone, 'HH:mm');
+    const endTimeStr = formatInTimeZone(lesson.endTime, timeZone, 'HH:mm');
     const packageDetails = getCourseDetailsFromPackageCode(lesson.packageCode);
-    const lessonDate = lesson.startTime.toDate();
-    const isPast = new Date() > lessonDate;
 
     return (
         <Card className='flex flex-col bg-white'>
@@ -64,7 +74,8 @@ function LessonCard({ lesson }: { lesson: any }) {
                     </Badge>
                 </CardTitle>
                 <CardDescription>
-                    {formatInTimeZone(lessonDate, 'Europe/Istanbul', 'dd MMMM yyyy, HH:mm', { locale: tr })} (TSİ)
+                    {formatInTimeZone(lesson.startTime, timeZone, 'dd MMMM yyyy, ')}
+                    {startTimeStr} - {endTimeStr} ({timeZone.split('/').pop()?.replace('_', ' ')})
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-sm flex-grow">
@@ -100,35 +111,90 @@ export default function DerslerimPage() {
     const { user, loading: userLoading } = useUser();
     const db = useFirestore();
 
+    const userDocRef = useMemoFirebase(() => {
+        if (!user || !db) return null;
+        return doc(db, 'users', user.uid);
+    }, [user, db]);
+
+    const { data: userData, isLoading: isUserLoading } = useDoc(userDocRef);
+
+    const timeZone = useMemo(() => {
+        if (userData?.timezone) return userData.timezone;
+        if (typeof window !== 'undefined') return Intl.DateTimeFormat().resolvedOptions().timeZone;
+        return 'Europe/Istanbul'; // Fallback
+    }, [userData]);
+
+
     const bookedLessonsQuery = useMemoFirebase(() => {
         if (!user || !db) return null;
         return query(collection(db, 'lesson-slots'), where('bookedBy', '==', user.uid));
     }, [user, db]);
 
-    const { data: lessons, isLoading: lessonsLoading } = useCollection(bookedLessonsQuery);
+    const { data: lessonSlots, isLoading: lessonsLoading } = useCollection(bookedLessonsQuery);
 
+    const groupedLessons = useMemo(() => {
+        if (!lessonSlots) return [];
+    
+        const lessonsMap: { [key: string]: any } = {};
+    
+        const sortedSlots = [...lessonSlots].sort((a, b) => a.startTime.seconds - b.startTime.seconds);
+    
+        sortedSlots.forEach(slot => {
+            const packageDetails = getCourseDetailsFromPackageCode(slot.packageCode);
+            if (!packageDetails) return;
+    
+            const startTime = slot.startTime.toDate();
+            // A session is uniquely identified by child, teacher, and the day of the lesson.
+            const sessionDay = startOfDay(startTime).toISOString();
+            const sessionKey = `${slot.childId}-${slot.teacherId}-${sessionDay}`;
+    
+            if (!lessonsMap[sessionKey]) {
+                 lessonsMap[sessionKey] = {
+                    ...slot, // Use first slot as base
+                    id: slot.id,
+                    startTime: startTime, // Earliest start time
+                    slots: [slot],
+                 };
+            } else {
+                 lessonsMap[sessionKey].slots.push(slot);
+                 // No need to update startTime as they are sorted
+            }
+        });
+    
+        // Post-process to calculate correct endTime for each grouped lesson
+        return Object.values(lessonsMap).map(lesson => {
+             const packageDetails = getCourseDetailsFromPackageCode(lesson.packageCode);
+             const duration = packageDetails ? packageDetails.duration : 30; // default duration
+             return {
+                ...lesson,
+                endTime: addMinutes(lesson.startTime, duration)
+             }
+        });
+    
+    }, [lessonSlots]);
+    
+    
     const { upcomingLessons, pastLessons } = useMemo(() => {
-        if (!lessons) return { upcomingLessons: [], pastLessons: [] };
+        if (!groupedLessons) return { upcomingLessons: [], pastLessons: [] };
         const now = new Date();
         const upcoming: any[] = [];
         const past: any[] = [];
 
-        lessons.forEach(lesson => {
-            if (lesson.startTime.toDate() > now) {
+        groupedLessons.forEach(lesson => {
+            if (lesson.endTime > now) {
                 upcoming.push(lesson);
             } else {
                 past.push(lesson);
             }
         });
 
-        // Sort both lists
-        upcoming.sort((a, b) => a.startTime.seconds - b.startTime.seconds);
-        past.sort((a, b) => b.startTime.seconds - a.startTime.seconds);
+        upcoming.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+        past.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
 
         return { upcomingLessons: upcoming, pastLessons: past };
-    }, [lessons]);
+    }, [groupedLessons]);
 
-    if (userLoading || lessonsLoading) {
+    if (userLoading || lessonsLoading || isUserLoading) {
         return (
             <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -169,7 +235,7 @@ export default function DerslerimPage() {
                             {upcomingLessons.length > 0 ? (
                                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                     {upcomingLessons.map(lesson => (
-                                        <LessonCard key={lesson.id} lesson={lesson} />
+                                        <LessonCard key={lesson.id} lesson={lesson} timeZone={timeZone} />
                                     ))}
                                 </div>
                             ) : (
@@ -193,7 +259,7 @@ export default function DerslerimPage() {
                              {pastLessons.length > 0 ? (
                                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                     {pastLessons.map(lesson => (
-                                        <LessonCard key={lesson.id} lesson={lesson} />
+                                        <LessonCard key={lesson.id} lesson={lesson} timeZone={timeZone} />
                                     ))}
                                 </div>
                             ) : (
