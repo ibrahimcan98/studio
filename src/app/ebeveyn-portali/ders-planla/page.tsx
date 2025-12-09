@@ -35,7 +35,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 
 const teachers = [
-    { id: 'O2mQCONyczVkAXcgAMBSPpeIfJw2', firstName: 'Tuba Kodak' },
+    { id: 'O2mQCONyczVkAXcgAMBSPpeIfJw2', firstName: 'Tuba' },
 ];
 
 const getCourseDetailsFromPackageCode = (code: string) => {
@@ -363,8 +363,7 @@ export default function DersPlanlaPage() {
         
         const lessonDuration = courseDetails.duration;
         const requiredConsecutiveSlots = Math.ceil((lessonDuration + 5) / 5); // Add 5 min break
-        const now = new Date();
-
+        
         const fiveMinSlots = availableSlots
             .filter(slot => {
                 const zonedDate = toZonedTime(slot.startTime.seconds * 1000, selectedTimeZone);

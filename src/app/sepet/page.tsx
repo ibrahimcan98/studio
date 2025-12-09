@@ -71,11 +71,12 @@ export default function SepetPage() {
             router.push('/ebeveyn-portali/ayarlar');
             return;
         }
-        setStep('payment');
+        // Skip payment form for testing
+        handleCheckout();
     }
     
-    const handleCheckout = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleCheckout = async (e?: React.FormEvent) => {
+        e?.preventDefault();
         if (!user || !db) return;
 
         setIsProcessing(true);
@@ -115,6 +116,7 @@ export default function SepetPage() {
         } catch (error) {
             console.error("Checkout error:", error);
             toast({ variant: 'destructive', title: 'Hata', description: 'Ödeme sırasında bir sorun oluştu.' });
+        } finally {
             setIsProcessing(false);
         }
     };
@@ -237,9 +239,9 @@ export default function SepetPage() {
                                     )}
                                 </CardContent>
                                 <CardFooter>
-                                    <Button className="w-full text-lg h-12" disabled={cartItems.length === 0} onClick={handleProceedToPayment}>
-                                        <CreditCard className="mr-2" />
-                                        Ödemeye Geç
+                                    <Button className="w-full text-lg h-12" disabled={cartItems.length === 0 || isProcessing} onClick={handleProceedToPayment}>
+                                        {isProcessing ? <Loader2 className="animate-spin mr-2" /> : <CreditCard className="mr-2" />}
+                                        {isProcessing ? 'İşleniyor...' : 'Satın Al'}
                                     </Button>
                                 </CardFooter>
                             </Card>
@@ -335,5 +337,3 @@ export default function SepetPage() {
         </div>
     );
 }
-
-    
