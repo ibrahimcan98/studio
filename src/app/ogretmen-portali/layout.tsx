@@ -11,7 +11,7 @@ import { Logo } from '@/components/logo';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
-const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisii.com', 'teacher@turkcocukakademisi.com', 'tubakodak@turkcocukakademisii.com'];
+const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisii.com', 'teacher@turkcocukakademisi.com', 'tubakodak@turkcocukakademisii.com', 'test@test.com'];
 
 function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useUser();
@@ -59,6 +59,11 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
       href: '/ogretmen-portali/ogrencilerim',
       label: 'Öğrencilerim',
       icon: Users
+    },
+    {
+      href: '/ogretmen-portali/profil',
+      label: 'Profilim',
+      icon: User
     }
   ];
   
@@ -112,3 +117,5 @@ export default function Layout({
 }) {
   return <TeacherPortalLayout>{children}</TeacherPortalLayout>
 }
+
+    
