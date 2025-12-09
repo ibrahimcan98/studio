@@ -20,7 +20,6 @@ import { Textarea } from '@/components/ui/textarea';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, 'İsim alanı boş bırakılamaz.'),
-  lastName: z.string().min(1, 'Soyisim alanı boş bırakılamaz.'),
   bio: z.string().optional(),
   hobbies: z.string().optional(),
   introVideoUrl: z.string().url('Geçerli bir URL giriniz.').optional().or(z.literal('')),
@@ -49,7 +48,6 @@ export default function TeacherProfilePage() {
     resolver: zodResolver(profileSchema),
     defaultValues: {
       firstName: '',
-      lastName: '',
       bio: '',
       hobbies: '',
       introVideoUrl: '',
@@ -60,7 +58,6 @@ export default function TeacherProfilePage() {
     if (userData) {
       form.reset({
         firstName: userData.firstName || '',
-        lastName: userData.lastName || '',
         bio: userData.bio || '',
         hobbies: (userData.hobbies || []).join(', '),
         introVideoUrl: userData.introVideoUrl || '',
@@ -106,7 +103,7 @@ export default function TeacherProfilePage() {
       newProfileImageUrl = await uploadProfileImage();
     }
     
-    const displayName = `${data.firstName} ${data.lastName}`.trim();
+    const displayName = data.firstName.trim();
     if(user.displayName !== displayName) {
       await updateProfile(user, { displayName });
     }
@@ -116,7 +113,6 @@ export default function TeacherProfilePage() {
     try {
       await updateDoc(userDocRef, {
         firstName: data.firstName,
-        lastName: data.lastName,
         bio: data.bio,
         hobbies: hobbiesArray,
         introVideoUrl: data.introVideoUrl,
@@ -154,7 +150,7 @@ export default function TeacherProfilePage() {
                 <CardContent className="flex flex-col items-center gap-4">
                     <Avatar className="h-40 w-40">
                         <AvatarImage src={previewUrl || userData?.profileImageUrl} />
-                        <AvatarFallback className="text-5xl">{userData?.firstName?.charAt(0)}{userData?.lastName?.charAt(0)}</AvatarFallback>
+                        <AvatarFallback className="text-5xl">{userData?.firstName?.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
                     <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
@@ -170,17 +166,10 @@ export default function TeacherProfilePage() {
                         <CardTitle className="flex items-center gap-2"><User/> Kişisel Bilgiler</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="grid sm:grid-cols-2 gap-4">
-                            <div>
-                                <Label htmlFor="firstName">İsim</Label>
-                                <Input id="firstName" {...form.register('firstName')} />
-                                {form.formState.errors.firstName && <p className="text-destructive text-sm mt-1">{form.formState.errors.firstName.message}</p>}
-                            </div>
-                            <div>
-                                <Label htmlFor="lastName">Soyisim</Label>
-                                <Input id="lastName" {...form.register('lastName')} />
-                                {form.formState.errors.lastName && <p className="text-destructive text-sm mt-1">{form.formState.errors.lastName.message}</p>}
-                            </div>
+                        <div>
+                            <Label htmlFor="firstName">İsim</Label>
+                            <Input id="firstName" {...form.register('firstName')} />
+                            {form.formState.errors.firstName && <p className="text-destructive text-sm mt-1">{form.formState.errors.firstName.message}</p>}
                         </div>
                         <div>
                             <Label htmlFor="bio">Hakkımda (Özgeçmiş)</Label>
@@ -219,5 +208,3 @@ export default function TeacherProfilePage() {
     </div>
   );
 }
-
-    

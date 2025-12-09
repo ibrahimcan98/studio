@@ -55,10 +55,6 @@ const getCourseDetailsFromPackageCode = (code: string) => {
 
 const MAX_FREE_TRIALS = 3;
 
-// Static teacher list to avoid permission issues
-const teachers = [
-    { id: 'O2mQCONyczVkAXcgAMBSPpeIfJw2', firstName: 'Tuba', lastName: 'Kodak' },
-];
 
 function TeacherProfileDialog({ teacherId }: { teacherId: string }) {
     const { user, loading: userLoading } = useUser();
@@ -106,10 +102,10 @@ function TeacherProfileDialog({ teacherId }: { teacherId: string }) {
                          <div className="flex flex-col items-center text-center gap-4 pt-8">
                             <Avatar className="w-24 h-24">
                                 <AvatarImage src={teacherData.profileImageUrl} />
-                                <AvatarFallback className="text-3xl">{teacherData.firstName?.charAt(0)}{teacherData.lastName?.charAt(0)}</AvatarFallback>
+                                <AvatarFallback className="text-3xl">{teacherData.firstName?.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div>
-                               <DialogTitle className="text-2xl">{teacherData.firstName} {teacherData.lastName}</DialogTitle>
+                               <DialogTitle className="text-2xl">{teacherData.firstName}</DialogTitle>
                                <DialogDescription>Uzman Türkçe Öğretmeni</DialogDescription>
                             </div>
                         </div>
@@ -270,6 +266,14 @@ export default function DersPlanlaPage() {
     }, [db, user?.uid]);
 
     const { data: children, isLoading: areChildrenLoading, refetch: refetchChildren } = useCollection(childrenRef);
+
+    const teachersQuery = useMemoFirebase(() => {
+        if (!db) return null;
+        return query(collection(db, 'users'), where('role', '==', 'teacher'));
+    }, [db]);
+
+    const { data: teachers, isLoading: areTeachersLoading } = useCollection(teachersQuery);
+
 
     const selectedChildData = useMemo(() => children?.find(c => c.id === selectedChildId), [children, selectedChildId]);
     
@@ -536,7 +540,7 @@ export default function DersPlanlaPage() {
     const hasPackage = selectedChildData?.assignedPackage && selectedChildData?.remainingLessons > 0;
     const canBook = selectedChildId && selectedTeacherId && ( (bookingMode === 'free' && canTakeFreeTrial) || (bookingMode === 'paid' && hasPackage) );
     
-    if (isUserLoading || areChildrenLoading || !selectedTimeZone) {
+    if (isUserLoading || areChildrenLoading || !selectedTimeZone || areTeachersLoading) {
         return (
             <div className="flex h-screen items-center justify-center">
                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -632,10 +636,10 @@ export default function DersPlanlaPage() {
                                     <SelectValue placeholder="Öğretmen Seçin" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {teachers.map(teacher => (
+                                    {teachers && teachers.map(teacher => (
                                         <SelectItem key={teacher.id} value={teacher.id}>
                                             <div className="flex items-center justify-between w-full">
-                                                <span>{teacher.firstName} {teacher.lastName}</span>
+                                                <span>{teacher.firstName}</span>
                                             </div>
                                         </SelectItem>
                                     ))}
@@ -747,7 +751,7 @@ export default function DersPlanlaPage() {
                             </div>
                              <div className="flex items-center gap-3">
                                 <User className="w-5 h-5 text-muted-foreground"/>
-                                <p><strong>Öğretmen:</strong> {teachers.find(t => t.id === selectedSlot.teacherId)?.firstName}</p>
+                                <p><strong>Öğretmen:</strong> {teachers?.find(t => t.id === selectedSlot.teacherId)?.firstName}</p>
                             </div>
                             <div className="flex items-center gap-3">
                                 <CalendarIcon className="w-5 h-5 text-muted-foreground"/>
