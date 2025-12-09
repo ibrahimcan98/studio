@@ -209,7 +209,7 @@ function SignUpForm({
 
       toast({
         title: 'Kayıt Başarılı!',
-        description: 'Hesabınız oluşturuldu. E-posta adresinize gönderilen linke tıklayarak hesabınızı doğrulayabilirsiniz.',
+        description: 'Hesabınız oluşturuldu. Ebeveyn portalına yönlendiriliyorsunuz. Lütfen e-postanızı kontrol ederek hesabınızı doğrulayın.',
         duration: 8000,
       });
 
