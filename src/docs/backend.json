@@ -100,6 +100,7 @@
       "required": [
         "id",
         "firstName",
+        "lastName",
         "email",
         "role"
       ]
@@ -120,7 +121,6 @@
         },
         "firstName": { "type": "string", "description": "The child's first name." },
         "dateOfBirth": { "type": "string", "format": "date", "description": "The child's date of birth." },
-        "isProfileComplete": { "type": "boolean", "description": "Flag to indicate if the full profile information has been filled out." },
         "countryOfResidence": { "type": "string", "description": "The country where the child lives." },
         "level": { "type": "string", "description": "The current learning level of the child." },
         "parentTongues": { "type": "string", "description": "Languages spoken by the parents." },
@@ -187,9 +187,13 @@
             "description": "Teacher-assessed areas for improvement for the student.",
             "items": { "type": "string" }
         },
-        "recommendedCourse": {
+        "recommendedCourseId": {
             "type": "string",
-            "description": "The course recommended by the teacher for this student."
+            "description": "The ID of the course recommended by the teacher (e.g., 'konusma')."
+        },
+        "recommendedCourseName": {
+            "type": "string",
+            "description": "The name of the course recommended by the teacher (e.g., 'Konuşma Kursu')."
         },
         "feedbackHistory": {
           "type": "array",
@@ -209,7 +213,12 @@
         "id",
         "userId",
         "firstName",
-        "dateOfBirth"
+        "dateOfBirth",
+        "countryOfResidence",
+        "parentTongues",
+        "schoolLanguage",
+        "schoolLiteracyStatus",
+        "turkishLiteracyLevel"
       ]
     },
     "LessonSlot": {

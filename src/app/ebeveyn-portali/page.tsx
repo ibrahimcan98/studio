@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
-import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, Settings, Target, CreditCard, Clock, ChevronDown, MonitorPlay, FileText, CheckCircle, MessageCircle, TrendingUp, TrendingDown, Book, BrainCircuit, Globe, Smile, Meh, Frown, Languages, Milestone, Cloudy, GraduationCap, User as UserIcon, X, Lock, Infinity as InfinityIcon, Heart, Package, AlertTriangle, Calendar, History } from 'lucide-react';
+import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, Settings, Target, CreditCard, Clock, ChevronDown, MonitorPlay, FileText, CheckCircle, MessageCircle, TrendingUp, TrendingDown, Book, BrainCircuit, Globe, Smile, Meh, Frown, Languages, Milestone, Cloudy, GraduationCap, User as UserIcon, X, Lock, Infinity as InfinityIcon, Heart, Package, AlertTriangle, Calendar, History, Lightbulb } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -184,6 +184,17 @@ function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUp
                         <div className='flex justify-between items-center text-sm'>
                             <span className='text-muted-foreground'>Paket:</span>
                             <span className='text-xs text-muted-foreground italic'>Atanmamış</span>
+                        </div>
+                    )}
+                     {child.recommendedCourseId && child.recommendedCourseName && (
+                        <div className='text-left pt-2'>
+                           <p className='text-xs text-muted-foreground font-semibold flex items-center gap-1 mb-1'><Lightbulb className='w-3 h-3'/> Öğretmen Önerisi:</p>
+                           <Button variant="outline" size="sm" asChild className="w-full justify-start pl-2 border-green-500 bg-green-50 text-green-800 hover:bg-green-100 hover:text-green-900">
+                               <Link href={`/kurslar#${child.recommendedCourseId}-detay`}>
+                                {child.recommendedCourseName}
+                                <ArrowRight className="w-4 h-4 ml-auto"/>
+                               </Link>
+                           </Button>
                         </div>
                     )}
                     {!isProfileIncomplete && (
@@ -470,5 +481,3 @@ export default function EbeveynPortaliPage() {
     </div>
   );
 }
-
-    

@@ -109,7 +109,7 @@ export function ProgressPanel({ child, lessonId, isEditable = false }: { child: 
     const [languageMixing, setLanguageMixing] = useState(child.languageMixing || 'rarely');
     const [strengths, setStrengths] = useState<string[]>(child.strengths || []);
     const [weaknesses, setWeaknesses] = useState<string[]>(child.weaknesses || []);
-    const [recommendedCourse, setRecommendedCourse] = useState(child.recommendedCourse || '');
+    const [recommendedCourse, setRecommendedCourse] = useState(child.recommendedCourseId || '');
     const [newFeedback, setNewFeedback] = useState("");
     const [feedbackHistory, setFeedbackHistory] = useState<Feedback[]>(child.feedbackHistory || []);
     const [editingFeedback, setEditingFeedback] = useState<Feedback | null>(null);
@@ -122,7 +122,7 @@ export function ProgressPanel({ child, lessonId, isEditable = false }: { child: 
         setLanguageMixing(child.languageMixing || 'rarely');
         setStrengths(child.strengths || []);
         setWeaknesses(child.weaknesses || []);
-        setRecommendedCourse(child.recommendedCourse || '');
+        setRecommendedCourse(child.recommendedCourseId || '');
         setFeedbackHistory(child.feedbackHistory || []);
         setNewFeedback("");
     }, [child]);
@@ -212,6 +212,7 @@ export function ProgressPanel({ child, lessonId, isEditable = false }: { child: 
         const childDocRef = doc(db, 'users', child.userId, 'children', child.id);
         
         let updatedFeedbackHistory = [...feedbackHistory];
+        const selectedCourseData = COURSES.find(c => c.id === recommendedCourse);
 
         const updatedData: any = {
             cefrProfile,
@@ -220,7 +221,8 @@ export function ProgressPanel({ child, lessonId, isEditable = false }: { child: 
             languageMixing,
             strengths,
             weaknesses,
-            recommendedCourse,
+            recommendedCourseId: selectedCourseData?.id || null,
+            recommendedCourseName: selectedCourseData?.title || null,
             isProfileComplete: true, // Mark profile as complete after first teacher edit
         };
 
