@@ -1,3 +1,4 @@
+"use client";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserPlus, CalendarClock, Map } from 'lucide-react';
 
