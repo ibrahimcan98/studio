@@ -12,18 +12,18 @@ import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
-const currencySymbols: { [key: string]: string } = {
-    EUR: '€',
-    GBP: '£',
-    USD: '$',
-    AED: 'AED',
-    AUD: 'A$',
-    CAD: 'C$',
-    CHF: 'CHF',
-    IDR: 'Rp',
-    MYR: 'RM',
-    NOK: 'kr',
-    TRY: '₺',
+const currencyDetails: { [key: string]: { name: string; symbol: string; flag: string; } } = {
+    EUR: { name: 'Euro', symbol: '€', flag: '🇪🇺' },
+    GBP: { name: 'İngiliz Sterlini', symbol: '£', flag: '🇬🇧' },
+    USD: { name: 'ABD Doları', symbol: '$', flag: '🇺🇸' },
+    AED: { name: 'BAE Dirhemi', symbol: 'AED', flag: '🇦🇪' },
+    AUD: { name: 'Avustralya Doları', symbol: 'A$', flag: '🇦🇺' },
+    CAD: { name: 'Kanada Doları', symbol: 'C$', flag: '🇨🇦' },
+    CHF: { name: 'İsviçre Frankı', symbol: 'CHF', flag: '🇨🇭' },
+    IDR: { name: 'Endonezya Rupisi', symbol: 'Rp', flag: '🇮🇩' },
+    MYR: { name: 'Malezya Ringgiti', symbol: 'RM', flag: '🇲🇾' },
+    NOK: { name: 'Norveç Kronu', symbol: 'kr', flag: '🇳🇴' },
+    TRY: { name: 'Türk Lirası', symbol: '₺', flag: '🇹🇷' },
 };
 
 
@@ -46,7 +46,7 @@ export function KurslarClientPage({
     const { toast } = useToast();
     const { addToCart } = useCart();
     const [selectedCurrency, setSelectedCurrency] = useState('EUR');
-    const currencies = Object.keys(exchangeRates);
+    const currencies = Object.keys(exchangeRates).filter(code => currencyDetails[code]);
 
 
     const convertPrice = (priceInEur: number) => {
@@ -71,20 +71,21 @@ export function KurslarClientPage({
 
     const PriceDisplay = ({ price }: { price: number }) => {
         const convertedPrice = convertPrice(price);
+        const selectedCurrencyDetails = currencyDetails[selectedCurrency];
         return (
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <p className="text-3xl font-bold text-gray-900 my-4 cursor-help">
-                            {currencySymbols[selectedCurrency] || selectedCurrency}{convertedPrice.toFixed(2)}
+                            {selectedCurrencyDetails?.symbol || selectedCurrency}{convertedPrice.toFixed(2)}
                         </p>
                     </TooltipTrigger>
                     <TooltipContent>
                         <div className="space-y-1 text-xs">
-                             {currencies.filter(c => c !== selectedCurrency).slice(0, 5).map(currency => (
+                             {currencies.filter(c => c !== selectedCurrency && currencyDetails[c]).slice(0, 5).map(currency => (
                                 <div key={currency} className="flex justify-between gap-2">
-                                    <span>{currencySymbols[currency] || currency}:</span>
-                                    <span>{(price * exchangeRates[currency]).toFixed(2)}</span>
+                                    <span>{currencyDetails[currency]?.flag} {currency}:</span>
+                                    <span>{currencyDetails[currency]?.symbol}{(price * exchangeRates[currency]).toFixed(2)}</span>
                                 </div>
                             ))}
                         </div>
@@ -106,11 +107,16 @@ export function KurslarClientPage({
                         <SelectValue placeholder="Para Birimi Seçin" />
                     </SelectTrigger>
                     <SelectContent>
-                        {currencies.map(currency => (
-                            <SelectItem key={currency} value={currency}>
-                                {currency} ({currencySymbols[currency]})
-                            </SelectItem>
-                        ))}
+                        {currencies.map(currency => {
+                            const details = currencyDetails[currency];
+                            if (!details) return null;
+                            return (
+                                <SelectItem key={currency} value={currency}>
+                                    <span className="mr-2">{details.flag}</span>
+                                    <span>{currency} ({details.name})</span>
+                                </SelectItem>
+                            )
+                        })}
                     </SelectContent>
                 </Select>
             </div>
@@ -172,7 +178,7 @@ export function KurslarClientPage({
                                     return (
                                         <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
                                             <Badge variant="secondary" className="mb-4 bg-teal-100 text-teal-800">
-                                                ders başına {currencySymbols[selectedCurrency]}{(convertPrice(perLessonPrice)).toFixed(2)}
+                                                ders başına {currencyDetails[selectedCurrency]?.symbol}{(convertPrice(perLessonPrice)).toFixed(2)}
                                             </Badge>
                                             <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gray-100 mb-4">
                                                 <BookOpen className="w-8 h-8 text-gray-500"/>
@@ -244,7 +250,7 @@ export function KurslarClientPage({
                                     return (
                                         <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
                                             <Badge variant="secondary" className="mb-4 bg-teal-100 text-teal-800">
-                                                ders başına {currencySymbols[selectedCurrency]}{(convertPrice(perLessonPrice)).toFixed(2)}
+                                                ders başına {currencyDetails[selectedCurrency]?.symbol}{(convertPrice(perLessonPrice)).toFixed(2)}
                                             </Badge>
                                             <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gray-100 mb-4">
                                                 <BookOpen className="w-8 h-8 text-gray-500"/>
@@ -316,7 +322,7 @@ export function KurslarClientPage({
                                     return (
                                         <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
                                             <Badge variant="secondary" className="mb-4 bg-teal-100 text-teal-800">
-                                                 ders başına {currencySymbols[selectedCurrency]}{(convertPrice(perLessonPrice)).toFixed(2)}
+                                                 ders başına {currencyDetails[selectedCurrency]?.symbol}{(convertPrice(perLessonPrice)).toFixed(2)}
                                             </Badge>
                                             <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gray-100 mb-4">
                                                 <BookOpen className="w-8 h-8 text-gray-500"/>
@@ -386,7 +392,7 @@ export function KurslarClientPage({
                                     return (
                                         <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
                                             <Badge variant="secondary" className="mb-4 bg-teal-100 text-teal-800">
-                                                 ders başına {currencySymbols[selectedCurrency]}{(convertPrice(perLessonPrice)).toFixed(2)}
+                                                 ders başına {currencyDetails[selectedCurrency]?.symbol}{(convertPrice(perLessonPrice)).toFixed(2)}
                                             </Badge>
                                             <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gray-100 mb-4">
                                                 <BookOpen className="w-8 h-8 text-gray-500"/>
@@ -437,3 +443,5 @@ export function KurslarClientPage({
         </main>
     );
 }
+
+    
