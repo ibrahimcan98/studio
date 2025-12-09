@@ -9,6 +9,7 @@ import {
   updateProfile,
   signInWithEmailAndPassword,
   signOut,
+  sendEmailVerification,
 } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -78,6 +79,18 @@ function LoginForm({
          setIsSubmitting(false);
          return;
       }
+      
+      if (!user.emailVerified) {
+        toast({
+          variant: 'destructive',
+          title: 'E-posta Doğrulanmadı',
+          description: 'Lütfen giriş yapmadan önce e-postanızı doğrulayın. Spam kutunuzu kontrol etmeyi unutmayın.',
+        });
+        await signOut(auth);
+        setIsSubmitting(false);
+        return;
+      }
+
 
       toast({
         title: 'Başarılı!',
@@ -136,6 +149,7 @@ function LoginForm({
             className="w-full font-bold text-lg py-6"
             disabled={loading || isSubmitting}
           >
+            {isSubmitting ? <Loader2 className="animate-spin mr-2"/> : null}
             {isSubmitting ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
           </Button>
         </form>
@@ -162,6 +176,7 @@ function SignUpForm({
 }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const auth = useAuth();
@@ -188,6 +203,9 @@ function SignUpForm({
       const user = userCredential.user;
 
       await updateProfile(user, { displayName: name });
+      
+      // Send verification email
+      await sendEmailVerification(user);
 
       const userDocRef = doc(db, 'users', user.uid);
       await setDoc(userDocRef, {
@@ -195,16 +213,24 @@ function SignUpForm({
         firstName: name.split(' ')[0] || '',
         lastName: name.split(' ').slice(1).join(' ') || '',
         email: user.email,
+        phoneNumber: phoneNumber,
         role: 'parent',
         lives: 5,
         livesLastUpdatedAt: serverTimestamp(),
       }, { merge: true });
 
       toast({
-        title: 'Harika!',
-        description: 'Hesabınız oluşturuldu. Yönlendiriliyorsunuz...',
+        title: 'Kayıt Başarılı!',
+        description: 'Hesabınız oluşturuldu. Lütfen e-posta adresinize gönderilen linke tıklayarak hesabınızı doğrulayın.',
+        duration: 8000,
       });
-      router.push('/ebeveyn-portali');
+
+      // Sign the user out until they verify their email
+      await signOut(auth);
+
+      // Switch back to the login form
+      onLoginClick();
+
     } catch (error: any) {
       let errorMessage = 'Kayıt olurken bir hata oluştu.';
       if (error.code === 'auth/email-already-in-use') {
@@ -235,7 +261,7 @@ function SignUpForm({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSignUp} className="space-y-6">
+        <form onSubmit={handleSignUp} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">İsim Soyisim</Label>
             <Input
@@ -263,6 +289,19 @@ function SignUpForm({
             />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="phone-signup">Telefon Numarası</Label>
+            <Input
+              id="phone-signup"
+              type="tel"
+              placeholder="+90 555 123 4567"
+              required
+              autoComplete="tel"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              disabled={loading || isSubmitting}
+            />
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="password-signup">Şifre</Label>
             <Input
               id="password-signup"
@@ -280,6 +319,7 @@ function SignUpForm({
             className="w-full font-bold text-lg py-6"
             disabled={loading || isSubmitting}
           >
+            {isSubmitting ? <Loader2 className="animate-spin mr-2"/> : null}
             {isSubmitting ? 'Kayıt Olunuyor...' : 'Ücretsiz Kayıt Ol'}
           </Button>
         </form>
@@ -306,6 +346,10 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!loading && user && db) {
+        if (!user.emailVerified) {
+            // Don't redirect if email is not verified
+            return;
+        }
         const checkUserRoleAndRedirect = async () => {
             const userDocRef = doc(db, 'users', user.uid);
             const userDoc = await getDoc(userDocRef);
@@ -325,7 +369,7 @@ export default function LoginPage() {
     }
   }, [user, loading, router, db]);
 
-  if (loading || user) {
+  if (loading || (user && user.emailVerified)) {
      return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -364,3 +408,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    
