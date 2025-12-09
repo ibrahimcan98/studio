@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -175,6 +176,15 @@ export default function DersPlanlaPage() {
 
     const selectedChildData = useMemo(() => children?.find(c => c.id === selectedChildId), [children, selectedChildId]);
     
+    useEffect(() => {
+        const newlyAddedChildId = localStorage.getItem('newlyAddedChildId');
+        if (newlyAddedChildId && children?.some(c => c.id === newlyAddedChildId)) {
+            setSelectedChildId(newlyAddedChildId);
+            localStorage.removeItem('newlyAddedChildId'); // Clean up after use
+        }
+    }, [children]);
+
+
     useEffect(() => {
         if (userData?.timezone) {
             setSelectedTimeZone(userData.timezone);

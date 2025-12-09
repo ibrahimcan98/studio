@@ -85,16 +85,16 @@ export function AddChildForm({ userId, onChildAdded, child, childId, children }:
   const form = useForm<AddChildFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      firstName: '',
-      dateOfBirth: '',
-      countryOfResidence: '',
-      parentTongues: '',
-      schoolLanguage: '',
-      homeLanguageTurkishPercentage: 50,
-      turkishDifficulties: [],
-      turkishExposureIntensity: undefined,
-      schoolLiteracyStatus: undefined,
-      turkishLiteracyLevel: undefined,
+      firstName: child?.firstName || '',
+      dateOfBirth: child?.dateOfBirth ? format(parseISO(child.dateOfBirth), 'yyyy-MM-dd') : '',
+      countryOfResidence: child?.countryOfResidence || '',
+      parentTongues: child?.parentTongues || '',
+      schoolLanguage: child?.schoolLanguage || '',
+      homeLanguageTurkishPercentage: child?.homeLanguageTurkishPercentage || 50,
+      turkishDifficulties: child?.turkishDifficulties || [],
+      turkishExposureIntensity: child?.turkishExposureIntensity,
+      schoolLiteracyStatus: child?.schoolLiteracyStatus,
+      turkishLiteracyLevel: child?.turkishLiteracyLevel,
     },
   });
 
@@ -158,7 +158,7 @@ export function AddChildForm({ userId, onChildAdded, child, childId, children }:
                 description: `${values.firstName} bilgileri güncellendi.`,
             });
         } else {
-            await addDoc(collection(db, 'users', userId, 'children'), {
+            const newChildDoc = await addDoc(collection(db, 'users', userId, 'children'), {
                 ...values,
                 dateOfBirth: format(new Date(values.dateOfBirth), "yyyy-MM-dd"),
                 userId: userId,
@@ -171,6 +171,9 @@ export function AddChildForm({ userId, onChildAdded, child, childId, children }:
                 hasUsedFreeTrial: false,
                 isProfileComplete: true,
             });
+
+            // Store new child's ID for auto-selection
+            localStorage.setItem('newlyAddedChildId', newChildDoc.id);
 
             toast({
                 title: 'Başarılı!',
@@ -405,4 +408,3 @@ export function AddChildForm({ userId, onChildAdded, child, childId, children }:
     </Dialog>
   );
 }
-
