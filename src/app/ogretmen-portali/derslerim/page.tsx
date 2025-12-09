@@ -2,14 +2,14 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, doc } from 'firebase/firestore';
-import { Loader2, Calendar, History, User, BookOpen, Baby, MessageSquare, Edit, AlertCircle } from 'lucide-react';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { collection, query, where, doc, writeBatch, serverTimestamp, getDocs } from 'firebase/firestore';
+import { Loader2, Calendar, History, User, BookOpen, Baby, MessageSquare, Edit, AlertCircle, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatInTimeZone } from 'date-fns-tz';
-import { addMinutes, startOfDay } from 'date-fns';
+import { addMinutes, startOfDay, isBefore, differenceInMinutes } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { COURSES } from '@/data/courses';
 import { Badge } from '@/components/ui/badge';
@@ -20,12 +20,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
-  DialogClose,
 } from "@/components/ui/dialog"
 import { useToast } from '@/hooks/use-toast';
 import { ProgressPanel } from '@/components/shared/progress-panel';
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 const getCourseDetailsFromPackageCode = (code?: string) => {
     if (!code) return null;
@@ -45,7 +44,7 @@ const getCourseDetailsFromPackageCode = (code?: string) => {
     return { courseName: course.title, duration };
 }
 
-function LessonCard({ lesson, onOpenProgressPanel }: { lesson: any, onOpenProgressPanel: () => void }) {
+function LessonCard({ lesson, onOpenProgressPanel, onStartLesson }: { lesson: any, onOpenProgressPanel: () => void, onStartLesson: (lesson: any) => void }) {
     const db = useFirestore();
 
     const childDocRef = useMemoFirebase(() => {
@@ -65,6 +64,10 @@ function LessonCard({ lesson, onOpenProgressPanel }: { lesson: any, onOpenProgre
 
     const startTimeStr = formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr });
     const endTimeStr = formatInTimeZone(lesson.endTime, 'Europe/Istanbul', 'HH:mm', { locale: tr });
+
+    const minutesToStart = differenceInMinutes(lesson.startTime, new Date());
+    const canStart = minutesToStart <= 5 && !isPast;
+
 
     return (
         <Card className={cn('flex flex-col', needsFeedback && 'border-destructive')}>
@@ -94,17 +97,20 @@ function LessonCard({ lesson, onOpenProgressPanel }: { lesson: any, onOpenProgre
                     </Badge>
                 )}
             </CardContent>
-            {isPast && (
-                <>
-                    <Separator />
-                    <CardFooter className="flex-col items-start gap-3 pt-4">
-                        <Button onClick={onOpenProgressPanel}>
-                            <Edit className='w-4 h-4 mr-2'/> 
-                            {needsFeedback ? "Geri Bildirim Ekle" : "İlerleme Panelini Görüntüle"}
-                        </Button>
-                    </CardFooter>
-                </>
-            )}
+             <CardFooter className="flex flex-col items-start gap-3 pt-4">
+                {!isPast && (
+                    <Button onClick={() => onStartLesson(lesson)} disabled={!canStart || lesson.isLive} className='w-full'>
+                         <Video className='w-4 h-4 mr-2'/>
+                        {lesson.isLive ? 'Ders Canlı' : (canStart ? 'Dersi Başlat' : 'Ders Zamanı Gelmedi')}
+                    </Button>
+                )}
+                {isPast && (
+                    <Button onClick={onOpenProgressPanel} className='w-full'>
+                        <Edit className='w-4 h-4 mr-2'/> 
+                        {needsFeedback ? "Geri Bildirim Ekle" : "İlerleme Panelini Görüntüle"}
+                    </Button>
+                )}
+            </CardFooter>
         </Card>
     );
 }
@@ -112,8 +118,11 @@ function LessonCard({ lesson, onOpenProgressPanel }: { lesson: any, onOpenProgre
 export default function OgretmenDerslerimPage() {
     const { user, loading: userLoading } = useUser();
     const db = useFirestore();
+    const router = useRouter();
+    const { toast } = useToast();
     const [selectedLesson, setSelectedLesson] = useState<any | null>(null);
     const [isProgressPanelOpen, setIsProgressPanelOpen] = useState(false);
+    const [isStartingLesson, setIsStartingLesson] = useState(false);
 
     const lessonsQuery = useMemoFirebase(() => {
         if (!user || !db) return null;
@@ -179,6 +188,7 @@ export default function OgretmenDerslerimPage() {
                 const duration = packageDetails ? packageDetails.duration : 30;
                 const endTime = addMinutes(startTime, duration);
 
+                const liveInfoSlot = lesson.slots.find((s: any) => s.isLive);
                 const feedbackSlot = lesson.slots.find((s: any) => s.feedback);
 
                 return {
@@ -190,7 +200,9 @@ export default function OgretmenDerslerimPage() {
                     bookedBy: firstSlot.bookedBy,
                     packageCode: firstSlot.packageCode,
                     feedback: feedbackSlot ? feedbackSlot.feedback : null,
-                    slots: lesson.slots // Pass slots for feedback submission
+                    slots: lesson.slots, // Pass slots for feedback submission and starting lesson
+                    isLive: liveInfoSlot ? liveInfoSlot.isLive : false,
+                    liveLessonUrl: liveInfoSlot ? liveInfoSlot.liveLessonUrl : null,
                 };
             });
         });
@@ -223,6 +235,43 @@ export default function OgretmenDerslerimPage() {
         setIsProgressPanelOpen(true);
     };
 
+    const handleStartLesson = async (lesson: any) => {
+        if (!db || isStartingLesson) return;
+        setIsStartingLesson(true);
+
+        const liveLessonUrl = 'https://meet.google.com/yix-vono-kfe'; // Static URL for now
+        const batch = writeBatch(db);
+
+        // Update all slots related to this lesson
+        lesson.slots.forEach((slot: any) => {
+            const slotRef = doc(db, 'lesson-slots', slot.id);
+            batch.update(slotRef, {
+                isLive: true,
+                liveLessonUrl: liveLessonUrl
+            });
+        });
+
+        try {
+            await batch.commit();
+            toast({
+                title: 'Ders Başlatıldı!',
+                description: 'Derse yönlendiriliyorsunuz...',
+                className: 'bg-green-500 text-white'
+            });
+            window.open(liveLessonUrl, '_blank');
+        } catch (serverError) {
+             const permissionError = new FirestorePermissionError({
+                path: `/lesson-slots/*`,
+                operation: 'update',
+                requestResourceData: { isLive: true, liveLessonUrl },
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } finally {
+            setIsStartingLesson(false);
+        }
+    };
+
+
     if (userLoading || lessonsLoading) {
         return <div className="flex min-h-[calc(100vh-145px)] items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
     }
@@ -241,7 +290,7 @@ export default function OgretmenDerslerimPage() {
                         <CardContent>
                             {upcomingLessons.length > 0 ? (
                                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                    {upcomingLessons.map(lesson => <LessonCard key={lesson.id} lesson={lesson} onOpenProgressPanel={() => handleOpenProgressPanel(lesson)} />)}
+                                    {upcomingLessons.map(lesson => <LessonCard key={lesson.id} lesson={lesson} onOpenProgressPanel={() => handleOpenProgressPanel(lesson)} onStartLesson={handleStartLesson} />)}
                                 </div>
                             ) : <p className="text-muted-foreground">Yaklaşan dersiniz bulunmuyor.</p>}
                         </CardContent>
@@ -253,7 +302,7 @@ export default function OgretmenDerslerimPage() {
                         <CardContent>
                              {pastLessons.length > 0 ? (
                                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                    {pastLessons.map(lesson => <LessonCard key={lesson.id} lesson={lesson} onOpenProgressPanel={() => handleOpenProgressPanel(lesson)} />)}
+                                    {pastLessons.map(lesson => <LessonCard key={lesson.id} lesson={lesson} onOpenProgressPanel={() => handleOpenProgressPanel(lesson)} onStartLesson={handleStartLesson} />)}
                                 </div>
                             ) : <p className="text-muted-foreground">Henüz tamamlanmış bir dersiniz yok.</p>}
                         </CardContent>
@@ -282,3 +331,5 @@ export default function OgretmenDerslerimPage() {
         </div>
     );
 }
+
+    

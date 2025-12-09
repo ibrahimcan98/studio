@@ -1,12 +1,11 @@
 
-
 'use client';
 
 import { useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
-import { Loader2, ArrowLeft, Calendar, Clock, User, BookOpen, Baby, History, MessageSquare } from 'lucide-react';
+import { Loader2, ArrowLeft, Calendar, Clock, User, BookOpen, Baby, History, MessageSquare, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -43,6 +42,7 @@ const teachers = [
 
 function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
     const db = useFirestore();
+    const router = useRouter();
 
     const childDocRef = useMemoFirebase(() => {
         if (!db || !lesson.bookedBy || !lesson.childId) return null;
@@ -52,6 +52,12 @@ function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
     const { data: childData, isLoading: isChildLoading } = useDoc(childDocRef);
     
     const teacher = useMemo(() => teachers.find(t => t.id === lesson.teacherId), [lesson.teacherId]);
+
+    const handleJoinLesson = () => {
+        if (lesson.liveLessonUrl) {
+            window.open(lesson.liveLessonUrl, '_blank');
+        }
+    };
 
 
     if (isChildLoading) {
@@ -66,6 +72,8 @@ function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
     const startTimeStr = formatInTimeZone(lesson.startTime, timeZone, 'HH:mm', { locale: tr });
     const endTimeStr = formatInTimeZone(lesson.endTime, timeZone, 'HH:mm', { locale: tr });
     const packageDetails = getCourseDetailsFromPackageCode(lesson.packageCode);
+    const canJoin = lesson.isLive && !isPast;
+
 
     return (
         <Card className='flex flex-col bg-white'>
@@ -95,15 +103,23 @@ function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
                     <span><strong>Paket:</strong> {lesson.packageCode === 'FREE_TRIAL' ? 'Ücretsiz Deneme' : packageDetails?.courseName}</span>
                 </div>
             </CardContent>
-            {isPast && lesson.feedback && (
+            <CardFooter className='pt-4'>
+                 {!isPast && (
+                    <Button onClick={handleJoinLesson} disabled={!canJoin} className="w-full">
+                        <Video className="w-4 h-4 mr-2" />
+                        {canJoin ? 'Derse Katıl' : 'Ders Henüz Başlamadı'}
+                    </Button>
+                )}
+                {isPast && lesson.feedback && (
                 <>
-                <Separator />
-                <CardFooter className="flex-col items-start gap-2 pt-4">
+                <Separator className="my-4" />
+                <div className="flex-col items-start gap-2 w-full">
                     <h4 className="font-semibold flex items-center gap-2 text-base"><MessageSquare className='w-5 h-5 text-primary'/> Öğretmen Geri Bildirimi:</h4>
-                    <p className='text-sm text-muted-foreground'>{lesson.feedback.text}</p>
-                </CardFooter>
+                    <p className='text-sm text-muted-foreground pt-2'>{lesson.feedback.text}</p>
+                </div>
                 </>
             )}
+            </CardFooter>
         </Card>
     );
 }
@@ -188,6 +204,7 @@ export default function DerslerimPage() {
                 const duration = packageDetails ? packageDetails.duration : 30;
                 const endTime = addMinutes(startTime, duration);
 
+                const liveInfoSlot = lesson.slots.find((s: any) => s.isLive);
                 const feedbackSlot = lesson.slots.find((s: any) => s.feedback);
 
                 return {
@@ -198,7 +215,9 @@ export default function DerslerimPage() {
                     teacherId: firstSlot.teacherId,
                     bookedBy: firstSlot.bookedBy,
                     packageCode: firstSlot.packageCode,
-                    feedback: feedbackSlot ? feedbackSlot.feedback : null
+                    feedback: feedbackSlot ? feedbackSlot.feedback : null,
+                    isLive: liveInfoSlot ? liveInfoSlot.isLive : false,
+                    liveLessonUrl: liveInfoSlot ? liveInfoSlot.liveLessonUrl : null
                 };
             });
         });
@@ -306,3 +325,5 @@ export default function DerslerimPage() {
         </div>
     );
 }
+
+    

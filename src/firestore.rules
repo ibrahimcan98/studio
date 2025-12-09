@@ -40,12 +40,13 @@ service cloud.firestore {
         // Teacher can create their own slot. Admin can create any slot.
         allow create: if (isTeacher() && request.auth.uid == request.resource.data.teacherId) || isAdmin();
         // A user can book an available slot.
-        // The teacher of the slot can modify it.
-        // The user who booked can modify (e.g., cancel) it.
+        // The teacher of the slot can modify it (e.g. start lesson, cancel).
+        // The user who booked can modify it (e.g., cancel).
         // An admin can modify it.
         allow update: if (request.auth != null && resource.data.status == 'available' && request.resource.data.status == 'booked') || 
                        (request.auth.uid == resource.data.teacherId) || 
-                       (request.auth.uid == resource.data.bookedBy) || isAdmin();
+                       (resource.data.bookedBy != null && request.auth.uid == resource.data.bookedBy) || 
+                       isAdmin();
         allow delete: if request.auth.uid == resource.data.teacherId || isAdmin();
     }
     
