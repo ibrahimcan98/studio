@@ -55,6 +55,7 @@ export default function AyarlarPage() {
     const [isReauthRequired, setIsReauthRequired] = useState(false);
     const [isResendingVerification, setIsResendingVerification] = useState(false);
 
+    // emailVerified state is now managed by the useUser hook, which is always up-to-date
     const isEmailVerified = authUser?.emailVerified || false;
     
     useEffect(() => {
@@ -103,9 +104,13 @@ export default function AyarlarPage() {
             const credential = EmailAuthProvider.credential(authUser.email!, currentPassword);
             await reauthenticateWithCredential(auth.currentUser, credential);
 
-            // Re-authentication successful, now update email
+            // Re-authentication successful, now update email and send verification
             await updateEmail(auth.currentUser, email);
-            await sendEmailVerification(auth.currentUser);
+            const actionCodeSettings = {
+                url: `${window.location.origin}/auth/email-onay`,
+                handleCodeInApp: true,
+            };
+            await sendEmailVerification(auth.currentUser, actionCodeSettings);
 
             if (userDocRef) {
                 await updateDoc(userDocRef, { email });
@@ -153,7 +158,11 @@ export default function AyarlarPage() {
         if (!auth.currentUser) return;
         setIsResendingVerification(true);
         try {
-            await sendEmailVerification(auth.currentUser);
+            const actionCodeSettings = {
+                url: `${window.location.origin}/auth/email-onay`,
+                handleCodeInApp: true,
+            };
+            await sendEmailVerification(auth.currentUser, actionCodeSettings);
             toast({
                 title: 'Doğrulama E-postası Gönderildi',
                 description: 'Lütfen e-posta kutunuzu (spam dahil) kontrol edin.',

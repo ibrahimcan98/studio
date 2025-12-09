@@ -69,7 +69,11 @@ export default function RegisterPage() {
 
       await updateProfile(user, { displayName: name });
       
-      await sendEmailVerification(user);
+      const actionCodeSettings = {
+        url: `${window.location.origin}/auth/email-onay`,
+        handleCodeInApp: true,
+      };
+      await sendEmailVerification(user, actionCodeSettings);
 
       const userDocRef = doc(db, 'users', user.uid);
       await setDoc(userDocRef, {
