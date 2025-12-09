@@ -138,40 +138,44 @@ export default function DerslerimPage() {
     const groupedLessons = useMemo(() => {
         if (!lessonSlots) return [];
     
-        const lessonsMap: { [key: string]: any } = {};
+        const sessions: { [key: string]: any[] } = {};
     
-        const sortedSlots = [...lessonSlots].sort((a, b) => a.startTime.seconds - b.startTime.seconds);
-    
-        sortedSlots.forEach(slot => {
-            const packageDetails = getCourseDetailsFromPackageCode(slot.packageCode);
-            if (!packageDetails) return;
-    
+        // Group slots by a composite key of date, childId, and teacherId
+        lessonSlots.forEach(slot => {
             const startTime = slot.startTime.toDate();
-            // A session is uniquely identified by child, teacher, and the day of the lesson.
-            const sessionDay = startOfDay(startTime).toISOString();
-            const sessionKey = `${slot.childId}-${slot.teacherId}-${sessionDay}`;
+            const sessionDate = formatInTimeZone(startTime, 'UTC', 'yyyy-MM-dd');
+            const sessionKey = `${sessionDate}-${slot.childId}-${slot.teacherId}`;
     
-            if (!lessonsMap[sessionKey]) {
-                 lessonsMap[sessionKey] = {
-                    ...slot, // Use first slot as base
-                    id: slot.id,
-                    startTime: startTime, // Earliest start time
-                    slots: [slot],
-                 };
-            } else {
-                 lessonsMap[sessionKey].slots.push(slot);
-                 // No need to update startTime as they are sorted
+            if (!sessions[sessionKey]) {
+                sessions[sessionKey] = [];
             }
+            sessions[sessionKey].push(slot);
         });
     
-        // Post-process to calculate correct endTime for each grouped lesson
-        return Object.values(lessonsMap).map(lesson => {
-             const packageDetails = getCourseDetailsFromPackageCode(lesson.packageCode);
-             const duration = packageDetails ? packageDetails.duration : 30; // default duration
-             return {
-                ...lesson,
-                endTime: addMinutes(lesson.startTime, duration)
-             }
+        // Process each session to create a single lesson object
+        return Object.values(sessions).map(sessionSlots => {
+            // Sort slots within the session to find the earliest
+            sessionSlots.sort((a, b) => a.startTime.seconds - b.startTime.seconds);
+            
+            const firstSlot = sessionSlots[0];
+            const startTime = firstSlot.startTime.toDate();
+            const packageDetails = getCourseDetailsFromPackageCode(firstSlot.packageCode);
+            const duration = packageDetails ? packageDetails.duration : 30;
+            const endTime = addMinutes(startTime, duration);
+    
+            // Find if any slot in the session has feedback
+            const feedbackSlot = sessionSlots.find(s => s.feedback);
+
+            return {
+                id: firstSlot.id, // Use the ID of the first slot as a representative ID
+                startTime: startTime,
+                endTime: endTime,
+                childId: firstSlot.childId,
+                teacherId: firstSlot.teacherId,
+                bookedBy: firstSlot.bookedBy,
+                packageCode: firstSlot.packageCode,
+                feedback: feedbackSlot ? feedbackSlot.feedback : null
+            };
         });
     
     }, [lessonSlots]);
