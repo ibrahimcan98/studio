@@ -221,6 +221,7 @@ export function ProgressPanel({ child, lessonId, isEditable = false }: { child: 
             strengths,
             weaknesses,
             recommendedCourse,
+            isProfileComplete: true, // Mark profile as complete after first teacher edit
         };
 
         if (newFeedback.trim() !== "") {
@@ -310,7 +311,7 @@ export function ProgressPanel({ child, lessonId, isEditable = false }: { child: 
                         <p className="text-sm text-gray-600">ID: {child.id.substring(0, 6).toUpperCase()}</p>
                          <div className="text-sm mt-2 text-gray-500 flex flex-col items-center">
                             <span>{age} yaş</span>
-                            <span>{child.countryOfResidence.split(',')[0]}</span>
+                            <span>{child.countryOfResidence?.split(',')[0]}</span>
                             <span>Okul Dili: {child.schoolLanguage}</span>
                         </div>
                     </CardContent>
