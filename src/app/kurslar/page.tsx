@@ -1,17 +1,58 @@
+
 'use client';
-import { COURSES } from "@/data/courses";
+import { useState, useMemo } from 'react';
+import { COURSES, Course } from "@/data/courses";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { Button } from "@/components/ui/button";
 import { CourseCard } from "@/components/courses/course-card";
-import { CheckCircle, Info, BookOpen, ShoppingCart, ShieldCheck, Lock as LockIcon, Heart } from "lucide-react";
+import { CheckCircle, Info, BookOpen, ShoppingCart, ShieldCheck, Lock as LockIcon, Heart, Globe } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Footer from "@/components/layout/footer";
 import { useCart } from "@/context/cart-context";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+
+
+const exchangeRates: { [key: string]: number } = {
+    EUR: 1,
+    GBP: 0.85,
+    USD: 1.08,
+    AED: 3.96,
+    AUD: 1.63,
+    CAD: 1.48,
+    CHF: 0.97,
+    IDR: 17650,
+    MYR: 5.09,
+    NOK: 11.55,
+    TRY: 35.50,
+};
+
+const currencySymbols: { [key: string]: string } = {
+    EUR: '€',
+    GBP: '£',
+    USD: '$',
+    AED: 'AED',
+    AUD: 'A$',
+    CAD: 'C$',
+    CHF: 'CHF',
+    IDR: 'Rp',
+    MYR: 'RM',
+    NOK: 'kr',
+    TRY: '₺',
+};
+
+const currencies = Object.keys(exchangeRates);
 
 export default function KurslarPage() {
     const { toast } = useToast();
     const { addToCart } = useCart();
+    const [selectedCurrency, setSelectedCurrency] = useState('EUR');
+
+    const convertPrice = (priceInEur: number) => {
+        const rate = exchangeRates[selectedCurrency] || 1;
+        return priceInEur * rate;
+    };
     
     const baslangicKursu = COURSES.find(c => c.id === 'baslangic');
     const konusmaKursu = COURSES.find(c => c.id === 'konusma');
@@ -33,6 +74,31 @@ export default function KurslarPage() {
         });
     };
 
+    const PriceDisplay = ({ price }: { price: number }) => {
+        const convertedPrice = convertPrice(price);
+        return (
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <p className="text-3xl font-bold text-gray-900 my-4 cursor-help">
+                            {currencySymbols[selectedCurrency] || selectedCurrency}{convertedPrice.toFixed(2)}
+                        </p>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <div className="space-y-1 text-xs">
+                             {currencies.filter(c => c !== selectedCurrency).slice(0, 5).map(currency => (
+                                <div key={currency} className="flex justify-between gap-2">
+                                    <span>{currencySymbols[currency] || currency}:</span>
+                                    <span>{(price * exchangeRates[currency]).toFixed(2)}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        );
+    };
+
     return (
         <div className="bg-white min-h-screen text-[#243B53]">
             <header className="py-16 md:py-24 text-center">
@@ -45,6 +111,26 @@ export default function KurslarPage() {
                 </Button>
             </header>
             <main className="container pb-24">
+                <div className="max-w-xs mx-auto mb-16">
+                     <div className="flex items-center gap-2">
+                        <Globe className="w-5 h-5 text-muted-foreground" />
+                        <label htmlFor="currency-select" className="text-sm font-medium text-muted-foreground">Para Birimi:</label>
+                    </div>
+                    <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
+                        <SelectTrigger id="currency-select" className="mt-1">
+                            <SelectValue placeholder="Para Birimi Seçin" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {currencies.map(currency => (
+                                <SelectItem key={currency} value={currency}>
+                                    {currency} ({currencySymbols[currency]})
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
                     {COURSES.map((course) => (
                         <CourseCard key={course.id} course={course} />
@@ -101,7 +187,7 @@ export default function KurslarPage() {
                                         return (
                                             <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
                                                 <Badge variant="secondary" className="mb-4 bg-teal-100 text-teal-800">
-                                                    ders başına €{perLessonPrice.toFixed(2)}
+                                                    ders başına {currencySymbols[selectedCurrency]}{(convertPrice(perLessonPrice)).toFixed(2)}
                                                 </Badge>
                                                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gray-100 mb-4">
                                                     <BookOpen className="w-8 h-8 text-gray-500"/>
@@ -109,7 +195,7 @@ export default function KurslarPage() {
                                                 <h4 className="font-bold text-gray-800">{baslangicKursu.title}</h4>
                                                 <p className="text-sm text-gray-500">({baslangicKursu.details.duration})</p>
                                                 <p className="text-gray-600 mt-2">{pkg.lessons} derslik paket</p>
-                                                <p className="text-3xl font-bold text-gray-900 my-4">€{pkg.price.toFixed(2)}</p>
+                                                <PriceDisplay price={pkg.price} />
                                                 <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleAddToCart(baslangicKursu, pkg)}>
                                                     <ShoppingCart className="w-4 h-4 mr-2" />
                                                     Sepete Ekle
@@ -173,7 +259,7 @@ export default function KurslarPage() {
                                         return (
                                             <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
                                                 <Badge variant="secondary" className="mb-4 bg-teal-100 text-teal-800">
-                                                    ders başına €{perLessonPrice.toFixed(2)}
+                                                    ders başına {currencySymbols[selectedCurrency]}{(convertPrice(perLessonPrice)).toFixed(2)}
                                                 </Badge>
                                                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gray-100 mb-4">
                                                     <BookOpen className="w-8 h-8 text-gray-500"/>
@@ -181,7 +267,7 @@ export default function KurslarPage() {
                                                 <h4 className="font-bold text-gray-800">{konusmaKursu.title}</h4>
                                                 <p className="text-sm text-gray-500">({konusmaKursu.details.duration})</p>
                                                 <p className="text-gray-600 mt-2">{pkg.lessons} derslik paket</p>
-                                                <p className="text-3xl font-bold text-gray-900 my-4">€{pkg.price.toFixed(2)}</p>
+                                                <PriceDisplay price={pkg.price} />
                                                 <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleAddToCart(konusmaKursu, pkg)}>
                                                     <ShoppingCart className="w-4 h-4 mr-2" />
                                                     Sepete Ekle
@@ -245,7 +331,7 @@ export default function KurslarPage() {
                                         return (
                                             <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
                                                 <Badge variant="secondary" className="mb-4 bg-teal-100 text-teal-800">
-                                                    ders başına €{perLessonPrice.toFixed(2)}
+                                                     ders başına {currencySymbols[selectedCurrency]}{(convertPrice(perLessonPrice)).toFixed(2)}
                                                 </Badge>
                                                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gray-100 mb-4">
                                                     <BookOpen className="w-8 h-8 text-gray-500"/>
@@ -253,7 +339,7 @@ export default function KurslarPage() {
                                                 <h4 className="font-bold text-gray-800">{gelisimKursu.title}</h4>
                                                 <p className="text-sm text-gray-500">({gelisimKursu.details.duration})</p>
                                                 <p className="text-gray-600 mt-2">{pkg.lessons} derslik paket</p>
-                                                <p className="text-3xl font-bold text-gray-900 my-4">€{pkg.price.toFixed(2)}</p>
+                                                <PriceDisplay price={pkg.price} />
                                                 <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleAddToCart(gelisimKursu, pkg)}>
                                                     <ShoppingCart className="w-4 h-4 mr-2" />
                                                     Sepete Ekle
@@ -315,7 +401,7 @@ export default function KurslarPage() {
                                         return (
                                             <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
                                                 <Badge variant="secondary" className="mb-4 bg-teal-100 text-teal-800">
-                                                    ders başına €{perLessonPrice.toFixed(2)}
+                                                     ders başına {currencySymbols[selectedCurrency]}{(convertPrice(perLessonPrice)).toFixed(2)}
                                                 </Badge>
                                                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gray-100 mb-4">
                                                     <BookOpen className="w-8 h-8 text-gray-500"/>
@@ -323,7 +409,7 @@ export default function KurslarPage() {
                                                 <h4 className="font-bold text-gray-800">{akademikKursu.title}</h4>
                                                 <p className="text-sm text-gray-500">({akademikKursu.details.duration})</p>
                                                 <p className="text-gray-600 mt-2">{pkg.lessons} derslik paket</p>
-                                                <p className="text-3xl font-bold text-gray-900 my-4">€{pkg.price.toFixed(2)}</p>
+                                                <PriceDisplay price={pkg.price} />
                                                 <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleAddToCart(akademikKursu, pkg)}>
                                                     <ShoppingCart className="w-4 h-4 mr-2" />
                                                     Sepete Ekle
