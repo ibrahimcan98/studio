@@ -146,7 +146,6 @@ export default function DerslerimPage() {
             const duration = packageDetails.duration;
             const slotTime = slot.startTime.toDate();
             
-            // Find the 0, 20, 40 etc. or 0, 30 etc. minute mark that this slot belongs to.
             const sessionBlockMinutes = duration + 5;
             const minutesSinceMidnight = slotTime.getUTCHours() * 60 + slotTime.getUTCMinutes();
             const blockIndex = Math.floor(minutesSinceMidnight / sessionBlockMinutes);
@@ -156,8 +155,7 @@ export default function DerslerimPage() {
                 new Date(Date.UTC(slotTime.getUTCFullYear(), slotTime.getUTCMonth(), slotTime.getUTCDate(), 0, sessionStartMinutes))
             );
     
-            // A more robust key that is unique per actual lesson instance
-            const key = `${slot.childId}-${sessionStartDate.toISOString()}`;
+            const key = `${slot.childId}-${slot.teacherId}-${sessionStartDate.toISOString()}`;
     
             if (!lessonsMap[key]) {
                 lessonsMap[key] = [];
@@ -167,10 +165,10 @@ export default function DerslerimPage() {
     
         return Object.values(lessonsMap).map(group => {
             const firstSlot = group[0];
-            const lastSlot = group[group.length - 1]; // Last consecutive slot in the group
+            const packageDetails = getCourseDetailsFromPackageCode(firstSlot.packageCode);
+            const duration = packageDetails?.duration || 0;
             
-            // The real end time is 5 minutes after the start of the last slot.
-            const calculatedEndTime = addMinutes(lastSlot.startTime.toDate(), 5);
+            const calculatedEndTime = addMinutes(firstSlot.startTime.toDate(), duration);
             
             const feedback = group.find(s => s.feedback)?.feedback || null;
     
