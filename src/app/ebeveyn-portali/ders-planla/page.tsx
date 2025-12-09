@@ -175,7 +175,7 @@ function QuickAddChildDialog({ userId, onChildAdded }: { userId: string, onChild
 
         setIsSaving(true);
         try {
-            await addDoc(collection(db, 'users', userId, 'children'), {
+            const newChildDoc = await addDoc(collection(db, 'users', userId, 'children'), {
                 userId: userId,
                 firstName: firstName,
                 dateOfBirth: format(new Date(dob), "yyyy-MM-dd"),
@@ -187,6 +187,9 @@ function QuickAddChildDialog({ userId, onChildAdded }: { userId: string, onChild
                 hasUsedFreeTrial: false,
                 isProfileComplete: false, // Mark as incomplete
             });
+
+             // Store new child's ID for auto-selection
+            localStorage.setItem('newlyAddedChildId', newChildDoc.id);
 
             toast({ title: 'Başarılı!', description: `${firstName} eklendi. Şimdi deneme dersini planlayabilirsiniz.` });
             onChildAdded();
@@ -779,3 +782,5 @@ export default function DersPlanlaPage() {
         </div>
     );
 }
+
+    
