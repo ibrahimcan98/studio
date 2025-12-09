@@ -34,7 +34,7 @@ export default function OgretmenProfilimPage() {
     const { user: authUser, loading: authLoading } = useUser();
     const db = useFirestore();
     const firebaseApp = useFirebaseApp();
-    const storage = getStorage(firebaseApp);
+    const storage = useMemo(() => firebaseApp ? getStorage(firebaseApp) : null, [firebaseApp]);
     const { toast } = useToast();
 
     const userDocRef = useMemoFirebase(() => {
@@ -92,11 +92,19 @@ export default function OgretmenProfilimPage() {
     };
 
     const handleSave = async () => {
-        if (!userDocRef || !authUser) return;
+        if (!userDocRef || !authUser || !storage) {
+            toast({
+                variant: 'destructive',
+                title: 'Hata',
+                description: 'Kullanıcı bilgileri veya depolama hizmeti bulunamadı.',
+            });
+            return;
+        }
+        
         setIsSaving(true);
     
         try {
-            const dataToUpdate: any = {
+            const dataToUpdate: { [key: string]: any } = {
                 firstName,
                 lastName,
                 bio,
@@ -115,23 +123,26 @@ export default function OgretmenProfilimPage() {
                 dataToUpdate.introVideoUrl = await getDownloadURL(videoRef);
             }
 
-            if (Object.keys(dataToUpdate).length > 0 || profileImageFile || introVideoFile) {
-                 await updateDoc(userDocRef, dataToUpdate);
-            }
+            await updateDoc(userDocRef, dataToUpdate);
             
             toast({
                 title: 'Başarılı!',
                 description: 'Profil bilgileriniz güncellendi.',
             });
+
+            // Refetch data to show updated info from DB
+            await refetchUserData(); 
+            // Clear local file state after successful upload and refetch
+            setProfileImageFile(null); 
+            setIntroVideoFile(null);
             setIsEditing(false);
-            refetchUserData();
 
         } catch (error) {
             console.error("Profile update error: ", error);
             toast({
                 variant: 'destructive',
                 title: 'Hata',
-                description: 'Profil güncellenirken bir hata oluştu.',
+                description: 'Profil güncellenirken bir hata oluştu. Lütfen konsolu kontrol edin.',
             });
         } finally {
             setIsSaving(false);
@@ -147,8 +158,14 @@ export default function OgretmenProfilimPage() {
         );
     }
     
-    const displayImageUrl = profileImageFile ? URL.createObjectURL(profileImageFile) : userData?.profileImageUrl;
-    const displayVideoUrl = introVideoFile ? URL.createObjectURL(introVideoFile) : userData?.introVideoUrl;
+    // Show local file preview if available, otherwise show DB URL
+    const displayImageUrl = profileImageFile 
+        ? URL.createObjectURL(profileImageFile) 
+        : userData?.profileImageUrl;
+    
+    const displayVideoUrl = introVideoFile 
+        ? URL.createObjectURL(introVideoFile) 
+        : userData?.introVideoUrl;
 
 
     return (
@@ -211,7 +228,7 @@ export default function OgretmenProfilimPage() {
                         <>
                             <p className="text-muted-foreground text-sm">{userData?.bio || "Henüz bir bio eklenmemiş."}</p>
                             <div className="flex flex-wrap justify-center gap-2 mt-4">
-                                {(userData?.hobbies || []).map((hobby: string) => <Badge key={hobby} variant="outline">{hobby}</Badge>)}
+                                {(Array.isArray(userData?.hobbies) ? userData.hobbies : []).map((hobby: string) => <Badge key={hobby} variant="outline">{hobby}</Badge>)}
                             </div>
                         </>
                     )}
@@ -229,7 +246,7 @@ export default function OgretmenProfilimPage() {
                             <CardDescription>Kendinizi ve öğretim tarzınızı tanıtan kısa bir video yükleyin.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {userData?.introVideoUrl || introVideoFile ? (
+                            {displayVideoUrl ? (
                                  <video 
                                     key={displayVideoUrl} 
                                     controls 
