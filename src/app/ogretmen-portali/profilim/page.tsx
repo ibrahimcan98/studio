@@ -146,6 +146,10 @@ export default function OgretmenProfilimPage() {
             </div>
         );
     }
+    
+    const displayImageUrl = profileImageFile ? URL.createObjectURL(profileImageFile) : userData?.profileImageUrl;
+    const displayVideoUrl = introVideoFile ? URL.createObjectURL(introVideoFile) : userData?.introVideoUrl;
+
 
     return (
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6">
@@ -173,7 +177,7 @@ export default function OgretmenProfilimPage() {
                 <Card className="lg:col-span-1 flex flex-col items-center p-6 text-center shadow-lg">
                     <div className='relative'>
                          <Avatar className="w-32 h-32 text-4xl mb-4 border-4 border-primary/20">
-                            <AvatarImage src={profileImageFile ? URL.createObjectURL(profileImageFile) : userData?.profileImageUrl} alt={userData?.firstName} />
+                            <AvatarImage src={displayImageUrl} alt={userData?.firstName} />
                             <AvatarFallback className="bg-muted">{userData?.firstName?.charAt(0)}</AvatarFallback>
                         </Avatar>
                         {isEditing && (
@@ -225,13 +229,13 @@ export default function OgretmenProfilimPage() {
                             <CardDescription>Kendinizi ve öğretim tarzınızı tanıtan kısa bir video yükleyin.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {userData?.introVideoUrl || introVideoFile ? (
+                            {displayVideoUrl ? (
                                  <video 
-                                    key={introVideoFile ? URL.createObjectURL(introVideoFile) : userData?.introVideoUrl} 
+                                    key={displayVideoUrl} 
                                     controls 
                                     className="w-full rounded-lg aspect-video"
                                 >
-                                    <source src={introVideoFile ? URL.createObjectURL(introVideoFile) : userData?.introVideoUrl} type="video/mp4" />
+                                    <source src={displayVideoUrl} type="video/mp4" />
                                     Tarayıcınız video etiketini desteklemiyor.
                                 </video>
                             ): (
