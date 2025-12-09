@@ -6,7 +6,6 @@ import Link from "next/link";
 import { COURSES } from "@/data/courses";
 
 export default function Pricing() {
-  const coursesToShow = COURSES.filter(course => course.id !== 'akademik');
 
   return (
     <section id="pricing" className="py-20 md:py-28 bg-muted/40">
@@ -17,8 +16,8 @@ export default function Pricing() {
             İhtiyacınıza uygun paketi seçin, istediğiniz zaman başlayın.
           </p>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-          {coursesToShow.map((course) => {
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-start">
+          {COURSES.map((course) => {
             const fourLessonPackage = course.pricing.packages.find(p => p.lessons === 4);
             if (!fourLessonPackage) return null;
 
