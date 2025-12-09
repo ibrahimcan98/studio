@@ -78,7 +78,7 @@ function PremiumBadge() {
   );
 }
 
-function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, isPremium: boolean, currentLives: number, onDelete: (id: string, assignedPackage: string | null, remainingLessons: number) => void }) {
+function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUpdated }: { child: any, isPremium: boolean, currentLives: number, onDelete: (id: string, assignedPackage: string | null, remainingLessons: number) => void, userId: string, onChildUpdated: () => void }) {
     const { toast } = useToast();
     const router = useRouter();
     
@@ -86,125 +86,126 @@ function ChildCard({ child, isPremium, currentLives, onDelete }: { child: any, i
     const hasActivePackage = child.assignedPackage && child.remainingLessons > 0;
     const isProfileIncomplete = child.isProfileComplete === false;
 
-    const handleIncompleteClick = (e: React.MouseEvent) => {
-        if (isProfileIncomplete) {
-            e.preventDefault();
-            e.stopPropagation();
-            toast({
-                variant: 'destructive',
-                title: 'Profil Eksik',
-                description: 'Bu çocuğun profil bilgileri eksik. Lütfen düzenleyerek tüm bilgileri doldurun.',
-            });
-        }
-    }
-    
+    const IncompleteProfileWrapper = ({ children }: { children: React.ReactNode }) => {
+        if (!isProfileIncomplete) return <>{children}</>;
+
+        return (
+            <AddChildForm userId={userId} onChildAdded={onChildUpdated} child={child} childId={child.id}>
+                 {children}
+            </AddChildForm>
+        );
+    };
+
     return (
-        <Card 
-            className={cn(
-                "relative flex flex-col items-center text-center p-6 space-y-4 hover:shadow-lg transition-shadow group rounded-2xl",
-                isProfileIncomplete && "border-destructive border-2"
-            )}
-            onClick={handleIncompleteClick}
-        >
-             {isProfileIncomplete && (
+        <IncompleteProfileWrapper>
+            <Card 
+                className={cn(
+                    "relative flex flex-col items-center text-center p-6 space-y-4 hover:shadow-lg transition-shadow group rounded-2xl cursor-pointer",
+                    isProfileIncomplete && "border-destructive border-2"
+                )}
+            >
+                {isProfileIncomplete && (
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="absolute top-2 right-2 text-destructive cursor-help">
+                                    <AlertTriangle className="w-5 h-5"/>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Bu profil eksik. Düzenlemek için karta tıklayın.</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                )}
+
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="absolute top-2 left-2 h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive" onClick={e => e.stopPropagation()}>
+                            <X className="w-4 h-4"/>
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                            "{child.firstName}" isimli çocuğu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve çocuğa ait planlanmış tüm dersler iptal edilecektir.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>İptal</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => onDelete(child.id, child.assignedPackage, child.remainingLessons)} className="bg-destructive hover:bg-destructive/90">
+                                Sil
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+                <Avatar className="h-20 w-20 text-3xl">
+                    <AvatarFallback className="bg-primary/20 text-primary font-bold">{child.firstName?.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                    <p className="font-semibold text-lg">{child.firstName}</p>
+                </div>
+                <div className='w-full space-y-3 pt-4'>
+                <div className='flex justify-between items-center text-sm'>
+                    <span className='text-muted-foreground'>Rozetler:</span>
+                    <div className='flex items-center gap-1 font-bold bg-primary/10 text-primary px-2 py-1 rounded-md'>
+                    <span>{child.rozet || 0}</span>
+                    <Award className='w-4 h-4'/>
+                    </div>
+                </div>
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <div className="absolute top-2 right-2 text-destructive cursor-help">
-                                <AlertTriangle className="w-5 h-5"/>
+                            <div className='flex justify-between items-center text-sm cursor-help'>
+                                <span className='text-muted-foreground'>Kalan Can:</span>
+                                <div className='flex items-center gap-1 font-bold bg-red-100 text-red-600 px-2 py-1 rounded-md'>
+                                {isPremium ? <InfinityIcon className='w-4 h-4' /> : <span>{displayLives}/{MAX_LIVES}</span>}
+                                <Heart className='w-4 h-4 fill-current'/>
+                                </div>
                             </div>
                         </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Bu profil eksik. Atama yapabilmek için lütfen düzenleyip kaydedin.</p>
-                        </TooltipContent>
+                        {!isPremium && <TooltipContent>Canlar 1 saat 30 dakikada bir yenilenir.</TooltipContent>}
                     </Tooltip>
                 </TooltipProvider>
-            )}
-
-            <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="absolute top-2 left-2 h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive">
-                        <X className="w-4 h-4"/>
-                    </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                           "{child.firstName}" isimli çocuğu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve çocuğa ait planlanmış tüm dersler iptal edilecektir.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>İptal</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => onDelete(child.id, child.assignedPackage, child.remainingLessons)} className="bg-destructive hover:bg-destructive/90">
-                            Sil
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-            <Avatar className="h-20 w-20 text-3xl">
-                <AvatarFallback className="bg-primary/20 text-primary font-bold">{child.firstName?.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-                <p className="font-semibold text-lg">{child.firstName}</p>
-            </div>
-            <div className='w-full space-y-3 pt-4'>
-              <div className='flex justify-between items-center text-sm'>
-                <span className='text-muted-foreground'>Rozetler:</span>
-                <div className='flex items-center gap-1 font-bold bg-primary/10 text-primary px-2 py-1 rounded-md'>
-                  <span>{child.rozet || 0}</span>
-                  <Award className='w-4 h-4'/>
-                </div>
-              </div>
-               <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <div className='flex justify-between items-center text-sm cursor-help'>
-                            <span className='text-muted-foreground'>Kalan Can:</span>
-                            <div className='flex items-center gap-1 font-bold bg-red-100 text-red-600 px-2 py-1 rounded-md'>
-                            {isPremium ? <InfinityIcon className='w-4 h-4' /> : <span>{displayLives}/{MAX_LIVES}</span>}
-                            <Heart className='w-4 h-4 fill-current'/>
-                            </div>
-                        </div>
-                    </TooltipTrigger>
-                    {!isPremium && <TooltipContent>Canlar 1 saat 30 dakikada bir yenilenir.</TooltipContent>}
-                </Tooltip>
-               </TooltipProvider>
-                <div className='flex justify-between items-center text-sm'>
-                    <span className='text-muted-foreground'>Kalan Ders:</span>
-                    <div className='flex items-center gap-1 font-bold bg-blue-100 text-blue-600 px-2 py-1 rounded-md'>
-                        <span>{child.remainingLessons || 0}</span>
-                        <BookOpen className='w-4 h-4'/>
-                    </div>
-                </div>
-                {hasActivePackage ? (
-                     <div className='flex justify-between items-center text-sm'>
-                        <span className='text-muted-foreground'>Paket:</span>
-                        <Badge variant="secondary">{child.assignedPackageName}</Badge>
-                    </div>
-                ) : (
                     <div className='flex justify-between items-center text-sm'>
-                        <span className='text-muted-foreground'>Paket:</span>
-                        <span className='text-xs text-muted-foreground italic'>Atanmamış</span>
+                        <span className='text-muted-foreground'>Kalan Ders:</span>
+                        <div className='flex items-center gap-1 font-bold bg-blue-100 text-blue-600 px-2 py-1 rounded-md'>
+                            <span>{child.remainingLessons || 0}</span>
+                            <BookOpen className='w-4 h-4'/>
+                        </div>
                     </div>
-                )}
-                 <Dialog>
-                    <DialogTrigger asChild>
-                        <Button variant="outline" className="w-full mt-4">
-                            <FileText className="mr-2 h-4 w-4" />
-                            İlerleme Paneli
-                        </Button>
-                    </DialogTrigger>
-                     <DialogContent className="max-w-5xl h-[90vh]">
-                       <DialogHeader>
-                            <DialogTitle className="text-3xl font-bold font-headline">{child.firstName} İlerleme Paneli</DialogTitle>
-                            <DialogDescription>Çocuğunuzun Türkçe öğrenme yolculuğuna dair kapsamlı analiz ve raporlar.</DialogDescription>
-                        </DialogHeader>
-                        <ProgressPanel child={child} isEditable={false} />
-                    </DialogContent>
-                </Dialog>
-            </div>
-       </Card>
+                    {hasActivePackage ? (
+                        <div className='flex justify-between items-center text-sm'>
+                            <span className='text-muted-foreground'>Paket:</span>
+                            <Badge variant="secondary">{child.assignedPackageName}</Badge>
+                        </div>
+                    ) : (
+                        <div className='flex justify-between items-center text-sm'>
+                            <span className='text-muted-foreground'>Paket:</span>
+                            <span className='text-xs text-muted-foreground italic'>Atanmamış</span>
+                        </div>
+                    )}
+                    {!isProfileIncomplete && (
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" className="w-full mt-4" onClick={(e) => e.stopPropagation()}>
+                                    <FileText className="mr-2 h-4 w-4" />
+                                    İlerleme Paneli
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-5xl h-[90vh]">
+                            <DialogHeader>
+                                    <DialogTitle className="text-3xl font-bold font-headline">{child.firstName} İlerleme Paneli</DialogTitle>
+                                    <DialogDescription>Çocuğunuzun Türkçe öğrenme yolculuğuna dair kapsamlı analiz ve raporlar.</DialogDescription>
+                                </DialogHeader>
+                                <ProgressPanel child={child} isEditable={false} />
+                            </DialogContent>
+                        </Dialog>
+                    )}
+                </div>
+        </Card>
+      </IncompleteProfileWrapper>
     );
 }
 
@@ -414,7 +415,13 @@ export default function EbeveynPortaliPage() {
                     <h3 className="text-xl font-bold">Çocuklarım</h3>
                     <p className="text-muted-foreground">Çocuklarınızı ekleyin ve ilerlemelerini takip edin.</p>
                 </div>
-                 {user && <AddChildForm userId={user.uid} onChildAdded={refetchChildren} />}
+                 {user && (
+                    <AddChildForm userId={user.uid} onChildAdded={refetchChildren}>
+                        <Button className="bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold">
+                            <Plus className="mr-2 h-4 w-4" /> Çocuk Ekle
+                        </Button>
+                    </AddChildForm>
+                )}
             </div>
             <Card>
                 <CardContent className="p-6">
@@ -427,6 +434,8 @@ export default function EbeveynPortaliPage() {
                                     isPremium={isPremium}
                                     currentLives={currentLives}
                                     onDelete={handleDeleteChild}
+                                    userId={user.uid}
+                                    onChildUpdated={refetchChildren}
                                />
                             ))}
                         </div>

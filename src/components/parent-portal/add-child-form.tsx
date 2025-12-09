@@ -2,12 +2,12 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useFirestore } from '@/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -33,7 +33,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
 import { Loader2, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 const difficulties = [
     { id: "kelime", label: "Kelime" },
@@ -65,11 +65,22 @@ const formSchema = z.object({
 
 type AddChildFormValues = z.infer<typeof formSchema>;
 
-export function AddChildForm({ userId, onChildAdded }: { userId: string, onChildAdded: () => void }) {
+interface AddChildFormProps {
+    userId: string;
+    onChildAdded: () => void;
+    child?: any; // For edit mode
+    childId?: string; // For edit mode
+    children?: React.ReactNode;
+}
+
+
+export function AddChildForm({ userId, onChildAdded, child, childId, children }: AddChildFormProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const db = useFirestore();
   const { toast } = useToast();
+  
+  const isEditMode = !!child;
 
   const form = useForm<AddChildFormValues>({
     resolver: zodResolver(formSchema),
@@ -83,6 +94,19 @@ export function AddChildForm({ userId, onChildAdded }: { userId: string, onChild
       turkishDifficulties: [],
     },
   });
+
+  useEffect(() => {
+    if (isEditMode && child) {
+        form.reset({
+            ...child,
+            dateOfBirth: child.dateOfBirth ? format(parseISO(child.dateOfBirth), 'yyyy-MM-dd') : '',
+            homeLanguageTurkishPercentage: child.homeLanguageTurkishPercentage || 50
+        });
+    } else {
+        form.reset();
+    }
+  }, [isEditMode, child, form, open]);
+
 
   const onInvalid = (errors: any) => {
     const firstErrorKey = Object.keys(errors)[0];
@@ -99,32 +123,46 @@ export function AddChildForm({ userId, onChildAdded }: { userId: string, onChild
     setIsSubmitting(true);
 
     try {
-      await addDoc(collection(db, 'users', userId, 'children'), {
-        ...values,
-        dateOfBirth: format(new Date(values.dateOfBirth), "yyyy-MM-dd"),
-        userId: userId,
-        rozet: 0,
-        completedTopics: [],
-        remainingLessons: 0,
-        assignedPackage: null,
-        assignedPackageName: null,
-        level: 'beginner', // Default level
-        hasUsedFreeTrial: false,
-      });
+        if(isEditMode && childId) {
+            const childDocRef = doc(db, 'users', userId, 'children', childId);
+            await updateDoc(childDocRef, {
+                ...values,
+                dateOfBirth: format(new Date(values.dateOfBirth), "yyyy-MM-dd"),
+                isProfileComplete: true,
+            });
+             toast({
+                title: 'Başarılı!',
+                description: `${values.firstName} bilgileri güncellendi.`,
+            });
+        } else {
+            await addDoc(collection(db, 'users', userId, 'children'), {
+                ...values,
+                dateOfBirth: format(new Date(values.dateOfBirth), "yyyy-MM-dd"),
+                userId: userId,
+                rozet: 0,
+                completedTopics: [],
+                remainingLessons: 0,
+                assignedPackage: null,
+                assignedPackageName: null,
+                level: 'beginner',
+                hasUsedFreeTrial: false,
+                isProfileComplete: true,
+            });
 
-      toast({
-        title: 'Başarılı!',
-        description: `${values.firstName} eklendi.`,
-      });
+            toast({
+                title: 'Başarılı!',
+                description: `${values.firstName} eklendi.`,
+            });
+        }
       onChildAdded(); // Refetch children list in parent component
       setOpen(false);
       form.reset();
     } catch (error) {
-      console.error('Error adding child:', error);
+      console.error('Error saving child:', error);
       toast({
         variant: 'destructive',
         title: 'Hata',
-        description: 'Çocuk eklenirken bir sorun oluştu.',
+        description: 'Çocuk bilgileri kaydedilirken bir sorun oluştu.',
       });
     } finally {
       setIsSubmitting(false);
@@ -133,16 +171,12 @@ export function AddChildForm({ userId, onChildAdded }: { userId: string, onChild
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold">
-          <Plus className="mr-2 h-4 w-4" /> Çocuk Ekle
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Yeni Çocuk Ekle</DialogTitle>
+          <DialogTitle>{isEditMode ? 'Çocuk Bilgilerini Düzenle' : 'Yeni Çocuk Ekle'}</DialogTitle>
           <DialogDescription>
-            Çocuğunuzun Türkçe öğrenme yolculuğu için gerekli bilgileri girin.
+            {isEditMode ? 'Çocuğunuzun bilgilerini güncelleyebilirsiniz.' : 'Çocuğunuzun Türkçe öğrenme yolculuğu için gerekli bilgileri girin.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -198,7 +232,7 @@ export function AddChildForm({ userId, onChildAdded }: { userId: string, onChild
                         <FormLabel>Evde Türkçe Kullanım Oranı: {field.value}%</FormLabel>
                         <FormControl>
                             <Slider
-                                defaultValue={[50]}
+                                value={[field.value]}
                                 max={100}
                                 step={10}
                                 onValueChange={(value) => field.onChange(value[0])}
@@ -211,7 +245,7 @@ export function AddChildForm({ userId, onChildAdded }: { userId: string, onChild
                     <FormItem className="space-y-3">
                         <FormLabel>Türkçe Maruziyet Yoğunluğu</FormLabel>
                         <FormControl>
-                            <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex items-center space-x-4">
+                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center space-x-4">
                                 <FormItem className="flex items-center space-x-2 space-y-0">
                                     <FormControl><RadioGroupItem value="low" /></FormControl>
                                     <FormLabel className="font-normal">Düşük</FormLabel>
@@ -238,7 +272,7 @@ export function AddChildForm({ userId, onChildAdded }: { userId: string, onChild
                     <FormItem className="space-y-3">
                         <FormLabel>Öğrencinin okuldaki okuma/yazma durumu</FormLabel>
                         <FormControl>
-                            <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-1">
+                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-col space-y-1">
                                 <FormItem className="flex items-center space-x-3 space-y-0">
                                     <FormControl><RadioGroupItem value="not-yet" /></FormControl>
                                     <FormLabel className="font-normal">Henüz öğrenmedi</FormLabel>
@@ -260,7 +294,7 @@ export function AddChildForm({ userId, onChildAdded }: { userId: string, onChild
                     <FormItem className="space-y-3">
                         <FormLabel>Çocuğun Türkçe okuma/yazma düzeyi</FormLabel>
                         <FormControl>
-                            <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-1">
+                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-col space-y-1">
                                 <FormItem className="flex items-center space-x-3 space-y-0">
                                     <FormControl><RadioGroupItem value="none" /></FormControl>
                                     <FormLabel className="font-normal">Hiç yok</FormLabel>
@@ -339,7 +373,7 @@ export function AddChildForm({ userId, onChildAdded }: { userId: string, onChild
             <DialogFooter>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Çocuğu Kaydet
+                 {isEditMode ? 'Değişiklikleri Kaydet' : 'Çocuğu Kaydet'}
               </Button>
             </DialogFooter>
           </form>
