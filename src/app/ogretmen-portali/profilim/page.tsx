@@ -115,15 +115,15 @@ export default function OgretmenProfilimPage() {
                 dataToUpdate.introVideoUrl = await getDownloadURL(videoRef);
             }
 
-            await updateDoc(userDocRef, dataToUpdate);
+            if (Object.keys(dataToUpdate).length > 0 || profileImageFile || introVideoFile) {
+                 await updateDoc(userDocRef, dataToUpdate);
+            }
             
             toast({
                 title: 'Başarılı!',
                 description: 'Profil bilgileriniz güncellendi.',
             });
             setIsEditing(false);
-            setProfileImageFile(null);
-            setIntroVideoFile(null);
             refetchUserData();
 
         } catch (error) {
@@ -229,13 +229,13 @@ export default function OgretmenProfilimPage() {
                             <CardDescription>Kendinizi ve öğretim tarzınızı tanıtan kısa bir video yükleyin.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {displayVideoUrl ? (
+                            {userData?.introVideoUrl || introVideoFile ? (
                                  <video 
                                     key={displayVideoUrl} 
                                     controls 
                                     className="w-full rounded-lg aspect-video"
                                 >
-                                    <source src={displayVideoUrl} type="video/mp4" />
+                                    <source src={displayVideoUrl} type={introVideoFile?.type || 'video/mp4'} />
                                     Tarayıcınız video etiketini desteklemiyor.
                                 </video>
                             ): (
