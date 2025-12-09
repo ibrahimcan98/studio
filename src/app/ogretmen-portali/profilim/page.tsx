@@ -213,10 +213,9 @@ export default function OgretmenProfilimPage() {
 
                 {/* Stats and Media */}
                 <div className="lg:col-span-2 space-y-8">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                        <StatCard title="Verilen Ders" value={lessons?.length || 0} icon={BookOpen} />
                        <StatCard title="Toplam Öğrenci" value={uniqueStudents} icon={Users} />
-                       <StatCard title="Favori Konu" value="Hayvanlar" icon={Heart} />
                     </div>
                     <Card className="shadow-lg">
                         <CardHeader>
