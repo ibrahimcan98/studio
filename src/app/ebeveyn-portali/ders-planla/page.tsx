@@ -1,15 +1,14 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, updateDoc, where, query, increment, Timestamp, writeBatch, getDocs, getDoc, arrayRemove, addDoc } from 'firebase/firestore';
-import { Loader2, ArrowLeft, Info, BookOpen, User, Calendar as CalendarIcon, Package, Clock, Plus } from 'lucide-react';
+import { Loader2, ArrowLeft, Info, BookOpen, User, Calendar as CalendarIcon, Package, Clock, Plus, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { toZonedTime, formatInTimeZone, format } from 'date-fns-tz';
@@ -32,6 +31,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
 
 
 const getCourseDetailsFromPackageCode = (code: string) => {
@@ -58,7 +59,83 @@ const MAX_FREE_TRIALS = 3;
 const teachers = [
     { id: 'MpzNp3vXBnQiSnjN21fVyWxl1m33', firstName: 'Tuba', lastName: 'Kodak' },
     { id: 'xlIxFqIdb9einW0BgpIFUM0RrXa2', firstName: 'İbrahim', lastName: 'Can' },
+    { id: 'O2mQCONyczVkAXcgAMBSPpeIfJw2', firstName: 'Tuğba', lastName: 'Öz' },
 ];
+
+function TeacherProfileDialog({ teacherId }: { teacherId: string }) {
+    const db = useFirestore();
+    const teacherDocRef = useMemoFirebase(() => {
+        if (!db || !teacherId) return null;
+        return doc(db, 'users', teacherId);
+    }, [db, teacherId]);
+
+    const { data: teacherData, isLoading } = useDoc(teacherDocRef);
+    
+    return (
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="h-auto px-2 py-1 text-xs">
+                    <Eye className="w-3 h-3 mr-1" />
+                    Profili Görüntüle
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    {isLoading || !teacherData ? (
+                        <div className="flex items-center gap-4">
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <DialogTitle>Yükleniyor...</DialogTitle>
+                        </div>
+                    ) : (
+                         <div className="flex flex-col items-center text-center gap-4 pt-8">
+                            <Avatar className="w-24 h-24">
+                                <AvatarImage src={teacherData.profileImageUrl} />
+                                <AvatarFallback className="text-3xl">{teacherData.firstName?.charAt(0)}{teacherData.lastName?.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                               <DialogTitle className="text-2xl">{teacherData.firstName} {teacherData.lastName}</DialogTitle>
+                               <DialogDescription>Uzman Türkçe Öğretmeni</DialogDescription>
+                            </div>
+                        </div>
+                    )}
+                </DialogHeader>
+                {!isLoading && teacherData && (
+                    <div className="py-4 space-y-4 max-h-[50vh] overflow-y-auto">
+                        {teacherData.bio && (
+                            <div>
+                                <h4 className="font-semibold mb-2">Hakkında</h4>
+                                <p className="text-sm text-muted-foreground">{teacherData.bio}</p>
+                            </div>
+                        )}
+                        {teacherData.hobbies && teacherData.hobbies.length > 0 && (
+                            <div>
+                                <h4 className="font-semibold mb-2">Hobiler</h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {teacherData.hobbies.map((hobby: string) => <Badge key={hobby} variant="secondary">{hobby}</Badge>)}
+                                </div>
+                            </div>
+                        )}
+                        {teacherData.introVideoUrl && (
+                             <div>
+                                <h4 className="font-semibold mb-2">Tanıtım Videosu</h4>
+                                <div className="aspect-video rounded-lg overflow-hidden">
+                                     <iframe
+                                        className="w-full h-full"
+                                        src={`https://www.youtube.com/embed/${teacherData.introVideoUrl.split('v=')[1]}`}
+                                        title="YouTube video player"
+                                        frameBorder="0"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowFullScreen>
+                                    </iframe>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </DialogContent>
+        </Dialog>
+    )
+}
 
 function QuickAddChildDialog({ userId, onChildAdded }: { userId: string, onChildAdded: () => void }) {
     const [open, setOpen] = useState(false);
@@ -536,10 +613,15 @@ export default function DersPlanlaPage() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {teachers.map(teacher => (
-                                        <SelectItem key={teacher.id} value={teacher.id}>{teacher.firstName} {teacher.lastName}</SelectItem>
+                                        <SelectItem key={teacher.id} value={teacher.id}>
+                                            <div className="flex items-center justify-between w-full">
+                                                <span>{teacher.firstName} {teacher.lastName}</span>
+                                            </div>
+                                        </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
+                            {selectedTeacherId && <TeacherProfileDialog teacherId={selectedTeacherId} />}
                         </div>
                         
                          {/* Step 3 */}

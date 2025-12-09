@@ -38,6 +38,7 @@ const getCourseDetailsFromPackageCode = (code?: string) => {
 const teachers = [
     { id: 'MpzNp3vXBnQiSnjN21fVyWxl1m33', firstName: 'Tuba', lastName: 'Kodak' },
     { id: 'xlIxFqIdb9einW0BgpIFUM0RrXa2', firstName: 'İbrahim', lastName: 'Can' },
+    { id: 'O2mQCONyczVkAXcgAMBSPpeIfJw2', firstName: 'Tuğba', lastName: 'Öz' },
 ];
 
 
@@ -143,6 +144,7 @@ export default function DerslerimPage() {
         // Group slots by a composite key of date, childId, and teacherId
         lessonSlots.forEach(slot => {
             const startTime = slot.startTime.toDate();
+            // Use UTC date string to avoid timezone issues with grouping keys
             const sessionDate = formatInTimeZone(startTime, 'UTC', 'yyyy-MM-dd');
             const sessionKey = `${sessionDate}-${slot.childId}-${slot.teacherId}`;
     
@@ -171,7 +173,7 @@ export default function DerslerimPage() {
                 startTime: startTime,
                 endTime: endTime,
                 childId: firstSlot.childId,
-                teacherId: firstSlot.teacherId,
+                teacherId: firstSlot.teacherId, // Keep the teacherId
                 bookedBy: firstSlot.bookedBy,
                 packageCode: firstSlot.packageCode,
                 feedback: feedbackSlot ? feedbackSlot.feedback : null
@@ -281,3 +283,5 @@ export default function DerslerimPage() {
         </div>
     );
 }
+
+    

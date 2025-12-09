@@ -20,7 +20,7 @@ import { Loader2 } from 'lucide-react';
 import { TeacherIllustration } from '@/components/illustrations/teacher-illustration';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
-const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisii.com', 'tubakodak@turkcocukakademisii.com'];
+const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisii.com', 'tubakodak@turkcocukakademisii.com', 'test@test.com'];
 
 export default function OgretmenGirisPage() {
   const [email, setEmail] = useState('');
@@ -45,33 +45,44 @@ export default function OgretmenGirisPage() {
     const userDocRef = doc(db, 'users', user.uid);
     const userDoc = await getDoc(userDocRef);
 
-    const isSpecialTeacher = user.email === 'ibrahimcan@turkcocukakademisii.com';
+    let profileData: { [key: string]: any } = {};
+
+    switch (user.email) {
+        case 'ibrahimcan@turkcocukakademisii.com':
+            profileData = { firstName: 'İbrahim', lastName: 'Can' };
+            break;
+        case 'tubakodak@turkcocukakademisii.com':
+            profileData = { firstName: 'Tuba', lastName: 'Kodak' };
+            break;
+        case 'test@test.com':
+            profileData = { firstName: 'Tuğba', lastName: 'Öz' };
+            break;
+    }
+
 
     if (!userDoc.exists()) {
       await setDoc(userDocRef, {
         id: user.uid,
         email: user.email,
-        firstName: isSpecialTeacher ? 'İbrahim' : '',
-        lastName: isSpecialTeacher ? 'Can' : '',
         role: 'teacher',
         createdAt: serverTimestamp(),
+        ...profileData
       });
     } else {
       const currentData = userDoc.data();
-      if (
-        currentData?.role !== 'teacher' ||
-        (isSpecialTeacher &&
-          (currentData?.firstName !== 'İbrahim' || currentData?.lastName !== 'Can'))
-      ) {
-        await setDoc(
-          userDocRef,
-          {
-            role: 'teacher',
-            firstName: isSpecialTeacher ? 'İbrahim' : currentData?.firstName,
-            lastName: isSpecialTeacher ? 'Can' : currentData?.lastName,
-          },
-          { merge: true }
-        );
+      const updates: { [key: string]: any } = {};
+      if (currentData?.role !== 'teacher') {
+        updates.role = 'teacher';
+      }
+      if (profileData.firstName && currentData?.firstName !== profileData.firstName) {
+        updates.firstName = profileData.firstName;
+      }
+       if (profileData.lastName && currentData?.lastName !== profileData.lastName) {
+        updates.lastName = profileData.lastName;
+      }
+
+      if (Object.keys(updates).length > 0) {
+          await setDoc(userDocRef, updates, { merge: true });
       }
     }
   };
@@ -186,3 +197,5 @@ export default function OgretmenGirisPage() {
     </div>
   );
 }
+
+    
