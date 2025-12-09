@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatInTimeZone } from 'date-fns-tz';
-import { addMinutes } from 'date-fns';
+import { addMinutes, startOfDay } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { COURSES } from '@/data/courses';
 import { Badge } from '@/components/ui/badge';
@@ -131,40 +131,42 @@ export default function OgretmenDerslerimPage() {
 
     const groupedLessons = useMemo(() => {
         if (!lessonSlots) return [];
-
+    
         const lessonsMap: { [key: string]: any } = {};
-
+    
         const sortedSlots = [...lessonSlots].sort((a, b) => a.startTime.seconds - b.startTime.seconds);
-
+    
         sortedSlots.forEach(slot => {
             const packageDetails = getCourseDetailsFromPackageCode(slot.packageCode);
             if (!packageDetails) return;
-
+    
             const startTime = slot.startTime.toDate();
-             // Create a unique key for each lesson session
-            const sessionKey = `${slot.childId}-${slot.teacherId}-${startTime.toISOString().slice(0, 16)}`;
-
+            const sessionDay = startOfDay(startTime).toISOString();
+            const sessionKey = `${slot.childId}-${slot.teacherId}-${sessionDay}`;
+    
             if (!lessonsMap[sessionKey]) {
-                 lessonsMap[sessionKey] = {
+                lessonsMap[sessionKey] = {
                     ...slot,
                     id: slot.id,
                     startTime: startTime,
-                    endTime: addMinutes(startTime, packageDetails.duration),
                     slots: [slot],
                     feedback: slot.feedback || null,
-                 };
+                };
             } else {
-                 lessonsMap[sessionKey].slots.push(slot);
-                 if (slot.feedback) {
-                     lessonsMap[sessionKey].feedback = slot.feedback;
-                 }
+                lessonsMap[sessionKey].slots.push(slot);
+                if (slot.feedback) {
+                    lessonsMap[sessionKey].feedback = slot.feedback;
+                }
             }
         });
         
-         return Object.values(lessonsMap).filter(lesson => {
+        return Object.values(lessonsMap).map(lesson => {
             const packageDetails = getCourseDetailsFromPackageCode(lesson.packageCode);
-            if (!packageDetails) return false;
-            return lesson.slots.length > 0;
+            const duration = packageDetails ? packageDetails.duration : 30;
+            return {
+                ...lesson,
+                endTime: addMinutes(lesson.startTime, duration)
+            };
         });
     }, [lessonSlots]);
 

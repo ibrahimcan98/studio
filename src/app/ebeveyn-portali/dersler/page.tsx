@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatInTimeZone } from 'date-fns-tz';
 import { tr } from 'date-fns/locale';
-import { addMinutes } from 'date-fns';
+import { addMinutes, startOfDay } from 'date-fns';
 import { COURSES } from '@/data/courses';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -134,43 +134,43 @@ export default function DerslerimPage() {
 
     const groupedLessons = useMemo(() => {
         if (!lessonSlots) return [];
-
+    
         const lessonsMap: { [key: string]: any } = {};
-
+    
         const sortedSlots = [...lessonSlots].sort((a, b) => a.startTime.seconds - b.startTime.seconds);
-
+    
         sortedSlots.forEach(slot => {
             const packageDetails = getCourseDetailsFromPackageCode(slot.packageCode);
             if (!packageDetails) return;
-
+    
             const startTime = slot.startTime.toDate();
-            // Create a unique key for each lesson session (child + teacher + start time)
-            const sessionKey = `${slot.childId}-${slot.teacherId}-${startTime.toISOString().slice(0, 16)}`;
-
+            // A session is uniquely identified by child, teacher, and the day of the lesson.
+            const sessionDay = startOfDay(startTime).toISOString();
+            const sessionKey = `${slot.childId}-${slot.teacherId}-${sessionDay}`;
+    
             if (!lessonsMap[sessionKey]) {
                  lessonsMap[sessionKey] = {
-                    ...slot,
+                    ...slot, // Use first slot as base
                     id: slot.id,
-                    startTime: startTime,
-                    // Calculate end time based on duration from the first slot
-                    endTime: addMinutes(startTime, packageDetails.duration), 
-                    slots: [slot], // Store all slots belonging to this lesson
+                    startTime: startTime, // Earliest start time
+                    slots: [slot],
                  };
+            } else {
+                 lessonsMap[sessionKey].slots.push(slot);
+                 // No need to update startTime as they are sorted
             }
         });
-
-        // Filter out partial lessons by ensuring a lesson has enough slots for its duration
-        return Object.values(lessonsMap).filter(lesson => {
-            const packageDetails = getCourseDetailsFromPackageCode(lesson.packageCode);
-            if (!packageDetails) return false;
-            
-            const expectedSlots = Math.ceil(packageDetails.duration / 5);
-            // This is a simplified check. A more robust check would verify consecutive slots.
-            // For now, we assume if the first slot is there, the lesson is valid.
-            // The main goal is to prevent showing one lesson as multiple cards.
-            return lesson.slots.length > 0;
+    
+        // Post-process to calculate correct endTime for each grouped lesson
+        return Object.values(lessonsMap).map(lesson => {
+             const packageDetails = getCourseDetailsFromPackageCode(lesson.packageCode);
+             const duration = packageDetails ? packageDetails.duration : 30; // default duration
+             return {
+                ...lesson,
+                endTime: addMinutes(lesson.startTime, duration)
+             }
         });
-
+    
     }, [lessonSlots]);
     
     
