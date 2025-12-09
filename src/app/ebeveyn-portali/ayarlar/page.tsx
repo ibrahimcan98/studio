@@ -4,9 +4,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useFirebase, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
-import { getAuth, updateProfile, updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
+import { getAuth, updateProfile, updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider, sendEmailVerification } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Loader2, ArrowLeft, User, Image as ImageIcon, KeyRound, Mail } from 'lucide-react';
+import { Loader2, ArrowLeft, User, Image as ImageIcon, KeyRound, Mail, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,6 +25,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { cn } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function AyarlarPage() {
     const { user: authUser, loading: authLoading } = useUser();
@@ -51,6 +53,9 @@ export default function AyarlarPage() {
     const [isSavingProfile, setIsSavingProfile] = useState(false);
     const [isSavingSecurity, setIsSavingSecurity] = useState(false);
     const [isReauthRequired, setIsReauthRequired] = useState(false);
+    const [isResendingVerification, setIsResendingVerification] = useState(false);
+
+    const isEmailVerified = authUser?.emailVerified || false;
     
     useEffect(() => {
         if (userData) {
@@ -100,11 +105,13 @@ export default function AyarlarPage() {
 
             // Re-authentication successful, now update email
             await updateEmail(auth.currentUser, email);
+            await sendEmailVerification(auth.currentUser);
+
             if (userDocRef) {
                 await updateDoc(userDocRef, { email });
             }
 
-            toast({ title: 'Başarılı!', description: 'E-posta adresiniz güncellendi.' });
+            toast({ title: 'Başarılı!', description: 'E-posta adresiniz güncellendi. Lütfen yeni adresinizi doğrulayın.' });
             setIsReauthRequired(false);
             setCurrentPassword('');
         } catch (error) {
@@ -142,6 +149,26 @@ export default function AyarlarPage() {
         }
     }
 
+    const handleResendVerification = async () => {
+        if (!auth.currentUser) return;
+        setIsResendingVerification(true);
+        try {
+            await sendEmailVerification(auth.currentUser);
+            toast({
+                title: 'Doğrulama E-postası Gönderildi',
+                description: 'Lütfen e-posta kutunuzu (spam dahil) kontrol edin.',
+            });
+        } catch (error) {
+             toast({
+                variant: 'destructive',
+                title: 'Hata',
+                description: 'E-posta gönderilirken bir sorun oluştu.',
+            });
+        } finally {
+            setIsResendingVerification(false);
+        }
+    };
+
     if (authLoading || userDataLoading) {
         return (
             <div className="flex h-screen items-center justify-center">
@@ -161,6 +188,19 @@ export default function AyarlarPage() {
                     <p className="text-muted-foreground">Profil bilgilerinizi ve hesap ayarlarınızı yönetin.</p>
                 </div>
             </div>
+
+            {!isEmailVerified && (
+                 <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Hesabınızı Doğrulayın</AlertTitle>
+                    <AlertDescription>
+                        Ders paketi satın alabilmek için lütfen e-posta adresinizi doğrulayın. 
+                        <Button variant="link" onClick={handleResendVerification} disabled={isResendingVerification} className="p-1 h-auto ml-1">
+                            {isResendingVerification ? "Gönderiliyor..." : "Doğrulama e-postasını tekrar gönder"}
+                        </Button>
+                    </AlertDescription>
+                </Alert>
+            )}
 
             <div className="grid gap-8">
                 <div className="flex flex-col gap-8">
@@ -182,7 +222,13 @@ export default function AyarlarPage() {
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="email">E-posta</Label>
-                                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                                <Input 
+                                    id="email" 
+                                    type="email" 
+                                    value={email} 
+                                    onChange={(e) => setEmail(e.target.value)} 
+                                    className={cn(!isEmailVerified && "border-destructive focus-visible:ring-destructive")}
+                                />
                             </div>
                         </CardContent>
                         <CardFooter>

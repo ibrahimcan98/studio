@@ -79,18 +79,6 @@ function LoginForm({
          setIsSubmitting(false);
          return;
       }
-      
-      if (!user.emailVerified) {
-        toast({
-          variant: 'destructive',
-          title: 'E-posta Doğrulanmadı',
-          description: 'Lütfen giriş yapmadan önce e-postanızı doğrulayın. Spam kutunuzu kontrol etmeyi unutmayın.',
-        });
-        await signOut(auth);
-        setIsSubmitting(false);
-        return;
-      }
-
 
       toast({
         title: 'Başarılı!',
@@ -221,15 +209,13 @@ function SignUpForm({
 
       toast({
         title: 'Kayıt Başarılı!',
-        description: 'Hesabınız oluşturuldu. Lütfen e-posta adresinize gönderilen linke tıklayarak hesabınızı doğrulayın.',
+        description: 'Hesabınız oluşturuldu. E-posta adresinize gönderilen linke tıklayarak hesabınızı doğrulayabilirsiniz.',
         duration: 8000,
       });
 
-      // Sign the user out until they verify their email
-      await signOut(auth);
+      // User is now automatically logged in, redirect them to the portal
+      router.push('/ebeveyn-portali');
 
-      // Switch back to the login form
-      onLoginClick();
 
     } catch (error: any) {
       let errorMessage = 'Kayıt olurken bir hata oluştu.';
@@ -288,7 +274,7 @@ function SignUpForm({
               disabled={loading || isSubmitting}
             />
           </div>
-          <div className="space-y-2">
+           <div className="space-y-2">
             <Label htmlFor="phone-signup">Telefon Numarası</Label>
             <Input
               id="phone-signup"
@@ -346,10 +332,6 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!loading && user && db) {
-        if (!user.emailVerified) {
-            // Don't redirect if email is not verified
-            return;
-        }
         const checkUserRoleAndRedirect = async () => {
             const userDocRef = doc(db, 'users', user.uid);
             const userDoc = await getDoc(userDocRef);
@@ -369,7 +351,7 @@ export default function LoginPage() {
     }
   }, [user, loading, router, db]);
 
-  if (loading || (user && user.emailVerified)) {
+  if (loading || user) {
      return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -408,5 +390,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    

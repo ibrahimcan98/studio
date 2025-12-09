@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trash2, ShoppingCart, ArrowLeft, CreditCard, Tag, Minus, Plus, XCircle, Loader2 } from "lucide-react";
+import { Trash2, ShoppingCart, ArrowLeft, CreditCard, Tag, Minus, Plus, XCircle, Loader2, AlertCircle } from "lucide-react";
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/context/cart-context';
@@ -59,6 +59,16 @@ export default function SepetPage() {
         if (!user) {
             toast({ variant: 'destructive', title: 'Hata', description: 'Ödeme yapmak için giriş yapmalısınız.' });
             router.push('/login');
+            return;
+        }
+        if (!user.emailVerified) {
+            toast({
+                variant: 'destructive',
+                title: 'E-posta Doğrulanmadı',
+                description: 'Satın alma işlemine devam etmek için lütfen e-posta adresinizi doğrulayın. Profil ayarlarından doğrulama e-postasını tekrar gönderebilirsiniz.',
+                duration: 8000
+            });
+            router.push('/ebeveyn-portali/ayarlar');
             return;
         }
         setStep('payment');
