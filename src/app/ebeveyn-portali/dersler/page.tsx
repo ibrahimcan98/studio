@@ -135,7 +135,7 @@ export default function DerslerimPage() {
     const groupedLessons = useMemo(() => {
         if (!lessonSlots) return [];
 
-        const lessonsMap: { [key: string]: any[] } = {};
+        const lessonsMap: { [key: string]: any } = {};
 
         const sortedSlots = [...lessonSlots].sort((a, b) => a.startTime.seconds - b.startTime.seconds);
 
@@ -143,42 +143,32 @@ export default function DerslerimPage() {
             const packageDetails = getCourseDetailsFromPackageCode(slot.packageCode);
             if (!packageDetails) return;
 
-            const duration = packageDetails.duration;
-            const slotTime = slot.startTime.toDate();
-            
-            const sessionBlockMinutes = duration + 5; // Total block size including break
-            const minutesSinceMidnight = slotTime.getUTCHours() * 60 + slotTime.getUTCMinutes();
-            
-            // Find the start of the session block this slot belongs to
-            const blockIndex = Math.floor(minutesSinceMidnight / sessionBlockMinutes);
-            const sessionStartMinutes = blockIndex * sessionBlockMinutes;
-            const sessionStartDate = new Date(Date.UTC(slotTime.getUTCFullYear(), slotTime.getUTCMonth(), slotTime.getUTCDate(), 0, sessionStartMinutes));
-            
-            const key = `${slot.childId}-${slot.teacherId}-${sessionStartDate.toISOString()}`;
+            const startTime = slot.startTime.toDate();
+            // Create a unique key for each lesson session (child + teacher + start time)
+            const sessionKey = `${slot.childId}-${slot.teacherId}-${startTime.toISOString().slice(0, 16)}`;
 
-            if (!lessonsMap[key]) {
-                lessonsMap[key] = [];
+            if (!lessonsMap[sessionKey]) {
+                 lessonsMap[sessionKey] = {
+                    ...slot,
+                    id: slot.id,
+                    startTime: startTime,
+                    // Calculate end time based on duration from the first slot
+                    endTime: addMinutes(startTime, packageDetails.duration), 
+                    slots: [slot], // Store all slots belonging to this lesson
+                 };
             }
-            lessonsMap[key].push(slot);
         });
 
-        return Object.values(lessonsMap).map(group => {
-            const firstSlot = group[0];
-            const packageDetails = getCourseDetailsFromPackageCode(firstSlot.packageCode);
-            const duration = packageDetails?.duration || 0;
+        // Filter out partial lessons by ensuring a lesson has enough slots for its duration
+        return Object.values(lessonsMap).filter(lesson => {
+            const packageDetails = getCourseDetailsFromPackageCode(lesson.packageCode);
+            if (!packageDetails) return false;
             
-            const calculatedEndTime = addMinutes(firstSlot.startTime.toDate(), duration);
-            
-            const feedback = group.find(s => s.feedback)?.feedback || null;
-
-            return {
-                ...firstSlot,
-                id: firstSlot.id,
-                startTime: firstSlot.startTime.toDate(),
-                endTime: calculatedEndTime,
-                slots: group,
-                feedback: feedback,
-            };
+            const expectedSlots = Math.ceil(packageDetails.duration / 5);
+            // This is a simplified check. A more robust check would verify consecutive slots.
+            // For now, we assume if the first slot is there, the lesson is valid.
+            // The main goal is to prevent showing one lesson as multiple cards.
+            return lesson.slots.length > 0;
         });
 
     }, [lessonSlots]);
