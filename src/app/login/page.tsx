@@ -164,6 +164,7 @@ function SignUpForm({
 }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [areaCode, setAreaCode] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -201,7 +202,7 @@ function SignUpForm({
         firstName: name.split(' ')[0] || '',
         lastName: name.split(' ').slice(1).join(' ') || '',
         email: user.email,
-        phoneNumber: phoneNumber,
+        phoneNumber: `${areaCode}${phoneNumber}`,
         role: 'parent',
         lives: 5,
         livesLastUpdatedAt: serverTimestamp(),
@@ -276,16 +277,30 @@ function SignUpForm({
           </div>
            <div className="space-y-2">
             <Label htmlFor="phone-signup">Telefon Numarası</Label>
-            <Input
-              id="phone-signup"
-              type="tel"
-              placeholder="+90 555 123 4567"
-              required
-              autoComplete="tel"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              disabled={loading || isSubmitting}
-            />
+            <div className="grid grid-cols-3 gap-2">
+                <Input
+                id="area-code"
+                type="tel"
+                placeholder="Örn: +90"
+                required
+                autoComplete="tel-country-code"
+                value={areaCode}
+                onChange={(e) => setAreaCode(e.target.value)}
+                disabled={loading || isSubmitting}
+                className="col-span-1"
+                />
+                <Input
+                id="phone-signup"
+                type="tel"
+                placeholder="555 123 4567"
+                required
+                autoComplete="tel-national"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                disabled={loading || isSubmitting}
+                className="col-span-2"
+                />
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="password-signup">Şifre</Label>
