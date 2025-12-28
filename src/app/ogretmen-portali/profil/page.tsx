@@ -8,13 +8,14 @@ import { updateProfile } from 'firebase/auth';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, User, Sprout } from 'lucide-react';
+import { Loader2, User, Sprout, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
+import Link from 'next/link';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, 'İsim alanı boş bırakılamaz.'),
@@ -92,6 +93,8 @@ export default function TeacherProfilePage() {
     );
   }
 
+  const introVideoUrl = form.watch('introVideoUrl');
+
   return (
     <div className="flex-1 space-y-8 p-4 md:p-8 pt-6">
       <div>
@@ -133,6 +136,17 @@ export default function TeacherProfilePage() {
                         <Input id="introVideoUrl" {...form.register('introVideoUrl')} placeholder="https://youtube.com/watch?v=..." />
                         {form.formState.errors.introVideoUrl && <p className="text-destructive text-sm mt-1">{form.formState.errors.introVideoUrl.message}</p>}
                     </div>
+                     {introVideoUrl && (
+                        <div>
+                            <h4 className="font-semibold mb-2 text-sm">Video Önizlemesi</h4>
+                             <Button asChild variant="outline">
+                                <Link href={introVideoUrl} target="_blank" rel="noopener noreferrer">
+                                    <Video className="w-4 h-4 mr-2" />
+                                    Videoyu Yeni Sekmede Aç
+                                </Link>
+                            </Button>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>
