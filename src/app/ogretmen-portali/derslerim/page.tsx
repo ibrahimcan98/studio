@@ -66,7 +66,8 @@ function LessonCard({ lesson, onOpenProgressPanel, onStartLesson }: { lesson: an
     const endTimeStr = formatInTimeZone(lesson.endTime, 'Europe/Istanbul', 'HH:mm', { locale: tr });
 
     const minutesToStart = differenceInMinutes(lesson.startTime, new Date());
-    const canStart = minutesToStart <= 5 && !isPast;
+    // TESTING: Allow starting the lesson anytime if it's not in the past.
+    const canStart = !isPast;
 
 
     return (
@@ -331,5 +332,3 @@ export default function OgretmenDerslerimPage() {
         </div>
     );
 }
-
-    
