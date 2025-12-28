@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
@@ -128,7 +128,16 @@ function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
 export default function DerslerimPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const initialTab = searchParams.get('tab') === 'past' ? 'past' : 'upcoming';
+    const [activeTab, setActiveTab] = useState('upcoming');
+
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab === 'past') {
+            setActiveTab('past');
+        } else {
+            setActiveTab('upcoming');
+        }
+    }, [searchParams]);
 
     const { user, loading: userLoading } = useUser();
     const db = useFirestore();
@@ -265,7 +274,7 @@ export default function DerslerimPage() {
                 </div>
             </div>
 
-            <Tabs defaultValue={initialTab} className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="upcoming">
                         <Calendar className="mr-2 h-4 w-4" />
