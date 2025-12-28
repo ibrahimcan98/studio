@@ -113,9 +113,9 @@ function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
             </CardContent>
             <CardFooter className='pt-4'>
                  {!isPast && (
-                    <Button onClick={handleJoinLesson} className="w-full">
+                    <Button onClick={handleJoinLesson} disabled={!canJoin} className="w-full">
                         <Video className="w-4 h-4 mr-2" />
-                        {canJoin ? 'Derse Katıl' : 'Derse Katılmayı Dene'}
+                        {canJoin ? 'Derse Katıl' : 'Ders Zamanı Gelmedi'}
                     </Button>
                 )}
                 {isPast && lesson.feedback && (
