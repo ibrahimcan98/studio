@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
@@ -335,8 +336,8 @@ function DerslerimPageContent() {
 
 export default function DerslerimPage() {
     return (
-        <React.Suspense fallback={<div className="flex min-h-[calc(100vh-80px)] items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>}>
+        <Suspense fallback={<div className="flex min-h-[calc(100vh-80px)] items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>}>
             <DerslerimPageContent />
-        </React.Suspense>
+        </Suspense>
     );
 }
