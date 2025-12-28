@@ -15,6 +15,7 @@ import { addMinutes, startOfDay } from 'date-fns';
 import { COURSES } from '@/data/courses';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
 
 const getCourseDetailsFromPackageCode = (code?: string) => {
     if (!code) return null;
@@ -43,6 +44,7 @@ const teachers = [
 function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
     const db = useFirestore();
     const router = useRouter();
+    const { toast } = useToast();
 
     const childDocRef = useMemoFirebase(() => {
         if (!db || !lesson.bookedBy || !lesson.childId) return null;
@@ -54,8 +56,14 @@ function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
     const teacher = useMemo(() => teachers.find(t => t.id === lesson.teacherId), [lesson.teacherId]);
 
     const handleJoinLesson = () => {
-        if (lesson.liveLessonUrl) {
+        if (lesson.isLive && lesson.liveLessonUrl) {
             window.open(lesson.liveLessonUrl, '_blank');
+        } else {
+             toast({
+                variant: "destructive",
+                title: "Ders Henüz Başlamadı",
+                description: "Öğretmeniniz dersi başlattığında bu buton sizi derse yönlendirecektir.",
+            });
         }
     };
 
@@ -105,9 +113,9 @@ function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
             </CardContent>
             <CardFooter className='pt-4'>
                  {!isPast && (
-                    <Button onClick={handleJoinLesson} disabled={!canJoin} className="w-full">
+                    <Button onClick={handleJoinLesson} className="w-full">
                         <Video className="w-4 h-4 mr-2" />
-                        {canJoin ? 'Derse Katıl' : 'Ders Henüz Başlamadı'}
+                        {canJoin ? 'Derse Katıl' : 'Derse Katılmayı Dene'}
                     </Button>
                 )}
                 {isPast && lesson.feedback && (
