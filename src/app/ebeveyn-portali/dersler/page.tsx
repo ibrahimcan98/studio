@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -124,8 +123,7 @@ function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
     );
 }
 
-
-export default function DerslerimPage() {
+function DerslerimPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [activeTab, setActiveTab] = useState('upcoming');
@@ -335,4 +333,10 @@ export default function DerslerimPage() {
     );
 }
 
-    
+export default function DerslerimPage() {
+    return (
+        <React.Suspense fallback={<div className="flex min-h-[calc(100vh-80px)] items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>}>
+            <DerslerimPageContent />
+        </React.Suspense>
+    );
+}
