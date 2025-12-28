@@ -1,4 +1,9 @@
 rules_version = '2';
+
+function isTeacher(userId) {
+  return get(/databases/(default)/documents/users/$(userId)).data.role == 'teacher';
+}
+
 service firebase.storage {
   match /b/{bucket}/o {
     // Allow public read access to all files
@@ -6,9 +11,10 @@ service firebase.storage {
       allow read;
     }
 
-    // Allow authenticated teachers to write ONLY to their own profile folder
+    // Allow authenticated teachers to write ONLY to their own profile folder.
+    // This rule now verifies that the user has the 'teacher' role in Firestore.
     match /teacher-profiles/{userId}/{allPaths=**} {
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId && isTeacher(userId);
     }
   }
 }
