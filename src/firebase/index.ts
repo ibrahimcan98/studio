@@ -43,6 +43,9 @@ export function getSdks(firebaseApp: FirebaseApp) {
   };
 }
 
+export const db = getFirestore(getApps().length ? getApps()[0] : initializeApp(firebaseConfig));
+
+
 export function setDocumentNonBlocking(docRef: DocumentReference, data: any, options?: SetOptions) {
   setDoc(docRef, data, options || {}).catch(error => {
     errorEmitter.emit(
