@@ -1,20 +1,19 @@
 
 'use client';
 
-import { useState, useMemo, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useMemo, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, query, where, doc, writeBatch, getDocs } from 'firebase/firestore';
-import { Loader2, Calendar, History, User, BookOpen, Baby, MessageSquare, Edit, AlertCircle, Video } from 'lucide-react';
+import { collection, query, where, doc, writeBatch } from 'firebase/firestore';
+import { Loader2, Calendar, History, BookOpen, Baby, Edit, AlertCircle, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatInTimeZone } from 'date-fns-tz';
 import { tr } from 'date-fns/locale';
-import { addMinutes, startOfDay, isBefore, differenceInMinutes } from 'date-fns';
+import { addMinutes, startOfDay } from 'date-fns';
 import { COURSES } from '@/data/courses';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
   DialogContent,
@@ -36,7 +35,7 @@ const getCourseDetailsFromPackageCode = (code?: string) => {
     
     if (!course) return null;
 
-    let duration = 30; // Default
+    let duration = 30;
     if (course.id === 'baslangic') duration = 20;
     if (course.id === 'konusma') duration = 30;
     if (course.id === 'gelisim' || course.id === 'akademik') duration = 45;
@@ -59,54 +58,50 @@ function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any
     }
 
     const packageDetails = getCourseDetailsFromPackageCode(lesson.packageCode);
-    const isPast = new Date() > lesson.endTime;
+    const isPast = new Date() >= lesson.endTime;
     const needsFeedback = isPast && !lesson.feedback;
 
     const startTimeStr = formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr });
     const endTimeStr = formatInTimeZone(lesson.endTime, 'Europe/Istanbul', 'HH:mm', { locale: tr });
 
-    const canStart = !isPast;
-
-
     return (
-        <Card className={cn('flex flex-col', needsFeedback && 'border-destructive')}>
+        <Card className={cn('flex flex-col h-full', needsFeedback && 'border-destructive ring-1 ring-destructive')}>
             <CardHeader>
-                <CardTitle className="flex justify-between items-start">
-                    <span className="text-lg">{packageDetails?.courseName || 'Ders'}</span>
-                    <Badge variant={isPast ? "outline" : "default"}>{isPast ? 'Tamamlandı' : 'Yaklaşıyor'}</Badge>
+                <CardTitle className="flex justify-between items-start gap-2">
+                    <span className="text-lg font-bold leading-tight">{packageDetails?.courseName || 'Ders'}</span>
+                    <Badge variant={isPast ? "secondary" : "default"} className="shrink-0">{isPast ? 'Tamamlandı' : 'Sıradaki'}</Badge>
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="font-medium">
                     {formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'dd MMMM yyyy, ', { locale: tr })}
-                    {startTimeStr} - {endTimeStr} (TSİ)
+                    {startTimeStr} - {endTimeStr}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-sm flex-grow">
                 <div className="flex items-center gap-2">
-                    <Baby className="w-4 h-4 text-muted-foreground" />
-                    <span><strong>Öğrenci:</strong> {childData?.firstName}</span>
+                    <Baby className="w-4 h-4 text-primary" />
+                    <span><strong>Öğrenci:</strong> {childData?.firstName || 'Yükleniyor...'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <BookOpen className="w-4 h-4 text-muted-foreground" />
-                    <span><strong>Paket:</strong> {lesson.packageCode === 'FREE_TRIAL' ? 'Ücretsiz Deneme' : lesson.packageCode}</span>
+                    <span><strong>Paket:</strong> {lesson.packageCode === 'FREE_TRIAL' ? 'Deneme Dersi' : lesson.packageCode}</span>
                 </div>
                 {needsFeedback && (
-                     <Badge variant="destructive" className="mt-2">
-                        <AlertCircle className="w-3 h-3 mr-1" />
-                        Geri Bildirim Bekliyor
-                    </Badge>
+                     <div className="bg-destructive/10 text-destructive text-xs font-bold px-2 py-1 rounded flex items-center gap-1 mt-2">
+                        <AlertCircle className="w-3 h-3" />
+                        GERİ BİLDİRİM BEKLİYOR
+                    </div>
                 )}
             </CardContent>
-             <CardFooter className="flex flex-col items-start gap-3 pt-4">
-                {!isPast && (
-                    <Button onClick={() => onJoinLesson(lesson)} disabled={!canStart} className='w-full'>
+             <CardFooter className="flex flex-col items-start gap-2 pt-4">
+                {!isPast ? (
+                    <Button onClick={() => onJoinLesson(lesson)} className='w-full'>
                          <Video className='w-4 h-4 mr-2'/>
-                        {lesson.isLive ? 'Derse Gir' : (canStart ? 'Dersi Başlat' : 'Ders Zamanı Gelmedi')}
+                        {lesson.isLive ? 'Derse Gir' : 'Dersi Başlat'}
                     </Button>
-                )}
-                {isPast && (
-                    <Button onClick={onOpenProgressPanel} className='w-full'>
+                ) : (
+                    <Button onClick={onOpenProgressPanel} variant={needsFeedback ? "destructive" : "outline"} className='w-full'>
                         <Edit className='w-4 h-4 mr-2'/> 
-                        {needsFeedback ? "Geri Bildirim Ekle" : "İlerleme Panelini Görüntüle"}
+                        {needsFeedback ? "Geri Bildirim Ekle" : "İlerlemeyi Gör"}
                     </Button>
                 )}
             </CardFooter>
@@ -139,27 +134,20 @@ function OgretmenDerslerimPageContent() {
 
     const groupedLessons = useMemo(() => {
         if (!lessonSlots) return [];
-
         const sessions: { [key: string]: any[] } = {};
-
         lessonSlots.forEach(slot => {
             const startTime = slot.startTime.toDate();
             const sessionDate = startOfDay(startTime).toISOString();
             const sessionKey = `${sessionDate}-${slot.childId}-${slot.teacherId}-${slot.packageCode}`;
-
-            if (!sessions[sessionKey]) {
-                sessions[sessionKey] = [];
-            }
+            if (!sessions[sessionKey]) sessions[sessionKey] = [];
             sessions[sessionKey].push(slot);
         });
         
         return Object.values(sessions).flatMap(sessionSlots => {
             if (sessionSlots.length === 0) return [];
             sessionSlots.sort((a, b) => a.startTime.seconds - b.startTime.seconds);
-
             const lessons: any[] = [];
             let currentLesson: any = null;
-
             for (const slot of sessionSlots) {
                 if (!currentLesson) {
                     currentLesson = { ...slot, slots: [slot] };
@@ -167,18 +155,14 @@ function OgretmenDerslerimPageContent() {
                     const lastSlotTime = currentLesson.slots[currentLesson.slots.length - 1].startTime.toDate();
                     const currentSlotTime = slot.startTime.toDate();
                     const timeDiff = (currentSlotTime.getTime() - lastSlotTime.getTime()) / (1000 * 60);
-
-                    if (timeDiff <= 5) { // If slots are 5 minutes apart or less, group them
-                        currentLesson.slots.push(slot);
-                    } else {
+                    if (timeDiff <= 5) currentLesson.slots.push(slot);
+                    else {
                         lessons.push(currentLesson);
                         currentLesson = { ...slot, slots: [slot] };
                     }
                 }
             }
-            if (currentLesson) {
-                lessons.push(currentLesson);
-            }
+            if (currentLesson) lessons.push(currentLesson);
             
             return lessons.map(lesson => {
                 const firstSlot = lesson.slots[0];
@@ -186,10 +170,8 @@ function OgretmenDerslerimPageContent() {
                 const packageDetails = getCourseDetailsFromPackageCode(firstSlot.packageCode);
                 const duration = packageDetails ? packageDetails.duration : 30;
                 const endTime = addMinutes(startTime, duration);
-
                 const liveInfoSlot = lesson.slots.find((s: any) => s.isLive);
                 const feedbackSlot = lesson.slots.find((s: any) => s.feedback);
-
                 return {
                     id: firstSlot.id,
                     startTime: startTime,
@@ -199,18 +181,15 @@ function OgretmenDerslerimPageContent() {
                     bookedBy: firstSlot.bookedBy,
                     packageCode: firstSlot.packageCode,
                     feedback: feedbackSlot ? feedbackSlot.feedback : null,
-                    slots: lesson.slots, // Pass slots for feedback submission and starting lesson
+                    slots: lesson.slots,
                     isLive: liveInfoSlot ? liveInfoSlot.isLive : false,
                     liveLessonUrl: liveInfoSlot ? liveInfoSlot.liveLessonUrl : null,
                 };
             });
         });
-
     }, [lessonSlots]);
 
-
     const { upcomingLessons, pastLessons } = useMemo(() => {
-        if (!groupedLessons) return { upcomingLessons: [], pastLessons: [] };
         const now = new Date();
         const upcoming: any[] = [];
         const past: any[] = [];
@@ -229,51 +208,48 @@ function OgretmenDerslerimPageContent() {
         return { upcomingLessons: upcoming, pastLessons: past };
     }, [groupedLessons]);
 
-    const handleOpenProgressPanel = (lesson: any) => {
-        setSelectedLesson(lesson);
-        setIsProgressPanelOpen(true);
-    };
-
     const handleJoinLesson = async (lesson: any) => {
-        if (lesson.isLive && lesson.liveLessonUrl) {
-            router.push(lesson.liveLessonUrl);
-            return;
-        }
-        
-        if (!db || isStartingLesson) return;
-        setIsStartingLesson(true);
-
-        const liveLessonUrl = `/live-lesson/${lesson.id}`;
-        const batch = writeBatch(db);
-
-        lesson.slots.forEach((slot: any) => {
-            const slotRef = doc(db, 'lesson-slots', slot.id);
-            batch.update(slotRef, {
-                isLive: true,
-                liveLessonUrl: liveLessonUrl
-            });
-        });
-
         try {
+            if (lesson.isLive && lesson.liveLessonUrl) {
+                if (lesson.liveLessonUrl.startsWith('http')) {
+                    window.open(lesson.liveLessonUrl, '_blank');
+                } else {
+                    router.push(lesson.liveLessonUrl);
+                }
+                return;
+            }
+            
+            if (!db || isStartingLesson) return;
+            setIsStartingLesson(true);
+
+            const liveLessonUrl = `/live-lesson/${lesson.id}`;
+            const batch = writeBatch(db);
+
+            lesson.slots.forEach((slot: any) => {
+                const slotRef = doc(db, 'lesson-slots', slot.id);
+                batch.update(slotRef, {
+                    isLive: true,
+                    liveLessonUrl: liveLessonUrl
+                });
+            });
+
             await batch.commit();
             toast({
                 title: 'Ders Başlatıldı!',
                 description: 'Derse yönlendiriliyorsunuz...',
-                className: 'bg-green-500 text-white'
             });
             router.push(liveLessonUrl);
-        } catch (serverError) {
-             const permissionError = new FirestorePermissionError({
-                path: `/lesson-slots/*`,
-                operation: 'update',
-                requestResourceData: { isLive: true, liveLessonUrl },
+        } catch (error) {
+            console.error("Ders başlatma hatası:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Hata',
+                description: 'Ders başlatılamadı. Lütfen tekrar deneyin.',
             });
-            errorEmitter.emit('permission-error', permissionError);
         } finally {
             setIsStartingLesson(false);
         }
     };
-
 
     if (userLoading || lessonsLoading) {
         return <div className="flex min-h-[calc(100vh-145px)] items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
@@ -288,44 +264,33 @@ function OgretmenDerslerimPageContent() {
                     <TabsTrigger value="past"><History className="mr-2 h-4 w-4" />Geçmiş Dersler ({pastLessons.length})</TabsTrigger>
                 </TabsList>
                 <TabsContent value="upcoming">
-                    <Card>
-                        <CardHeader><CardTitle>Yaklaşan Dersler</CardTitle></CardHeader>
-                        <CardContent>
-                            {upcomingLessons.length > 0 ? (
-                                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                    {upcomingLessons.map(lesson => <LessonCard key={lesson.id} lesson={lesson} onOpenProgressPanel={() => handleOpenProgressPanel(lesson)} onJoinLesson={handleJoinLesson} />)}
-                                </div>
-                            ) : <p className="text-muted-foreground">Yaklaşan dersiniz bulunmuyor.</p>}
-                        </CardContent>
-                    </Card>
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-4">
+                        {upcomingLessons.map(lesson => (
+                            <LessonCard key={lesson.id} lesson={lesson} onOpenProgressPanel={() => { setSelectedLesson(lesson); setIsProgressPanelOpen(true); }} onJoinLesson={handleJoinLesson} />
+                        ))}
+                    </div>
+                    {upcomingLessons.length === 0 && <p className="text-muted-foreground mt-4 text-center py-8">Yaklaşan dersiniz bulunmuyor.</p>}
                 </TabsContent>
                 <TabsContent value="past">
-                    <Card>
-                        <CardHeader><CardTitle>Geçmiş Dersler</CardTitle></CardHeader>
-                        <CardContent>
-                             {pastLessons.length > 0 ? (
-                                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                    {pastLessons.map(lesson => <LessonCard key={lesson.id} lesson={lesson} onOpenProgressPanel={() => handleOpenProgressPanel(lesson)} onJoinLesson={handleJoinLesson} />)}
-                                </div>
-                            ) : <p className="text-muted-foreground">Henüz tamamlanmış bir dersiniz yok.</p>}
-                        </CardContent>
-                    </Card>
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-4">
+                        {pastLessons.map(lesson => (
+                            <LessonCard key={lesson.id} lesson={lesson} onOpenProgressPanel={() => { setSelectedLesson(lesson); setIsProgressPanelOpen(true); }} onJoinLesson={handleJoinLesson} />
+                        ))}
+                    </div>
+                    {pastLessons.length === 0 && <p className="text-muted-foreground mt-4 text-center py-8">Henüz tamamlanmış bir dersiniz yok.</p>}
                 </TabsContent>
             </Tabs>
+
              <Dialog open={isProgressPanelOpen} onOpenChange={setIsProgressPanelOpen}>
                 <DialogContent className="max-w-5xl h-[90vh]">
                     <DialogHeader>
                         <DialogTitle className="text-3xl font-bold font-headline">
                             {isChildDataLoading || !selectedChildData ? 'Yükleniyor...' : `${selectedChildData.firstName} İlerleme Paneli`}
                         </DialogTitle>
-                        <DialogDescription>
-                            {isChildDataLoading || !selectedChildData ? 'Öğrenci verileri yükleniyor...' : 'Çocuğunuzun Türkçe öğrenme yolculuğuna dair kapsamlı analiz ve raporlar.'}
-                        </DialogDescription>
+                        <DialogDescription>Çocuğun ilerlemesini izleyin ve geri bildirim verin.</DialogDescription>
                     </DialogHeader>
                     {isChildDataLoading || !selectedChildData || !selectedLesson ? (
-                         <div className="flex h-full items-center justify-center">
-                            <Loader2 className="h-16 w-16 animate-spin text-primary" />
-                        </div>
+                         <div className="flex h-full items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>
                     ) : (
                         <ProgressPanel child={selectedChildData} lessonId={selectedLesson.id} isEditable={true} />
                     )}

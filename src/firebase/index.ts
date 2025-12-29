@@ -2,36 +2,58 @@
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, useUser } from 'firebase/auth'; // Ensure useUser is exported from an auth barrel if needed
-import { getFirestore, setDoc, addDoc, updateDoc, deleteDoc, CollectionReference, DocumentReference, SetOptions } from 'firebase/firestore'
+import { getAuth } from 'firebase/auth';
+import { 
+  getFirestore, 
+  setDoc, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  CollectionReference, 
+  DocumentReference, 
+  SetOptions,
+  doc,
+  collection,
+  query,
+  where,
+  getDoc,
+  getDocs,
+  writeBatch,
+  Timestamp
+} from 'firebase/firestore'
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
 
-// IMPORTANT: DO NOT MODIFY THIS FUNCTION
+// Re-export firestore functions for convenience across the app
+export { 
+  doc, 
+  collection, 
+  query, 
+  where, 
+  getDoc, 
+  getDocs, 
+  writeBatch, 
+  setDoc, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc,
+  Timestamp
+};
+
 export function initializeFirebase() {
   if (!getApps().length) {
-    // Important! initializeApp() is called without any arguments because Firebase App Hosting
-    // integrates with the initializeApp() function to provide the environment variables needed to
-    // populate the FirebaseOptions in production. It is critical that we attempt to call initializeApp()
-    // without arguments.
     let firebaseApp;
     try {
-      // Attempt to initialize via Firebase App Hosting environment variables
       firebaseApp = initializeApp();
     } catch (e) {
-      // Only warn in production because it's normal to use the firebaseConfig to initialize
-      // during development
       if (process.env.NODE_ENV === "production") {
         console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
       }
       firebaseApp = initializeApp(firebaseConfig);
     }
-
     return getSdks(firebaseApp);
   }
-
-  // If already initialized, return the SDKs with the already initialized App
   return getSdks(getApp());
 }
 
@@ -43,16 +65,19 @@ export function getSdks(firebaseApp: FirebaseApp) {
   };
 }
 
-export const db = getFirestore(getApps().length ? getApps()[0] : initializeApp(firebaseConfig));
+// Global instances
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
 
-
+// Non-blocking helpers
 export function setDocumentNonBlocking(docRef: DocumentReference, data: any, options?: SetOptions) {
   setDoc(docRef, data, options || {}).catch(error => {
     errorEmitter.emit(
       'permission-error',
       new FirestorePermissionError({
         path: docRef.path,
-        operation: 'write', // or 'create'/'update' based on options
+        operation: 'write',
         requestResourceData: data,
       })
     )
@@ -60,50 +85,44 @@ export function setDocumentNonBlocking(docRef: DocumentReference, data: any, opt
 }
 
 export function addDocumentNonBlocking(colRef: CollectionReference, data: any) {
-  const promise = addDoc(colRef, data)
-    .catch(error => {
-      errorEmitter.emit(
-        'permission-error',
-        new FirestorePermissionError({
-          path: colRef.path,
-          operation: 'create',
-          requestResourceData: data,
-        })
-      )
-    });
-  return promise;
+  return addDoc(colRef, data).catch(error => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: colRef.path,
+        operation: 'create',
+        requestResourceData: data,
+      })
+    )
+  });
 }
 
-
 export function updateDocumentNonBlocking(docRef: DocumentReference, data: any) {
-  updateDoc(docRef, data)
-    .catch(error => {
-      errorEmitter.emit(
-        'permission-error',
-        new FirestorePermissionError({
-          path: docRef.path,
-          operation: 'update',
-          requestResourceData: data,
-        })
-      )
-    });
+  updateDoc(docRef, data).catch(error => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'update',
+        requestResourceData: data,
+      })
+    )
+  });
 }
 
 export function deleteDocumentNonBlocking(docRef: DocumentReference) {
-  deleteDoc(docRef)
-    .catch(error => {
-      errorEmitter.emit(
-        'permission-error',
-        new FirestorePermissionError({
-          path: docRef.path,
-          operation: 'delete',
-        })
-      )
-    });
+  deleteDoc(docRef).catch(error => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'delete',
+      })
+    )
+  });
 }
 
-
-
+// Barrel exports
 export * from './provider';
 export * from './client-provider';
 export * from './firestore/use-collection';

@@ -1,12 +1,12 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Mic, MicOff, Video, VideoOff, PhoneOff } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, RefreshCcw, Camera } from 'lucide-react';
 import { db } from '@/firebase';
 import {
   doc,
@@ -16,8 +16,6 @@ import {
   onSnapshot,
   collection,
   addDoc,
-  getDocs,
-  deleteDoc,
   Timestamp
 } from 'firebase/firestore';
 
@@ -27,14 +25,12 @@ const rtcConfig: RTCConfiguration = {
   ],
 };
 
-// Firestore doc yoksa createdAt eklemek için küçük helper
 function AttachCreatedAt(roomSnap: any) {
   if (!roomSnap.exists()) {
     return { createdAt: Timestamp.now() };
   }
   return {};
 }
-
 
 export default function LiveLessonPage() {
   const params = useParams();
@@ -49,205 +45,217 @@ export default function LiveLessonPage() {
   const localStreamRef = useRef<MediaStream | null>(null);
 
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [isMicOn, setIsMicOn] = useState(true);
-  const [isVideoOn, setIsVideoOn] = useState(true);
+  const [errorType, setErrorType] = useState<string | null>(null);
+  const [isMicOn, setIsMicOn] = useState(false);
+  const [isVideoOn, setIsVideoOn] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
 
-  useEffect(() => {
-    let unsubscribeRoom: (() => void) | null = null;
-    let unsubscribeAnswer: (() => void) | null = null;
-    let unsubscribeRemoteCandidates: (() => void) | null = null;
+  const startMedia = useCallback(async () => {
+    if (isInitializing) return;
+    setIsInitializing(true);
+    setErrorType(null);
 
-    const start = async () => {
-      try {
-        const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        localStreamRef.current = localStream;
-        setHasPermission(true);
+    try {
+      // Kamera ve mikrofonu açmaya çalış
+      const localStream = await navigator.mediaDevices.getUserMedia({ 
+        video: true, 
+        audio: true 
+      });
+      
+      localStreamRef.current = localStream;
+      setHasPermission(true);
+      setIsMicOn(true);
+      setIsVideoOn(true);
 
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = localStream;
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = localStream;
+      }
+
+      // WebRTC kurulumu
+      const pc = new RTCPeerConnection(rtcConfig);
+      pcRef.current = pc;
+
+      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+      pc.ontrack = (event) => {
+        const [remoteStream] = event.streams;
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = remoteStream;
         }
+      };
 
-        const pc = new RTCPeerConnection(rtcConfig);
-        pcRef.current = pc;
+      const roomRef = doc(db, 'rooms', lessonId);
+      const roomSnap = await getDoc(roomRef);
+      const isCaller = !roomSnap.exists() || !roomSnap.data()?.offer;
 
-        // Local tracks
-        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-
-        // Remote tracks
-        pc.ontrack = (event) => {
-          const [remoteStream] = event.streams;
-          if (remoteVideoRef.current) {
-            remoteVideoRef.current.srcObject = remoteStream;
-          }
+      if (isCaller) {
+        await setDoc(roomRef, AttachCreatedAt(roomSnap), { merge: true });
+        const callerCandidatesRef = collection(roomRef, 'callerCandidates');
+        pc.onicecandidate = async (event) => {
+          if (event.candidate) await addDoc(callerCandidatesRef, event.candidate.toJSON());
         };
 
-        const roomRef = doc(db, 'rooms', lessonId);
-        const roomSnap = await getDoc(roomRef);
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        await updateDoc(roomRef, { offer: { type: offer.type, sdp: offer.sdp } });
 
-        // Caller mı Callee mi?
-        const isCaller = !roomSnap.exists() || !roomSnap.data()?.offer;
+        onSnapshot(roomRef, async (snap) => {
+          const data = snap.data();
+          if (data?.answer && !pc.currentRemoteDescription) {
+            await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+          }
+        });
 
-        if (isCaller) {
-          await setDoc(roomRef, AttachCreatedAt(roomSnap), { merge: true });
-
-          const callerCandidatesRef = collection(roomRef, 'callerCandidates');
-          pc.onicecandidate = async (event) => {
-            if (event.candidate) {
-              await addDoc(callerCandidatesRef, event.candidate.toJSON());
-            }
-          };
-
-          const offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
-
-          await updateDoc(roomRef, { offer: { type: offer.type, sdp: offer.sdp } });
-
-          // Answer bekle
-          unsubscribeAnswer = onSnapshot(roomRef, async (snap) => {
-            const data = snap.data();
-            if (!data) return;
-            if (data.answer && !pc.currentRemoteDescription) {
-              const answerDesc = new RTCSessionDescription(data.answer);
-              await pc.setRemoteDescription(answerDesc);
+        const calleeCandidatesRef = collection(roomRef, 'calleeCandidates');
+        onSnapshot(calleeCandidatesRef, (snap) => {
+          snap.docChanges().forEach(async (change) => {
+            if (change.type === 'added') {
+              await pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
             }
           });
+        });
 
-          // Callee candidates dinle
-          const calleeCandidatesRef = collection(roomRef, 'calleeCandidates');
-          unsubscribeRemoteCandidates = onSnapshot(calleeCandidatesRef, (snap) => {
-            snap.docChanges().forEach(async (change) => {
-              if (change.type === 'added') {
-                const cand = new RTCIceCandidate(change.doc.data());
-                await pc.addIceCandidate(cand);
-              }
-            });
-          });
+      } else {
+        const calleeCandidatesRef = collection(roomRef, 'calleeCandidates');
+        pc.onicecandidate = async (event) => {
+          if (event.candidate) await addDoc(calleeCandidatesRef, event.candidate.toJSON());
+        };
 
-        } else {
-          // Callee
-          const calleeCandidatesRef = collection(roomRef, 'calleeCandidates');
-          pc.onicecandidate = async (event) => {
-            if (event.candidate) {
-              await addDoc(calleeCandidatesRef, event.candidate.toJSON());
+        const roomData = roomSnap.data();
+        await pc.setRemoteDescription(new RTCSessionDescription(roomData.offer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        await updateDoc(roomRef, { answer: { type: answer.type, sdp: answer.sdp } });
+
+        const callerCandidatesRef = collection(roomRef, 'callerCandidates');
+        onSnapshot(callerCandidatesRef, (snap) => {
+          snap.docChanges().forEach(async (change) => {
+            if (change.type === 'added') {
+              await pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
             }
-          };
-
-          const roomData = roomSnap.data();
-          const offerDesc = new RTCSessionDescription(roomData.offer);
-          await pc.setRemoteDescription(offerDesc);
-
-          const answer = await pc.createAnswer();
-          await pc.setLocalDescription(answer);
-
-          await updateDoc(roomRef, { answer: { type: answer.type, sdp: answer.sdp } });
-
-          // Caller candidates dinle
-          const callerCandidatesRef = collection(roomRef, 'callerCandidates');
-          unsubscribeRemoteCandidates = onSnapshot(callerCandidatesRef, (snap) => {
-            snap.docChanges().forEach(async (change) => {
-              if (change.type === 'added') {
-                const cand = new RTCIceCandidate(change.doc.data());
-                await pc.addIceCandidate(cand);
-              }
-            });
           });
-        }
-
-        // Room watcher (opsiyonel)
-        unsubscribeRoom = onSnapshot(roomRef, () => {});
-      } catch (error) {
-        console.error(error);
-        setHasPermission(false);
-        toast({
-          variant: 'destructive',
-          title: 'Kamera ve Mikrofon Erişimi Reddedildi',
-          description: 'Tarayıcı ayarlarından kamera ve mikrofon izinlerini etkinleştirin.',
         });
       }
-    };
 
-    start();
+    } catch (error: any) {
+      console.error("Media Error:", error);
+      setHasPermission(false);
+      
+      if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+        setErrorType('DEVICE_NOT_FOUND');
+      } else if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        setErrorType('PERMISSION_DENIED');
+      } else {
+        setErrorType('UNKNOWN');
+      }
 
+      toast({
+        variant: 'destructive',
+        title: 'Cihaz Erişimi Hatası',
+        description: 'Kamera veya mikrofon bulunamadı veya erişim engellendi.',
+      });
+    } finally {
+      setIsInitializing(false);
+    }
+  }, [lessonId, toast, isInitializing]);
+
+  useEffect(() => {
+    startMedia();
     return () => {
-      unsubscribeRoom?.();
-      unsubscribeAnswer?.();
-      unsubscribeRemoteCandidates?.();
-
-      if (pcRef.current) {
-        pcRef.current.ontrack = null;
-        pcRef.current.onicecandidate = null;
-        pcRef.current.close();
-        pcRef.current = null;
-      }
-
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(t => t.stop());
-        localStreamRef.current = null;
-      }
-
-      if (localVideoRef.current) localVideoRef.current.srcObject = null;
-      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+      if (pcRef.current) pcRef.current.close();
+      if (localStreamRef.current) localStreamRef.current.getTracks().forEach(t => t.stop());
     };
-  }, [lessonId, toast]);
+  }, []); // Only once on mount
 
   const toggleMic = () => {
-    const stream = localStreamRef.current;
-    if (!stream) return;
-    stream.getAudioTracks().forEach(track => (track.enabled = !isMicOn));
-    setIsMicOn(v => !v);
+    if (!localStreamRef.current) {
+      startMedia(); // Eğer kapalıysa açmayı dene
+      return;
+    }
+    const track = localStreamRef.current.getAudioTracks()[0];
+    if (track) {
+      track.enabled = !isMicOn;
+      setIsMicOn(!isMicOn);
+    }
   };
 
   const toggleVideo = () => {
-    const stream = localStreamRef.current;
-    if (!stream) return;
-    stream.getVideoTracks().forEach(track => (track.enabled = !isVideoOn));
-    setIsVideoOn(v => !v);
-  };
-
-  const handleEndCall = async () => {
-    // Basit çıkış. İstersen odanın offer answer candidate’larını da temizleriz.
-    router.back();
+    if (!localStreamRef.current) {
+      startMedia(); // Eğer kapalıysa açmayı dene
+      return;
+    }
+    const track = localStreamRef.current.getVideoTracks()[0];
+    if (track) {
+      track.enabled = !isVideoOn;
+      setIsVideoOn(!isVideoOn);
+    }
   };
 
   return (
-    <div className="flex h-screen w-full flex-col items-center justify-center bg-gray-900 text-white p-4">
-      <Card className="w-full max-w-4xl h-full flex flex-col bg-black border-gray-700">
-        <CardContent className="relative flex-1 flex items-center justify-center p-0">
-          <video ref={remoteVideoRef} className="w-full h-full object-cover rounded-t-lg" autoPlay playsInline />
-          <video
-            ref={localVideoRef}
-            className="absolute bottom-4 right-4 w-40 h-28 object-cover rounded-lg border border-white/30"
-            autoPlay
-            muted
-            playsInline
-          />
+    <div className="flex h-screen w-full flex-col items-center justify-center bg-slate-950 text-white p-4">
+      <Card className="w-full max-w-5xl h-[85vh] flex flex-col bg-slate-900 border-slate-800 shadow-2xl overflow-hidden">
+        <CardContent className="relative flex-1 flex items-center justify-center p-0 bg-black">
+          {/* Ana Görüntü (Uzak) */}
+          <video ref={remoteVideoRef} className="w-full h-full object-cover" autoPlay playsInline />
+          
+          {/* Kendi Görüntüm (Yerel) */}
+          <div className="absolute bottom-6 right-6 w-48 h-36 rounded-xl border-2 border-white/20 overflow-hidden shadow-lg bg-slate-800">
+            {isVideoOn ? (
+              <video ref={localVideoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-slate-800">
+                <VideoOff className="w-10 h-10 text-slate-500" />
+              </div>
+            )}
+          </div>
 
+          {/* Hata Durumları */}
           {hasPermission === false && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/70">
-              <Alert variant="destructive" className="max-w-sm">
-                <AlertTitle>Kamera ve Mikrofon Gerekli</AlertTitle>
-                <AlertDescription>
-                  Bu özelliği kullanmak için kamera ve mikrofon erişimine izin verin.
-                </AlertDescription>
-              </Alert>
+            <div className="absolute inset-0 flex items-center justify-center bg-slate-950/90 z-10 p-6 text-center">
+              <div className="max-w-md space-y-6">
+                <div className="bg-red-500/20 p-4 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
+                  <Camera className="w-10 h-10 text-red-500" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold">
+                    {errorType === 'DEVICE_NOT_FOUND' ? 'Kamera veya Mikrofon Bulunamadı' : 'Erişim İzni Verilmedi'}
+                  </h3>
+                  <p className="text-slate-400">
+                    {errorType === 'DEVICE_NOT_FOUND' 
+                      ? 'Lütfen cihazınızın kamera ve mikrofonunun bağlı olduğundan emin olun.' 
+                      : 'Tarayıcı ayarlarından kamera ve mikrofon izinlerini etkinleştirmeniz gerekmektedir.'}
+                  </p>
+                </div>
+                <Button onClick={startMedia} disabled={isInitializing} className="bg-primary hover:bg-primary/90 text-white px-8 h-12 rounded-full font-bold">
+                  {isInitializing ? <Loader2 className="animate-spin mr-2" /> : <RefreshCcw className="mr-2 h-5 w-5" />}
+                  Tekrar Dene
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
 
-        <div className="flex items-center justify-center gap-4 p-4 border-t border-gray-700">
+        {/* Kontrol Çubuğu */}
+        <div className="flex items-center justify-center gap-6 p-6 bg-slate-900 border-t border-slate-800">
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
-            className={`rounded-full h-14 w-14 ${isMicOn ? 'bg-gray-600' : 'bg-red-500'}`}
+            className={cn(
+              "rounded-full h-14 w-14 transition-all duration-300",
+              isMicOn ? "bg-slate-800 hover:bg-slate-700 text-white" : "bg-red-500 hover:bg-red-600 text-white"
+            )}
             onClick={toggleMic}
           >
             {isMicOn ? <Mic className="h-6 w-6" /> : <MicOff className="h-6 w-6" />}
           </Button>
 
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
-            className={`rounded-full h-14 w-14 ${isVideoOn ? 'bg-gray-600' : 'bg-red-500'}`}
+            className={cn(
+              "rounded-full h-14 w-14 transition-all duration-300",
+              isVideoOn ? "bg-slate-800 hover:bg-slate-700 text-white" : "bg-red-500 hover:bg-red-600 text-white"
+            )}
             onClick={toggleVideo}
           >
             {isVideoOn ? <Video className="h-6 w-6" /> : <VideoOff className="h-6 w-6" />}
@@ -256,8 +264,8 @@ export default function LiveLessonPage() {
           <Button
             variant="destructive"
             size="icon"
-            className="rounded-full h-14 w-14"
-            onClick={handleEndCall}
+            className="rounded-full h-14 w-14 shadow-lg hover:scale-105 transition-transform"
+            onClick={() => router.back()}
           >
             <PhoneOff className="h-6 w-6" />
           </Button>
@@ -265,4 +273,9 @@ export default function LiveLessonPage() {
       </Card>
     </div>
   );
+}
+
+// Yardımcı Loader bileşeni (Lucide'den gelmediyse diye)
+function Loader2({ className }: { className?: string }) {
+  return <RefreshCcw className={cn("animate-spin", className)} />;
 }
