@@ -203,7 +203,7 @@ export default function TakvimYonetimiPage() {
         setDragMode(slot?.status === 'available' ? 'closed' : 'available');
     };
 
-    const handleMouseUp = () => {
+    const handleMouseUp = useCallback(() => {
         if (!isDragging || !dragMode || !user || !selectedDate) {
             resetDragState();
             return;
@@ -233,7 +233,7 @@ export default function TakvimYonetimiPage() {
         });
 
         resetDragState();
-    };
+    }, [isDragging, dragMode, user, selectedDate, dragSelection]);
 
     const handleApplyChanges = async () => {
         if (!db || !user || !selectedDate) return;
