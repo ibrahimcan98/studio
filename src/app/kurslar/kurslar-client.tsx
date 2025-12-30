@@ -416,15 +416,15 @@ export function KurslarClientPage({
 
             <section className="py-20 md:py-28 text-center">
                 <div className="container max-w-4xl mx-auto">
-                    <div className="inline-block p-1 rounded-full bg-gradient-to-r from-teal-400 to-green-500 mb-8">
-                         <Button asChild size="lg" className="bg-[#25D366] hover:bg-[#25D366]/90 text-white rounded-full text-lg font-bold px-8 py-6 h-auto">
-                            <a href="https://wa.me/+905058029734" target="_blank" rel="noopener noreferrer">
-                                <WhatsAppIcon className="w-6 h-6 mr-3 fill-white" />
-                                İndirimsiz almayın! Bizimle iletişime geçin, promosyon kodu ile indirim kazanın.
+                    <div className="p-1 rounded-full bg-gradient-to-r from-teal-400 to-green-500 mb-8 inline-block">
+                         <Button asChild size="lg" className="bg-[#25D366] hover:bg-[#25D366]/90 text-white rounded-full text-lg font-bold px-6 h-auto py-3 sm:py-4">
+                            <a href="https://wa.me/+905058029734" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                                <WhatsAppIcon className="w-6 h-6 fill-white" />
+                                <span className="text-center">İndirim kodu için bize yazın!</span>
                             </a>
                         </Button>
                     </div>
-                    <div className="flex flex-col sm:flex-row justify-center items-center gap-8 text-gray-600">
+                    <div className="flex flex-col sm:flex-row justify-center items-center gap-x-8 gap-y-4 text-gray-600">
                         <div className="flex items-center gap-2">
                             <ShieldCheck className="w-5 h-5 text-green-500" />
                             <span>Güvenli Ödeme</span>
@@ -443,5 +443,3 @@ export function KurslarClientPage({
         </main>
     );
 }
-
-    
