@@ -20,8 +20,8 @@ export default function RootLayout({
 }>) {
   const pathname = usePathname();
   
-  // Canlı ders sayfasında mıyız?
   const isLiveLesson = pathname?.includes('/live-lesson/');
+  const isChildMode = pathname?.startsWith('/cocuk-modu');
 
   return (
     <html lang="tr">
@@ -29,13 +29,13 @@ export default function RootLayout({
         <Providers>
           <div className="flex min-h-screen flex-col bg-background">
             {/* Canlı derste değilsek Header ve AI Assistant'ı göster */}
-            {!isLiveLesson && <Header />}
+            {!isLiveLesson && !isChildMode && <Header />}
             
             <main className="flex-1">
               {children}
             </main>
             
-            {!isLiveLesson && <AIAssistant />}
+            {!isLiveLesson && !isChildMode && <AIAssistant />}
           </div>
         </Providers>
         <Toaster />
