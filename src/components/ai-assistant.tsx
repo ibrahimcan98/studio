@@ -11,6 +11,7 @@ import { assistantFlow, AssistantInput } from '@/ai/flows/assistant-flow';
 import { assistantData } from '@/data/ai-assistant-data';
 import { cn } from '@/lib/utils';
 import { Badge } from './ui/badge';
+import { usePathname } from 'next/navigation';
 
 type Message = {
     role: 'user' | 'assistant';
@@ -23,6 +24,19 @@ export function AIAssistant() {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const pathname = usePathname();
+    const [isHidden, setIsHidden] = useState(false);
+
+    useEffect(() => {
+        const shouldBeHidden = pathname.startsWith('/ogretmen-portali') || 
+                               pathname.startsWith('/cocuk-modu') ||
+                               pathname.startsWith('/live-lesson');
+        setIsHidden(shouldBeHidden);
+        if (shouldBeHidden) {
+            setIsOpen(false);
+        }
+    }, [pathname]);
+
 
     const scrollToBottom = useCallback(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -33,7 +47,7 @@ export function AIAssistant() {
             // Add initial greeting when chat opens for the first time
             setMessages([{ role: 'assistant', content: assistantData.greeting }]);
         }
-    }, [isOpen]);
+    }, [isOpen, messages.length]);
 
     useEffect(() => {
         if (isOpen) {
@@ -71,6 +85,10 @@ export function AIAssistant() {
         }
     };
     
+    if (isHidden) {
+        return null;
+    }
+
     return (
         <>
             {/* Chat Bubble */}

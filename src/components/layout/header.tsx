@@ -37,11 +37,10 @@ export default function Header() {
 
   useEffect(() => {
     // This effect runs only on the client, after hydration
-    if (pathname.startsWith('/ogretmen-portali') || pathname.startsWith('/cocuk-modu')) {
-      setIsHidden(true);
-    } else {
-      setIsHidden(false);
-    }
+    const shouldBeHidden = pathname.startsWith('/ogretmen-portali') || 
+                           pathname.startsWith('/cocuk-modu') ||
+                           pathname.startsWith('/live-lesson');
+    setIsHidden(shouldBeHidden);
   }, [pathname]);
 
 
@@ -160,8 +159,12 @@ export default function Header() {
     )
   };
   
+  if (isHidden) {
+    return null;
+  }
+
   return (
-    <header className={cn("sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60", { 'hidden': isHidden })}>
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-20 items-center">
         <Link href="/" className="flex items-center space-x-2 mr-auto">
           <Logo />
