@@ -7,6 +7,7 @@ import Header from '@/components/layout/header';
 import { Providers } from '@/components/layout/providers';
 import { AIAssistant } from '@/components/ai-assistant';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 const poppins = Poppins({ 
   subsets: ['latin'],
@@ -19,9 +20,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   
   const isLiveLesson = pathname?.includes('/live-lesson/');
   const isChildMode = pathname?.startsWith('/cocuk-modu');
+
+  const showHeaderAndAssistant = isClient && !isLiveLesson && !isChildMode;
 
   return (
     <html lang="tr">
@@ -29,13 +37,13 @@ export default function RootLayout({
         <Providers>
           <div className="flex min-h-screen flex-col bg-background">
             {/* Canlı derste değilsek Header ve AI Assistant'ı göster */}
-            {!isLiveLesson && !isChildMode && <Header />}
+            {showHeaderAndAssistant && <Header />}
             
             <main className="flex-1">
               {children}
             </main>
             
-            {!isLiveLesson && !isChildMode && <AIAssistant />}
+            {showHeaderAndAssistant && <AIAssistant />}
           </div>
         </Providers>
         <Toaster />
