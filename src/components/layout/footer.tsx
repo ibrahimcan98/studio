@@ -16,9 +16,9 @@ export default function Footer() {
           <div className="md:justify-self-center">
             <h4 className="font-semibold text-lg mb-4">Hızlı Linkler</h4>
             <ul className="space-y-3">
-              <li><Link href="#parents" className="text-muted-foreground hover:text-foreground transition-colors">Ebeveyn Portalı</Link></li>
-              <li><Link href="#teachers" className="text-muted-foreground hover:text-foreground transition-colors">Öğretmen Portalı</Link></li>
-              <li><Link href="#pricing" className="text-muted-foreground hover:text-foreground transition-colors">Paketler</Link></li>
+              <li><Link href="/ebeveyn-portali" className="text-muted-foreground hover:text-foreground transition-colors">Ebeveyn Portalı</Link></li>
+              <li><Link href="/ogretmen-giris" className="text-muted-foreground hover:text-foreground transition-colors">Öğretmen Portalı</Link></li>
+              <li><Link href="/kurslar" className="text-muted-foreground hover:text-foreground transition-colors">Paketler</Link></li>
             </ul>
           </div>
           <div className="md:justify-self-end">
