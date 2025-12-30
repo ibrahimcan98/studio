@@ -25,7 +25,7 @@ export default function Footer() {
             <h4 className="font-semibold text-lg mb-4">İletişim</h4>
             <ul className="space-y-3">
               <li className="text-muted-foreground">info@turkcocukakademisi.com</li>
-              <li className="text-muted-foreground">+90 XXX XXX XX XX</li>
+              <li className="text-muted-foreground">+90 505 802 97 34</li>
             </ul>
           </div>
         </div>
