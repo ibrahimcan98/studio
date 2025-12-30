@@ -127,6 +127,6 @@ export * from './provider';
 export * from './client-provider';
 export * from './firestore/use-collection';
 export * from './firestore/use-doc';
-export * from './auth/use-user';
+// REMOVED redundant export * from './auth/use-user' because provider already exports useUser
 export * from './errors';
 export * from './error-emitter';

@@ -38,10 +38,9 @@ export interface FirebaseServicesAndUser {
   userError: Error | null;
 }
 
-// Updated to include both 'loading' and 'isUserLoading' for backward compatibility
 export interface UserHookResult {
   user: User | null;
-  loading: boolean; // Added for compatibility
+  loading: boolean;
   isUserLoading: boolean;
   userError: Error | null;
 }
@@ -133,8 +132,16 @@ export const useFirebaseApp = (): FirebaseApp => {
   return firebaseApp;
 };
 
+// CRITICAL FIX: The useMemoFirebase MUST mark the object with __memo for useCollection/useDoc to work
+type MemoFirebase <T> = T & {__memo?: boolean};
+
 export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
   const memoized = useMemo(factory, deps);
+  
+  if(typeof memoized === 'object' && memoized !== null) {
+    (memoized as any).__memo = true;
+  }
+  
   return memoized;
 }
 
@@ -142,7 +149,7 @@ export const useUser = (): UserHookResult => {
   const { user, isUserLoading, userError } = useFirebase();
   return { 
     user, 
-    loading: isUserLoading, // Providing both names to fix the entire app
+    loading: isUserLoading,
     isUserLoading, 
     userError 
   };

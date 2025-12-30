@@ -12,9 +12,6 @@ service cloud.firestore {
     }
      
     match /users/{userId} {
-      // Allow a user to get their own doc.
-      // Allow a teacher or admin to get any user's doc.
-      // Allow any authenticated user to get a user doc if that user's role is 'teacher'.
       allow get: if request.auth.uid == userId || isTeacher() || isAdmin() || (request.auth != null && get(/databases/$(database)/documents/users/$(userId)).data.role == 'teacher');
       allow list: if isTeacher() || isAdmin();
       allow create: if request.auth.uid == userId;
@@ -24,10 +21,7 @@ service cloud.firestore {
 
     match /users/{userId}/children/{childId} {
       allow get, list: if request.auth.uid == userId || isTeacher() || isAdmin();
-      // A user can create/update their own child, a teacher can update, or an admin can.
-      // create/update: The incoming child document's userId must match the parent's uid.
       allow create, update: if (request.auth.uid == userId && request.resource.data.userId == userId) || isTeacher() || isAdmin();
-      // delete: The parent must be the one deleting, checking the existing document's userId.
       allow delete: if (request.auth.uid == userId && resource.data.userId == userId) || isAdmin();
     }
 
@@ -38,6 +32,19 @@ service cloud.firestore {
                        (request.auth.uid == resource.data.teacherId) || isAdmin();
         allow delete: if request.auth.uid == resource.data.teacherId || isAdmin();
     }
+
+    // --- CANLI DERS İÇİN GEREKLİ KURALLAR (EKSİK OLAN KISIM) ---
+    match /rooms/{roomId} {
+      allow read, write: if request.auth != null;
+      
+      match /callerCandidates/{candidateId} {
+        allow read, write: if request.auth != null;
+      }
+      match /calleeCandidates/{candidateId} {
+        allow read, write: if request.auth != null;
+      }
+    }
+    // ---------------------------------------------------------
     
     match /courses/{courseId} {
       allow get: if true;

@@ -24,11 +24,11 @@ export default function Hero() {
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tighter font-headline">
             Oyun Tabanlı Türkçe Öğrenimi
           </h1>
-          <p className="max-w-xl mx-auto lg:mx-0 text-lg text-muted-foreground">
+          <p className="max-w-xl mx-auto lg:mx-0 text-lg md:text-xl text-muted-foreground">
             Duolingo tarzı harita, canlı dersler ve aile paneliyle güvenli, eğlenceli ve etkili.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-            <Button size="lg" className="font-bold text-lg h-14" onClick={handleCtaClick}>Ücretsiz Deneme Dersini Hemen Planla</Button>
+            <Button size="lg" className="font-bold text-base md:text-lg h-12 md:h-14" onClick={handleCtaClick}>Ücretsiz Deneme Dersini Hemen Planla</Button>
           </div>
         </div>
         <div className="relative flex justify-center h-full min-h-[400px] lg:min-h-[600px]">
