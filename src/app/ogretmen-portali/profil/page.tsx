@@ -8,7 +8,7 @@ import { updateProfile } from 'firebase/auth';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, User, Sprout, Video } from 'lucide-react';
+import { Loader2, User, Sprout, Video, Link as LinkIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,6 +22,7 @@ const profileSchema = z.object({
   bio: z.string().optional(),
   hobbies: z.string().optional(),
   introVideoUrl: z.string().url('Geçerli bir URL giriniz.').optional().or(z.literal('')),
+  googleMeetLink: z.string().url('Geçerli bir Google Meet URL\'si giriniz.').optional().or(z.literal('')),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -45,6 +46,7 @@ export default function TeacherProfilePage() {
       bio: '',
       hobbies: '',
       introVideoUrl: '',
+      googleMeetLink: '',
     }
   });
 
@@ -55,6 +57,7 @@ export default function TeacherProfilePage() {
         bio: userData.bio || '',
         hobbies: (userData.hobbies || []).join(', '),
         introVideoUrl: userData.introVideoUrl || '',
+        googleMeetLink: userData.googleMeetLink || '',
       });
     }
   }, [userData, form]);
@@ -76,6 +79,7 @@ export default function TeacherProfilePage() {
         bio: data.bio,
         hobbies: hobbiesArray,
         introVideoUrl: data.introVideoUrl,
+        googleMeetLink: data.googleMeetLink,
       });
 
       toast({ title: 'Başarılı!', description: 'Profiliniz başarıyla güncellendi.' });
@@ -130,6 +134,12 @@ export default function TeacherProfilePage() {
                         <Label htmlFor="hobbies">Hobiler</Label>
                         <Input id="hobbies" {...form.register('hobbies')} placeholder="Kitap okumak, seyahat etmek, yüzmek..." />
                         <p className="text-xs text-muted-foreground mt-1">Hobilerinizi virgülle ayırarak yazın.</p>
+                    </div>
+                     <div>
+                        <Label htmlFor="googleMeetLink">Google Meet Linki</Label>
+                        <Input id="googleMeetLink" {...form.register('googleMeetLink')} placeholder="https://meet.google.com/xxx-xxxx-xxx" />
+                        {form.formState.errors.googleMeetLink && <p className="text-destructive text-sm mt-1">{form.formState.errors.googleMeetLink.message}</p>}
+                        <p className="text-xs text-muted-foreground mt-1">Bu link tüm dersleriniz için kullanılacaktır.</p>
                     </div>
                     <div>
                         <Label htmlFor="introVideoUrl">Tanıtım Videosu URL'si</Label>

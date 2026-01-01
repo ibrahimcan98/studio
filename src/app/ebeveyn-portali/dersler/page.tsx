@@ -11,11 +11,20 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatInTimeZone } from 'date-fns-tz';
 import { tr } from 'date-fns/locale';
-import { addMinutes, startOfDay } from 'date-fns';
+import { addMinutes, startOfDay, isBefore } from 'date-fns';
 import { COURSES } from '@/data/courses';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
+import { ProgressPanel } from '@/components/shared/progress-panel';
 
 const getCourseDetailsFromPackageCode = (code?: string) => {
     if (!code) return null;
@@ -41,7 +50,7 @@ const teachers = [
 ];
 
 
-function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
+function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZone: string, onShowProgress: () => void }) {
     const db = useFirestore();
     const router = useRouter();
     const { toast } = useToast();
@@ -76,7 +85,7 @@ function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
         );
     }
 
-    const isPast = new Date() > lesson.endTime;
+    const isPast = isBefore(lesson.endTime, new Date());
     const startTimeStr = formatInTimeZone(lesson.startTime, timeZone, 'HH:mm', { locale: tr });
     const endTimeStr = formatInTimeZone(lesson.endTime, timeZone, 'HH:mm', { locale: tr });
     const packageDetails = getCourseDetailsFromPackageCode(lesson.packageCode);
@@ -88,8 +97,8 @@ function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
             <CardHeader>
                 <CardTitle className="flex justify-between items-start">
                     <span className="text-xl font-bold">{packageDetails?.courseName || 'Ders'}</span>
-                     <Badge variant={isPast ? "outline" : "default"} className={isPast ? "" : "bg-green-100 text-green-800"}>
-                        {isPast ? 'Tamamlandı' : 'Yaklaşıyor'}
+                     <Badge variant={isPast ? "outline" : "default"} className={cn(isPast ? "" : "bg-green-100 text-green-800", lesson.isLive && !isPast && "bg-red-500 text-white animate-pulse")}>
+                        {isPast ? 'Tamamlandı' : (lesson.isLive ? 'Canlı Yayında' : 'Yaklaşıyor')}
                     </Badge>
                 </CardTitle>
                 <CardDescription>
@@ -111,22 +120,19 @@ function LessonCard({ lesson, timeZone }: { lesson: any, timeZone: string }) {
                     <span><strong>Paket:</strong> {lesson.packageCode === 'FREE_TRIAL' ? 'Ücretsiz Deneme' : packageDetails?.courseName}</span>
                 </div>
             </CardContent>
-            <CardFooter className='pt-4'>
+            <CardFooter className="flex flex-col items-start gap-3 pt-4">
                  {!isPast && (
-                    <Button onClick={handleJoinLesson} disabled={!canJoin} className="w-full">
+                    <Button onClick={handleJoinLesson} disabled={!canJoin} className={cn("w-full", canJoin && "bg-red-600 hover:bg-red-700")}>
                         <Video className="w-4 h-4 mr-2" />
                         {canJoin ? 'Derse Katıl' : 'Ders Zamanı Gelmedi'}
                     </Button>
                 )}
                 {isPast && lesson.feedback && (
-                <>
-                <Separator className="my-4" />
-                <div className="flex-col items-start gap-2 w-full">
-                    <h4 className="font-semibold flex items-center gap-2 text-base"><MessageSquare className='w-5 h-5 text-primary'/> Öğretmen Geri Bildirimi:</h4>
-                    <p className='text-sm text-muted-foreground pt-2'>{lesson.feedback.text}</p>
-                </div>
-                </>
-            )}
+                    <Button variant="outline" className="w-full" onClick={onShowProgress}>
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        Geri Bildirimi Gör
+                    </Button>
+                )}
             </CardFooter>
         </Card>
     );
@@ -136,6 +142,9 @@ function DerslerimPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [activeTab, setActiveTab] = useState('upcoming');
+    const [selectedLesson, setSelectedLesson] = useState<any | null>(null);
+    const [isProgressPanelOpen, setIsProgressPanelOpen] = useState(false);
+
 
     useEffect(() => {
         const tab = searchParams.get('tab');
@@ -169,6 +178,14 @@ function DerslerimPageContent() {
     }, [user, db]);
 
     const { data: lessonSlots, isLoading: lessonsLoading } = useCollection(bookedLessonsQuery);
+    
+    const childDocRef = useMemoFirebase(() => {
+        if (!db || !selectedLesson?.bookedBy || !selectedLesson?.childId) return null;
+        return doc(db, 'users', selectedLesson.bookedBy, 'children', selectedLesson.childId);
+    }, [db, selectedLesson]);
+
+    const { data: selectedChildData, isLoading: isChildDataLoading } = useDoc(childDocRef);
+
 
     const groupedLessons = useMemo(() => {
         if (!lessonSlots) return [];
@@ -248,7 +265,7 @@ function DerslerimPageContent() {
         const past: any[] = [];
 
         groupedLessons.forEach(lesson => {
-            if (lesson.endTime > now) {
+            if (isBefore(now, lesson.endTime)) {
                 upcoming.push(lesson);
             } else {
                 past.push(lesson);
@@ -268,6 +285,11 @@ function DerslerimPageContent() {
             </div>
         );
     }
+    
+    const handleShowProgress = (lesson: any) => {
+        setSelectedLesson(lesson);
+        setIsProgressPanelOpen(true);
+    };
 
     return (
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen">
@@ -302,7 +324,7 @@ function DerslerimPageContent() {
                             {upcomingLessons.length > 0 ? (
                                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                     {upcomingLessons.map(lesson => (
-                                        <LessonCard key={lesson.id} lesson={lesson} timeZone={timeZone} />
+                                        <LessonCard key={lesson.id} lesson={lesson} timeZone={timeZone} onShowProgress={() => handleShowProgress(lesson)} />
                                     ))}
                                 </div>
                             ) : (
@@ -326,7 +348,7 @@ function DerslerimPageContent() {
                              {pastLessons.length > 0 ? (
                                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                     {pastLessons.map(lesson => (
-                                        <LessonCard key={lesson.id} lesson={lesson} timeZone={timeZone} />
+                                        <LessonCard key={lesson.id} lesson={lesson} timeZone={timeZone} onShowProgress={() => handleShowProgress(lesson)} />
                                     ))}
                                 </div>
                             ) : (
@@ -338,6 +360,23 @@ function DerslerimPageContent() {
                     </Card>
                 </TabsContent>
             </Tabs>
+             <Dialog open={isProgressPanelOpen} onOpenChange={setIsProgressPanelOpen}>
+                <DialogContent className="max-w-5xl h-[90vh]">
+                    <DialogHeader>
+                        <DialogTitle className="text-3xl font-bold font-headline">
+                             {isChildDataLoading || !selectedChildData ? 'Yükleniyor...' : `${selectedChildData.firstName} İlerleme Paneli`}
+                        </DialogTitle>
+                         <DialogDescription>
+                            {isChildDataLoading || !selectedChildData ? 'Öğrenci verileri yükleniyor...' : `Bu ders için öğretmen geri bildirimini ve öğrencinin genel gelişimini görün.`}
+                        </DialogDescription>
+                    </DialogHeader>
+                     {isChildDataLoading || !selectedChildData || !selectedLesson ? (
+                         <div className="flex h-full items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>
+                    ) : (
+                        <ProgressPanel child={selectedChildData} lessonId={selectedLesson.id} isEditable={false} />
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

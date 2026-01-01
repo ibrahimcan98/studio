@@ -95,6 +95,11 @@
           "type": "string",
           "description": "URL of the teacher's introduction video.",
           "format": "uri"
+        },
+        "googleMeetLink": {
+          "type": "string",
+          "description": "The teacher's personal Google Meet link for lessons.",
+          "format": "uri"
         }
       },
       "required": [
@@ -242,6 +247,15 @@
                     "text": { "type": "string", "description": "The content of the feedback." },
                     "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the feedback was created or last updated." }
                 }
+            },
+            "isLive": {
+                "type": "boolean",
+                "description": "Indicates if the teacher has started the lesson."
+            },
+            "liveLessonUrl": {
+                "type": "string",
+                "format": "uri",
+                "description": "The URL for the live video session (e.g., Google Meet)."
             }
         },
         "required": ["id", "teacherId", "startTime", "endTime", "status"]

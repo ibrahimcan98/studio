@@ -4,14 +4,14 @@
 import { useState, useMemo, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, query, where, doc, writeBatch } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch, getDoc } from 'firebase/firestore';
 import { Loader2, Calendar, History, BookOpen, Baby, Edit, AlertCircle, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatInTimeZone } from 'date-fns-tz';
 import { tr } from 'date-fns/locale';
-import { addMinutes, startOfDay } from 'date-fns';
+import { addMinutes, startOfDay, isBefore } from 'date-fns';
 import { COURSES } from '@/data/courses';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -125,6 +125,13 @@ function OgretmenDerslerimPageContent() {
 
     const { data: lessonSlots, isLoading: lessonsLoading } = useCollection(lessonsQuery);
 
+    const teacherDocRef = useMemoFirebase(() => {
+        if (!user || !db) return null;
+        return doc(db, 'users', user.uid);
+    }, [user, db]);
+    const { data: teacherData, isLoading: teacherLoading } = useDoc(teacherDocRef);
+
+
     const childDocRef = useMemoFirebase(() => {
         if (!db || !selectedLesson?.bookedBy || !selectedLesson?.childId) return null;
         return doc(db, 'users', selectedLesson.bookedBy, 'children', selectedLesson.childId);
@@ -194,8 +201,11 @@ function OgretmenDerslerimPageContent() {
         const upcoming: any[] = [];
         const past: any[] = [];
         groupedLessons.forEach(lesson => {
-            if (lesson.endTime > now) upcoming.push(lesson);
-            else past.push(lesson);
+            if (isBefore(now, lesson.endTime)) { // Use isBefore for better date comparison
+                upcoming.push(lesson);
+            } else {
+                past.push(lesson);
+            }
         });
         upcoming.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
         past.sort((a, b) => {
@@ -210,19 +220,25 @@ function OgretmenDerslerimPageContent() {
 
     const handleJoinLesson = async (lesson: any) => {
         try {
+            if (!teacherData?.googleMeetLink) {
+                 toast({
+                    variant: 'destructive',
+                    title: 'Google Meet Linki Eksik',
+                    description: 'Lütfen profil sayfanızdan Google Meet linkinizi ekleyin.',
+                });
+                router.push('/ogretmen-portali/profil');
+                return;
+            }
+
             if (lesson.isLive && lesson.liveLessonUrl) {
-                if (lesson.liveLessonUrl.startsWith('http')) {
-                    window.open(lesson.liveLessonUrl, '_blank');
-                } else {
-                    router.push(lesson.liveLessonUrl);
-                }
+                window.open(lesson.liveLessonUrl, '_blank');
                 return;
             }
             
             if (!db || isStartingLesson) return;
             setIsStartingLesson(true);
 
-            const liveLessonUrl = `/live-lesson/${lesson.id}`;
+            const liveLessonUrl = teacherData.googleMeetLink;
             const batch = writeBatch(db);
 
             lesson.slots.forEach((slot: any) => {
@@ -236,9 +252,9 @@ function OgretmenDerslerimPageContent() {
             await batch.commit();
             toast({
                 title: 'Ders Başlatıldı!',
-                description: 'Derse yönlendiriliyorsunuz...',
+                description: 'Öğrenciniz artık derse katılabilir. Google Meet linki açılıyor...',
             });
-            router.push(liveLessonUrl);
+            window.open(liveLessonUrl, '_blank');
         } catch (error) {
             console.error("Ders başlatma hatası:", error);
             toast({
@@ -251,7 +267,7 @@ function OgretmenDerslerimPageContent() {
         }
     };
 
-    if (userLoading || lessonsLoading) {
+    if (userLoading || lessonsLoading || teacherLoading) {
         return <div className="flex min-h-[calc(100vh-145px)] items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
     }
 

@@ -33,19 +33,6 @@ service cloud.firestore {
         allow delete: if request.auth.uid == resource.data.teacherId || isAdmin();
     }
 
-    // --- CANLI DERS İÇİN GEREKLİ KURALLAR (EKSİK OLAN KISIM) ---
-    match /rooms/{roomId} {
-      allow read, write: if request.auth != null;
-      
-      match /callerCandidates/{candidateId} {
-        allow read, write: if request.auth != null;
-      }
-      match /calleeCandidates/{candidateId} {
-        allow read, write: if request.auth != null;
-      }
-    }
-    // ---------------------------------------------------------
-    
     match /courses/{courseId} {
       allow get: if true;
       allow list: if true;
