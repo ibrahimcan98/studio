@@ -8,14 +8,16 @@ import { updateProfile } from 'firebase/auth';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, User, Sprout, Video, Link as LinkIcon } from 'lucide-react';
+import { Loader2, User, Sprout, Video, Link as LinkIcon, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { cn } from '@/lib/utils';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, 'İsim alanı boş bırakılamaz.'),
@@ -38,6 +40,8 @@ export default function TeacherProfilePage() {
   }, [user, db]);
 
   const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
+
+  const isProfileLocked = userData?.isProfileComplete === true;
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -64,7 +68,7 @@ export default function TeacherProfilePage() {
 
 
   const onSubmit = async (data: ProfileFormValues) => {
-    if (!user || !userDocRef) return;
+    if (!user || !userDocRef || isProfileLocked) return;
 
     const displayName = data.firstName.trim();
     if(user.displayName !== displayName) {
@@ -80,9 +84,10 @@ export default function TeacherProfilePage() {
         hobbies: hobbiesArray,
         introVideoUrl: data.introVideoUrl,
         googleMeetLink: data.googleMeetLink,
+        isProfileComplete: true, // Lock the profile after the first save
       });
 
-      toast({ title: 'Başarılı!', description: 'Profiliniz başarıyla güncellendi.' });
+      toast({ title: 'Başarılı!', description: 'Profiliniz başarıyla güncellendi ve kilitlendi.' });
     } catch (error) {
       console.error(error);
       toast({ variant: 'destructive', title: 'Hata', description: 'Profil güncellenirken bir hata oluştu.' });
@@ -105,6 +110,16 @@ export default function TeacherProfilePage() {
         <h2 className="text-3xl font-bold tracking-tight">Profilimi Düzenle</h2>
         <p className="text-muted-foreground">Profil bilgilerinizi ve velilerin göreceği detayları yönetin.</p>
       </div>
+
+       {isProfileLocked && (
+        <Alert variant="destructive">
+          <Lock className="h-4 w-4" />
+          <AlertTitle>Profil Kilitli</AlertTitle>
+          <AlertDescription>
+            Profil bilgileriniz bir kez kaydedildikten sonra değiştirilemez. Değişiklik yapmak için lütfen yönetici ile iletişime geçin.
+          </AlertDescription>
+        </Alert>
+      )}
       
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
@@ -115,12 +130,12 @@ export default function TeacherProfilePage() {
                 <CardContent className="space-y-4">
                     <div>
                         <Label htmlFor="firstName">İsim</Label>
-                        <Input id="firstName" {...form.register('firstName')} />
+                        <Input id="firstName" {...form.register('firstName')} disabled={isProfileLocked} />
                         {form.formState.errors.firstName && <p className="text-destructive text-sm mt-1">{form.formState.errors.firstName.message}</p>}
                     </div>
                     <div>
                         <Label htmlFor="bio">Hakkımda (Özgeçmiş)</Label>
-                        <Textarea id="bio" rows={6} {...form.register('bio')} placeholder="Kısaca kendinizi, deneyimlerinizi ve öğretme felsefenizi anlatın..." />
+                        <Textarea id="bio" rows={6} {...form.register('bio')} placeholder="Kısaca kendinizi, deneyimlerinizi ve öğretme felsefenizi anlatın..." disabled={isProfileLocked} />
                     </div>
                 </CardContent>
             </Card>
@@ -132,24 +147,24 @@ export default function TeacherProfilePage() {
                 <CardContent className="space-y-4">
                     <div>
                         <Label htmlFor="hobbies">Hobiler</Label>
-                        <Input id="hobbies" {...form.register('hobbies')} placeholder="Kitap okumak, seyahat etmek, yüzmek..." />
+                        <Input id="hobbies" {...form.register('hobbies')} placeholder="Kitap okumak, seyahat etmek, yüzmek..." disabled={isProfileLocked} />
                         <p className="text-xs text-muted-foreground mt-1">Hobilerinizi virgülle ayırarak yazın.</p>
                     </div>
                      <div>
                         <Label htmlFor="googleMeetLink">Google Meet Linki</Label>
-                        <Input id="googleMeetLink" {...form.register('googleMeetLink')} placeholder="https://meet.google.com/xxx-xxxx-xxx" />
+                        <Input id="googleMeetLink" {...form.register('googleMeetLink')} placeholder="https://meet.google.com/xxx-xxxx-xxx" disabled={isProfileLocked} />
                         {form.formState.errors.googleMeetLink && <p className="text-destructive text-sm mt-1">{form.formState.errors.googleMeetLink.message}</p>}
                         <p className="text-xs text-muted-foreground mt-1">Bu link tüm dersleriniz için kullanılacaktır.</p>
                     </div>
                     <div>
                         <Label htmlFor="introVideoUrl">Tanıtım Videosu URL'si</Label>
-                        <Input id="introVideoUrl" {...form.register('introVideoUrl')} placeholder="https://youtube.com/watch?v=..." />
+                        <Input id="introVideoUrl" {...form.register('introVideoUrl')} placeholder="https://youtube.com/watch?v=..." disabled={isProfileLocked} />
                         {form.formState.errors.introVideoUrl && <p className="text-destructive text-sm mt-1">{form.formState.errors.introVideoUrl.message}</p>}
                     </div>
                      {introVideoUrl && (
                         <div>
                             <h4 className="font-semibold mb-2 text-sm">Video Önizlemesi</h4>
-                             <Button asChild variant="outline">
+                             <Button asChild variant="outline" disabled={isProfileLocked}>
                                 <Link href={introVideoUrl} target="_blank" rel="noopener noreferrer">
                                     <Video className="w-4 h-4 mr-2" />
                                     Videoyu Yeni Sekmede Aç
@@ -162,9 +177,9 @@ export default function TeacherProfilePage() {
         </div>
 
         <div className="flex justify-end">
-          <Button type="submit" disabled={form.formState.isSubmitting}>
+          <Button type="submit" disabled={form.formState.isSubmitting || isProfileLocked}>
             {form.formState.isSubmitting && <Loader2 className="animate-spin mr-2"/>}
-            Değişiklikleri Kaydet
+            {isProfileLocked ? 'Profil Kaydedildi' : 'Değişiklikleri Kaydet'}
           </Button>
         </div>
       </form>

@@ -100,6 +100,10 @@
           "type": "string",
           "description": "The teacher's personal Google Meet link for lessons.",
           "format": "uri"
+        },
+        "isProfileComplete": {
+            "type": "boolean",
+            "description": "A flag to indicate if the user (especially teacher) has completed their profile setup."
         }
       },
       "required": [
@@ -212,6 +216,10 @@
             },
             "required": ["id", "text", "createdAt"]
           }
+        },
+        "isProfileComplete": {
+            "type": "boolean",
+            "description": "A flag to indicate if the child's profile has all necessary information filled out by the parent."
         }
       },
       "required": [
