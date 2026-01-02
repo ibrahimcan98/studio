@@ -4,7 +4,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Crown, Zap, Star, Award, CheckCircle, Shield, Lock, Infinity as InfinityIcon, CreditCard } from 'lucide-react';
+import { Crown, Zap, Star, Award, CheckCircle, Shield, Lock, Infinity as InfinityIcon, CreditCard, AlertTriangle } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, updateDoc } from 'firebase/firestore';
 import { useRouter } from "next/navigation";
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 
 const premiumFeatures = [
@@ -189,6 +190,13 @@ export default function PremiumPage() {
                                 </DialogDescription>
                             </DialogHeader>
                              <form onSubmit={handlePurchase}>
+                                <Alert variant="destructive" className="mb-4 bg-yellow-50 border-yellow-200 text-yellow-800 [&>svg]:text-yellow-600">
+                                  <AlertTriangle className="h-4 w-4" />
+                                  <AlertTitle>Test Modu</AlertTitle>
+                                  <AlertDescription>
+                                    Bu bir simülasyondur. Gerçek bir ödeme alınmayacaktır.
+                                  </AlertDescription>
+                                </Alert>
                                 <div className="space-y-4 py-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="card-number">Kart Numarası</Label>
@@ -291,3 +299,5 @@ export default function PremiumPage() {
         </div>
     );
 }
+
+    
