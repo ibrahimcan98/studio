@@ -211,7 +211,7 @@ export default function PaketlerimPage() {
                                     const lessons = parseInt(pkg.replace(/\D/g, ''), 10);
                                     return (
                                         <Badge key={`${pkg}-${index}`} variant='secondary' className='p-2 text-base'>
-                                            {course?.title} ({lessons} derslik paket)
+                                            {course ? `${course.title} ${lessons} derslik paket` : `(${lessons} derslik paket)`}
                                         </Badge>
                                     )
                                 })}
