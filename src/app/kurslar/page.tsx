@@ -1,6 +1,6 @@
 
+
 'use server'; // Convert this to a server component to fetch data on the server
-import { COURSES } from "@/data/courses";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/layout/footer";
@@ -16,13 +16,6 @@ export default async function KurslarPage() {
     // Add EUR to the rates object as the base currency
     exchangeRates['EUR'] = 1;
 
-
-    const baslangicKursu = COURSES.find(c => c.id === 'baslangic');
-    const konusmaKursu = COURSES.find(c => c.id === 'konusma');
-    const gelisimKursu = COURSES.find(c => c.id === 'gelisim');
-    const akademikKursu = COURSES.find(c => c.id === 'akademik');
-
-
     return (
         <div className="bg-white min-h-screen text-[#243B53]">
             <header className="py-16 md:py-24 text-center px-4">
@@ -37,10 +30,6 @@ export default async function KurslarPage() {
             
             <KurslarClientPage 
                 exchangeRates={exchangeRates}
-                baslangicKursu={baslangicKursu}
-                konusmaKursu={konusmaKursu}
-                gelisimKursu={gelisimKursu}
-                akademikKursu={akademikKursu}
             />
 
             <Footer />

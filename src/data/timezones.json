@@ -1,14 +1,29 @@
-
 [
-    { "value": "Europe/London", "label": "Londra (GMT+0 / GMT+1)" },
-    { "value": "Europe/Dublin", "label": "Dublin (GMT+0 / GMT+1)" },
-    { "value": "Europe/Berlin", "label": "Berlin, Paris (GMT+1 / GMT+2)" },
-    { "value": "Europe/Istanbul", "label": "İstanbul (GMT+3)" },
-    { "value": "America/New_York", "label": "New York (EST, GMT-5 / EDT, GMT-4)" },
-    { "value": "America/Chicago", "label": "Chicago (CST, GMT-6 / CDT, GMT-5)" },
-    { "value": "America/Denver", "label": "Denver (MST, GMT-7 / MDT, GMT-6)" },
-    { "value": "America/Los_Angeles", "label": "Los Angeles (PST, GMT-8 / PDT, GMT-7)" },
-    { "value": "Asia/Dubai", "label": "Dubai (GMT+4)" },
-    { "value": "Asia/Tokyo", "label": "Tokyo (GMT+9)" },
-    { "value": "Australia/Sydney", "label": "Sydney (AEST, GMT+10 / AEDT, GMT+11)" }
-]
+    { "value": "Etc/GMT+12", "label": "Baker Island | UTC-12" },
+    { "value": "Pacific/Pago_Pago", "label": "Pago Pago, Samoa | UTC-11" },
+    { "value": "Pacific/Honolulu", "label": "Honolulu, USA | UTC-10" },
+    { "value": "America/Anchorage", "label": "Anchorage, USA | UTC-9" },
+    { "value": "America/Los_Angeles", "label": "Los Angeles, USA | UTC-8" },
+    { "value": "America/Denver", "label": "Denver, USA | UTC-7" },
+    { "value": "America/Chicago", "label": "Chicago, USA | UTC-6" },
+    { "value": "America/New_York", "label": "New York, USA | UTC-5" },
+    { "value": "America/Santo_Domingo", "label": "Santo Domingo | UTC-4" },
+    { "value": "America/Argentina/Buenos_Aires", "label": "Buenos Aires, Argentina | UTC-3" },
+    { "value": "Atlantic/South_Georgia", "label": "South Georgia | UTC-2" },
+    { "value": "Atlantic/Azores", "label": "Azores, Portugal | UTC-1" },
+    { "value": "Europe/London", "label": "London, UK | UTC+0" },
+    { "value": "Europe/Berlin", "label": "Berlin, Germany | UTC+1" },
+    { "value": "Europe/Athens", "label": "Athens, Greece | UTC+2" },
+    { "value": "Europe/Istanbul", "label": "Istanbul, Turkey | UTC+3" },
+    { "value": "Asia/Dubai", "label": "Dubai, UAE | UTC+4" },
+    { "value": "Asia/Karachi", "label": "Karachi, Pakistan | UTC+5" },
+    { "value": "Asia/Dhaka", "label": "Dhaka, Bangladesh | UTC+6" },
+    { "value": "Asia/Bangkok", "label": "Bangkok, Thailand | UTC+7" },
+    { "value": "Asia/Shanghai", "label": "Shanghai, China | UTC+8" },
+    { "value": "Asia/Tokyo", "label": "Tokyo, Japan | UTC+9" },
+    { "value": "Australia/Sydney", "label": "Sydney, Australia | UTC+10" },
+    { "value": "Pacific/Noumea", "label": "Nouméa, New Caledonia | UTC+11" },
+    { "value": "Pacific/Auckland", "label": "Auckland, New Zealand | UTC+12" },
+    { "value": "Pacific/Kiritimati", "label": "Kiritimati, Kiribati | UTC+14" }
+  ]
+  
