@@ -43,7 +43,7 @@ export const COURSES: Course[] = [
         id: "baslangic",
         title: "Başlangıç Kursu",
         ageGroup: "3-4 yaş",
-        shortDescription: "Türkçeyle güvenli bir ilk bağ kurarak, çocuğun dili anlamaya ve fark etmeye başlamasını sağlar.",
+        shortDescription: "Çocuğun Türkçeyle güvenli ve doğal bir bağ kurmasını hedefler.",
         cta: {
             backgroundColor: "bg-[#FFF8E7]",
             iconBgColor: "bg-yellow-100",
@@ -55,9 +55,11 @@ export const COURSES: Course[] = [
         details: {
             duration: "20 dakika",
             gains: [
-                "Belirli temalarda (hayvanlar, renkler, kıyafetler, mevsimler, doğa…) kelime bilgisi geniştir.",
-                "Türkçe şarkılar dinler ve anlar.",
-                "Sorulara Türkçe cevaplar verebilir.",
+                "Türkçeyi duyduğunda temel anlamları fark etmeye başlar",
+                "Günlük kelimeleri görsel ve bağlamla eşleştirir",
+                "Basit yönergeleri anlar ve takip eder",
+                "Kısa ifadelerle kendini ifade etmeye başlar",
+                "Türkçeyle pozitif bağ, güven ve aidiyet geliştirir"
             ],
         },
         pricing: {
@@ -187,7 +189,7 @@ export const COURSES: Course[] = [
         id: "gelisim",
         title: "Gelişim Kursu",
         ageGroup: "İlkokul ve ortaokul",
-        shortDescription: "Türkçeyi içerik öğrenme ve düşünme dili olarak kullanmayı hedefler.\n\nBu kursu tamamlayan çocuklar:\n\nFen, kültür ve dünya bilgisi içeriklerini Türkçe öğrenir\nBilgi metinlerinden çıkarım yapar\nKarşılaştırma ve açıklama yapar\nKısa araştırmalar ve sunumlar hazırlar\nDil, kültür ve kimlik arasında bilinçli bağlar kurar",
+        shortDescription: "Türkçeyi sadece konuşma dili değil, öğrenme ve düşünme aracı olarak kullanmayı hedefler.",
         cta: { 
             backgroundColor: "bg-[#F0FAF8]",
             iconBgColor: "bg-gray-200",
@@ -199,11 +201,11 @@ export const COURSES: Course[] = [
         details: {
             duration: "45 dakika",
             gains: [
-                "Fen, kültür ve dünya bilgisi içeriklerini Türkçe öğrenir.",
-                "Bilgi metinlerinden çıkarım yapar.",
-                "Karşılaştırma ve açıklama yapar.",
-                "Kısa araştırmalar ve sunumlar hazırlar.",
-                "Dil, kültür ve kimlik arasında bilinçli bağlar kurar.",
+                "Fen, kültür ve dünya bilgisi içeriklerini Türkçe öğrenir",
+                "Bilgi metinlerinden çıkarım yapar",
+                "Karşılaştırma ve açıklama yapar",
+                "Kısa araştırmalar ve sunumlar hazırlar",
+                "Dil, kültür ve kimlik arasında bilinçli bağlar kurar"
             ],
         },
         pricing: {
