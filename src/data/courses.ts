@@ -108,7 +108,7 @@ export const COURSES: Course[] = [
         id: "akademik",
         title: "Akademik Kurs",
         ageGroup: "İlkokul ve ortaokul",
-        shortDescription: "Okuma yazma bilen her öğrencinin alabileceği Akademik Kurs, 4 adımdan oluşur.",
+        shortDescription: "Okuma, yazma ve metin anlama becerilerini geliştirerek akademik Türkçenin temellerini oluşturur.",
         cta: { 
             backgroundColor: "bg-[#D4EDE3]",
             iconBgColor: "bg-green-100",
