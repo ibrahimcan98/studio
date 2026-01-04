@@ -108,7 +108,7 @@ export const COURSES: Course[] = [
         id: "gelisim",
         title: "Gelişim Kursu",
         ageGroup: "İlkokul ve ortaokul",
-        shortDescription: "Çocuğunuz için etkili, genel kültür dersleri.",
+        shortDescription: "Türkçeyi içerik öğrenme ve düşünme dili olarak kullanmayı hedefler.",
         cta: { 
             backgroundColor: "bg-[#F0FAF8]",
             iconBgColor: "bg-gray-200",
@@ -120,8 +120,11 @@ export const COURSES: Course[] = [
         details: {
             duration: "45 dakika",
             gains: [
-                "Fen, sanat, sosyal bilimler gibi konuları Türkçe olarak ifade edebilir.",
-                "Bu konularda yeterli kelime bilgisine sahiptir.",
+                "Fen, kültür ve dünya bilgisi içeriklerini Türkçe öğrenir.",
+                "Bilgi metinlerinden çıkarım yapar.",
+                "Karşılaştırma ve açıklama yapar.",
+                "Kısa araştırmalar ve sunumlar hazırlar.",
+                "Dil, kültür ve kimlik arasında bilinçli bağlar kurar.",
             ],
         },
         pricing: {
