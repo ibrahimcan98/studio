@@ -229,7 +229,7 @@ export const COURSES: Course[] = [
     },
     {
         id: "gcse",
-        title: "GCSE Turkce Kursu",
+        title: "GCSE Türkçe Kursu",
         ageGroup: "Ortaokul – Lise (GCSE adayları)",
         shortDescription: "Öğrenciyi GCSE Türkçe sınavının konuşma, yazma, dinleme ve okuma gerekliliklerine sistemli ve sınav odaklı şekilde hazırlar.",
         cta: {
