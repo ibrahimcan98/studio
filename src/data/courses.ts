@@ -41,7 +41,7 @@ export type Course = {
 export const COURSES: Course[] = [
     {
         id: "baslangic",
-        title: "Başlangıç Kursu(Pre A1)",
+        title: "Başlangıç Kursu (Pre A1)",
         ageGroup: "3-4 yaş",
         shortDescription: "Çocuğun Türkçeyle güvenli ve doğal bir bağ kurmasını hedefler.",
         cta: {
@@ -75,7 +75,7 @@ export const COURSES: Course[] = [
     },
     {
         id: "konusma",
-        title: "Konuşma Kursu(A1)",
+        title: "Konuşma Kursu (A1)",
         ageGroup: "Okul öncesi ve ilkokulun ilk yılları",
         shortDescription: "Çocuğun Türkçeyi kısa cümleler ve günlük konuşmalarla aktif olarak kullanmasını destekler.",
         cta: {
@@ -109,7 +109,7 @@ export const COURSES: Course[] = [
     },
     {
         id: "akademik",
-        title: "Akademik Kurs(A2)",
+        title: "Akademik Kurs (A2)",
         ageGroup: "İlkokul ve ortaokul",
         shortDescription: "Okuma, yazma ve metin anlama becerilerini geliştirerek akademik Türkçenin temellerini oluşturur.",
         cta: { 
@@ -186,7 +186,7 @@ export const COURSES: Course[] = [
     },
     {
         id: "gelisim",
-        title: "Gelişim Kursu(B1)",
+        title: "Gelişim Kursu (B1)",
         ageGroup: "Ortaokul",
         shortDescription: "Türkçeyi sadece konuşma dili değil, öğrenme ve düşünme aracı olarak kullanmayı hedefler.",
         cta: { 
