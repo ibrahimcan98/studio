@@ -74,7 +74,7 @@ export const COURSES: Course[] = [
         id: "konusma",
         title: "Konuşma Kursu",
         ageGroup: "Okul öncesi",
-        shortDescription: "5 yaşındaki çocuğunuz için keyifli bir ısınma turu!\n* Yaş grubu tahmindir. Çocuğunuzun hazır bulunuşluğu ve sizin beklentilerinize göre başlayacağınız kurs belirlenir.",
+        shortDescription: "Çocuğun Türkçeyi kısa cümleler ve günlük konuşmalarla aktif olarak kullanmasını destekler.",
         cta: {
             backgroundColor: "bg-[#FFF0CC]",
             iconBgColor: "bg-teal-100",
@@ -101,39 +101,6 @@ export const COURSES: Course[] = [
                 { lessons: 8, price: 161.27 },
                 { lessons: 12, price: 221.48 },
                 { lessons: 24, price: 422.93 },
-            ],
-        },
-    },
-    {
-        id: "gelisim",
-        title: "Gelişim Kursu",
-        ageGroup: "İlkokul ve ortaokul",
-        shortDescription: "Türkçeyi içerik öğrenme ve düşünme dili olarak kullanmayı hedefler.\n\nBu kursu tamamlayan çocuklar:\n\nFen, kültür ve dünya bilgisi içeriklerini Türkçe öğrenir\nBilgi metinlerinden çıkarım yapar\nKarşılaştırma ve açıklama yapar\nKısa araştırmalar ve sunumlar hazırlar\nDil, kültür ve kimlik arasında bilinçli bağlar kurar",
-        cta: { 
-            backgroundColor: "bg-[#F0FAF8]",
-            iconBgColor: "bg-gray-200",
-            iconTextColor: "text-gray-500",
-            badgeColor: "bg-[#86E3FC]",
-            badgeTextColor: "text-cyan-900",
-            linkTextColor: "text-orange-500",
-        },
-        details: {
-            duration: "45 dakika",
-            gains: [
-                "Fen, kültür ve dünya bilgisi içeriklerini Türkçe öğrenir.",
-                "Bilgi metinlerinden çıkarım yapar.",
-                "Karşılaştırma ve açıklama yapar.",
-                "Kısa araştırmalar ve sunumlar hazırlar.",
-                "Dil, kültür ve kimlik arasında bilinçli bağlar kurar.",
-            ],
-        },
-        pricing: {
-             perLesson: { '4': 31.30, '8': 30.10, '12': 27.69, '24': 26.48 },
-            packages: [
-                { lessons: 4, price: 125.18 },
-                { lessons: 8, price: 240.77 },
-                { lessons: 12, price: 332.22 },
-                { lessons: 24, price: 635.56 },
             ],
         },
     },
@@ -208,6 +175,39 @@ export const COURSES: Course[] = [
         ],
         pricing: {
             perLesson: { '4': 31.30, '8': 30.10, '12': 27.69, '24': 26.48 },
+            packages: [
+                { lessons: 4, price: 125.18 },
+                { lessons: 8, price: 240.77 },
+                { lessons: 12, price: 332.22 },
+                { lessons: 24, price: 635.56 },
+            ],
+        },
+    },
+    {
+        id: "gelisim",
+        title: "Gelişim Kursu",
+        ageGroup: "İlkokul ve ortaokul",
+        shortDescription: "Türkçeyi içerik öğrenme ve düşünme dili olarak kullanmayı hedefler.\n\nBu kursu tamamlayan çocuklar:\n\nFen, kültür ve dünya bilgisi içeriklerini Türkçe öğrenir\nBilgi metinlerinden çıkarım yapar\nKarşılaştırma ve açıklama yapar\nKısa araştırmalar ve sunumlar hazırlar\nDil, kültür ve kimlik arasında bilinçli bağlar kurar",
+        cta: { 
+            backgroundColor: "bg-[#F0FAF8]",
+            iconBgColor: "bg-gray-200",
+            iconTextColor: "text-gray-500",
+            badgeColor: "bg-[#86E3FC]",
+            badgeTextColor: "text-cyan-900",
+            linkTextColor: "text-orange-500",
+        },
+        details: {
+            duration: "45 dakika",
+            gains: [
+                "Fen, kültür ve dünya bilgisi içeriklerini Türkçe öğrenir.",
+                "Bilgi metinlerinden çıkarım yapar.",
+                "Karşılaştırma ve açıklama yapar.",
+                "Kısa araştırmalar ve sunumlar hazırlar.",
+                "Dil, kültür ve kimlik arasında bilinçli bağlar kurar.",
+            ],
+        },
+        pricing: {
+             perLesson: { '4': 31.30, '8': 30.10, '12': 27.69, '24': 26.48 },
             packages: [
                 { lessons: 4, price: 125.18 },
                 { lessons: 8, price: 240.77 },
