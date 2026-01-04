@@ -23,6 +23,7 @@ const getCourseCode = (courseId: string) => {
         case 'konusma': return 'K';
         case 'gelisim': return 'G';
         case 'akademik': return 'A';
+        case 'gcse': return 'GCSE';
         default: return '';
     }
 }
