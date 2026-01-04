@@ -128,6 +128,15 @@ export function KurslarClientPage({
                 ))}
             </div>
 
+            <div className="max-w-4xl mx-auto text-center my-16">
+                <div className="inline-flex items-start gap-4 bg-blue-50 border border-blue-200 text-blue-800 rounded-2xl px-6 py-4">
+                    <Info className="w-5 h-5 mt-1 flex-shrink-0"/>
+                    <p className="text-sm text-left">
+                        Yurt dışında yaşayan çocukların dil gelişimi ve Türkçeye yönelik hazırbulunuşluk düzeyleri ülkeden ülkeye ve çocuktan çocuğa farklılık gösterebilir. Bu nedenle kurslarda yaş değil, çocuğun dil seviyesi esas alınır. Ücretsiz deneme dersi sonrasında öğretmenimiz tarafından yapılan değerlendirmeye göre en uygun kurs ve aşama belirlenir.
+                    </p>
+                </div>
+            </div>
+
             {baslangicKursu && (
                 <section id="baslangic-detay" className="mt-20 md:mt-28 py-16 md:py-24 rounded-3xl bg-[#FFF8E7]">
                     <div className="container max-w-6xl mx-auto">
@@ -154,13 +163,6 @@ export function KurslarClientPage({
                             </div>
                         </div>
                         
-                        <div className="text-center mb-12">
-                            <div className="inline-flex items-center gap-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-full px-6 py-3">
-                                <Info className="w-5 h-5"/>
-                                <p>İndirim fırsatını kaçırmayın! Bizimle iletişime geçin, promosyon kodu ile indirim kazanın.</p>
-                            </div>
-                        </div>
-
                         <div>
                             <h3 className="text-3xl md:text-4xl font-bold mb-8 text-center">Başlangıç Kursu - Paket Seçenekleri</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -217,13 +219,6 @@ export function KurslarClientPage({
                             </div>
                         </div>
                         
-                        <div className="text-center mb-12">
-                            <div className="inline-flex items-center gap-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-full px-6 py-3">
-                                <Info className="w-5 h-5"/>
-                                <p>İndirim fırsatını kaçırmayın! Bizimle iletişime geçin, promosyon kodu ile indirim kazanın.</p>
-                            </div>
-                        </div>
-
                         <div>
                             <h3 className="text-3xl md:text-4xl font-bold mb-8 text-center">Konuşma Kursu - Paket Seçenekleri</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -264,7 +259,7 @@ export function KurslarClientPage({
                                 <span>|</span>
                                 <span>Yaş grubu: {akademikKursu.ageGroup}</span>
                             </div>
-                            <p className="text-gray-600 max-w-3xl mx-auto">Okuma yazma bilen her öğrencinin alabileceği Akademik Kurs, 4 adımdan oluşur.</p>
+                            <p className="text-gray-600 max-w-3xl mx-auto">Okuma, yazma ve metin anlama becerilerini geliştirerek akademik Türkçenin temellerini oluşturur.</p>
                         </div>
 
                         <div className="grid md:grid-cols-2 gap-8 mb-16">
@@ -287,13 +282,6 @@ export function KurslarClientPage({
                             ))}
                         </div>
                         
-                        <div className="text-center mb-12">
-                            <div className="inline-flex items-center gap-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-full px-6 py-3">
-                                <Info className="w-5 h-5"/>
-                                <p>İndirim fırsatını kaçırmayın! Bizimle iletişime geçin, promosyon kodu ile indirim kazanın.</p>
-                            </div>
-                        </div>
-
                         <div id="akademik-paketler">
                             <h3 className="text-3xl md:text-4xl font-bold mb-8 text-center">Akademik Kurs - Paket Seçenekleri</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -350,13 +338,6 @@ export function KurslarClientPage({
                             </div>
                         </div>
                         
-                        <div className="text-center mb-12">
-                            <div className="inline-flex items-center gap-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-full px-6 py-3">
-                                <Info className="w-5 h-5"/>
-                                <p>İndirim fırsatını kaçırmayın! Bizimle iletişime geçin, promosyon kodu ile indirim kazanın.</p>
-                            </div>
-                        </div>
-
                         <div>
                             <h3 className="text-3xl md:text-4xl font-bold mb-8 text-center">Gelişim Kursu - Paket Seçenekleri</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
