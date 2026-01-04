@@ -140,7 +140,7 @@ export function KurslarClientPage({
                             </div>
                         </div>
 
-                        <div className="grid md:grid-cols-2 gap-8 items-center mb-16">
+                        <div className="grid md:grid-cols-1 gap-8 items-center mb-16">
                             <div className="bg-white p-8 rounded-2xl shadow-md">
                                 <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><CheckCircle className="text-green-500" /> KAZANIMLAR</h3>
                                 <ul className="space-y-3 text-gray-600">
@@ -151,15 +151,6 @@ export function KurslarClientPage({
                                         </li>
                                     ))}
                                 </ul>
-                            </div>
-                            <div className="bg-gradient-to-br from-orange-300 to-amber-400 p-8 rounded-2xl shadow-md text-center text-white flex flex-col items-center justify-center h-full">
-                                <div className="w-16 h-16 rounded-full bg-white/30 flex items-center justify-center mb-4">
-                                    <WhatsAppIcon className="w-8 h-8 fill-white text-white"/>
-                                </div>
-                                <h3 className="text-xl font-bold mb-4">Paketlerle ilgili bilgi almak için tıkla</h3>
-                                <Button asChild className="bg-white text-orange-500 hover:bg-gray-100 font-bold">
-                                    <a href="https://wa.me/+905058029734" target="_blank" rel="noopener noreferrer">WhatsApp'ta Sohbet Et</a>
-                                </Button>
                             </div>
                         </div>
                         
@@ -212,7 +203,7 @@ export function KurslarClientPage({
                             </div>
                         </div>
 
-                        <div className="grid md:grid-cols-2 gap-8 items-center mb-16">
+                        <div className="grid md:grid-cols-1 gap-8 items-center mb-16">
                             <div className="bg-white p-8 rounded-2xl shadow-md">
                                 <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><CheckCircle className="text-green-500" /> KAZANIMLAR</h3>
                                 <ul className="space-y-3 text-gray-600">
@@ -223,15 +214,6 @@ export function KurslarClientPage({
                                         </li>
                                     ))}
                                 </ul>
-                            </div>
-                            <div className="bg-gradient-to-br from-orange-300 to-amber-400 p-8 rounded-2xl shadow-md text-center text-white flex flex-col items-center justify-center h-full">
-                                <div className="w-16 h-16 rounded-full bg-white/30 flex items-center justify-center mb-4">
-                                    <WhatsAppIcon className="w-8 h-8 fill-white text-white"/>
-                                </div>
-                                <h3 className="text-xl font-bold mb-4">Paketlerle ilgili bilgi almak için tıkla</h3>
-                                <Button asChild className="bg-white text-orange-500 hover:bg-gray-100 font-bold">
-                                    <a href="https://wa.me/+905058029734" target="_blank" rel="noopener noreferrer">WhatsApp'ta Sohbet Et</a>
-                                </Button>
                             </div>
                         </div>
                         
@@ -284,7 +266,7 @@ export function KurslarClientPage({
                             </div>
                         </div>
 
-                        <div className="grid md:grid-cols-2 gap-8 items-center mb-16">
+                        <div className="grid md:grid-cols-1 gap-8 items-center mb-16">
                             <div className="bg-white p-8 rounded-2xl shadow-md">
                                 <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><CheckCircle className="text-green-500" /> KAZANIMLAR</h3>
                                 <ul className="space-y-3 text-gray-600">
@@ -295,15 +277,6 @@ export function KurslarClientPage({
                                         </li>
                                     ))}
                                 </ul>
-                            </div>
-                            <div className="bg-gradient-to-br from-orange-300 to-amber-400 p-8 rounded-2xl shadow-md text-center text-white flex flex-col items-center justify-center h-full">
-                                <div className="w-16 h-16 rounded-full bg-white/30 flex items-center justify-center mb-4">
-                                    <WhatsAppIcon className="w-8 h-8 fill-white text-white"/>
-                                </div>
-                                <h3 className="text-xl font-bold mb-4">Paketlerle ilgili bilgi almak için tıkla</h3>
-                                <Button asChild className="bg-white text-orange-500 hover:bg-gray-100 font-bold">
-                                    <a href="https://wa.me/+905058029734" target="_blank" rel="noopener noreferrer">WhatsApp'ta Sohbet Et</a>
-                                </Button>
                             </div>
                         </div>
                         
@@ -417,9 +390,9 @@ export function KurslarClientPage({
             <section className="py-20 md:py-28 text-center">
                 <div className="container max-w-4xl mx-auto">
                     <div className="p-1 rounded-full bg-gradient-to-r from-teal-400 to-green-500 mb-8 inline-block">
-                         <Button asChild size="lg" className="bg-[#25D366] hover:bg-[#25D366]/90 text-white rounded-full text-lg font-bold px-6 h-auto py-3 sm:py-4">
+                         <Button asChild size="lg" className="bg-white text-gray-800 hover:bg-gray-100 rounded-full text-base sm:text-lg font-bold px-6 h-auto py-3 sm:py-4">
                             <a href="https://wa.me/+905058029734" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                                <WhatsAppIcon className="w-6 h-6 fill-white" />
+                                <WhatsAppIcon className="w-6 h-6 text-[#25D366] fill-[#25D366]" />
                                 <span className="text-center">İndirim kodu için bize yazın!</span>
                             </a>
                         </Button>
@@ -443,3 +416,5 @@ export function KurslarClientPage({
         </main>
     );
 }
+
+    
