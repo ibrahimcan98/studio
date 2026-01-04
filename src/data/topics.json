@@ -126,7 +126,7 @@
       "icon": "🔷",
       "words": 4,
       "unlocked": false,
-      "isPremium": false,
+      "isPremium": true,
       "wordList": [
         { "word": "üçgen", "image": "/images/sekiller/ucgen.png", "audio": "/audio/sekiller/ucgen.mp3" },
         { "word": "dikdörtgen", "image": "/images/sekiller/dikdortgen.png", "audio": "/audio/sekiller/dikdortgen.mp3" },
@@ -140,7 +140,7 @@
       "icon": "😊",
       "words": 5,
       "unlocked": false,
-      "isPremium": false,
+      "isPremium": true,
       "wordList": [
         { "word": "mutlu", "image": "/images/duygular/mutlu.png", "audio": "/audio/duygular/mutlu.mp3" },
         { "word": "üzgün", "image": "/images/duygular/uzgun.png", "audio": "/audio/duygular/uzgun.mp3" },
@@ -155,7 +155,7 @@
       "icon": "🌳",
       "words": 8,
       "unlocked": false,
-      "isPremium": false,
+      "isPremium": true,
       "wordList": [
         { "word": "orman", "image": "/images/doga/orman.png", "audio": "/audio/doga/orman.mp3" },
         { "word": "çiçek", "image": "/images/doga/cicek.png", "audio": "/audio/doga/cicek.mp3" },
@@ -238,3 +238,5 @@
       ]
     }
   ]
+
+    
