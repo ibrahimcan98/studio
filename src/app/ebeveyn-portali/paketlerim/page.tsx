@@ -34,7 +34,8 @@ const getCourseByCode = (code?: string): Course | undefined => {
         'A': 'akademik',
         'GCSE': 'gcse'
     };
-    const courseId = courseMap[code.replace(/[0-9]/g, '') as keyof typeof courseMap];
+    const courseKey = code.replace(/[0-9]/g, '');
+    const courseId = courseMap[courseKey as keyof typeof courseMap];
     return COURSES.find(c => c.id === courseId);
 };
 
@@ -332,4 +333,3 @@ export default function PaketlerimPage() {
     );
 }
 
-    
