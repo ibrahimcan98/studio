@@ -128,7 +128,7 @@ export function KurslarClientPage({
                 ))}
             </div>
 
-            <div className="max-w-4xl mx-auto text-center my-16">
+             <div className="max-w-4xl mx-auto text-center my-16">
                 <div className="inline-flex items-start gap-4 bg-blue-50 border border-blue-200 text-blue-800 rounded-2xl px-6 py-4">
                     <Info className="w-5 h-5 mt-1 flex-shrink-0"/>
                     <p className="text-sm text-left">
@@ -168,7 +168,8 @@ export function KurslarClientPage({
                             <h3 className="text-3xl md:text-4xl font-bold mb-8 text-center">{baslangicKursu.title} - Paket Seçenekleri</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                 {baslangicKursu.pricing.packages.map((pkg) => {
-                                    const perLessonPrice = baslangicKursu.pricing.perLesson[pkg.lessons as keyof typeof baslangicKursu.pricing.perLesson];
+                                    const perLessonPrice = baslangicKursu.pricing.perLesson?.[pkg.lessons as keyof typeof baslangicKursu.pricing.perLesson];
+                                    if (!perLessonPrice) return null;
                                     return (
                                         <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
                                             <Badge variant="secondary" className="mb-4 bg-teal-100 text-teal-800">
@@ -225,7 +226,8 @@ export function KurslarClientPage({
                             <h3 className="text-3xl md:text-4xl font-bold mb-8 text-center">{konusmaKursu.title} - Paket Seçenekleri</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                 {konusmaKursu.pricing.packages.map((pkg) => {
-                                    const perLessonPrice = konusmaKursu.pricing.perLesson[pkg.lessons as keyof typeof konusmaKursu.pricing.perLesson];
+                                    const perLessonPrice = konusmaKursu.pricing.perLesson?.[pkg.lessons as keyof typeof konusmaKursu.pricing.perLesson];
+                                    if (!perLessonPrice) return null;
                                     return (
                                         <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
                                             <Badge variant="secondary" className="mb-4 bg-teal-100 text-teal-800">
@@ -250,7 +252,7 @@ export function KurslarClientPage({
                     </div>
                 </section>
             )}
-
+            
             {akademikKursu && (
                  <section id="akademik-detay" className="mt-16 py-16 md:py-24 rounded-3xl bg-[#D4EDE3]">
                     <div className="container max-w-6xl mx-auto">
@@ -288,7 +290,8 @@ export function KurslarClientPage({
                             <h3 className="text-3xl md:text-4xl font-bold mb-8 text-center">{akademikKursu.title} - Paket Seçenekleri</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                 {akademikKursu.pricing.packages.map((pkg) => {
-                                    const perLessonPrice = akademikKursu.pricing.perLesson[pkg.lessons as keyof typeof akademikKursu.pricing.perLesson];
+                                    const perLessonPrice = akademikKursu.pricing.perLesson?.[pkg.lessons as keyof typeof akademikKursu.pricing.perLesson];
+                                    if (!perLessonPrice) return null;
                                     return (
                                         <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
                                             <Badge variant="secondary" className="mb-4 bg-teal-100 text-teal-800">
@@ -345,7 +348,8 @@ export function KurslarClientPage({
                             <h3 className="text-3xl md:text-4xl font-bold mb-8 text-center">{gelisimKursu.title} - Paket Seçenekleri</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                 {gelisimKursu.pricing.packages.map((pkg) => {
-                                    const perLessonPrice = gelisimKursu.pricing.perLesson[pkg.lessons as keyof typeof gelisimKursu.pricing.perLesson];
+                                    const perLessonPrice = gelisimKursu.pricing.perLesson?.[pkg.lessons as keyof typeof gelisimKursu.pricing.perLesson];
+                                    if (!perLessonPrice) return null;
                                     return (
                                         <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
                                             <Badge variant="secondary" className="mb-4 bg-teal-100 text-teal-800">
@@ -400,7 +404,8 @@ export function KurslarClientPage({
                             <h3 className="text-3xl md:text-4xl font-bold mb-8 text-center">{gcseKursu.title} - Paket Seçeneği</h3>
                             <div className="flex justify-center">
                                 {gcseKursu.pricing.packages.map((pkg) => {
-                                    const perLessonPrice = gcseKursu.pricing.perLesson[pkg.lessons as keyof typeof gcseKursu.pricing.perLesson];
+                                    const perLessonPrice = gcseKursu.pricing.perLesson?.[pkg.lessons as keyof typeof gcseKursu.pricing.perLesson];
+                                    if (!perLessonPrice) return null;
                                     return (
                                         <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow w-full max-w-xs">
                                             <Badge variant="secondary" className="mb-4 bg-teal-100 text-teal-800">

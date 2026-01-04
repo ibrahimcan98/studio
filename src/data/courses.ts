@@ -28,10 +28,10 @@ export type Course = {
     academicSteps?: AcademicStep[];
     pricing: {
         perLesson: {
-            '4': number;
-            '8': number;
-            '12': number;
-            '24': number;
+            '4'?: number;
+            '8'?: number;
+            '12'?: number;
+            '24'?: number;
         },
         packages: {
             lessons: number;
@@ -109,40 +109,6 @@ export const COURSES: Course[] = [
             ],
         },
     },
-    {
-        id: "gelisim",
-        title: "Gelişim Kursu (B1)",
-        ageGroup: "Ortaokul",
-        shortDescription: "Türkçeyi sadece konuşma dili değil, öğrenme ve düşünme aracı olarak kullanmayı hedefler.",
-        cta: { 
-            backgroundColor: "bg-[#F0FAF8]",
-            iconBgColor: "bg-gray-200",
-            iconTextColor: "text-gray-500",
-            badgeColor: "bg-[#86E3FC]",
-            badgeTextColor: "text-cyan-900",
-            linkTextColor: "text-orange-500",
-        },
-        details: {
-            duration: "45 dakika",
-             gains: [
-                "Fen, kültür ve dünya bilgisi içeriklerini Türkçe öğrenir",
-                "Bilgi metinlerinden çıkarım yapar",
-                "Karşılaştırma ve açıklama yapar",
-                "Kısa araştırmalar ve sunumlar hazırlar",
-                "Dil, kültür ve kimlik arasında bilinçli bağlar kurar."
-            ],
-            longDescription: "Türkçeyi içerik öğrenme ve düşünme dili olarak kullanmayı hedefler."
-        },
-        pricing: {
-             perLesson: { '4': 72.33, '8': 68.88, '12': 62.81, '24': 58.55 },
-            packages: [
-                { lessons: 4, price: 289.31},
-                { lessons: 8, price: 551.06 },
-                { lessons: 12, price: 753.71 },
-                { lessons: 24, price: 1405.21 },
-            ],
-        },
-    },
      {
         id: "akademik",
         title: "Akademik Kurs (A2)",
@@ -158,7 +124,13 @@ export const COURSES: Course[] = [
         },
         details: {
             duration: "45 dakika",
-            gains: [], // Gains are in academicSteps
+            gains: [
+                 "Metinleri anlayıp ana fikri belirler",
+                "Paragraf düzeyinde yazılar yazar",
+                "Olay sırası ve sebep sonuç ilişkisi kurar",
+                "Farklı metin türlerini tanır ve kullanır",
+                "Dil bilgisi yapılarını işlevsel biçimde uygular",
+            ],
              longDescription: "Okuma, yazma ve akademik dil becerilerinin temellerini atar."
         },
         academicSteps: [
@@ -222,8 +194,42 @@ export const COURSES: Course[] = [
         },
     },
     {
+        id: "gelisim",
+        title: "Gelişim Kursu (B1)",
+        ageGroup: "Ortaokul",
+        shortDescription: "Türkçeyi sadece konuşma dili değil, öğrenme ve düşünme aracı olarak kullanmayı hedefler.",
+        cta: { 
+            backgroundColor: "bg-[#F0FAF8]",
+            iconBgColor: "bg-gray-200",
+            iconTextColor: "text-gray-500",
+            badgeColor: "bg-[#86E3FC]",
+            badgeTextColor: "text-cyan-900",
+            linkTextColor: "text-orange-500",
+        },
+        details: {
+            duration: "45 dakika",
+             gains: [
+                "Fen, kültür ve dünya bilgisi içeriklerini Türkçe öğrenir",
+                "Bilgi metinlerinden çıkarım yapar",
+                "Karşılaştırma ve açıklama yapar",
+                "Kısa araştırmalar ve sunumlar hazırlar",
+                "Dil, kültür ve kimlik arasında bilinçli bağlar kurar."
+            ],
+            longDescription: "Türkçeyi içerik öğrenme ve düşünme dili olarak kullanmayı hedefler."
+        },
+        pricing: {
+             perLesson: { '4': 72.33, '8': 68.88, '12': 62.81, '24': 58.55 },
+            packages: [
+                { lessons: 4, price: 289.31},
+                { lessons: 8, price: 551.06 },
+                { lessons: 12, price: 753.71 },
+                { lessons: 24, price: 1405.21 },
+            ],
+        },
+    },
+    {
         id: "gcse",
-        title: "GCSE Türkçe Hazırlık Kursu",
+        title: "GCSE Turkce Kursu",
         ageGroup: "Ortaokul – Lise (GCSE adayları)",
         shortDescription: "Öğrenciyi GCSE Türkçe sınavının konuşma, yazma, dinleme ve okuma gerekliliklerine sistemli ve sınav odaklı şekilde hazırlar.",
         cta: {
@@ -251,7 +257,7 @@ export const COURSES: Course[] = [
             ],
         },
         pricing: {
-            perLesson: { '4': 68.88, '8': 68.88, '12': 68.88, '24': 68.88 },
+            perLesson: { '12': 68.88 },
             packages: [
                 { lessons: 12, price: 826.59 }
             ],
