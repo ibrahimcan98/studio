@@ -29,8 +29,14 @@ const getCourseDetailsFromPackageCode = (code?: string) => {
     if (!code) return null;
     if (code === 'FREE_TRIAL') return { courseName: 'Ücretsiz Deneme Dersi', duration: 30 };
     
-    const courseCodeMap: { [key: string]: string } = { 'B': 'baslangic', 'K': 'konusma', 'G': 'gelisim', 'A': 'akademik' };
-    const courseId = courseCodeMap[code.replace(/[0-9]/g, '')];
+    const courseCodeMap: { [key: string]: string } = { 
+        'B': 'baslangic', 
+        'K': 'konusma', 
+        'G': 'gelisim', 
+        'A': 'akademik',
+        'GCSE': 'gcse'
+    };
+    const courseId = courseCodeMap[code.replace(/[0-9]/g, '') as keyof typeof courseCodeMap];
     const course = COURSES.find(c => c.id === courseId);
     
     if (!course) return null;
@@ -39,6 +45,7 @@ const getCourseDetailsFromPackageCode = (code?: string) => {
     if (course.id === 'baslangic') duration = 20;
     if (course.id === 'konusma') duration = 30;
     if (course.id === 'gelisim' || course.id === 'akademik') duration = 45;
+    if (course.id === 'gcse') duration = 50;
 
     return { courseName: course.title, duration };
 }
@@ -83,7 +90,7 @@ function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any
                 </div>
                 <div className="flex items-center gap-2">
                     <BookOpen className="w-4 h-4 text-muted-foreground" />
-                    <span><strong>Paket:</strong> {lesson.packageCode === 'FREE_TRIAL' ? 'Deneme Dersi' : lesson.packageCode}</span>
+                    <span><strong>Paket:</strong> {lesson.packageCode === 'FREE_TRIAL' ? 'Deneme Dersi' : packageDetails?.courseName}</span>
                 </div>
                 {needsFeedback && (
                      <div className="bg-destructive/10 text-destructive text-xs font-bold px-2 py-1 rounded flex items-center gap-1 mt-2">

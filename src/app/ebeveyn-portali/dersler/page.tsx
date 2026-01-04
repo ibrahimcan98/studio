@@ -30,8 +30,14 @@ const getCourseDetailsFromPackageCode = (code?: string) => {
     if (!code) return null;
     if (code === 'FREE_TRIAL') return { courseName: 'Ücretsiz Deneme Dersi', duration: 30 };
     
-    const courseCodeMap: { [key: string]: string } = { 'B': 'baslangic', 'K': 'konusma', 'G': 'gelisim', 'A': 'akademik' };
-    const courseId = courseCodeMap[code.replace(/[0-9]/g, '')];
+    const courseCodeMap: { [key: string]: string } = { 
+        'B': 'baslangic', 
+        'K': 'konusma', 
+        'G': 'gelisim', 
+        'A': 'akademik',
+        'GCSE': 'gcse'
+    };
+    const courseId = courseCodeMap[code.replace(/[0-9]/g, '') as keyof typeof courseCodeMap];
     const course = COURSES.find(c => c.id === courseId);
     
     if (!course) return null;
@@ -40,6 +46,7 @@ const getCourseDetailsFromPackageCode = (code?: string) => {
     if (course.id === 'baslangic') duration = 20;
     if (course.id === 'konusma') duration = 30;
     if (course.id === 'gelisim' || course.id === 'akademik') duration = 45;
+    if (course.id === 'gcse') duration = 50;
 
     return { courseName: course.title, duration };
 };

@@ -39,6 +39,7 @@ const getLessonPrice = (packageCode: string | undefined): number => {
         case 'K': return 4;  // Konuşma
         case 'G': return 6;  // Gelişim
         case 'A': return 6;  // Akademik
+        case 'GCSE': return 8; // Example price for GCSE
         default: return 0;
     }
 };

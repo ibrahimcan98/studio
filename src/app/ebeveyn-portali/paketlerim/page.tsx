@@ -27,8 +27,14 @@ import { useCart } from '@/context/cart-context';
 
 const getCourseByCode = (code?: string): Course | undefined => {
     if (!code) return undefined;
-    const courseMap: { [key: string]: string } = { 'B': 'baslangic', 'K': 'konusma', 'G': 'gelisim', 'A': 'akademik' };
-    const courseId = courseMap[code.replace(/[0-9]/g, '')];
+    const courseMap: { [key: string]: string } = { 
+        'B': 'baslangic', 
+        'K': 'konusma', 
+        'G': 'gelisim', 
+        'A': 'akademik',
+        'GCSE': 'gcse'
+    };
+    const courseId = courseMap[code.replace(/[0-9]/g, '') as keyof typeof courseMap];
     return COURSES.find(c => c.id === courseId);
 };
 
