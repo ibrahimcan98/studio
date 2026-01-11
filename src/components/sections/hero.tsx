@@ -18,9 +18,9 @@ export default function Hero() {
   };
 
   return (
-    <section className="relative w-full bg-amber-50/50 overflow-hidden">
-      <div className="container grid lg:grid-cols-2 gap-12 items-center py-20 md:py-32">
-        <div className="space-y-6 text-center lg:text-left">
+    <section className="relative w-full bg-amber-50/50 overflow-x-clip">
+      <div className="container relative z-10 grid lg:grid-cols-2 gap-12 items-center py-20 md:py-32">
+        <div className="space-y-6 text-center lg:text-left min-w-0">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tighter font-headline">
             Oyun Tabanlı Türkçe Öğrenimi
           </h1>
