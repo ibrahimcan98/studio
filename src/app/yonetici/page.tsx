@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError, useUser } from '@/firebase';
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Users, UserCheck, TrendingUp, BarChart } from 'lucide-react';
@@ -24,6 +23,7 @@ function StatCard({ title, value, icon: Icon, isLoading }: { title: string, valu
 
 export default function AdminPage() {
     const db = useFirestore();
+    const { user } = useUser(); // Get the authenticated user
     const [monthlyStats, setMonthlyStats] = useState({ trials: 0, sales: 0, revenue: 0 });
     const [loadingStats, setLoadingStats] = useState(true);
 
@@ -34,7 +34,8 @@ export default function AdminPage() {
     const { data: activeStudents, isLoading: studentsLoading } = useCollection(studentsQuery);
 
     useEffect(() => {
-      if (!db) return;
+      // Only run the effect if we have a database instance AND an authenticated user
+      if (!db || !user) return;
 
       const fetchMonthlyStats = async () => {
         setLoadingStats(true);
@@ -85,7 +86,7 @@ export default function AdminPage() {
       };
 
       fetchMonthlyStats();
-    }, [db]);
+    }, [db, user]); // Add user to dependency array
     
     const trialToSaleConversionRate = monthlyStats.trials > 0 ? ((monthlyStats.sales / monthlyStats.trials) * 100).toFixed(1) : 0;
 
