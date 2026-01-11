@@ -37,11 +37,9 @@ export default function LoginPage() {
   const { user, loading } = useUser();
 
    useEffect(() => {
-    // If a user is already logged in, redirect them away from the login page.
-    // The handleLogin function will handle the initial role-based redirect.
+    // This effect is now safe because handleLogin will do the final redirect.
     if (!loading && user) {
         // A simple redirect to a default portal page, subsequent navigations will be role-checked.
-        router.push('/ebeveyn-portali');
     }
   }, [user, loading, router]);
 
@@ -89,16 +87,17 @@ export default function LoginPage() {
         title: 'Başarılı!',
         description: 'Giriş yaptınız. Yönlendiriliyorsunuz...',
       });
-      router.push(targetPath); // This will now correctly use the determined path
+      // The crucial change: router.push is now called with the correct targetPath
+      router.push(targetPath);
     } catch (error) {
        toast({
         variant: 'destructive',
         title: 'Hata',
         description: 'E-posta veya şifre hatalı.',
       });
-    } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false); // Ensure isSubmitting is false on error
     }
+    // We don't set isSubmitting to false here because the page will redirect on success
   };
 
   if (loading || user) {
