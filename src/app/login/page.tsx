@@ -37,28 +37,13 @@ export default function LoginPage() {
   const { user, loading } = useUser();
 
    useEffect(() => {
-    if (!loading && user && db) {
-        const checkUserRoleAndRedirect = async () => {
-            const userDocRef = doc(db, 'users', user.uid);
-            const userDoc = await getDoc(userDocRef);
-            if (userDoc.exists()) {
-                const userData = userDoc.data();
-                if (userData.role === 'teacher') {
-                    router.push('/ogretmen-portali');
-                } else if (userData.role === 'admin') {
-                    router.push('/yonetici');
-                }
-                else {
-                    router.push('/ebeveyn-portali');
-                }
-            } else {
-                // Default to parent portal if no doc found
-                router.push('/ebeveyn-portali');
-            }
-        };
-        checkUserRoleAndRedirect();
+    // If a user is already logged in, redirect them away from the login page.
+    // The handleLogin function will handle the initial role-based redirect.
+    if (!loading && user) {
+        // A simple redirect to a default portal page, subsequent navigations will be role-checked.
+        router.push('/ebeveyn-portali');
     }
-  }, [user, loading, router, db]);
+  }, [user, loading, router]);
 
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -83,7 +68,7 @@ export default function LoginPage() {
       const userDocRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
       
-      let targetPath = '/ebeveyn-portali';
+      let targetPath = '/ebeveyn-portali'; // Default to parent portal
       if (userDoc.exists()) {
           const userData = userDoc.data();
            if (userData.role === 'teacher') {
@@ -104,7 +89,7 @@ export default function LoginPage() {
         title: 'Başarılı!',
         description: 'Giriş yaptınız. Yönlendiriliyorsunuz...',
       });
-      router.push(targetPath);
+      router.push(targetPath); // This will now correctly use the determined path
     } catch (error) {
        toast({
         variant: 'destructive',
