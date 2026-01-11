@@ -2,7 +2,7 @@
 'use client';
 
 import { useCollection, useFirestore } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import {
   Card,
   CardContent,
@@ -41,9 +41,9 @@ const statusColors: { [key: string]: string } = {
 
 export default function UsersPage() {
   const db = useFirestore();
-  // Renamed from 'users' to 'parents' to match the new data model
+  // Correct the query to look for users with the 'parent' role in the 'users' collection
   const { data: parents, isLoading: parentsLoading } = useCollection(
-    db ? collection(db, 'parents') : null
+    db ? query(collection(db, 'users'), where('role', '==', 'parent')) : null
   );
 
   return (
@@ -78,17 +78,17 @@ export default function UsersPage() {
                 {parents?.map((parent) => (
                   <TableRow key={parent.id}>
                     <TableCell className="font-medium">
-                      {parent.name}
+                      {parent.firstName} {parent.lastName}
                     </TableCell>
                     <TableCell>{parent.email}</TableCell>
                     <TableCell>
                       <Badge className={statusColors[parent.status] || 'bg-gray-100 text-gray-800'}>
-                        {parent.status}
+                        {parent.status || 'lead'}
                       </Badge>
                     </TableCell>
-                    <TableCell>{parent.country}</TableCell>
+                    <TableCell>{parent.country || 'Bilinmiyor'}</TableCell>
                     <TableCell>
-                      {parent.created_at ? format(new Date(parent.created_at.seconds * 1000), 'dd/MM/yyyy') : '-'}
+                      {parent.createdAt ? format(new Date(parent.createdAt.seconds * 1000), 'dd/MM/yyyy') : '-'}
                     </TableCell>
                     <TableCell>
                         <div className="flex flex-wrap gap-1 max-w-xs">
