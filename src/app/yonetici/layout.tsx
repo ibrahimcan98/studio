@@ -39,15 +39,18 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
   }, [user, db]);
 
   const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
-  const isAdmin = userData?.role === 'admin';
 
   useEffect(() => {
-    if (!userLoading && !userDataLoading) {
-      if (!user || !isAdmin) {
-        router.replace('/login');
-      }
+    // Wait until both auth and user data loading are complete
+    if (userLoading || userDataLoading) {
+      return;
     }
-  }, [user, userLoading, userData, userDataLoading, isAdmin, router]);
+
+    // After loading, if there's no user or the user is not an admin, redirect.
+    if (!user || userData?.role !== 'admin') {
+      router.replace('/login');
+    }
+  }, [user, userLoading, userData, userDataLoading, router]);
 
   const handleLogout = async () => {
     const auth = getAuth();
@@ -55,7 +58,9 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     router.push('/login');
   };
 
-  if (userLoading || userDataLoading || !isAdmin) {
+  // While loading, or if the user is not an admin yet, show loading screen.
+  // This prevents rendering children before the auth check is complete.
+  if (userLoading || userDataLoading || !user || userData?.role !== 'admin') {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
