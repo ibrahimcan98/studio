@@ -160,5 +160,3 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
 export default function Layout({ children }: { children: React.ReactNode }) {
   return <AdminPortalLayout>{children}</AdminPortalLayout>;
 }
-
-    
