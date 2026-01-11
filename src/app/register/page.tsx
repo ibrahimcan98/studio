@@ -9,7 +9,7 @@ import {
   updateProfile,
   sendEmailVerification,
 } from 'firebase/auth';
-import { doc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -23,12 +23,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SignUpIllustration } from '@/components/illustrations/signup-illustration';
 import { useAuth, useFirestore, useUser } from '@/firebase';
-import { setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
 const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisii.com', 'teacher@turkcocukakademisi.com', 'tubakodak@turkcocukakademisii.com'];
-const adminEmail = 'ibrahimcanonder_98@hotmail.com';
+const adminEmail = 'admin@hotmail.com';
 
 
 export default function RegisterPage() {
