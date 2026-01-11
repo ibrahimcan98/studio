@@ -58,8 +58,8 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     router.push('/login');
   };
 
-  // While loading, or if the user is not an admin yet, show loading screen.
-  // This prevents rendering children before the auth check is complete.
+  // While loading, or if the user is not an admin yet, show a full-screen loading spinner.
+  // This prevents rendering the layout/children before the auth check is complete.
   if (userLoading || userDataLoading || !user || userData?.role !== 'admin') {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
