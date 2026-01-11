@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -11,7 +12,7 @@ import {
   getDocs,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 /** Utility type to add an 'id' field to a given type T. */
 export type WithId<T> = T & { id: string };
@@ -80,7 +81,7 @@ export function useCollection<T = any>(
        const contextualError = new FirestorePermissionError({
           operation: 'list',
           path: getPath(memoizedTargetRefOrQuery),
-        });
+        } satisfies SecurityRuleContext);
         setError(contextualError);
         errorEmitter.emit('permission-error', contextualError);
     } finally {
@@ -114,7 +115,7 @@ export function useCollection<T = any>(
         const contextualError = new FirestorePermissionError({
           operation: 'list',
           path: getPath(memoizedTargetRefOrQuery),
-        })
+        } satisfies SecurityRuleContext)
 
         setError(contextualError)
         setData(null)
