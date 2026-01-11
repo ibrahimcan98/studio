@@ -39,7 +39,8 @@ export default function Header() {
     // This effect runs only on the client, after hydration
     const shouldBeHidden = pathname.startsWith('/ogretmen-portali') || 
                            pathname.startsWith('/cocuk-modu') ||
-                           pathname.startsWith('/live-lesson');
+                           pathname.startsWith('/live-lesson') ||
+                           pathname.startsWith('/yonetici');
     setIsHidden(shouldBeHidden);
   }, [pathname]);
 
