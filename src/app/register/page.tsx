@@ -28,6 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
 const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisii.com', 'teacher@turkcocukakademisi.com', 'tubakodak@turkcocukakademisii.com'];
+const adminEmail = 'ibrahimcanonder_98@hotmail.com';
 
 
 export default function RegisterPage() {
@@ -76,24 +77,31 @@ export default function RegisterPage() {
       await sendEmailVerification(user, actionCodeSettings);
 
       const userDocRef = doc(db, 'users', user.uid);
+      
+      const role = email === adminEmail ? 'admin' : 'parent';
+      let targetPath = '/ebeveyn-portali';
+      if (role === 'admin') {
+        targetPath = '/yonetici';
+      }
+
       await setDoc(userDocRef, {
         id: user.uid,
         firstName: name.split(' ')[0] || '',
         lastName: name.split(' ').slice(1).join(' ') || '',
         email: user.email,
         phoneNumber: `${areaCode}${phoneNumber}`,
-        role: 'parent',
+        role: role,
         lives: 5,
         livesLastUpdatedAt: serverTimestamp(),
       }, { merge: true });
 
       toast({
         title: 'Kayıt Başarılı!',
-        description: 'Hesabınız oluşturuldu. Ebeveyn portalına yönlendiriliyorsunuz. Lütfen e-postanızı kontrol ederek hesabınızı doğrulayın.',
+        description: 'Hesabınız oluşturuldu. Portala yönlendiriliyorsunuz. Lütfen e-postanızı kontrol ederek hesabınızı doğrulayın.',
         duration: 8000,
       });
 
-      router.push('/ebeveyn-portali');
+      router.push(targetPath);
 
     } catch (error: any) {
       let errorMessage = 'Kayıt olurken bir hata oluştu.';

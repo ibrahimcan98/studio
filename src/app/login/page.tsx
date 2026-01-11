@@ -45,7 +45,10 @@ export default function LoginPage() {
                 const userData = userDoc.data();
                 if (userData.role === 'teacher') {
                     router.push('/ogretmen-portali');
-                } else {
+                } else if (userData.role === 'admin') {
+                    router.push('/yonetici');
+                }
+                else {
                     router.push('/ebeveyn-portali');
                 }
             } else {
@@ -79,23 +82,29 @@ export default function LoginPage() {
       // Check user role from Firestore
       const userDocRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
-
-      if (userDoc.exists() && userDoc.data()?.role === 'teacher') {
-         await auth.signOut(); // Sign out the teacher immediately
-         toast({
-            variant: 'destructive',
-            title: 'Giriş Reddedildi',
-            description: 'Öğretmen girişi için lütfen öğretmen portalını kullanın.',
-         });
-         setIsSubmitting(false);
-         return;
+      
+      let targetPath = '/ebeveyn-portali';
+      if (userDoc.exists()) {
+          const userData = userDoc.data();
+           if (userData.role === 'teacher') {
+                await auth.signOut(); // Sign out the teacher immediately
+                toast({
+                    variant: 'destructive',
+                    title: 'Giriş Reddedildi',
+                    description: 'Öğretmen girişi için lütfen öğretmen portalını kullanın.',
+                });
+                setIsSubmitting(false);
+                return;
+           } else if (userData.role === 'admin') {
+                targetPath = '/yonetici';
+           }
       }
 
       toast({
         title: 'Başarılı!',
         description: 'Giriş yaptınız. Yönlendiriliyorsunuz...',
       });
-      router.push('/ebeveyn-portali');
+      router.push(targetPath);
     } catch (error) {
        toast({
         variant: 'destructive',
