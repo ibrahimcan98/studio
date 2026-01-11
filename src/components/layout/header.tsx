@@ -33,16 +33,6 @@ export default function Header() {
   const isLoggedIn = !!user;
   const { cartItems, isCartLoaded } = useCart();
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  const [isHidden, setIsHidden] = useState(false);
-
-  useEffect(() => {
-    // This effect runs only on the client, after hydration
-    const shouldBeHidden = pathname.startsWith('/ogretmen-portali') || 
-                           pathname.startsWith('/cocuk-modu') ||
-                           pathname.startsWith('/live-lesson') ||
-                           pathname.startsWith('/yonetici');
-    setIsHidden(shouldBeHidden);
-  }, [pathname]);
 
 
   const handlePortalClick = () => {
@@ -160,10 +150,6 @@ export default function Header() {
     )
   };
   
-  if (isHidden) {
-    return null;
-  }
-
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-20 items-center">
