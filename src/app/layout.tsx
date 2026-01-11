@@ -1,5 +1,4 @@
-
-'use client'; 
+'use client';
 
 import { Poppins } from 'next/font/google';
 import './globals.css';
@@ -14,18 +13,19 @@ const poppins = Poppins({
   weight: ['400', '500', '600', '700', '800']
 });
 
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  
-  // Determine if the header should be displayed based on the route
-  const showHeader = !pathname.startsWith('/ogretmen-portali') && 
-                     !pathname.startsWith('/cocuk-modu') &&
-                     !pathname.startsWith('/yonetici');
+
+  const isLiveLesson = pathname?.includes('/live-lesson/');
+  const isSpecialLayout = pathname?.startsWith('/ogretmen-portali') || pathname?.startsWith('/yonetici');
+
+  const showHeader = !isLiveLesson && !isSpecialLayout;
+  const showAIAssistant = !isLiveLesson && !isSpecialLayout;
+
 
   return (
     <html lang="tr">
@@ -33,10 +33,12 @@ export default function RootLayout({
         <Providers>
           <div className="flex min-h-screen flex-col bg-background">
             {showHeader && <Header />}
+            
             <main className="flex-1">
               {children}
             </main>
-            <AIAssistant />
+            
+            {showAIAssistant && <AIAssistant />}
           </div>
         </Providers>
         <Toaster />

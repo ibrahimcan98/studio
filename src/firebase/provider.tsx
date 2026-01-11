@@ -132,17 +132,17 @@ export const useFirebaseApp = (): FirebaseApp => {
   return firebaseApp;
 };
 
-// CRITICAL FIX: The useMemoFirebase MUST mark the object with __memo for useCollection/useDoc to work
-type MemoFirebase <T> = T & {__memo?: boolean};
-
+/**
+ * useMemoFirebase must properly tag the object so Firestore hooks accept it.
+ */
 export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
-  const memoized = useMemo(factory, deps);
-  
-  if(typeof memoized === 'object' && memoized !== null) {
-    (memoized as any).__memo = true;
-  }
-  
-  return memoized;
+  return useMemo(() => {
+    const result = factory();
+    if (typeof result === 'object' && result !== null) {
+      (result as any).__memo = true;
+    }
+    return result;
+  }, deps);
 }
 
 export const useUser = (): UserHookResult => {
