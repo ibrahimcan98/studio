@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Users, UserCheck, TrendingUp, BarChart } from 'lucide-react';
@@ -48,24 +48,40 @@ export default function AdminPage() {
         const trialsQuery = query(trialsRef, where('trial_date', '>=', Timestamp.fromDate(start)), where('trial_date', '<=', Timestamp.fromDate(end)));
         const salesQuery = query(salesRef, where('sale_date', '>=', Timestamp.fromDate(start)), where('sale_date', '<=', Timestamp.fromDate(end)));
 
-        try {
-          const [trialsSnapshot, salesSnapshot] = await Promise.all([getDocs(trialsQuery), getDocs(salesQuery)]);
-          
-          const totalTrials = trialsSnapshot.size;
-          const totalSales = salesSnapshot.size;
-          const totalRevenue = salesSnapshot.docs.reduce((acc, doc) => acc + (doc.data().price || 0), 0);
-
-          setMonthlyStats({
-            trials: totalTrials,
-            sales: totalSales,
-            revenue: totalRevenue
+        const trialsPromise = getDocs(trialsQuery).catch(error => {
+          const permissionError = new FirestorePermissionError({
+            path: 'trials',
+            operation: 'list',
           });
+          errorEmitter.emit('permission-error', permissionError);
+          throw permissionError; 
+        });
 
-        } catch (error) {
-          console.error("Error fetching monthly stats:", error);
-        } finally {
-          setLoadingStats(false);
-        }
+        const salesPromise = getDocs(salesQuery).catch(error => {
+            const permissionError = new FirestorePermissionError({
+                path: 'sales',
+                operation: 'list',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            throw permissionError;
+        });
+
+        Promise.all([trialsPromise, salesPromise]).then(([trialsSnapshot, salesSnapshot]) => {
+            const totalTrials = trialsSnapshot.size;
+            const totalSales = salesSnapshot.size;
+            const totalRevenue = salesSnapshot.docs.reduce((acc, doc) => acc + (doc.data().price || 0), 0);
+
+            setMonthlyStats({
+                trials: totalTrials,
+                sales: totalSales,
+                revenue: totalRevenue
+            });
+        }).catch(error => {
+            // Error is already emitted, just log for local debugging if needed.
+            // Do not use console.error in production code for this.
+        }).finally(() => {
+            setLoadingStats(false);
+        });
       };
 
       fetchMonthlyStats();
