@@ -28,12 +28,13 @@ const PIECES_COUNT = 4;
 const pieceIndices = Array.from(Array(PIECES_COUNT).keys());
 
 const shuffleArray = <T,>(array: T[]): T[] => {
-    return array.sort(() => Math.random() - 0.5);
+    return [...array].sort(() => Math.random() - 0.5);
 };
 
 export default function PuzzleClient({ words }: PuzzleClientProps) {
     const [currentWordIndex, setCurrentWordIndex] = useState(0);
-    const [shuffledPieces, setShuffledPieces] = useState<(number | null)[]>([]);
+    // Initialize shuffledPieces directly to avoid hydration mismatch
+    const [shuffledPieces, setShuffledPieces] = useState<(number | null)[]>(shuffleArray([...pieceIndices]));
     const [placedPieces, setPlacedPieces] = useState<(number | null)[]>(Array(PIECES_COUNT).fill(null));
     const [selectedPiece, setSelectedPiece] = useState<{ index: number; piece: number } | null>(null);
     const [isSolved, setIsSolved] = useState(false);
@@ -73,11 +74,6 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
         }
     }, [userData]);
 
-     useEffect(() => {
-        startNewPuzzle();
-    }, [currentWordIndex]);
-
-
     const startNewPuzzle = () => {
         const shuffled = shuffleArray([...pieceIndices]);
         setShuffledPieces(shuffled);
@@ -85,6 +81,14 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
         setSelectedPiece(null);
         setIsSolved(false);
     };
+    
+    // This effect now only runs when the word changes, to start the next puzzle.
+    useEffect(() => {
+        if (currentWordIndex > 0) { // Avoid running for the initial word
+          startNewPuzzle();
+        }
+    }, [currentWordIndex]);
+
 
     const handleSelectPiece = (piece: number, index: number) => {
         if (isSolved || piece === null) return;
@@ -297,6 +301,5 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
             </main>
         </div>
     );
-}
 
     
