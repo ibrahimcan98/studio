@@ -18,18 +18,14 @@ import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { useToast } from '@/hooks/use-toast';
 
 function AdminPortalLayout({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useUser();
   const db = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
+  const { toast } = useToast();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
   const userDocRef = useMemoFirebase(() => {
@@ -40,28 +36,42 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
   const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
 
   useEffect(() => {
-    // Auth yüklemesi bittiyse ve kullanıcı yoksa direkt login'e at
-    if (!authLoading && !user) {
+    if (authLoading || userDataLoading) {
+      // Still loading, do nothing.
+      return;
+    }
+
+    if (!user) {
+      // No user in auth, go to login.
       router.replace('/login');
       return;
     }
 
-    // Kullanıcı verisi yüklendiğinde admin kontrolü yap
-    if (!userDataLoading && userData) {
+    if (user && !userData) {
+      // User exists in auth, but no document in Firestore.
+      // This is an inconsistent state. Log out the user and show a message.
+      toast({
+        title: 'Kullanıcı Verisi Bulunamadı',
+        description: 'Lütfen tekrar giriş yapın.',
+        variant: 'destructive',
+      });
+      const auth = getAuth();
+      signOut(auth).then(() => {
+        router.replace('/login');
+      });
+      return;
+    }
+    
+    if (userData) {
       if (userData.role === 'admin') {
         setIsAuthorized(true);
       } else {
-        console.log("Yetki Hatası: Admin rolü bulunamadı, mevcut rol:", userData.role);
-        router.replace('/'); // Admin değilse ana sayfaya at
+        // User is not an admin, redirect to home page.
+        router.replace('/');
       }
-    } else if (!userDataLoading && !userData && user) {
-      // Veri yüklemesi bitti, kullanıcı var ama doküman yoksa
-      console.error("Hata: Kullanıcı belgesi Firestore'da bulunamadı!");
-      // Geliştirme kolaylığı için: Eğer doküman yoksa ama kullanıcı giriş yapmışsa 
-      // belki admin olarak kabul etmek isteyebilirsiniz ama güvenlik için şimdilik login'e atıyoruz.
-      // router.replace('/login'); 
     }
-  }, [user, authLoading, userData, userDataLoading, router]);
+    
+  }, [user, authLoading, userData, userDataLoading, router, toast]);
 
   const handleLogout = async () => {
     const auth = getAuth();
@@ -69,27 +79,13 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     router.push('/login');
   };
 
-  // YÜKLEME EKRANI: Sadece auth veya veri beklenirken göster
-  if (authLoading || (user && userDataLoading && isAuthorized === null)) {
+  // While loading or before authorization status is determined, show a loading screen.
+  if (authLoading || userDataLoading || !isAuthorized) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-white">
         <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
         <p className="text-sm font-medium text-muted-foreground">Yönetici Yetkileri Kontrol Ediliyor...</p>
       </div>
-    );
-  }
-
-  // Yetki yoksa içeriği gösterme
-  if (!isAuthorized && user) {
-    return (
-       <div className="flex h-screen w-full flex-col items-center justify-center bg-white p-6 text-center">
-          <div className="bg-red-50 p-4 rounded-full mb-4">
-            <Settings className="h-10 w-10 text-red-500" />
-          </div>
-          <h2 className="text-xl font-bold mb-2">Erişim Yetkiniz Yok</h2>
-          <p className="text-slate-500 mb-6 max-w-xs">Bu sayfaya sadece yöneticiler erişebilir. Hesabınızın 'admin' rolüne sahip olduğundan emin olun.</p>
-          <Button onClick={handleLogout} variant="outline">Farklı Hesapla Giriş Yap</Button>
-       </div>
     );
   }
 
@@ -102,7 +98,6 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <TooltipProvider>
       <div className="flex min-h-screen w-full flex-col bg-muted/40 font-sans text-slate-900">
         <aside className="fixed inset-y-0 left-0 z-10 hidden w-60 flex-col border-r bg-background sm:flex shadow-sm">
             <div className="flex h-20 items-center border-b px-6">
@@ -156,7 +151,6 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
             <main className="flex-1 p-8 bg-slate-50/50">{children}</main>
         </div>
       </div>
-    </TooltipProvider>
   );
 }
 
