@@ -36,42 +36,52 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
   const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
 
   useEffect(() => {
+    // Wait until both authentication and user document loading are complete
     if (authLoading || userDataLoading) {
-      // Still loading, do nothing.
       return;
     }
 
+    // If loading is finished and there's no authenticated user, they are not authorized.
     if (!user) {
-      // No user in auth, go to login.
       router.replace('/login');
       return;
     }
-
-    if (user && !userData) {
-      // User exists in auth, but no document in Firestore.
-      // This is an inconsistent state. Log out the user and show a message.
+    
+    // If user is authenticated, but we couldn't find their data document
+    if (!userData) {
       toast({
         title: 'Kullanıcı Verisi Bulunamadı',
         description: 'Lütfen tekrar giriş yapın.',
         variant: 'destructive',
       });
-      const auth = getAuth();
-      signOut(auth).then(() => {
+       const auth = getAuth();
+       signOut(auth).then(() => {
         router.replace('/login');
-      });
+       });
       return;
     }
-    
-    if (userData) {
-      if (userData.role === 'admin') {
-        setIsAuthorized(true);
-      } else {
-        // User is not an admin, redirect to home page.
-        router.replace('/');
-      }
+
+    // Finally, check the role
+    if (userData.role === 'admin') {
+      setIsAuthorized(true);
+    } else {
+      setIsAuthorized(false);
     }
-    
+
   }, [user, authLoading, userData, userDataLoading, router, toast]);
+
+  useEffect(() => {
+    // This effect handles the redirection once authorization status is determined.
+    if (isAuthorized === false) {
+      toast({
+          title: 'Yetkisiz Erişim',
+          description: 'Yönetici paneline erişim yetkiniz yok.',
+          variant: 'destructive',
+      });
+      router.replace('/');
+    }
+  }, [isAuthorized, router, toast]);
+
 
   const handleLogout = async () => {
     const auth = getAuth();
@@ -80,7 +90,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
   };
 
   // While loading or before authorization status is determined, show a loading screen.
-  if (authLoading || userDataLoading || !isAuthorized) {
+  if (isAuthorized !== true) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-white">
         <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
