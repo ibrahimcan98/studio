@@ -78,16 +78,14 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <TooltipProvider>
-      <div className="flex min-h-screen">
-        <aside
-          className={cn(
-            'hidden md:flex flex-col border-r bg-background w-64'
-          )}
-        >
-          <div className="flex h-20 items-center justify-between border-b p-4">
-            <Logo />
-          </div>
-          <nav className="flex-1 space-y-2 p-4">
+      <div className="flex min-h-screen w-full flex-col bg-muted/40">
+        <aside className="fixed inset-y-0 left-0 z-10 hidden w-60 flex-col border-r bg-background sm:flex">
+            <div className="flex h-20 items-center border-b px-6">
+                 <Link href="/yonetici" className="flex items-center gap-2 font-semibold">
+                    <Logo />
+                </Link>
+            </div>
+            <nav className="flex-1 space-y-2 p-4">
             {navItems.map((item) => (
               <Link
                 key={item.href}
@@ -102,7 +100,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
               </Link>
             ))}
           </nav>
-          <div className="mt-auto p-4 border-t">
+           <div className="mt-auto p-4 border-t">
             <Button
               variant="ghost"
               className='w-full justify-start gap-3'
@@ -113,13 +111,13 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
             </Button>
           </div>
         </aside>
-        <div className="flex flex-1 flex-col">
-          <header className="sticky top-0 z-40 flex h-20 items-center justify-end border-b bg-background px-6">
-            <span className="text-sm font-medium text-muted-foreground">
-              {userData?.firstName} {userData?.lastName}
-            </span>
-          </header>
-          <main className="flex-1 p-6 bg-muted/40">{children}</main>
+         <div className="flex flex-col sm:pl-60">
+             <header className="sticky top-0 z-30 flex h-20 items-center justify-end border-b bg-background px-6">
+                <span className="text-sm font-medium text-muted-foreground">
+                    Yönetici: {userData?.firstName || user.email}
+                </span>
+            </header>
+            <main className="flex-1 p-6">{children}</main>
         </div>
       </div>
     </TooltipProvider>
