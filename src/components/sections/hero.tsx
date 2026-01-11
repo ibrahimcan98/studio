@@ -18,7 +18,7 @@ export default function Hero() {
   };
 
   return (
-    <section className="relative w-full bg-amber-50/50 overflow-x-clip">
+    <section className="relative w-full bg-amber-50/50 overflow-hidden">
       <div className="container grid lg:grid-cols-2 gap-12 items-center py-20 md:py-32">
         <div className="space-y-6 text-center lg:text-left">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tighter font-headline">
