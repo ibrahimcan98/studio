@@ -2,9 +2,11 @@
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Users, BookOpen, Calendar } from 'lucide-react';
+import { Loader2, Users, UserCheck, TrendingUp, BarChart } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { startOfMonth, endOfMonth } from 'date-fns';
 
 function StatCard({ title, value, icon: Icon, isLoading }: { title: string, value: string | number, icon: React.ElementType, isLoading: boolean }) {
     return (
@@ -22,47 +24,91 @@ function StatCard({ title, value, icon: Icon, isLoading }: { title: string, valu
 
 export default function AdminPage() {
     const db = useFirestore();
+    const [monthlyStats, setMonthlyStats] = useState({ trials: 0, sales: 0, revenue: 0 });
+    const [loadingStats, setLoadingStats] = useState(true);
 
-    const usersQuery = useMemoFirebase(() => db ? query(collection(db, 'users')) : null, [db]);
-    const lessonSlotsQuery = useMemoFirebase(() => db ? query(collection(db, 'lesson-slots')) : null, [db]);
-    const coursesQuery = useMemoFirebase(() => db ? query(collection(db, 'courses')) : null, [db]);
-
-    const { data: users, isLoading: usersLoading } = useCollection(usersQuery);
-    const { data: lessonSlots, isLoading: lessonsLoading } = useCollection(lessonSlotsQuery);
-    const { data: courses, isLoading: coursesLoading } = useCollection(coursesQuery);
+    const parentsQuery = useMemoFirebase(() => db ? query(collection(db, 'parents'), where('status', '==', 'active')) : null, [db]);
+    const studentsQuery = useMemoFirebase(() => db ? query(collection(db, 'students'), where('status', '==', 'active')) : null, [db]);
     
-    const parentCount = users?.filter(u => u.role === 'parent').length ?? 0;
-    const teacherCount = users?.filter(u => u.role === 'teacher').length ?? 0;
+    const { data: activeParents, isLoading: parentsLoading } = useCollection(parentsQuery);
+    const { data: activeStudents, isLoading: studentsLoading } = useCollection(studentsQuery);
+
+    useEffect(() => {
+      if (!db) return;
+
+      const fetchMonthlyStats = async () => {
+        setLoadingStats(true);
+        const now = new Date();
+        const start = startOfMonth(now);
+        const end = endOfMonth(now);
+
+        const trialsRef = collection(db, 'trials');
+        const salesRef = collection(db, 'sales');
+
+        const trialsQuery = query(trialsRef, where('trial_date', '>=', Timestamp.fromDate(start)), where('trial_date', '<=', Timestamp.fromDate(end)));
+        const salesQuery = query(salesRef, where('sale_date', '>=', Timestamp.fromDate(start)), where('sale_date', '<=', Timestamp.fromDate(end)));
+
+        try {
+          const [trialsSnapshot, salesSnapshot] = await Promise.all([getDocs(trialsQuery), getDocs(salesQuery)]);
+          
+          const totalTrials = trialsSnapshot.size;
+          const totalSales = salesSnapshot.size;
+          const totalRevenue = salesSnapshot.docs.reduce((acc, doc) => acc + (doc.data().price || 0), 0);
+
+          setMonthlyStats({
+            trials: totalTrials,
+            sales: totalSales,
+            revenue: totalRevenue
+          });
+
+        } catch (error) {
+          console.error("Error fetching monthly stats:", error);
+        } finally {
+          setLoadingStats(false);
+        }
+      };
+
+      fetchMonthlyStats();
+    }, [db]);
+    
+    const trialToSaleConversionRate = monthlyStats.trials > 0 ? ((monthlyStats.sales / monthlyStats.trials) * 100).toFixed(1) : 0;
 
     return (
         <div className="space-y-8">
-            <h1 className="text-3xl font-bold">Yönetici Paneli</h1>
+            <h1 className="text-3xl font-bold">Dashboard</h1>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <StatCard 
-                    title="Toplam Veli"
-                    value={parentCount}
+                    title="Toplam Aktif Veli"
+                    value={activeParents?.length ?? 0}
                     icon={Users}
-                    isLoading={usersLoading}
+                    isLoading={parentsLoading}
                 />
                  <StatCard 
-                    title="Toplam Öğretmen"
-                    value={teacherCount}
-                    icon={Users}
-                    isLoading={usersLoading}
+                    title="Toplam Aktif Öğrenci"
+                    value={activeStudents?.length ?? 0}
+                    icon={UserCheck}
+                    isLoading={studentsLoading}
                 />
                 <StatCard 
-                    title="Planlanmış Dersler"
-                    value={lessonSlots?.filter(l => l.status === 'booked').length ?? 0}
-                    icon={Calendar}
-                    isLoading={lessonsLoading}
+                    title="Bu Ayki Deneme Dersi"
+                    value={monthlyStats.trials}
+                    icon={TrendingUp}
+                    isLoading={loadingStats}
                 />
                  <StatCard 
-                    title="Tanımlı Kurslar"
-                    value={courses?.length ?? 0}
-                    icon={BookOpen}
-                    isLoading={coursesLoading}
+                    title="Deneme -> Satış Dönüşüm Oranı"
+                    value={`${trialToSaleConversionRate}%`}
+                    icon={BarChart}
+                    isLoading={loadingStats}
+                />
+                <StatCard 
+                    title="Bu Ayki Ciro"
+                    value={`€${monthlyStats.revenue.toFixed(2)}`}
+                    icon={TrendingUp}
+                    isLoading={loadingStats}
                 />
             </div>
+            {/* TODO: Add charts for country distribution and top selling courses */}
         </div>
     );
 }

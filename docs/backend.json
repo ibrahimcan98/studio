@@ -1,533 +1,119 @@
-
 {
   "entities": {
-    "User": {
+    "Parent": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "User",
+      "title": "Parent",
       "type": "object",
-      "description": "Represents a user of the Türk Çocuk Akademisi platform.",
+      "description": "Represents a parent user on the platform.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the user entity."
-        },
-        "firstName": {
-          "type": "string",
-          "description": "The user's first name."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "The user's last name."
-        },
-        "email": {
-          "type": "string",
-          "description": "The user's email address.",
-          "format": "email"
-        },
-        "phoneNumber": {
-          "type": "string",
-          "description": "The user's phone number."
-        },
-        "profileImageUrl": {
-          "type": "string",
-          "description": "URL of the user's profile image.",
-          "format": "uri"
-        },
-        "role": {
-          "type": "string",
-          "description": "The role of the user (e.g., parent, teacher, admin).",
-          "enum": ["parent", "teacher", "admin"]
-        },
-        "isPremium": {
-          "type": "boolean",
-          "description": "Indicates if the user has a premium subscription."
-        },
-        "premiumStartDate": {
-          "type": "string",
-          "description": "The start date of the premium subscription.",
-          "format": "date-time"
-        },
-        "premiumEndDate": {
-          "type": "string",
-          "description": "The end date (renewal date) of the premium subscription.",
-          "format": "date-time"
-        },
-        "lives": {
-          "type": "number",
-          "description": "The number of shared lives the user has for all their children's games."
-        },
-        "livesLastUpdatedAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "The timestamp when the lives count was last updated, used for regeneration logic."
-        },
-        "enrolledPackages": {
-            "type": "array",
-            "description": "An array of strings representing the package IDs the user is enrolled in (e.g., ['4B', '12K']). This is a temporary holding area until packages are assigned to a child.",
-            "items": {
-                "type": "string"
-            }
-        },
-        "remainingLessons": {
-            "type": "number",
-            "description": "The total number of UNASSIGNED lessons remaining from all purchased packages."
-        },
-        "freeTrialsUsed": {
-            "type": "number",
-            "description": "The number of free trial lessons used by the parent, max 3."
-        },
-        "timezone": {
-            "type": "string",
-            "description": "The IANA timezone identifier for the user (e.g., 'Europe/Dublin')."
-        },
-        "bio": {
-          "type": "string",
-          "description": "A short biography for teacher profiles."
-        },
-        "hobbies": {
-            "type": "array",
-            "description": "A list of hobbies for teacher profiles.",
-            "items": {
-                "type": "string"
-            }
-        },
-        "introVideoUrl": {
-          "type": "string",
-          "description": "URL of the teacher's introduction video.",
-          "format": "uri"
-        }
+        "id": { "type": "string", "description": "Unique identifier for the parent." },
+        "name": { "type": "string", "description": "Full name of the parent." },
+        "email": { "type": "string", "format": "email", "description": "Email address of the parent." },
+        "phone": { "type": "string", "description": "Phone number of the parent." },
+        "country": { "type": "string", "description": "Country of residence." },
+        "children_ids": { "type": "array", "items": { "type": "string" }, "description": "Array of child IDs associated with this parent." },
+        "status": { "type": "string", "enum": ["lead", "trial_scheduled", "trial_done", "active", "churn"], "description": "The current status of the parent." },
+        "tags": { "type": "array", "items": { "type": "string" }, "description": "Manual and automatic tags for filtering and segmentation." },
+        "created_at": { "type": "string", "format": "date-time", "description": "Timestamp when the parent was created." },
+        "first_sale_date": { "type": "string", "format": "date-time", "description": "Timestamp of the first sale." },
+        "last_sale_date": { "type": "string", "format": "date-time", "description": "Timestamp of the most recent sale." },
+        "total_sales_count": { "type": "number", "description": "Total number of sales made by this parent." },
+        "notes": { "type": "string", "description": "Manual notes added by an admin." }
       },
-      "required": [
-        "id",
-        "firstName",
-        "lastName",
-        "email",
-        "role"
-      ]
+      "required": ["id", "name", "email", "created_at"]
     },
-    "Child": {
+    "Student": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Child",
+      "title": "Student",
       "type": "object",
-      "description": "Represents a child who is learning Turkish on the platform.",
+      "description": "Represents a student on the platform.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the child entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User entity who is the parent of this child."
-        },
-        "firstName": { "type": "string", "description": "The child's first name." },
-        "dateOfBirth": { "type": "string", "format": "date", "description": "The child's date of birth." },
-        "countryOfResidence": { "type": "string", "description": "The country where the child lives." },
-        "level": { "type": "string", "description": "The current learning level of the child." },
-        "parentTongues": { "type": "string", "description": "Languages spoken by the parents." },
-        "schoolLanguage": { "type": "string", "description": "The primary language of instruction at the child's school." },
-        "homeLanguageTurkishPercentage": { "type": "number", "description": "The percentage of Turkish spoken at home." },
-        "turkishExposureIntensity": { 
-            "type": "string", 
-            "enum": ["low", "medium", "high"], 
-            "description": "The intensity of the child's exposure to Turkish." 
-        },
-        "schoolLiteracyStatus": {
-            "type": "string",
-            "enum": ["not-yet", "in-progress", "fluent"],
-            "description": "Literacy status in their school language."
-        },
-        "turkishLiteracyLevel": {
-            "type": "string",
-            "enum": ["none", "word-sentence", "reads-short-writes", "fluent"],
-            "description": "The child's Turkish reading and writing level."
-        },
-        "turkishDifficulties": {
-            "type": "array",
-            "description": "Areas where the child has difficulty with Turkish.",
-            "items": { "type": "string" }
-        },
-        "rozet": { "type": "number", "description": "The number of badges the child has earned." },
-        "completedTopics": { "type": "array", "items": { "type": "string" }, "description": "A list of completed topic keys." },
-        "assignedPackage": { "type": "string", "description": "The package code assigned to this child (e.g., '12K')." },
-        "assignedPackageName": { "type": "string", "description": "The full name of the assigned package (e.g., 'Konuşma Kursu')." },
-        "remainingLessons": { "type": "number", "description": "Number of lessons remaining from their assigned package." },
-        "finishedPackage": { "type": "string", "description": "The code of the last finished package by the child (e.g., '4B')." },
-        "hasUsedFreeTrial": { "type": "boolean", "description": "Indicates if this specific child has used their free trial lesson." },
-        "cefrProfile": {
-            "type": "object",
-            "description": "Teacher's assessment of the child's CEFR levels.",
-            "properties": {
-                "listening": { "type": "string", "enum": ["preA1", "A1", "A2", "B1", "B2", "C1", "C2"] },
-                "speaking": { "type": "string", "enum": ["preA1", "A1", "A2", "B1", "B2", "C1", "C2"] },
-                "reading": { "type": "string", "enum": ["preA1", "A1", "A2", "B1", "B2", "C1", "C2"] },
-                "writing": { "type": "string", "enum": ["preA1", "A1", "A2", "B1", "B2", "C1", "C2"] }
-            }
-        },
-        "speakingInitiative": {
-            "type": "number",
-            "description": "Teacher's assessment of the child's speaking initiative percentage (0-100)."
-        },
-        "attitude": {
-            "type": "string",
-            "enum": ["positive", "neutral", "shy"],
-            "description": "Teacher's assessment of the child's attitude in class."
-        },
-        "languageMixing": {
-            "type": "string",
-            "enum": ["always", "sometimes", "rarely", "never"],
-            "description": "Teacher's assessment of how often the child mixes languages."
-        },
-        "strengths": {
-            "type": "array",
-            "description": "Teacher-assessed strengths of the student.",
-            "items": { "type": "string" }
-        },
-        "weaknesses": {
-            "type": "array",
-            "description": "Teacher-assessed areas for improvement for the student.",
-            "items": { "type": "string" }
-        },
-        "recommendedCourseId": {
-            "type": "string",
-            "description": "The ID of the course recommended by the teacher (e.g., 'konusma')."
-        },
-        "recommendedCourseName": {
-            "type": "string",
-            "description": "The name of the course recommended by the teacher (e.g., 'Konuşma Kursu')."
-        },
-        "feedbackHistory": {
-          "type": "array",
-          "description": "A history of feedback provided by teachers.",
-          "items": {
-            "type": "object",
-            "properties": {
-              "id": { "type": "string", "description": "Unique identifier for the feedback entry. Often the lessonId." },
-              "text": { "type": "string", "description": "The content of the feedback." },
-              "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the feedback was created." }
-            },
-            "required": ["id", "text", "createdAt"]
-          }
-        }
+        "id": { "type": "string", "description": "Unique identifier for the student." },
+        "parent_id": { "type": "string", "description": "The ID of the parent user." },
+        "name": { "type": "string", "description": "The student's name." },
+        "age": { "type": "number", "description": "The student's age." },
+        "level": { "type": "string", "description": "The student's learning level." },
+        "course_type": { "type": "string", "enum": ["başlangıç", "konuşma", "akademik", "GCSE"], "description": "The type of course the student is enrolled in." },
+        "teacher_id": { "type": "string", "description": "The ID of the assigned teacher." },
+        "remaining_lessons": { "type": "number", "description": "Number of lessons remaining." },
+        "status": { "type": "string", "enum": ["trial", "active", "churn"], "description": "The student's status." }
       },
-      "required": [
-        "id",
-        "userId",
-        "firstName",
-        "dateOfBirth",
-        "countryOfResidence",
-        "parentTongues",
-        "schoolLanguage",
-        "schoolLiteracyStatus",
-        "turkishLiteracyLevel"
-      ]
+      "required": ["id", "parent_id", "name"]
     },
-    "LessonSlot": {
+    "Sale": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Sale",
+      "type": "object",
+      "description": "Represents a sales transaction.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the sale." },
+        "parent_id": { "type": "string", "description": "The ID of the parent who made the purchase." },
+        "student_id": { "type": "string", "description": "The ID of the student for whom the package was purchased." },
+        "package_type": { "type": "number", "enum": [4, 8, 12, 24], "description": "The number of lessons in the package." },
+        "sale_type": { "type": "string", "enum": ["first_sale", "repeat_sale"], "description": "Type of the sale." },
+        "price": { "type": "number", "description": "The price of the sale." },
+        "currency": { "type": "string", "description": "Currency of the sale (e.g., EUR, USD)." },
+        "sale_date": { "type": "string", "format": "date-time", "description": "Timestamp of the sale." }
+      },
+      "required": ["id", "parent_id", "package_type", "price", "currency", "sale_date"]
+    },
+    "Trial": {
         "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "Lesson Slot",
+        "title": "Trial",
         "type": "object",
-        "description": "Represents a time slot for a lesson, which can be available or booked.",
+        "description": "Represents a trial lesson.",
         "properties": {
-            "id": { "type": "string", "description": "Unique identifier for the lesson slot." },
-            "teacherId": { "type": "string", "description": "ID of the teacher who is available for this slot." },
-            "startTime": { "type": "string", "format": "date-time", "description": "The start time of the lesson slot." },
-            "endTime": { "type": "string", "format": "date-time", "description": "The end time of the lesson slot." },
-            "status": { "type": "string", "enum": ["available", "booked"], "description": "The current status of the slot." },
-            "bookedBy": { "type": "string", "description": "ID of the user (parent) who booked this slot." },
-            "childId": { "type": "string", "description": "ID of the child who will take the lesson." },
-            "packageCode": { "type": "string", "description": "The code of the package used for this lesson (e.g., '12K', 'FREE_TRIAL')." },
-            "feedback": {
-                "type": "object",
-                "description": "Feedback provided by the teacher for a completed lesson.",
-                "properties": {
-                    "text": { "type": "string", "description": "The content of the feedback." },
-                    "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the feedback was created or last updated." }
-                }
-            },
-            "isLive": {
-                "type": "boolean",
-                "description": "Indicates if the teacher has started the lesson."
-            },
-            "liveLessonUrl": {
-                "type": "string",
-                "format": "uri",
-                "description": "The URL for the live video session."
-            }
+            "id": { "type": "string", "description": "Unique identifier for the trial." },
+            "parent_id": { "type": "string", "description": "The ID of the parent." },
+            "student_id": { "type": "string", "description": "The ID of the student." },
+            "trial_date": { "type": "string", "format": "date-time", "description": "The scheduled date and time of the trial." },
+            "trial_status": { "type": "string", "enum": ["scheduled", "done", "cancelled"], "description": "The status of the trial lesson." }
         },
-        "required": ["id", "teacherId", "startTime", "endTime", "status"]
-    },
-    "Course": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Course",
-      "type": "object",
-      "description": "Represents a course or package offered on the platform.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the course entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the course (e.g., Başlangıç Kursu)."
-        },
-        "description": {
-          "type": "string",
-          "description": "A description of the course content."
-        },
-        "price": {
-          "type": "number",
-          "description": "The price of the course."
-        },
-        "numberOfLessons": {
-          "type": "number",
-          "description": "The number of lessons included in the course."
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "description",
-        "price",
-        "numberOfLessons"
-      ]
-    },
-    "Enrollment": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Enrollment",
-      "type": "object",
-      "description": "Represents a user's enrollment in a course.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the enrollment entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User entity who is enrolled. (Relationship: User 1:N Enrollment)"
-        },
-        "courseId": {
-          "type": "string",
-          "description": "Reference to the Course entity that the user is enrolled in. (Relationship: Course 1:N Enrollment)"
-        },
-        "enrollmentDate": {
-          "type": "string",
-          "description": "The date the user enrolled in the course.",
-          "format": "date-time"
-        },
-        "progress": {
-          "type": "number",
-          "description": "The user's progress in the course (e.g., percentage completed)."
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "courseId",
-        "enrollmentDate"
-      ]
-    },
-    "Lesson": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Lesson",
-      "type": "object",
-      "description": "Represents a single lesson within a course.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the lesson entity."
-        },
-        "courseId": {
-          "type": "string",
-          "description": "Reference to the Course entity that this lesson belongs to. (Relationship: Course 1:N Lesson)"
-        },
-        "title": {
-          "type": "string",
-          "description": "The title of the lesson."
-        },
-        "content": {
-          "type": "string",
-          "description": "The content of the lesson (e.g., text, video URL)."
-        },
-        "order": {
-          "type": "number",
-          "description": "The order of the lesson within the course."
-        }
-      },
-      "required": [
-        "id",
-        "courseId",
-        "title",
-        "content",
-        "order"
-      ]
-    },
-    "Review": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Review",
-      "type": "object",
-      "description": "Represents a review or testimonial given by a parent.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the review entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User entity who wrote the review. (Relationship: User 1:N Review)"
-        },
-        "rating": {
-          "type": "number",
-          "description": "The rating given by the parent (e.g., 1-5 stars)."
-        },
-        "comment": {
-          "type": "string",
-          "description": "The text of the review."
-        },
-        "reviewDate": {
-          "type": "string",
-          "description": "The date the review was submitted.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "rating",
-        "comment",
-        "reviewDate"
-      ]
+        "required": ["id", "parent_id", "student_id", "trial_date", "trial_status"]
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous",
-      "phone"
-    ]
+    "providers": ["password", "anonymous", "phone"]
   },
   "firestore": {
     "structure": [
       {
-        "path": "/users/{userId}",
+        "path": "/parents/{parentId}",
         "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores user profiles.  Accessible only by the user with matching UID.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user, matching the Firebase Auth UID."
-            }
-          ]
+          "entityName": "Parent",
+          "schema": { "$ref": "#/backend/entities/Parent" },
+          "description": "Stores parent user profiles.",
+          "params": [{ "name": "parentId", "description": "The unique identifier for the parent user." }]
         }
       },
       {
-        "path": "/users/{userId}/children/{childId}",
+        "path": "/students/{studentId}",
         "definition": {
-          "entityName": "Child",
-          "schema": {
-            "$ref": "#/backend/entities/Child"
-          },
-          "description": "Stores child profiles associated with a user.  Only the parent user can access their children.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the parent user."
-            },
-            {
-              "name": "childId",
-              "description": "The unique identifier for the child."
-            }
-          ]
-        }
-      },
-       {
-        "path": "/lesson-slots/{slotId}",
-        "definition": {
-            "entityName": "LessonSlot",
-            "schema": { "$ref": "#/backend/entities/LessonSlot" },
-            "description": "Stores available and booked lesson time slots. Publicly readable, but writes are restricted.",
-            "params": [
-                { "name": "slotId", "description": "The unique identifier for the lesson slot." }
-            ]
+            "entityName": "Student",
+            "schema": { "$ref": "#/backend/entities/Student"},
+            "description": "Stores student profiles. Grouped under a top-level collection for easier querying by admins.",
+            "params": [{"name": "studentId", "description": "The unique identifier for the student."}]
         }
       },
       {
-        "path": "/courses/{courseId}",
+        "path": "/sales/{saleId}",
         "definition": {
-          "entityName": "Course",
-          "schema": {
-            "$ref": "#/backend/entities/Course"
-          },
-          "description": "Stores course information. Publicly readable, but creation/modification is restricted to admins.",
-          "params": [
-            {
-              "name": "courseId",
-              "description": "The unique identifier for the course."
-            }
-          ]
+            "entityName": "Sale",
+            "schema": { "$ref": "#/backend/entities/Sale" },
+            "description": "Stores all sales transactions.",
+            "params": [{"name": "saleId", "description": "The unique identifier for the sale."}]
         }
       },
       {
-        "path": "/users/{userId}/enrollments/{enrollmentId}",
+        "path": "/trials/{trialId}",
         "definition": {
-          "entityName": "Enrollment",
-          "schema": {
-            "$ref": "#/backend/entities/Enrollment"
-          },
-          "description": "Stores enrollment data for each user.  Only the user can access their own enrollments.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "enrollmentId",
-              "description": "The unique identifier for the enrollment."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/courses/{courseId}/lessons/{lessonId}",
-        "definition": {
-          "entityName": "Lesson",
-          "schema": {
-            "$ref": "#/backend/entities/Lesson"
-          },
-          "description": "Stores lessons associated with a course. Publicly readable but creation/modification is restricted to admins.",
-          "params": [
-            {
-              "name": "courseId",
-              "description": "The unique identifier for the course."
-            },
-            {
-              "name": "lessonId",
-              "description": "The unique identifier for the lesson."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/reviews/{reviewId}",
-        "definition": {
-          "entityName": "Review",
-          "schema": {
-            "$ref": "#/backend/entities/Review"
-          },
-          "description": "Stores user reviews. Reviews are not stored within the user document but instead as top-level collections to allow for listing all reviews independently of user information. Reviews include a `userId` field to connect the review to the user.",
-          "params": [
-            {
-              "name": "reviewId",
-              "description": "The unique identifier for the review."
-            }
-          ]
+            "entityName": "Trial",
+            "schema": { "$ref": "#/backend/entities/Trial"},
+            "description": "Stores all trial lesson records.",
+            "params": [{"name": "trialId", "description": "The unique identifier for the trial lesson."}]
         }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to support the Türk Çocuk Akademisi platform, focusing on user data, child profiles, courses, enrollments, lessons, and reviews. The design prioritizes Authorization Independence, DBAC (Database-Based Access Control), and clear segregation of data based on access requirements.\\n\\n**Authorization Independence:**\\n\\n*   The primary method for ensuring authorization independence is through path-based ownership and avoiding `get()` calls in security rules. Data related to a specific user (e.g., children, enrollments, reviews) is stored under the `/users/{userId}` path, eliminating the need to fetch parent document data to authorize access.\\n\\n**QAPs (Rules are not Filters):**\\n\\n*   **Path-Based Ownership:** User-specific data (children, enrollments, reviews) resides under `/users/{userId}`, ensuring only the authenticated user (or authorized admin) can access it.  This facilitates secure `list` operations as rules can simply check `request.auth.uid == userId`.\\n\\n**Structure Overview:**\\n\\n*   `/users/{userId}`: Stores user profiles. This uses path-based ownership, a user can only access their own profile.\\n*   `/users/{userId}/children/{childId}`: Stores child profiles associated with a user. This enforces that only a user can manage their own children.\\n*   `/courses/{courseId}`: Stores course information. No user-specific data is stored here, which means that to list courses a rule can simply check that get operations are allowed, i.e. `allow read: if true`. \\n*   `/users/{userId}/enrollments/{enrollmentId}`: Stores enrollment data for each user. This allows a user to see what they are enrolled in and their progress. This follows a similar design as with the user's children.\\n*   `/courses/{courseId}/lessons/{lessonId}`: Stores lessons associated with a course. `list` operations are also straightforward, requiring a general read permission on courses and lessons, which can be refined based on enrollment status.\\n*   `/reviews/{reviewId}`: Stores user reviews. Reviews are not stored within the user document but instead as top-level collections to allow for listing all reviews independently of user information. Reviews include a `userId` field to connect the review to the user.\\n\\n**Data Integrity and Invariants:**\\n\\n*   Timestamps (where needed) should be managed server-side to ensure integrity.  Consider adding `createdAt` and `updatedAt` fields managed via server timestamps.\\n*   Ownership (`userId`) is explicitly stored in relevant documents (children, enrollments, reviews), enabling direct and secure access control."
+    "reasoning": "The data structure is designed for a CRM-style admin panel. All major entities (parents, students, sales, trials) are top-level collections. This avoids deep nesting, simplifies security rules, and makes querying/filtering for the admin panel much more efficient. For example, admins can easily query all students or all sales without needing to know parent IDs. The relationships are maintained via ID fields (e.g., `parent_id` in the Student document)."
   }
 }
-
-    

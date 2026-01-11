@@ -11,6 +11,8 @@ import {
   Users,
   BookOpen,
   Settings,
+  Briefcase,
+  TrendingUp,
 } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
@@ -30,7 +32,6 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
   const db = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -63,26 +64,11 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
   }
 
   const navItems = [
-    {
-      href: '/yonetici',
-      label: 'Anasayfa',
-      icon: Home,
-    },
-    {
-      href: '/yonetici/kullanicilar',
-      label: 'Kullanıcılar',
-      icon: Users,
-    },
-    {
-      href: '/yonetici/kurslar',
-      label: 'Kurslar',
-      icon: BookOpen,
-    },
-    {
-      href: '/yonetici/ayarlar',
-      label: 'Ayarlar',
-      icon: Settings,
-    },
+    { href: '/yonetici', label: 'Dashboard', icon: Home },
+    { href: '/yonetici/kullanicilar', label: 'Veliler', icon: Users },
+    { href: '/yonetici/satislar', label: 'Satışlar', icon: TrendingUp },
+    { href: '/yonetici/kurslar', label: 'Kurslar', icon: BookOpen },
+    { href: '/yonetici/ayarlar', label: 'Ayarlar', icon: Settings },
   ];
 
   return (
@@ -90,58 +76,36 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-screen">
         <aside
           className={cn(
-            'flex-col border-r bg-background transition-all duration-300',
-            isSidebarCollapsed ? 'w-16' : 'w-64'
+            'hidden md:flex flex-col border-r bg-background w-64'
           )}
         >
           <div className="flex h-20 items-center justify-between border-b p-4">
-            {!isSidebarCollapsed && <Logo />}
+            <Logo />
           </div>
           <nav className="flex-1 space-y-2 p-4">
             {navItems.map((item) => (
-              <Tooltip key={item.href}>
-                <TooltipTrigger asChild>
-                  <Link
-                    href={item.href}
-                    className={cn(
-                      'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary',
-                      pathname === item.href && 'bg-muted text-primary',
-                      isSidebarCollapsed && 'justify-center'
-                    )}
-                  >
-                    <item.icon className="h-5 w-5" />
-                    {!isSidebarCollapsed && <span>{item.label}</span>}
-                  </Link>
-                </TooltipTrigger>
-                {isSidebarCollapsed && (
-                  <TooltipContent side="right">
-                    <p>{item.label}</p>
-                  </TooltipContent>
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-muted',
+                  pathname === item.href && 'bg-muted text-primary'
                 )}
-              </Tooltip>
+              >
+                <item.icon className="h-5 w-5" />
+                <span>{item.label}</span>
+              </Link>
             ))}
           </nav>
           <div className="mt-auto p-4 border-t">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className={cn(
-                    'w-full justify-start gap-3',
-                    isSidebarCollapsed && 'justify-center'
-                  )}
-                  onClick={handleLogout}
-                >
-                  <LogOut className="h-5 w-5" />
-                  {!isSidebarCollapsed && <span>Çıkış Yap</span>}
-                </Button>
-              </TooltipTrigger>
-              {isSidebarCollapsed && (
-                <TooltipContent side="right">
-                  <p>Çıkış Yap</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
+            <Button
+              variant="ghost"
+              className='w-full justify-start gap-3'
+              onClick={handleLogout}
+            >
+              <LogOut className="h-5 w-5" />
+              <span>Çıkış Yap</span>
+            </Button>
           </div>
         </aside>
         <div className="flex flex-1 flex-col">
@@ -150,7 +114,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
               {userData?.firstName} {userData?.lastName}
             </span>
           </header>
-          <main className="flex-1 p-6">{children}</main>
+          <main className="flex-1 p-6 bg-muted/40">{children}</main>
         </div>
       </div>
     </TooltipProvider>
