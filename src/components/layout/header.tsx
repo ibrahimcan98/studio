@@ -170,8 +170,8 @@ export default function Header() {
           <Logo />
         </Link>
         
-        <div className="flex items-center justify-end gap-2 md:gap-4">
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+        <div className="flex items-center justify-end gap-2 lg:gap-4">
+          <nav className="hidden lg:flex items-center gap-6 text-sm font-medium">
               <button onClick={handlePortalClick} className="transition-colors hover:text-foreground/80 text-foreground/60">
               Ebeveyn Portalı
             </button>
@@ -199,13 +199,13 @@ export default function Header() {
             </Button>
           </nav>
           
-            <Button variant="secondary" className="font-semibold hidden md:inline-flex" onClick={handleFreeTrialClick}>Ücretsiz Deneme</Button>
+            <Button variant="secondary" className="font-semibold hidden lg:inline-flex" onClick={handleFreeTrialClick}>Ücretsiz Deneme</Button>
 
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden lg:flex items-center gap-2">
               <UserMenu />
            </div>
 
-          <div className="md:hidden flex items-center gap-2">
+          <div className="lg:hidden flex items-center gap-2">
              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
                     <Button variant="ghost" size="icon">
