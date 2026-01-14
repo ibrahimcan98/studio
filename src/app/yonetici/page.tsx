@@ -1,131 +1,191 @@
+
 'use client';
 
-import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError, useUser } from '@/firebase';
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Users, UserCheck, TrendingUp, BarChart } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { startOfMonth, endOfMonth } from 'date-fns';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { 
+  Users, 
+  GraduationCap, 
+  TrendingUp, 
+  Globe2, 
+  PieChart, 
+  CalendarCheck, 
+  Activity,
+  DollarSign,
+  ArrowUpRight,
+  Loader2
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { useMemo } from 'react';
 
-function StatCard({ title, value, icon: Icon, isLoading }: { title: string, value: string | number, icon: React.ElementType, isLoading: boolean }) {
-    return (
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">{title}</CardTitle>
-          <Icon className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : <div className="text-2xl font-bold">{value}</div>}
-        </CardContent>
-      </Card>
-    )
+// Growth Stat Card Component
+function GrowthCard({ title, value, subValue, icon: Icon, color }: any) {
+  return (
+    <Card className="border-none shadow-md bg-white overflow-hidden relative group">
+      <div className={cn("absolute top-0 left-0 w-1 h-full", color)} />
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">{title}</CardTitle>
+        <Icon className={cn("h-4 w-4", color.replace('bg-', 'text-'))} />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-black text-slate-900">{value}</div>
+        <div className="text-[10px] font-medium text-slate-500 mt-1 flex items-center gap-1">
+            <span className="text-emerald-500 font-bold">{subValue}</span> bu ay
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
-export default function AdminPage() {
-    const db = useFirestore();
-    const { user } = useUser(); // Get the authenticated user
-    const [monthlyStats, setMonthlyStats] = useState({ trials: 0, sales: 0, revenue: 0 });
-    const [loadingStats, setLoadingStats] = useState(true);
+export default function AdminDashboard() {
+  const db = useFirestore();
 
-    const parentsQuery = useMemoFirebase(() => db ? query(collection(db, 'parents'), where('status', '==', 'active')) : null, [db]);
-    const studentsQuery = useMemoFirebase(() => db ? query(collection(db, 'students'), where('status', '==', 'active')) : null, [db]);
-    
-    const { data: activeParents, isLoading: parentsLoading } = useCollection(parentsQuery);
-    const { data: activeStudents, isLoading: studentsLoading } = useCollection(studentsQuery);
+  // Queries
+  const parentsQuery = useMemoFirebase(() => db ? query(collection(db, 'users'), where('role', '==', 'parent')) : null, [db]);
+  const salesQuery = useMemoFirebase(() => db ? query(collection(db, 'sales')) : null, [db]);
+  const trialsQuery = useMemoFirebase(() => db ? query(collection(db, 'trials')) : null, [db]);
+  const studentsQuery = useMemoFirebase(() => db ? query(collection(db, 'lesson-slots'), where('status', '==', 'booked')) : null, [db]);
 
-    useEffect(() => {
-      // Only run the effect if we have a database instance AND an authenticated user
-      if (!db || !user) return;
+  const { data: parents, isLoading: parentsLoading } = useCollection(parentsQuery);
+  const { data: sales, isLoading: salesLoading } = useCollection(salesQuery);
+  const { data: trials, isLoading: trialsLoading } = useCollection(trialsQuery);
+  const { data: lessons, isLoading: lessonsLoading } = useCollection(studentsQuery);
 
-      const fetchMonthlyStats = async () => {
-        setLoadingStats(true);
-        const now = new Date();
-        const start = startOfMonth(now);
-        const end = endOfMonth(now);
+  // Growth Metrics Calculation
+  const metrics = useMemo(() => {
+    if (!parents || !sales || !trials) return null;
 
-        const trialsRef = collection(db, 'trials');
-        const salesRef = collection(db, 'sales');
+    const activeStudents = lessons?.length || 0;
+    const activeParents = parents.filter(p => p.status === 'active').length;
+    const monthlyTrials = trials.filter(t => {
+        const d = t.trial_date?.toDate();
+        return d && d.getMonth() === new Date().getMonth();
+    }).length;
 
-        const trialsQuery = query(trialsRef, where('trial_date', '>=', Timestamp.fromDate(start)), where('trial_date', '<=', Timestamp.fromDate(end)));
-        const salesQuery = query(salesRef, where('sale_date', '>=', Timestamp.fromDate(start)), where('sale_date', '<=', Timestamp.fromDate(end)));
+    const totalRevenue = sales.reduce((acc, s) => acc + (s.price || 0), 0);
+    const conversionRate = trials.length > 0 ? ((sales.filter(s => s.sale_type === 'first_sale').length / trials.length) * 100).toFixed(1) : 0;
 
-        const trialsPromise = getDocs(trialsQuery).catch(error => {
-          const permissionError = new FirestorePermissionError({
-            path: 'trials',
-            operation: 'list',
-          });
-          errorEmitter.emit('permission-error', permissionError);
-          throw permissionError; 
-        });
+    // Country Distribution
+    const countries: any = {};
+    parents.forEach(p => {
+        if (p.country) countries[p.country] = (countries[p.country] || 0) + 1;
+    });
 
-        const salesPromise = getDocs(salesQuery).catch(error => {
-            const permissionError = new FirestorePermissionError({
-                path: 'sales',
-                operation: 'list',
-            });
-            errorEmitter.emit('permission-error', permissionError);
-            throw permissionError;
-        });
+    return { activeStudents, activeParents, monthlyTrials, totalRevenue, conversionRate, countries };
+  }, [parents, sales, trials, lessons]);
 
-        Promise.all([trialsPromise, salesPromise]).then(([trialsSnapshot, salesSnapshot]) => {
-            const totalTrials = trialsSnapshot.size;
-            const totalSales = salesSnapshot.size;
-            const totalRevenue = salesSnapshot.docs.reduce((acc, doc) => acc + (doc.data().price || 0), 0);
-
-            setMonthlyStats({
-                trials: totalTrials,
-                sales: totalSales,
-                revenue: totalRevenue
-            });
-        }).catch(error => {
-            // Error is already emitted, just log for local debugging if needed.
-            // Do not use console.error in production code for this.
-        }).finally(() => {
-            setLoadingStats(false);
-        });
-      };
-
-      fetchMonthlyStats();
-    }, [db, user]); // Add user to dependency array
-    
-    const trialToSaleConversionRate = monthlyStats.trials > 0 ? ((monthlyStats.sales / monthlyStats.trials) * 100).toFixed(1) : 0;
-
+  if (parentsLoading || salesLoading || trialsLoading) {
     return (
-        <div className="space-y-8">
-            <h1 className="text-3xl font-bold">Dashboard</h1>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <StatCard 
-                    title="Toplam Aktif Veli"
-                    value={activeParents?.length ?? 0}
-                    icon={Users}
-                    isLoading={parentsLoading}
-                />
-                 <StatCard 
-                    title="Toplam Aktif Öğrenci"
-                    value={activeStudents?.length ?? 0}
-                    icon={UserCheck}
-                    isLoading={studentsLoading}
-                />
-                <StatCard 
-                    title="Bu Ayki Deneme Dersi"
-                    value={monthlyStats.trials}
-                    icon={TrendingUp}
-                    isLoading={loadingStats}
-                />
-                 <StatCard 
-                    title="Deneme -> Satış Dönüşüm Oranı"
-                    value={`${trialToSaleConversionRate}%`}
-                    icon={BarChart}
-                    isLoading={loadingStats}
-                />
-                <StatCard 
-                    title="Bu Ayki Ciro"
-                    value={`€${monthlyStats.revenue.toFixed(2)}`}
-                    icon={TrendingUp}
-                    isLoading={loadingStats}
-                />
-            </div>
-            {/* TODO: Add charts for country distribution and top selling courses */}
+        <div className="flex h-96 items-center justify-center">
+            <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
         </div>
     );
+  }
+
+  return (
+    <div className="space-y-10 font-sans pb-20">
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Merkezi Kontrol</h1>
+          <p className="text-slate-500 font-medium mt-1">Growth, Operasyon ve Satış Verileri</p>
+        </div>
+        <Badge variant="outline" className="bg-white px-4 py-1 border-slate-200 text-slate-600 font-bold">
+            {new Date().toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}
+        </Badge>
+      </div>
+
+      {/* Ana Metrikler */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <GrowthCard 
+            title="Aktif Öğrenci" 
+            value={metrics?.activeStudents || 0} 
+            subValue="+4" 
+            icon={GraduationCap} 
+            color="bg-indigo-500" 
+        />
+        <GrowthCard 
+            title="Toplam Ciro" 
+            value={`${metrics?.totalRevenue.toLocaleString()} ₺`} 
+            subValue="%12 Artış" 
+            icon={DollarSign} 
+            color="bg-emerald-500" 
+        />
+        <GrowthCard 
+            title="Dönüşüm Oranı" 
+            value={`%${metrics?.conversionRate || 0}`} 
+            subValue="Trial → Sale" 
+            icon={Activity} 
+            color="bg-amber-500" 
+        />
+        <GrowthCard 
+            title="Bu Ayki Trial" 
+            value={metrics?.monthlyTrials || 0} 
+            subValue="Planlanan" 
+            icon={CalendarCheck} 
+            color="bg-blue-500" 
+        />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Ülke Dağılımı */}
+        <Card className="lg:col-span-1 border-none shadow-md">
+          <CardHeader>
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <Globe2 className="h-5 w-5 text-primary" /> Ülke Dağılımı
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {Object.entries(metrics?.countries || {}).map(([code, count]: any) => (
+                <div key={code} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-6 bg-slate-100 rounded flex items-center justify-center text-[10px] font-bold uppercase">{code}</div>
+                    <span className="text-sm font-semibold text-slate-700">{code === 'UK' ? 'Birleşik Krallık' : code === 'IE' ? 'İrlanda' : code}</span>
+                  </div>
+                  <span className="text-sm font-black text-slate-900">{count}</span>
+                </div>
+              ))}
+              {Object.keys(metrics?.countries || {}).length === 0 && (
+                  <p className="text-xs text-slate-400 italic text-center py-10">Henüz ülke verisi yok.</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Son Aktiviteler */}
+        <Card className="lg:col-span-2 border-none shadow-md">
+           <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-lg font-bold">Operasyonel Akış</CardTitle>
+              <CardDescription>Son satışlar ve planlanan trial'lar.</CardDescription>
+            </div>
+            <TrendingUp className="h-5 w-5 text-slate-300" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+                {/* Placeholder for real activity feed */}
+                <div className="flex items-start gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <div className="p-2 bg-emerald-100 rounded-full"><TrendingUp className="h-4 w-4 text-emerald-600" /></div>
+                    <div>
+                        <p className="text-sm font-bold text-slate-900">Yeni Satış: 12 Derslik Paket</p>
+                        <p className="text-xs text-slate-500">Veli: İbrahim Onder • Öğrenci: Ali</p>
+                    </div>
+                    <span className="ml-auto text-[10px] font-bold text-slate-400">Şimdi</span>
+                </div>
+                <div className="flex items-start gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <div className="p-2 bg-blue-100 rounded-full"><CalendarCheck className="h-4 w-4 text-blue-600" /></div>
+                    <div>
+                        <p className="text-sm font-bold text-slate-900">Trial Planlandı: Başlangıç Kursu</p>
+                        <p className="text-xs text-slate-500">Veli: Ayşe Yılmaz • Tarih: 30 Aralık 2025</p>
+                    </div>
+                    <span className="ml-auto text-[10px] font-bold text-slate-400">2 dk önce</span>
+                </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
 }

@@ -12,76 +12,45 @@ import {
   BookOpen,
   Settings,
   TrendingUp,
+  ShieldAlert,
 } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 function AdminPortalLayout({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useUser();
   const db = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
-  const { toast } = useToast();
-  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => { setIsMounted(true); }, []);
 
   const userDocRef = useMemoFirebase(() => {
-    if (!user) return null;
+    if (!user || !db) return null;
     return doc(db, 'users', user.uid);
   }, [user, db]);
 
-  const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
+  const { data: userData, isLoading: userDataLoading, error: userError } = useDoc(userDocRef);
 
   useEffect(() => {
-    // Wait until both authentication and user document loading are complete
-    if (authLoading || userDataLoading) {
-      return;
-    }
-
-    // If loading is finished and there's no authenticated user, they are not authorized.
-    if (!user) {
-      router.replace('/login');
-      return;
-    }
-    
-    // If user is authenticated, but we couldn't find their data document
-    if (!userData) {
-      toast({
-        title: 'Kullanıcı Verisi Bulunamadı',
-        description: 'Lütfen tekrar giriş yapın.',
-        variant: 'destructive',
-      });
-       const auth = getAuth();
-       signOut(auth).then(() => {
+    if (!authLoading && !userDataLoading && isMounted) {
+      if (!user) {
         router.replace('/login');
-       });
-      return;
+      } else if (userData && userData.role !== 'admin') {
+        router.replace('/');
+      }
     }
-
-    // Finally, check the role
-    if (userData.role === 'admin') {
-      setIsAuthorized(true);
-    } else {
-      setIsAuthorized(false);
-    }
-
-  }, [user, authLoading, userData, userDataLoading, router, toast]);
-
-  useEffect(() => {
-    // This effect handles the redirection once authorization status is determined.
-    if (isAuthorized === false) {
-      toast({
-          title: 'Yetkisiz Erişim',
-          description: 'Yönetici paneline erişim yetkiniz yok.',
-          variant: 'destructive',
-      });
-      router.replace('/');
-    }
-  }, [isAuthorized, router, toast]);
-
+  }, [user, authLoading, userData, userDataLoading, router, isMounted]);
 
   const handleLogout = async () => {
     const auth = getAuth();
@@ -89,13 +58,31 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     router.push('/login');
   };
 
-  // While loading or before authorization status is determined, show a loading screen.
-  if (isAuthorized !== true) {
+  if (!isMounted || authLoading || (user && userDataLoading)) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-white">
         <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-        <p className="text-sm font-medium text-muted-foreground">Yönetici Yetkileri Kontrol Ediliyor...</p>
+        <p className="text-sm font-medium text-muted-foreground animate-pulse">Panel Hazırlanıyor...</p>
       </div>
+    );
+  }
+
+  // Eğer veri yüklenmesi bittiyse ve kullanıcı admin değilse (veya veri yoksa)
+  if (!user || userData?.role !== 'admin') {
+    return (
+       <div className="flex h-screen w-full flex-col items-center justify-center bg-slate-50 p-6 text-center">
+          <div className="bg-red-100 p-4 rounded-full mb-6">
+            <ShieldAlert className="h-10 w-10 text-red-600" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2">Yönetici Yetkisi Gereklidir</h2>
+          <p className="text-slate-500 mb-8 max-w-sm">
+             Şu anki hesabınızla yönetici paneline erişemezsiniz. Lütfen admin yetkisine sahip bir hesapla giriş yapın.
+          </p>
+          <div className="flex gap-4">
+             <Button onClick={() => router.push('/')} variant="outline">Ana Sayfaya Dön</Button>
+             <Button onClick={handleLogout} className="bg-slate-900">Farklı Hesapla Giriş Yap</Button>
+          </div>
+       </div>
     );
   }
 
@@ -108,9 +95,10 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
   ];
 
   return (
+    <TooltipProvider>
       <div className="flex min-h-screen w-full flex-col bg-muted/40 font-sans text-slate-900">
-        <aside className="fixed inset-y-0 left-0 z-10 hidden w-60 flex-col border-r bg-background sm:flex shadow-sm">
-            <div className="flex h-20 items-center border-b px-6">
+        <aside className="fixed inset-y-0 left-0 z-10 hidden w-64 flex-col border-r bg-background sm:flex shadow-sm">
+            <div className="flex h-20 items-center border-b px-8">
                  <Link href="/yonetici" className="flex items-center gap-2">
                     <Logo />
                 </Link>
@@ -121,13 +109,13 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-200',
+                  'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200',
                   pathname === item.href 
                     ? 'bg-primary/10 text-primary' 
                     : 'text-slate-500 hover:text-primary hover:bg-slate-50'
                 )}
               >
-                <item.icon className="h-4 w-4" />
+                <item.icon className="h-5 w-5" />
                 <span>{item.label}</span>
               </Link>
             ))}
@@ -135,32 +123,33 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
            <div className="p-4 border-t">
             <Button
               variant="ghost"
-              className='w-full justify-start gap-3 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors'
+              className='w-full justify-start gap-3 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors font-bold'
               onClick={handleLogout}
             >
-              <LogOut className="h-4 w-4" />
-              <span className="font-bold">Çıkış Yap</span>
+              <LogOut className="h-5 w-5" />
+              <span>Çıkış Yap</span>
             </Button>
           </div>
         </aside>
-         <div className="flex flex-col sm:pl-60">
-             <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b bg-background/80 backdrop-blur-md px-8 shadow-sm">
+         <div className="flex flex-col sm:pl-64">
+             <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b bg-background/80 backdrop-blur-md px-10">
                 <h1 className="font-bold text-lg text-slate-800 uppercase tracking-tight">
-                  {navItems.find(i => i.href === pathname)?.label || 'Yönetici Paneli'}
+                  {navItems.find(i => i.href === pathname)?.label || 'Yönetici'}
                 </h1>
                 <div className="flex items-center gap-3">
                   <div className="flex flex-col items-end mr-2">
                     <span className="text-xs font-black text-slate-900 leading-none">ADMIN</span>
-                    <span className="text-[10px] text-slate-400 font-medium">{user?.email}</span>
+                    <span className="text-[10px] text-slate-400 font-medium">{user.email}</span>
                   </div>
-                  <div className="h-9 w-9 rounded-full bg-slate-900 flex items-center justify-center text-white font-bold text-sm ring-2 ring-slate-100">
-                    {user?.email?.[0].toUpperCase()}
+                  <div className="h-10 w-10 rounded-full bg-slate-900 flex items-center justify-center text-white font-bold text-sm ring-4 ring-slate-100">
+                    {user.email?.[0].toUpperCase()}
                   </div>
                 </div>
             </header>
-            <main className="flex-1 p-8 bg-slate-50/50">{children}</main>
+            <main className="flex-1 p-10 bg-slate-50/50">{children}</main>
         </div>
       </div>
+    </TooltipProvider>
   );
 }
 
