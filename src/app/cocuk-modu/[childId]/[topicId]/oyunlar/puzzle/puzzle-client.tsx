@@ -54,16 +54,20 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
     const [lives, setLives] = useState(5);
 
     const childDocRef = useMemoFirebase(() => (db && authUser?.uid && childId) ? doc(db, 'users', authUser.uid, 'children', childId as string) : null, [db, authUser?.uid, childId]);
-    const { data: childData } = useDoc(childDocRef);
     
     const currentWord = words[currentWordIndex];
 
     useEffect(() => {
         if (userData) setLives(userData.lives ?? 5);
     }, [userData]);
-
+    
+    // Shuffle pieces only on the client side after the component mounts
     useEffect(() => {
-        // Shuffle pieces on the client side to avoid hydration errors
+        setShuffledPieces(shuffleArray([...pieceIndices]));
+    }, []);
+
+    // Reset game state when word changes
+    useEffect(() => {
         setShuffledPieces(shuffleArray([...pieceIndices]));
         setPlacedPieces(Array(PIECES_COUNT).fill(null));
         setIsSolved(false);
@@ -148,3 +152,6 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
         </div>
     );
 }
+
+
+    
