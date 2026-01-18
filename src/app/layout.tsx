@@ -20,11 +20,12 @@ export default function RootLayout({
 }>) {
   const pathname = usePathname();
 
+  const isCocukModu = pathname?.startsWith('/cocuk-modu');
   const isLiveLesson = pathname?.includes('/live-lesson/');
   const isSpecialLayout = pathname?.startsWith('/ogretmen-portali') || pathname?.startsWith('/yonetici');
 
-  const showHeader = !isLiveLesson && !isSpecialLayout;
-  const showAIAssistant = !isLiveLesson && !isSpecialLayout;
+  const showHeader = !isCocukModu && !isLiveLesson && !isSpecialLayout;
+  const showAIAssistant = !isCocukModu && !isLiveLesson && !isSpecialLayout;
 
 
   return (
