@@ -87,16 +87,36 @@ export default function CocukModuPage() {
   
   return (
     <div className="relative h-screen w-full overflow-hidden bg-[#e8f5e9]">
-        <div className="fixed top-4 left-4 z-30">
+        <div className="fixed top-4 left-4 z-30 flex items-center gap-4">
             {/* Character Image */}
-            <div className="w-32 md:w-48 h-auto relative">
+            <div className="w-40 md:w-56 h-auto relative">
                 <Image
                     src="/images/avatars/karakter1/ch1.png"
                     alt="Karakter"
-                    width={192}
-                    height={240}
+                    width={224}
+                    height={280}
                     className="object-contain drop-shadow-lg"
                 />
+            </div>
+            
+            {/* Frames */}
+            <div className="flex flex-col gap-4">
+                <div className="w-36 h-24 relative">
+                     <Image
+                        src="/images/cerceve.png"
+                        alt="Çerçeve 1"
+                        fill
+                        className="object-contain"
+                    />
+                </div>
+                 <div className="w-36 h-24 relative">
+                     <Image
+                        src="/images/cerceve.png"
+                        alt="Çerçeve 2"
+                        fill
+                        className="object-contain"
+                    />
+                </div>
             </div>
         </div>
 
@@ -127,9 +147,6 @@ export default function CocukModuPage() {
             minHeight: '100vh'
           }}
         >
-          {/* Top padding to avoid overlap with fixed header */}
-          <div className="h-64" />
-
           {topics.map((topic, index) => {
             const position = topicPositions[index] || [0, 0];
             const unlocked = isTopicUnlocked(index);
