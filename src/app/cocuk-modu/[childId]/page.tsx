@@ -92,8 +92,8 @@ export default function CocukModuPage() {
 
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[#e8f5e9]">
-       <aside className="w-72 h-screen bg-blue-400/80 backdrop-blur-sm text-white flex flex-col items-center p-6 shadow-2xl z-20 border-r-4 border-white/50 shrink-0">
+    <div className="relative h-screen w-full overflow-hidden bg-[#e8f5e9]">
+       <div className="fixed top-0 left-0 w-72 h-screen bg-blue-400/80 backdrop-blur-sm text-white flex flex-col items-center p-6 shadow-2xl z-20 border-r-4 border-white/50">
         <div className="flex flex-col items-center text-center mt-4">
             <div className="relative w-48 h-48 mb-3">
             <Image src="/ch1.png" alt={childData.firstName} layout="fill" objectFit="contain" />
@@ -143,10 +143,10 @@ export default function CocukModuPage() {
                 </Button>
             </ExitDialog>
         </div>
-    </aside>
+    </div>
       
       {/* Harita Alanı */}
-      <main className="flex-1 h-full w-full overflow-y-auto scroll-smooth scrollbar-hide pb-20">
+      <main className="h-full w-full overflow-y-auto scroll-smooth scrollbar-hide pb-20 pl-72">
         <div 
           className="relative w-full mx-auto"
           style={{
