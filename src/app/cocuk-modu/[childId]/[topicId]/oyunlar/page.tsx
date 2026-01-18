@@ -10,7 +10,6 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { useEffect, useState, useCallback } from 'react';
 import { Loader2 } from 'lucide-react';
-import { ChildHeader } from '@/components/child-mode/child-header';
 
 type Game = {
     id: string;
@@ -119,10 +118,6 @@ export default function GamesPage() {
 
     return (
         <div className="bg-amber-50 h-screen flex flex-col">
-            <ChildHeader 
-                childName={childData.firstName} 
-                childId={childId as string}
-            />
             <div className="p-4 sm:p-8 flex flex-col flex-1">
                 <header className="flex-shrink-0 mb-8">
                     <div className="w-full max-w-4xl mx-auto flex items-center justify-center relative">
