@@ -33,7 +33,7 @@ const shuffleArray = <T,>(array: T[]): T[] => {
 
 export default function PuzzleClient({ words }: PuzzleClientProps) {
     const [currentWordIndex, setCurrentWordIndex] = useState(0);
-    const [shuffledPieces, setShuffledPieces] = useState<(number | null)[]>(pieceIndices);
+    const [shuffledPieces, setShuffledPieces] = useState<(number | null)[]>([]);
     const [placedPieces, setPlacedPieces] = useState<(number | null)[]>(Array(PIECES_COUNT).fill(null));
     const [selectedPiece, setSelectedPiece] = useState<{ index: number; piece: number } | null>(null);
     const [isSolved, setIsSolved] = useState(false);
@@ -64,11 +64,14 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
     // Shuffle pieces only on the client side after the component mounts
     useEffect(() => {
         setShuffledPieces(shuffleArray([...pieceIndices]));
-    }, []);
+    }, [currentWordIndex]);
 
     // Reset game state when word changes
     useEffect(() => {
-        setShuffledPieces(shuffleArray([...pieceIndices]));
+        // Only shuffle if it's not the initial load, which is handled by the effect above
+        if (currentWordIndex > 0) {
+            setShuffledPieces(shuffleArray([...pieceIndices]));
+        }
         setPlacedPieces(Array(PIECES_COUNT).fill(null));
         setIsSolved(false);
         setSelectedPiece(null);
@@ -152,6 +155,3 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
         </div>
     );
 }
-
-
-    
