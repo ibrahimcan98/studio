@@ -18,19 +18,19 @@ import { ExitDialog } from "@/components/child-mode/exit-dialog";
  * Bu koordinatları haritanızdaki yolun kıvrımlarına göre buradan ince ayar yapabilirsiniz.
  */
 const topicPositions = [
-  [20, 22],   // 1. Konu
-  [19.8, 70],  // 2. Konu
-  [23.8, 68],  // 3. Konu
-  [23.7, 25],  // 4. Konu
-  [29.7, 25],  // 5. Konu
-  [26.4, 75],  // 6. Konu
-  [31.7, 72],  // 7. Konu
-  [35, 12],  // 8. Konu
-  [35.5, 70],  // 9. Konu
-  [42, 78],  // 10. Konu
-  [39.4, 30],  // 11. Konu
-  [43, 52],  // 12. Konu
-  [48, 82],  // 13. Konu
+  [8, 25],
+  [13, 50],
+  [19, 75],
+  [28, 65],
+  [35, 45],
+  [42, 25],
+  [50, 50],
+  [58, 75],
+  [67, 60],
+  [75, 40],
+  [83, 20],
+  [90, 50],
+  [95, 78],
 ];
 
 export default function CocukModuPage() {
@@ -87,6 +87,32 @@ export default function CocukModuPage() {
   
   return (
     <div className="h-screen w-full overflow-hidden bg-[#e8f5e9]">
+        <div className="fixed top-4 left-4 z-30 flex items-center gap-4">
+            <Image 
+                src="/images/avatars/karakter1/ch1.png"
+                width={200}
+                height={200}
+                alt="Karakter"
+                className="w-48 h-auto"
+            />
+            <div className="flex flex-col gap-2">
+                 <Image 
+                    src="/images/cerceve.png"
+                    width={120}
+                    height={120}
+                    alt="Çerçeve 1"
+                    className="w-28 h-auto"
+                />
+                 <Image 
+                    src="/images/cerceve.png"
+                    width={120}
+                    height={120}
+                    alt="Çerçeve 2"
+                    className="w-28 h-auto"
+                />
+            </div>
+        </div>
+
         <div className="fixed top-4 right-4 z-30">
             <ExitDialog childId={childId}>
                 <Button variant="outline" className="bg-white/50 hover:bg-white/80 border-white/30 h-14 text-lg shadow-lg">
@@ -105,13 +131,10 @@ export default function CocukModuPage() {
             backgroundSize: '100% auto',
             backgroundRepeat: 'no-repeat',
             backgroundPosition: 'center top',
-            /* 
-               ÖNEMLİ: Görselin en-boy oranına göre bu yüksekliği ayarlayın.
-               Eğer görsel genişliğinden 3 kat daha uzunsa '300vw' gibi bir değer kullanın.
-            */
             width: '100%',
-            height: '450vw', // Haritanızın uzunluğuna göre bu değeri değiştirebilirsiniz
-            minHeight: '100vh'
+            height: '450vw',
+            minHeight: '100vh',
+            paddingTop: '250px'
           }}
         >
           {topics.map((topic, index) => {
