@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -94,7 +95,7 @@ export default function CocukModuPage() {
         <div 
           className="relative w-full min-h-full bg-no-repeat"
           style={{
-            backgroundImage: "url('https://i.ibb.co/pnv1v1W/cocuk-modu-bg-final.png')",
+            backgroundImage: "url('https://i.ibb.co/2k1Bpgc/map-path-background.png')",
             backgroundSize: 'contain',
             backgroundPosition: 'center top',
             // This height should be proportional to the image aspect ratio
