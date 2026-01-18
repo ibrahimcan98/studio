@@ -9,7 +9,7 @@ import { TopicCard } from '@/components/child-mode/topic-card';
 import topics from '@/data/topics.json';
 import Image from 'next/image';
 import { Button } from "@/components/ui/button";
-import { Heart, Award, Crown, LogOut, Infinity as InfinityIcon, Sparkles } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { ExitDialog } from "@/components/child-mode/exit-dialog";
 
 
@@ -85,55 +85,18 @@ export default function CocukModuPage() {
     );
   }
   
-  const isPremium = userData?.isPremium || false;
-  const lives = userData?.lives ?? 5;
-  const badges = childData?.rozet || 0;
-  const stickers = 5; // Placeholder for stickers
-
-
   return (
     <div className="relative h-screen w-full overflow-hidden bg-[#e8f5e9]">
-        <div className="fixed top-4 left-4 z-30 flex items-start gap-4">
+        <div className="fixed top-4 left-4 z-30">
             {/* Character Image */}
-            <div className="w-24 md:w-32 h-auto relative">
+            <div className="w-32 md:w-48 h-auto relative">
                 <Image
                     src="/images/avatars/karakter1/ch1.png"
                     alt="Karakter"
-                    width={128}
-                    height={160}
+                    width={192}
+                    height={240}
                     className="object-contain drop-shadow-lg"
                 />
-            </div>
-
-            {/* Stats frames */}
-            <div className="space-y-2">
-                {/* Frame 1 */}
-                <div className="w-40 md:w-48 h-20 bg-white/70 backdrop-blur-sm rounded-2xl border-4 border-white/80 shadow-lg p-2 flex items-center justify-around">
-                    <div className="text-center">
-                        <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-yellow-500 mx-auto"/>
-                        <p className="font-bold text-sm md:text-lg text-gray-700">{stickers}</p>
-                        <p className="text-[10px] md:text-xs font-semibold text-gray-500">Sticker</p>
-                    </div>
-                    <div className="text-center">
-                        <Award className="w-6 h-6 md:w-8 md:h-8 text-blue-500 mx-auto"/>
-                        <p className="font-bold text-sm md:text-lg text-gray-700">{badges}</p>
-                        <p className="text-[10px] md:text-xs font-semibold text-gray-500">Rozet</p>
-                    </div>
-                </div>
-                {/* Frame 2 */}
-                <div className="w-40 md:w-48 h-20 bg-white/70 backdrop-blur-sm rounded-2xl border-4 border-white/80 shadow-lg p-2 flex items-center justify-around">
-                    <div className="text-center">
-                        <Heart className="w-6 h-6 md:w-8 md:h-8 text-red-500 mx-auto"/>
-                        <p className="font-bold text-sm md:text-lg text-gray-700">{isPremium ? <InfinityIcon className='w-4 h-4 md:w-5 md:h-5 mx-auto'/> : lives}</p>
-                        <p className="text-[10px] md:text-xs font-semibold text-gray-500">Can</p>
-                    </div>
-                    {isPremium && (
-                        <div className="text-center">
-                            <Crown className="w-6 h-6 md:w-8 md:h-8 text-yellow-400 mx-auto"/>
-                             <p className="text-[10px] md:text-xs font-semibold text-gray-500 mt-1">Premium</p>
-                        </div>
-                    )}
-                </div>
             </div>
         </div>
 
@@ -165,7 +128,7 @@ export default function CocukModuPage() {
           }}
         >
           {/* Top padding to avoid overlap with fixed header */}
-          <div className="h-48" />
+          <div className="h-64" />
 
           {topics.map((topic, index) => {
             const position = topicPositions[index] || [0, 0];
