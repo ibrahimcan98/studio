@@ -86,40 +86,7 @@ export default function CocukModuPage() {
   }
   
   return (
-    <div className="relative h-screen w-full overflow-hidden bg-[#e8f5e9]">
-        <div className="fixed top-4 left-4 z-30 flex items-center gap-4">
-            {/* Character Image */}
-            <div className="w-40 md:w-56 h-auto relative">
-                <Image
-                    src="/images/avatars/karakter1/ch1.png"
-                    alt="Karakter"
-                    width={224}
-                    height={280}
-                    className="object-contain drop-shadow-lg"
-                />
-            </div>
-            
-            {/* Frames */}
-            <div className="flex flex-col gap-4">
-                <div className="w-36 h-24 relative">
-                     <Image
-                        src="/images/cerceve.png"
-                        alt="Çerçeve 1"
-                        fill
-                        className="object-contain"
-                    />
-                </div>
-                 <div className="w-36 h-24 relative">
-                     <Image
-                        src="/images/cerceve.png"
-                        alt="Çerçeve 2"
-                        fill
-                        className="object-contain"
-                    />
-                </div>
-            </div>
-        </div>
-
+    <div className="h-screen w-full overflow-hidden bg-[#e8f5e9]">
         <div className="fixed top-4 right-4 z-30">
             <ExitDialog childId={childId}>
                 <Button variant="outline" className="bg-white/50 hover:bg-white/80 border-white/30 h-14 text-lg shadow-lg">
