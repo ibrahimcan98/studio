@@ -1,14 +1,35 @@
-
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
-import { Loader2, Sparkles } from 'lucide-react';
-import { ChildHeader } from '@/components/child-mode/child-header';
+import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { Loader2 } from 'lucide-react';
 import { TopicCard } from '@/components/child-mode/topic-card';
 import topics from '@/data/topics.json';
+import { ChildSidebar } from '@/components/child-mode/child-sidebar';
+
+// Define positions for each topic on the map background.
+// Each inner array is [top%, left%]. Use null for right positioning.
+// e.g., [10, 25] is 10% from top, 25% from left.
+// e.g., [15, null, 25] is 15% from top, 25% from right.
+const topicPositions = [
+  [8, 45],
+  [14, 70],
+  [21, 40],
+  [28, 60],
+  [36, 30],
+  [45, 55],
+  [52, 75],
+  [59, 50],
+  [67, 25],
+  [74, 50],
+  [81, 75],
+  [88, 50],
+  [95, 30],
+  [102, 60],
+];
+
 
 export default function CocukModuPage() {
   const router = useRouter();
@@ -39,26 +60,23 @@ export default function CocukModuPage() {
     return doc(db, 'users', authUser.uid);
   }, [db, authUser?.uid]);
 
-  const { data: userData } = useDoc(userDocRef);
-  const isPremium = userData?.isPremium || false;
-
-  const handleTopicCompletion = async (topicId: string) => {
-      if (childDocRef && childData && !childData.completedTopics?.includes(topicId)) {
-        await updateDoc(childDocRef, {
-            completedTopics: arrayUnion(topicId)
-        });
-      }
-  };
+  const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
 
   const isTopicUnlocked = (index: number) => {
-      if (index === 0) return true;
+      if (index === 0) return true; // First topic is always unlocked
+      if (!childData?.completedTopics) return false;
       const previousTopic = topics[index - 1];
-      return childData?.completedTopics?.includes(previousTopic.id) ?? false;
+      // A topic is unlocked if the previous one is completed.
+      return childData.completedTopics.includes(previousTopic.id);
   };
+  
+  const isTopicCompleted = (topicId: string) => {
+    return childData?.completedTopics?.includes(topicId) ?? false;
+  }
 
-  if (authLoading || childLoading || isAuthenticated === null || !childData) {
+  if (authLoading || childLoading || userDataLoading || isAuthenticated === null || !childData || !userData) {
     return (
-      <div className="flex h-screen items-center justify-center bg-amber-50">
+      <div className="flex h-screen items-center justify-center bg-sky-100">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
@@ -69,42 +87,45 @@ export default function CocukModuPage() {
   }
 
   return (
-    <div className="bg-amber-50 h-screen flex flex-col">
-      <ChildHeader 
-        childName={childData.firstName} 
-        childId={childId}
-      />
-      <main className="flex-1 container py-8 px-4 md:px-8 overflow-y-auto">
-        <div className="text-center mb-10">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-800">
-            Merhaba, {childData.firstName}! 👋
-          </h1>
-          <p className="text-lg text-muted-foreground mt-2">
-            Hangi konuyu öğrenmek istersin?
-          </p>
-        </div>
+    <div className="h-screen w-full flex overflow-hidden">
+      <ChildSidebar childData={childData} userData={userData} childId={childId} />
+      
+      <main className="flex-1 overflow-y-auto bg-green-50">
+        <div 
+          className="relative w-full min-h-full bg-no-repeat"
+          style={{
+            backgroundImage: "url('https://i.ibb.co/pnv1v1W/cocuk-modu-bg-final.png')",
+            backgroundSize: 'contain',
+            backgroundPosition: 'center top',
+            // This height should be proportional to the image aspect ratio
+            // to allow scrolling through the whole map.
+            height: '250vh' 
+          }}
+        >
+          {topics.map((topic, index) => {
+            const position = topicPositions[index % topicPositions.length];
+            const unlocked = isTopicUnlocked(index);
+            const completed = isTopicCompleted(topic.id);
 
-        <div className="mb-8">
-            <h2 className="text-2xl font-bold flex items-center gap-2 text-gray-700">
-                <Sparkles className="text-green-500"/>
-                Başlangıç Konuları
-            </h2>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-8">
-            {topics.map((topic, index) => {
-              const unlocked = isTopicUnlocked(index);
-              return (
+            return (
+              <div
+                key={topic.id}
+                className="absolute transform -translate-x-1/2 -translate-y-1/2"
+                style={{
+                  top: `${position[0]}%`,
+                  left: `${position[1]}%`,
+                }}
+              >
                 <TopicCard 
-                    key={topic.id}
                     topic={topic}
-                    isPremium={isPremium}
+                    isPremium={userData.isPremium}
                     isLocked={!unlocked}
-                    onComplete={() => handleTopicCompletion(topic.id)}
+                    isCompleted={completed}
                     onClick={() => unlocked && router.push(`/cocuk-modu/${childId}/${topic.id}`)}
                 />
-              )
-            })}
+              </div>
+            )
+          })}
         </div>
       </main>
     </div>
