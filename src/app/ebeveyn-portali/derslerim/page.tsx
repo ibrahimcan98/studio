@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
@@ -17,13 +16,14 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ProgressPanel } from '@/components/shared/progress-panel';
+import { cn } from '@/lib/utils';
 
 const getCourseDetailsFromPackageCode = (code?: string) => {
     if (!code) return null;
     if (code === 'FREE_TRIAL') return { courseName: 'Ücretsiz Deneme Dersi', duration: 30 };
     
     const courseCodeMap: { [key: string]: string } = { 'B': 'baslangic', 'K': 'konusma', 'G': 'gelisim', 'A': 'akademik' };
-    const courseId = courseCodeMap[code.replace(/[0-9]/g, '')];
+    const courseId = courseCodeMap[code.replace(/[0-9]/g, '') as keyof typeof courseCodeMap];
     const course = COURSES.find(c => c.id === courseId);
     
     if (!course) return null;
@@ -131,6 +131,7 @@ export default function DerslerimPage() {
 
     const [selectedLesson, setSelectedLesson] = useState<any | null>(null);
     const [isProgressOpen, setIsProgressOpen] = useState(false);
+    const [timeZone, setTimeZone] = useState('');
 
     const userDocRef = useMemoFirebase(() => {
         if (!user || !db) return null;
@@ -139,10 +140,12 @@ export default function DerslerimPage() {
 
     const { data: userData, isLoading: isUserLoading } = useDoc(userDocRef);
 
-    const timeZone = useMemo(() => {
-        if (userData?.timezone) return userData.timezone;
-        if (typeof window !== 'undefined') return Intl.DateTimeFormat().resolvedOptions().timeZone;
-        return 'Europe/Istanbul';
+    useEffect(() => {
+        if (userData?.timezone) {
+            setTimeZone(userData.timezone);
+        } else {
+            setTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+        }
     }, [userData]);
 
 
@@ -213,7 +216,7 @@ export default function DerslerimPage() {
 
     const { data: selectedChildData, isLoading: isChildDataLoading } = useDoc(selectedChildDocRef);
 
-    if (userLoading || lessonsLoading || isUserLoading) {
+    if (userLoading || lessonsLoading || isUserLoading || !timeZone) {
         return <div className="flex min-h-[calc(100vh-80px)] items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
     }
 

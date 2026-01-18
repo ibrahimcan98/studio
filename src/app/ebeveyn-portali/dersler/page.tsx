@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, Suspense } from 'react';
@@ -151,6 +150,7 @@ function DerslerimPageContent() {
     const [activeTab, setActiveTab] = useState('upcoming');
     const [selectedLesson, setSelectedLesson] = useState<any | null>(null);
     const [isProgressPanelOpen, setIsProgressPanelOpen] = useState(false);
+    const [timeZone, setTimeZone] = useState('');
 
 
     useEffect(() => {
@@ -172,10 +172,12 @@ function DerslerimPageContent() {
 
     const { data: userData, isLoading: isUserLoading } = useDoc(userDocRef);
 
-    const timeZone = useMemo(() => {
-        if (userData?.timezone) return userData.timezone;
-        if (typeof window !== 'undefined') return Intl.DateTimeFormat().resolvedOptions().timeZone;
-        return 'Europe/Istanbul'; // Fallback
+    useEffect(() => {
+        if (userData?.timezone) {
+            setTimeZone(userData.timezone);
+        } else {
+            setTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+        }
     }, [userData]);
 
 
@@ -285,7 +287,7 @@ function DerslerimPageContent() {
         return { upcomingLessons: upcoming, pastLessons: past };
     }, [groupedLessons]);
 
-    if (userLoading || lessonsLoading || isUserLoading) {
+    if (userLoading || lessonsLoading || isUserLoading || !timeZone) {
         return (
             <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
