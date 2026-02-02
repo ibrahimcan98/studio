@@ -4,6 +4,7 @@ import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { 
+  initializeFirestore,
   getFirestore, 
   setDoc, 
   addDoc, 
@@ -60,7 +61,9 @@ export function getSdks(firebaseApp: FirebaseApp) {
 // Global instances
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+});
 
 // Non-blocking helpers
 export function setDocumentNonBlocking(docRef: DocumentReference, data: any, options?: SetOptions) {
