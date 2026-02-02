@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -18,19 +19,19 @@ import { ExitDialog } from "@/components/child-mode/exit-dialog";
  * Bu koordinatları haritanızdaki yolun kıvrımlarına göre buradan ince ayar yapabilirsiniz.
  */
 const topicPositions = [
-  [8, 25],
-  [13, 50],
-  [19, 75],
-  [28, 65],
-  [35, 45],
-  [42, 25],
-  [50, 50],
-  [58, 75],
-  [67, 60],
-  [75, 40],
-  [83, 20],
-  [90, 50],
-  [95, 78],
+  [20, 22],   // 1. Konu
+  [19.8, 70],  // 2. Konu
+  [23.8, 68],  // 3. Konu
+  [23.7, 25],  // 4. Konu
+  [29.7, 25],  // 5. Konu
+  [26.4, 75],  // 6. Konu
+  [31.7, 72],  // 7. Konu
+  [35, 12],  // 8. Konu
+  [35.5, 70],  // 9. Konu
+  [42, 78],  // 10. Konu
+  [39.4, 30],  // 11. Konu
+  [43, 52],  // 12. Konu
+  [48, 82],  // 13. Konu
 ];
 
 export default function CocukModuPage() {
@@ -86,84 +87,84 @@ export default function CocukModuPage() {
   }
   
   return (
-    <div className="h-screen w-full overflow-hidden bg-[#e8f5e9]">
-        <div className="fixed top-4 left-4 z-30 flex items-center gap-4">
-            <Image 
-                src="/images/avatars/karakter1/ch1.png"
-                width={200}
-                height={200}
-                alt="Karakter"
-                className="w-48 h-auto"
+    <div className="relative h-screen w-full overflow-hidden bg-[#e8f5e9]">
+  <div className="fixed top-4 right-4 z-30">
+    <ExitDialog childId={childId}>
+      <Button variant="outline" className="bg-white/50 hover:bg-white/80 border-white/30 h-14 text-lg shadow-lg">
+        <LogOut className="mr-2" />
+        Çıkış Yap
+      </Button>
+    </ExitDialog>
+  </div>
+
+  <main className="h-full w-full overflow-y-auto scroll-smooth scrollbar-hide pb-20">
+    <div
+      className="relative w-full mx-auto"
+      style={{
+        backgroundImage: "url('/map-path-background.png')",
+        backgroundSize: "100% auto",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "center top",
+        width: "100%",
+        height: "450vw",
+        minHeight: "100vh",
+      }}
+    >
+      {/* Kız ve çerçeveler artık backgroundun içinde */}
+      <div className="absolute top-6 left-6 z-30 flex items-start gap-4 pointer-events-none">
+        <Image
+          src="/images/avatars/karakter1/ch1.png"
+          width={200}
+          height={200}
+          alt="Karakter"
+          className="w-48 h-auto"
+        />
+        <div className="flex flex-col gap-2">
+          <Image
+            src="/images/cerceve.png"
+            width={120}
+            height={120}
+            alt="Çerçeve 1"
+            className="w-28 h-auto"
+          />
+          <Image
+            src="/images/cerceve.png"
+            width={120}
+            height={120}
+            alt="Çerçeve 2"
+            className="w-28 h-auto"
+          />
+        </div>
+      </div>
+
+      {topics.map((topic, index) => {
+        const position = topicPositions[index] || [0, 0]
+        const unlocked = isTopicUnlocked(index)
+        const completed = isTopicCompleted(topic.id)
+
+        return (
+          <div
+            key={topic.id}
+            className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-110 active:scale-95"
+            style={{
+              top: `${position[0]}%`,
+              left: `${position[1]}%`,
+              zIndex: 20 + index,
+            }}
+          >
+            <TopicCard
+              topic={topic}
+              isPremium={userData.isPremium}
+              isLocked={!unlocked}
+              isCompleted={completed}
+              onClick={() => unlocked && router.push(`/cocuk-modu/${childId}/${topic.id}`)}
             />
-            <div className="flex flex-col gap-2">
-                 <Image 
-                    src="/images/cerceve.png"
-                    width={120}
-                    height={120}
-                    alt="Çerçeve 1"
-                    className="w-28 h-auto"
-                />
-                 <Image 
-                    src="/images/cerceve.png"
-                    width={120}
-                    height={120}
-                    alt="Çerçeve 2"
-                    className="w-28 h-auto"
-                />
-            </div>
-        </div>
-
-        <div className="fixed top-4 right-4 z-30">
-            <ExitDialog childId={childId}>
-                <Button variant="outline" className="bg-white/50 hover:bg-white/80 border-white/30 h-14 text-lg shadow-lg">
-                    <LogOut className="mr-2"/>
-                    Çıkış Yap
-                </Button>
-            </ExitDialog>
-        </div>
-      
-      {/* Harita Alanı */}
-      <main className="h-full w-full overflow-y-auto scroll-smooth scrollbar-hide pb-20">
-        <div 
-          className="relative w-full mx-auto"
-          style={{
-            backgroundImage: "url('/map-path-background.png')",
-            backgroundSize: '100% auto',
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'center top',
-            width: '100%',
-            height: '450vw',
-            minHeight: '100vh',
-            paddingTop: '250px'
-          }}
-        >
-          {topics.map((topic, index) => {
-            const position = topicPositions[index] || [0, 0];
-            const unlocked = isTopicUnlocked(index);
-            const completed = isTopicCompleted(topic.id);
-
-            return (
-              <div
-                key={topic.id}
-                className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-110 active:scale-95"
-                style={{
-                  top: `${position[0]}%`,
-                  left: `${position[1]}%`,
-                  zIndex: 20 + index
-                }}
-              >
-                <TopicCard 
-                    topic={topic}
-                    isPremium={userData.isPremium}
-                    isLocked={!unlocked}
-                    isCompleted={completed}
-                    onClick={() => unlocked && router.push(`/cocuk-modu/${childId}/${topic.id}`)}
-                />
-              </div>
-            )
-          })}
-        </div>
-      </main>
+          </div>
+        )
+      })}
     </div>
+  </main>
+</div>
+
   );
 }
