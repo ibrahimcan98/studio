@@ -115,85 +115,112 @@ export default function CocukModuPage() {
             minHeight: "100vh",
           }}
         >
-          {/* ÜST PANEL: Harita ile birlikte kayar (absolute) */}
-          <div className="absolute top-10 inset-x-0 z-30 flex justify-between px-12 pointer-events-none">
+          {/* ÜST PANEL KONTEYNERI */}
+          <div className="absolute top-10 inset-x-0 z-30 flex justify-between px-16 pointer-events-none">
             
-            {/* SOL: Gelişen Avatar Bölümü */}
-            <div className="flex flex-col items-center pointer-events-auto">
-              <div className="relative w-[28vw] max-w-[320px] aspect-[1/1.2] group">
+            {/* SOL: GEZGİN PROFİL KARTI */}
+            <div className="flex flex-col pointer-events-auto">
+              <div className="relative w-[30vw] max-w-[340px] bg-white/90 backdrop-blur-xl rounded-[45px] border-[6px] border-white shadow-2xl overflow-hidden">
                 
-                <div className="absolute inset-0 bg-white/20 blur-3xl rounded-full scale-75" />
+                {/* Kart Başlığı (Level Alanı) */}
+                <div className="h-20 bg-gradient-to-r from-orange-400 to-yellow-400 flex items-center justify-center">
+                  <div className="bg-white/30 backdrop-blur-md px-5 py-1 rounded-full border border-white/50">
+                    <span className="text-white font-black text-lg uppercase">
+                      SEVİYE {Math.floor(completedTopicsCount / 3) + 1}
+                    </span>
+                  </div>
+                </div>
 
-                <Image
-                  src="/images/avatars/karakter1/ch1.png"
-                  width={480}
-                  height={600}
-                  alt="Ana Karakter"
-                  className="relative z-10 object-contain drop-shadow-xl"
-                  priority
-                />
+                {/* Karakter Avatarı (Tam Orta) */}
+                <div className="relative -mt-10 flex flex-col items-center">
+                  <div className="relative w-44 h-44 bg-sky-50 rounded-full border-[8px] border-white shadow-lg overflow-hidden">
+                    {/* Ana Karakter (ch1) */}
+                    <Image 
+                      src="/images/avatars/karakter1/ch1.png" 
+                      fill 
+                      className="object-contain scale-125 translate-y-4" 
+                      alt="Profil" 
+                    />
+                    {/* Giydiği İtemler */}
+                    {(childData.equippedItems || []).map((id: number) => (
+                      <Image 
+                        key={id} 
+                        src={`/images/avatars/karakter1/${id}.png`} 
+                        fill 
+                        className="object-contain scale-125 translate-y-4 z-20" 
+                        alt="Item" 
+                      />
+                    ))}
+                  </div>
 
-                {(childData.equippedItems || []).map((itemId: number) => (
-                  <Image
-                    key={itemId}
-                    src={`/images/avatars/karakter1/${itemId}.png`}
-                    fill
-                    alt={`Aksesuar ${itemId}`}
-                    className="absolute inset-0 z-20 object-contain animate-in fade-in zoom-in duration-500"
-                  />
-                ))}
-
-                <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-md border-2 border-emerald-400 px-6 py-1 rounded-full shadow-lg z-30">
-                  <p className="text-emerald-700 font-black text-lg whitespace-nowrap">
-                    {childData.firstName || "Küçük Gezgin"}
-                  </p>
+                  {/* İsim ve İstatistik */}
+                  <div className="p-6 text-center w-full">
+                    <h2 className="text-2xl font-black text-slate-800 uppercase leading-none mb-1">
+                      {childData.firstName}
+                    </h2>
+                    <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-4">Usta Gezgin</p>
+                    
+                    <div className="flex justify-center gap-3 border-t pt-4 border-slate-100">
+                      <div className="text-center">
+                        <p className="text-[10px] text-slate-400 font-bold uppercase">Bölümler</p>
+                        <p className="text-xl font-black text-slate-700">{completedTopicsCount}</p>
+                      </div>
+                      <div className="w-[1px] bg-slate-100" />
+                      <div className="text-center">
+                        <p className="text-[10px] text-slate-400 font-bold uppercase">Hediyeler</p>
+                        <p className="text-xl font-black text-slate-700">{(childData.equippedItems || []).length}/7</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* SAĞ: Ödül ve Garderop Çerçeveleri */}
-            <div className="flex flex-col gap-6 pointer-events-auto">
-              {/* Rozet Çerçevesi */}
-              <div className="w-[20vw] max-w-[170px] aspect-square relative transform hover:scale-105 transition-transform drop-shadow-xl">
-                <Image src="/images/avatars/cerceve.png" fill alt="Rozetler" className="object-contain" />
-                 <div className="absolute inset-0 flex flex-col items-center justify-center p-2 pt-4 text-center">
-                    <span className="text-[11px] font-bold text-amber-800 absolute top-2.5">ROZETLER</span>
-                    <div className="grid grid-cols-3 gap-1.5 p-2 w-full mt-2">
-                        {(childData.badges || []).slice(0, 9).map((badgeId: string) => {
-                        const topic = topics.find(t => t.id === badgeId);
-                        return topic ? <span key={badgeId} title={topic.name} className="text-2xl flex items-center justify-center">{topic.icon}</span> : null;
-                        })}
-                    </div>
-                    {(childData.badges?.length || 0) > 9 && <span className="text-xs mt-1">...</span>}
+            {/* SAĞ: ROZETLER VE GARDEROP */}
+            <div className="flex flex-col gap-6 pointer-events-auto w-[350px]">
+              
+              {/* ROZETLER (Bölüm ve Öğretmen Rozetleri) */}
+              <div className="bg-white/90 backdrop-blur-md p-5 rounded-[35px] border-4 border-orange-100 shadow-xl">
+                <h3 className="text-center font-black text-orange-400 text-sm mb-4 tracking-widest uppercase">Rozet Koleksiyonu</h3>
+                <div className="flex flex-wrap justify-center gap-3">
+                  {(childData.badges || []).map((badgeId: string, index: number) => {
+                    const topic = topics.find(t => t.id === badgeId);
+                    if (!topic) return null;
+                    return (
+                        <div key={index} className="w-14 h-14 bg-orange-50 rounded-full flex items-center justify-center text-3xl relative hover:scale-110 transition-transform cursor-help" title={topic.name}>
+                          {topic.icon}
+                        </div>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Eşya (Garderop) Çerçevesi */}
-              <div className="w-[20vw] max-w-[170px] aspect-square relative transform hover:scale-105 transition-transform drop-shadow-xl">
-                <Image src="/images/avatars/cerceve.png" fill alt="Garderop" className="object-contain" />
-                 <div className="absolute inset-0 flex flex-col items-center justify-center p-2 pt-4 text-center">
-                     <span className="text-[11px] font-bold text-blue-800 uppercase absolute top-2.5">Garderop</span>
-                     <div className="grid grid-cols-4 gap-1 p-2 w-full mt-2">
-                        {Array.from({ length: 7 }, (_, i) => i + 1).map(itemId => {
-                            const isUnlocked = childData.equippedItems?.includes(itemId);
-                            return (
-                                <div key={itemId} className={cn("aspect-square rounded-full flex items-center justify-center", isUnlocked ? 'bg-blue-100/50' : 'bg-gray-200/80')}>
-                                    <Image 
-                                        src={`/images/avatars/karakter1/${itemId}.png`} 
-                                        width={24} 
-                                        height={24} 
-                                        alt={`Eşya ${itemId}`}
-                                        className={cn(!isUnlocked && 'opacity-30 mix-blend-luminosity')}
-                                    />
-                                </div>
-                            )
-                        })}
-                    </div>
-                 </div>
-                {/* Yeni eşya kazanınca çıkan bildirim noktası */}
-                {completedTopicsCount > 0 && completedTopicsCount % 3 === 0 && (
-                  <div className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full border-2 border-white animate-bounce" />
-                )}
+              {/* GARDEROP (Level Mantığı ile Kilit Açma) */}
+              <div className="bg-white/90 backdrop-blur-md p-5 rounded-[35px] border-4 border-sky-100 shadow-xl">
+                <div className="flex justify-between items-center mb-4 px-2">
+                  <h3 className="font-black text-sky-400 text-sm tracking-widest uppercase">Garderop</h3>
+                  <span className="text-[10px] font-bold text-sky-300">Seviye {Math.floor(completedTopicsCount / 3) + 1}</span>
+                </div>
+                
+                <div className="grid grid-cols-4 gap-2">
+                  {[1, 2, 3, 4, 5, 6, 7].map((id) => {
+                    const isUnlocked = completedTopicsCount >= (id * 3);
+                    return (
+                      <div 
+                        key={id} 
+                        className={`relative aspect-square rounded-2xl flex items-center justify-center p-2 transition-all border-2 
+                          ${isUnlocked ? 'bg-sky-50 border-sky-200' : 'bg-slate-50 border-slate-100 grayscale opacity-40'}`}
+                      >
+                        <Image src={`/images/avatars/karakter1/${id}.png`} width={45} height={45} className="object-contain" alt="item" />
+                        {!isUnlocked && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-[9px] font-black text-slate-400 mt-7">Lvl {id + 1}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
