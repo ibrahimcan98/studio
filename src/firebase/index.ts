@@ -59,11 +59,12 @@ export function getSdks(firebaseApp: FirebaseApp) {
 }
 
 // Global instances
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
 });
+
 
 // Non-blocking helpers
 export function setDocumentNonBlocking(docRef: DocumentReference, data: any, options?: SetOptions) {
