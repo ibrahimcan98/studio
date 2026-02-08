@@ -155,7 +155,11 @@
             "description": "Areas where the child has difficulty with Turkish.",
             "items": { "type": "string" }
         },
-        "rozet": { "type": "number", "description": "The number of badges the child has earned." },
+        "badges": {
+            "type": "array",
+            "description": "Array of topic IDs for which the child has earned a badge.",
+            "items": { "type": "string" }
+        },
         "completedTopics": { "type": "array", "items": { "type": "string" }, "description": "A list of completed topic keys." },
         "equippedItems": {
             "type": "array",

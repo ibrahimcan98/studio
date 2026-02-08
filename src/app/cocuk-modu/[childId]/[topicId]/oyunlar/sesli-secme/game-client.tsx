@@ -139,8 +139,7 @@ export default function GameClient({ questions }: GameClientProps) {
         if (childDocRef && topicId) {
             const completedKey = `${topicId}-sesli-secme`;
             await updateDoc(childDocRef, {
-                completedTopics: arrayUnion(completedKey),
-                rozet: increment(1)
+                completedTopics: arrayUnion(completedKey)
             });
         }
         setGameFinished(true);
@@ -152,7 +151,7 @@ export default function GameClient({ questions }: GameClientProps) {
                 <Confetti width={width} height={height} recycle={false} numberOfPieces={500}/>
                 <Star className="w-24 h-24 text-yellow-400 fill-yellow-400 mb-6" />
                 <h1 className="text-4xl font-bold text-green-800 mb-2">Harika İş!</h1>
-                <p className="text-lg text-green-700 mb-8">Bu bölümü tamamladın ve 1 yeni rozet kazandın!</p>
+                <p className="text-lg text-green-700 mb-8">Bu bölümü tamamladın!</p>
                 <Button onClick={() => router.push(`/cocuk-modu/${childId}/${topicId}/oyunlar`)}>
                     Diğer Oyunlara Devam Et
                 </Button>

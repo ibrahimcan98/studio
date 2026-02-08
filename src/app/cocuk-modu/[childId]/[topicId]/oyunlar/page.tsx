@@ -80,7 +80,8 @@ export default function GamesPage() {
             const markTopicAsCompleted = async () => {
                 if (childDocRef && !childData.completedTopics?.includes(topicId as string)) {
                      await updateDoc(childDocRef, {
-                        completedTopics: arrayUnion(topicId as string)
+                        completedTopics: arrayUnion(topicId as string),
+                        badges: arrayUnion(topicId as string)
                     });
                      setAllGamesCompleted(true);
                 }
@@ -108,7 +109,7 @@ export default function GamesPage() {
              <div className="bg-green-100 h-screen flex flex-col items-center justify-center p-8 text-center">
                 <CheckCircle className="w-24 h-24 text-green-500 mb-6" />
                 <h1 className="text-4xl font-bold text-green-800 mb-2">Tebrikler!</h1>
-                <p className="text-lg text-green-700 mb-8">"{topicName}" konusundaki tüm oyunları tamamladın!</p>
+                <p className="text-lg text-green-700 mb-8">"{topicName}" konusundaki tüm oyunları tamamladın ve yeni bir rozet kazandın!</p>
                 <Button onClick={() => router.push(`/cocuk-modu/${childId}`)}>
                     Yeni Konulara Geç
                 </Button>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -51,31 +52,32 @@ export default function CocukModuPage() {
   // Award new item logic
   useEffect(() => {
     if (!db || !childDocRef || !childData || !childData.completedTopics) return;
-
-    const completedCount = childData.completedTopics.length;
-    // itemIndex starts from 1, so 3 completed -> item 1, 6 completed -> item 2
-    const itemIndexToAward = Math.floor(completedCount / 3); 
+  
+    // Count only completed topics (which don't have a hyphen in their ID)
+    const completedTopicsCount = childData.completedTopics.filter((id: string) => !id.includes('-')).length;
     
     // Check if an item should be awarded (every 3 topics) and if it's a valid item (1-7)
-    if (completedCount > 0 && completedCount % 3 === 0 && itemIndexToAward > 0 && itemIndexToAward <= 7) {
-        
+    if (completedTopicsCount > 0 && completedTopicsCount % 3 === 0) {
+      const itemIndexToAward = Math.floor(completedTopicsCount / 3);
+      if (itemIndexToAward > 0 && itemIndexToAward <= 7) {
         const equippedItems = childData.equippedItems || [];
         const alreadyAwarded = equippedItems.includes(itemIndexToAward);
-
+  
         if (!alreadyAwarded) {
-            const awardNewItem = async () => {
-                try {
-                    await updateDoc(childDocRef, {
-                        equippedItems: arrayUnion(itemIndexToAward)
-                    });
-                } catch (e) {
-                    console.error("Error awarding item:", e);
-                }
-            };
-            awardNewItem();
+          const awardNewItem = async () => {
+            try {
+              await updateDoc(childDocRef, {
+                equippedItems: arrayUnion(itemIndexToAward)
+              });
+            } catch (e) {
+              console.error("Error awarding item:", e);
+            }
+          };
+          awardNewItem();
         }
+      }
     }
-  }, [db, childDocRef, childData, childData?.completedTopics, childData?.equippedItems]);
+  }, [db, childDocRef, childData?.completedTopics, childData?.equippedItems]); // Dependency array is fine
 
   const isTopicUnlocked = (index: number) => {
       if (index === 0) return true; 
@@ -85,6 +87,12 @@ export default function CocukModuPage() {
   };
   
   const isTopicCompleted = (topicId: string) => childData?.completedTopics?.includes(topicId) ?? false;
+  
+  const completedTopicsCount = useMemo(() => {
+      if (!childData?.completedTopics) return 0;
+      return childData.completedTopics.filter((id: string) => !id.includes('-')).length;
+  }, [childData?.completedTopics]);
+
 
   if (!isMounted || authLoading || childLoading || userDataLoading || isAuthenticated === null || !childData || !userData) {
     return (
@@ -115,10 +123,8 @@ export default function CocukModuPage() {
             <div className="flex flex-col items-center pointer-events-auto">
               <div className="relative w-[28vw] max-w-[320px] aspect-[1/1.2] group">
                 
-                {/* Karakter Arka Plan Işıltısı (Opsiyonel) */}
                 <div className="absolute inset-0 bg-white/20 blur-3xl rounded-full scale-75" />
 
-                {/* 1. KATMAN: Ana Karakter (ch1.png) */}
                 <Image
                   src="/images/avatars/karakter1/ch1.png"
                   width={480}
@@ -128,8 +134,7 @@ export default function CocukModuPage() {
                   priority
                 />
 
-                {/* 2. KATMAN: Kazanılan ve Giyilen Eşyalar (1.png - 7.png) */}
-                {childData.equippedItems?.map((itemId: number) => (
+                {(childData.equippedItems || []).map((itemId: number) => (
                   <Image
                     key={itemId}
                     src={`/images/avatars/karakter1/${itemId}.png`}
@@ -139,7 +144,6 @@ export default function CocukModuPage() {
                   />
                 ))}
 
-                {/* İsim Bandı */}
                 <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-md border-2 border-emerald-400 px-6 py-1 rounded-full shadow-lg z-30">
                   <p className="text-emerald-700 font-black text-lg whitespace-nowrap">
                     {childData.firstName || "Küçük Gezgin"}
@@ -151,23 +155,44 @@ export default function CocukModuPage() {
             {/* SAĞ: Ödül ve Garderop Çerçeveleri */}
             <div className="flex flex-col gap-6 pointer-events-auto">
               {/* Rozet Çerçevesi */}
-              <div className="w-[15vw] max-w-[120px] aspect-square relative transform hover:scale-105 transition-transform drop-shadow-xl">
+              <div className="w-[18vw] max-w-[150px] aspect-square relative transform hover:scale-105 transition-transform drop-shadow-xl">
                 <Image src="/images/avatars/cerceve.png" fill alt="Rozetler" className="object-contain" />
-                <div className="absolute inset-0 flex flex-col items-center justify-center pt-2">
-                  <span className="text-[10px] font-bold text-amber-800">ROZETLER</span>
-                  <span className="text-xl font-black text-yellow-600">🏆 {childData.rozet || 0}</span>
+                 <div className="absolute inset-0 flex flex-col items-center justify-center p-2 pt-4 text-center">
+                    <span className="text-[11px] font-bold text-amber-800 absolute top-2.5">ROZETLER</span>
+                    <div className="grid grid-cols-3 gap-1.5 p-2 w-full mt-2">
+                        {(childData.badges || []).slice(0, 9).map((badgeId: string) => {
+                        const topic = topics.find(t => t.id === badgeId);
+                        return topic ? <span key={badgeId} title={topic.name} className="text-2xl flex items-center justify-center">{topic.icon}</span> : null;
+                        })}
+                    </div>
+                    {(childData.badges?.length || 0) > 9 && <span className="text-xs mt-1">...</span>}
                 </div>
               </div>
 
               {/* Eşya (Garderop) Çerçevesi */}
-              <div className="w-[15vw] max-w-[120px] aspect-square relative transform hover:scale-105 transition-transform drop-shadow-xl">
+              <div className="w-[18vw] max-w-[150px] aspect-square relative transform hover:scale-105 transition-transform drop-shadow-xl">
                 <Image src="/images/avatars/cerceve.png" fill alt="Garderop" className="object-contain" />
-                <div className="absolute inset-0 flex flex-col items-center justify-center pt-2">
-                  <span className="text-[10px] font-bold text-blue-800 uppercase">Garderop</span>
-                  <span className="text-2xl">🎒</span>
-                </div>
+                 <div className="absolute inset-0 flex flex-col items-center justify-center p-2 pt-4 text-center">
+                     <span className="text-[11px] font-bold text-blue-800 uppercase absolute top-2.5">Garderop</span>
+                     <div className="grid grid-cols-4 gap-1 p-2 w-full mt-2">
+                        {Array.from({ length: 7 }, (_, i) => i + 1).map(itemId => {
+                            const isUnlocked = childData.equippedItems?.includes(itemId);
+                            return (
+                                <div key={itemId} className={cn("aspect-square rounded-full flex items-center justify-center", isUnlocked ? 'bg-blue-100/50' : 'bg-gray-200/80')}>
+                                    <Image 
+                                        src={`/images/avatars/karakter1/${itemId}.png`} 
+                                        width={24} 
+                                        height={24} 
+                                        alt={`Eşya ${itemId}`}
+                                        className={cn(!isUnlocked && 'opacity-30 mix-blend-luminosity')}
+                                    />
+                                </div>
+                            )
+                        })}
+                    </div>
+                 </div>
                 {/* Yeni eşya kazanınca çıkan bildirim noktası */}
-                {childData.completedTopics && childData.completedTopics?.length > 0 && childData.completedTopics?.length % 3 === 0 && (
+                {completedTopicsCount > 0 && completedTopicsCount % 3 === 0 && (
                   <div className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full border-2 border-white animate-bounce" />
                 )}
               </div>

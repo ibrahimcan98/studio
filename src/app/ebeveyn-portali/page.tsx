@@ -150,7 +150,7 @@ function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUp
                 <div className='flex justify-between items-center text-sm'>
                     <span className='text-muted-foreground'>Rozetler:</span>
                     <div className='flex items-center gap-1 font-bold bg-primary/10 text-primary px-2 py-1 rounded-md'>
-                    <span>{child.rozet || 0}</span>
+                    <span>{(child.badges || []).length}</span>
                     <Award className='w-4 h-4'/>
                     </div>
                 </div>
@@ -314,7 +314,7 @@ export default function EbeveynPortaliPage() {
   }
 
   const childCount = children ? children.length : 0;
-  const totalRozet = children ? children.reduce((acc, child) => acc + (child.rozet || 0), 0) : 0;
+  const totalBadges = children ? children.reduce((acc, child) => acc + ((child.badges || []).length || 0), 0) : 0;
   
   // Calculate total lessons from both the user's unassigned pool and assigned to children
   const assignedLessons = children ? children.reduce((acc, child) => acc + (child.remainingLessons || 0), 0) : 0;
@@ -366,7 +366,7 @@ export default function EbeveynPortaliPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Kalan Toplam Ders" value={totalRemainingLessons} icon={BookOpen} />
         <StatCard title="Toplam Çocuk" value={childCount} icon={Users} />
-        <StatCard title="Toplam Rozet" value={totalRozet} icon={Star} />
+        <StatCard title="Toplam Rozet" value={totalBadges} icon={Star} />
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Premium Üye</CardTitle>
