@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useUser, useFirestore, useDoc, useMemoFirebase, doc, updateDoc, arrayUnion } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { Loader2, LogOut } from 'lucide-react';
 import { TopicCard } from '@/components/child-mode/topic-card';
 import topics from '@/data/topics.json';
