@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -77,7 +76,7 @@ export default function CocukModuPage() {
         }
       }
     }
-  }, [db, childDocRef, childData?.completedTopics, childData?.equippedItems]); // Dependency array is fine
+  }, [db, childDocRef, childData?.completedTopics, childData?.equippedItems]);
 
   const isTopicUnlocked = (index: number) => {
       if (index === 0) return true; 
@@ -155,7 +154,7 @@ export default function CocukModuPage() {
             {/* SAĞ: Ödül ve Garderop Çerçeveleri */}
             <div className="flex flex-col gap-6 pointer-events-auto">
               {/* Rozet Çerçevesi */}
-              <div className="w-[18vw] max-w-[150px] aspect-square relative transform hover:scale-105 transition-transform drop-shadow-xl">
+              <div className="w-[20vw] max-w-[170px] aspect-square relative transform hover:scale-105 transition-transform drop-shadow-xl">
                 <Image src="/images/avatars/cerceve.png" fill alt="Rozetler" className="object-contain" />
                  <div className="absolute inset-0 flex flex-col items-center justify-center p-2 pt-4 text-center">
                     <span className="text-[11px] font-bold text-amber-800 absolute top-2.5">ROZETLER</span>
@@ -170,7 +169,7 @@ export default function CocukModuPage() {
               </div>
 
               {/* Eşya (Garderop) Çerçevesi */}
-              <div className="w-[18vw] max-w-[150px] aspect-square relative transform hover:scale-105 transition-transform drop-shadow-xl">
+              <div className="w-[20vw] max-w-[170px] aspect-square relative transform hover:scale-105 transition-transform drop-shadow-xl">
                 <Image src="/images/avatars/cerceve.png" fill alt="Garderop" className="object-contain" />
                  <div className="absolute inset-0 flex flex-col items-center justify-center p-2 pt-4 text-center">
                      <span className="text-[11px] font-bold text-blue-800 uppercase absolute top-2.5">Garderop</span>
