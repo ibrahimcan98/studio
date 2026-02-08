@@ -157,6 +157,11 @@
         },
         "rozet": { "type": "number", "description": "The number of badges the child has earned." },
         "completedTopics": { "type": "array", "items": { "type": "string" }, "description": "A list of completed topic keys." },
+        "equippedItems": {
+            "type": "array",
+            "description": "Array of item indices that the child has unlocked and equipped on their avatar.",
+            "items": { "type": "number" }
+        },
         "assignedPackage": { "type": "string", "description": "The package code assigned to this child (e.g., '12K')." },
         "assignedPackageName": { "type": "string", "description": "The full name of the assigned package (e.g., 'Konuşma Kursu')." },
         "remainingLessons": { "type": "number", "description": "Number of lessons remaining from their assigned package." },
