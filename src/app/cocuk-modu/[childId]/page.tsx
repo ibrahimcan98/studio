@@ -198,7 +198,7 @@ export default function CocukModuPage() {
               {/* GARDEROP (Level Mantığı ile Kilit Açma) */}
               <div className="bg-white/90 backdrop-blur-md p-5 rounded-[35px] border-4 border-sky-100 shadow-xl">
                 <div className="flex justify-between items-center mb-4 px-2">
-                  <h3 className="font-black text-sky-400 text-sm tracking-widest uppercase">Garderop</h3>
+                  <h3 className="font-black text-sky-400 text-sm tracking-widest uppercase">GARDIROP BU</h3>
                   <span className="text-[10px] font-bold text-sky-300">Seviye {Math.floor(completedTopicsCount / 3) + 1}</span>
                 </div>
                 
