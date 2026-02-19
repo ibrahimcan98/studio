@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -123,7 +124,7 @@ export default function CocukModuPage() {
               <div className="relative w-[30vw] max-w-[340px] bg-white/90 backdrop-blur-xl rounded-[45px] border-[6px] border-white shadow-2xl overflow-hidden">
                 
                 {/* Kart Başlığı (Level Alanı) */}
-                <div className="h-20 bg-gradient-to-r from-orange-400 to-yellow-400 flex items-center justify-center">
+                <div className="h-20 bg-gradient-to-r from-orange-400 to-yellow-400 flex items-center justify-center pb-4">
                   <div className="bg-white/30 backdrop-blur-md px-5 py-1 rounded-full border border-white/50">
                     <span className="text-white font-black text-lg uppercase">
                       SEVİYE {Math.floor(completedTopicsCount / 3) + 1}
