@@ -3,7 +3,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Temel Fonksiyonlar
     function isSignedIn() {
       return request.auth != null;
     }
@@ -23,21 +22,24 @@ service cloud.firestore {
       );
     }
 
-    // Kullanıcı ve Çocuk Profilleri
     match /users/{userId} {
-      allow get: if request.auth.uid == userId || isAdmin() || isTeacher();
+      // Kendi dökümanı için doğrudan izin ver (Admin kontrolünden önce gelmeli)
+      allow get, update, delete: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      
+      // Admin ve öğretmenler için ek izinler
+      allow get: if isAdmin() || isTeacher();
       allow list: if isAdmin() || isTeacher();
-      allow create: if request.auth.uid == userId;
-      allow update, delete: if request.auth.uid == userId || isAdmin();
 
-      // Alt koleksiyon: Çocuklar
       match /children/{childId} {
-        allow read: if request.auth.uid == userId || isAdmin() || isTeacher();
-        allow write: if request.auth.uid == userId || isAdmin();
+        // Veli kendi çocuklarını yönetebilir
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+        // Admin ve öğretmenler çocukları görebilir
+        allow read: if isAdmin() || isTeacher();
+        allow write: if isAdmin();
       }
     }
 
-    // Ders Saatleri (Takvim)
     match /lesson-slots/{slotId} {
         allow read: if isSignedIn();
         allow create: if isTeacher() || isAdmin();
@@ -46,39 +48,34 @@ service cloud.firestore {
         allow delete: if (isSignedIn() && request.auth.uid == resource.data.teacherId) || isAdmin();
     }
     
-    // Destek Konuşmaları
     match /conversations/{conversationId} {
+      allow create: if true;
       allow read: if isAdmin() || (isSignedIn() && (
         resource.data.createdBy.uid == request.auth.uid || 
         request.auth.uid == resource.data.assignedTo
       ));
-      allow create: if true;
       allow update: if isAdmin() || (isSignedIn() && resource.data.createdBy.uid == request.auth.uid);
     }
 
-    // Destek Mesajları
     match /messages/{messageId} {
+      allow create: if true;
       allow read: if isAdmin() || (isSignedIn() && (
         resource.data.senderUid == request.auth.uid || 
         get(/databases/$(database)/documents/conversations/$(resource.data.conversationId)).data.createdBy.uid == request.auth.uid
       ));
-      allow create: if true;
     }
     
-    // Kurs Bilgileri
     match /courses/{courseId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // Yorumlar
     match /reviews/{reviewId} {
       allow read: if true;
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
-    // Genel Admin Yetkisi
     match /{document=**} {
       allow read, write: if isAdmin();
     }
