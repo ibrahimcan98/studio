@@ -3,6 +3,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // HELPER FUNCTIONS
     function isSignedIn() {
       return request.auth != null;
     }
@@ -22,6 +23,7 @@ service cloud.firestore {
       );
     }
 
+    // USER RULES
     match /users/{userId} {
       allow get, create, update, delete: if isSignedIn() && request.auth.uid == userId;
       allow get, list: if isAdmin() || isTeacher();
@@ -33,6 +35,7 @@ service cloud.firestore {
       }
     }
 
+    // LESSON RULES
     match /lesson-slots/{slotId} {
         allow read: if isSignedIn();
         allow create: if isTeacher() || isAdmin();
@@ -41,6 +44,7 @@ service cloud.firestore {
         allow delete: if (isSignedIn() && request.auth.uid == resource.data.teacherId) || isAdmin();
     }
     
+    // CONVERSATION RULES
     match /conversations/{conversationId} {
       allow create: if true;
       allow read: if isAdmin() || (isSignedIn() && (
@@ -50,16 +54,18 @@ service cloud.firestore {
       allow update: if isAdmin() || (isSignedIn() && resource.data.createdBy.uid == request.auth.uid);
     }
 
+    // MESSAGE RULES - FIXED FOR LISTING
     match /messages/{messageId} {
       allow create: if isSignedIn();
-      // Liste işlemleri için doğrudan doküman üzerindeki ownerUid veya senderUid kontrol edilir.
-      // get() çağrısı içeren kurallar listeleme (query) sırasında hata verir.
+      // Allow read/list if admin or if the user owns the conversation associated with this message.
+      // We rely on 'conversationOwnerUid' being present on every message for fast listing.
       allow read: if isAdmin() || (isSignedIn() && (
         resource.data.senderUid == request.auth.uid || 
         resource.data.conversationOwnerUid == request.auth.uid
       ));
     }
     
+    // OTHER RULES
     match /courses/{courseId} {
       allow read: if true;
       allow write: if isAdmin();

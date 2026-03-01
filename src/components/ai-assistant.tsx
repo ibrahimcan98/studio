@@ -43,22 +43,24 @@ export function AIAssistant() {
         if (savedId) setCurrentConversationId(savedId);
     }, []);
 
-    // SILENT ANONYMOUS SIGN-IN
+    // SILENT ANONYMOUS SIGN-IN - Required for messaging security
     useEffect(() => {
-        if (!user && !userLoading && auth) {
+        if (!user && !userLoading && auth && isOpen) {
             signInAnonymously(auth).catch(e => console.error("Anonymous sign-in failed:", e));
         }
-    }, [user, userLoading, auth]);
+    }, [user, userLoading, auth, isOpen]);
 
     // Listen to real-time messages if in live chat
+    // FIX: Included conversationOwnerUid in the query to satisfy security rules for 'list'
     const messagesQuery = useMemoFirebase(() => {
-        if (!db || !currentConversationId || mode !== 'live') return null;
+        if (!db || !currentConversationId || mode !== 'live' || !user) return null;
         return query(
             collection(db, 'messages'),
             where('conversationId', '==', currentConversationId),
+            where('conversationOwnerUid', '==', user.uid),
             orderBy('createdAt', 'asc')
         );
-    }, [db, currentConversationId, mode]);
+    }, [db, currentConversationId, mode, user?.uid]);
 
     const { data: liveMessages } = useCollection(messagesQuery);
 
@@ -118,7 +120,7 @@ export function AIAssistant() {
             const msgRef = doc(collection(db, 'messages'));
             const msgData = {
                 conversationId: currentConversationId,
-                conversationOwnerUid: user.uid, // Add this for security rules to work in 'list'
+                conversationOwnerUid: user.uid, // Required for security rules
                 text: textToSend,
                 senderType: !user.isAnonymous ? 'parent' : 'anonymous',
                 senderUid: user.uid,
@@ -181,7 +183,7 @@ export function AIAssistant() {
         const msgRef = doc(collection(db, 'messages'));
         const msgData = {
             conversationId: convRef.id,
-            conversationOwnerUid: user.uid, // Add this for security rules
+            conversationOwnerUid: user.uid, // Required for security rules
             text: `Destek talebi başlatıldı. Konu: ${formData.topic}. Mesaj: ${formData.message}`,
             senderType: !user.isAnonymous ? 'parent' : 'anonymous',
             senderUid: user.uid,
