@@ -3,7 +3,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Yardımcı fonksiyonlar
     function isSignedIn() {
       return request.auth != null;
     }
@@ -11,39 +10,25 @@ service cloud.firestore {
     function isAdmin() {
       return isSignedIn() && (
         request.auth.token.email == 'admin@hotmail.com' || 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
       );
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    // Kullanıcı Dokümanları
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
+      allow get: if request.auth.uid == userId || isAdmin();
       allow list: if isAdmin();
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) || isAdmin();
-      allow delete: if isAdmin();
+      allow create: if request.auth.uid == userId;
+      allow update: if request.auth.uid == userId || isAdmin();
     }
 
-    // Çocuk Profilleri
-    match /users/{userId}/children/{childId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow write: if isOwner(userId) || isAdmin();
-    }
-
-    // Konuşmalar (Chat Support)
     match /conversations/{conversationId} {
       allow read: if isAdmin() || (isSignedIn() && resource.data.createdBy.uid == request.auth.uid);
       allow create: if true;
       allow update: if isAdmin() || (isSignedIn() && resource.data.createdBy.uid == request.auth.uid);
     }
 
-    // Mesajlar
     match /messages/{messageId} {
-      // Bir mesajı adminler veya konuşmayı başlatan kişi okuyabilir.
       allow read: if isAdmin() || (isSignedIn() && (
         resource.data.senderUid == request.auth.uid || 
         get(/databases/$(database)/documents/conversations/$(resource.data.conversationId)).data.createdBy.uid == request.auth.uid
@@ -51,13 +36,6 @@ service cloud.firestore {
       allow create: if true;
     }
 
-    // Ders Slotları
-    match /lesson-slots/{slotId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || (isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher');
-    }
-
-    // Varsayılan kural: Admin her şeye erişebilir
     match /{document=**} {
       allow read, write: if isAdmin();
     }

@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, orderBy, doc, updateDoc, serverTimestamp, addDoc, limit } from 'firebase/firestore';
 import { 
     Search, 
@@ -35,6 +35,7 @@ import { cn } from '@/lib/utils';
 
 export default function InboxPage() {
     const db = useFirestore();
+    const { user } = useUser();
     const [selectedConvId, setSelectedConvId] = useState<string | null>(null);
     const [replyText, setInputText] = useState('');
 
@@ -63,13 +64,13 @@ export default function InboxPage() {
     const { data: messages } = useCollection(msgQuery);
 
     const handleSendReply = async () => {
-        if (!db || !selectedConvId || !replyText.trim()) return;
+        if (!db || !selectedConvId || !replyText.trim() || !user) return;
         
         await addDoc(collection(db, 'messages'), {
             conversationId: selectedConvId,
             text: replyText,
             senderType: 'admin',
-            senderUid: 'admin-id', // Simplified
+            senderUid: user.uid,
             createdAt: serverTimestamp()
         });
 
@@ -87,7 +88,7 @@ export default function InboxPage() {
         await updateDoc(doc(db, 'conversations', selectedConvId), { status });
     };
 
-    if (isConvLoading) return <div className="flex h-96 items-center justify-center"><Loader2 className="animate-spin" /></div>;
+    if (isConvLoading) return <div className="flex h-96 items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
     return (
         <div className="flex h-[calc(100vh-160px)] gap-4 font-sans">
