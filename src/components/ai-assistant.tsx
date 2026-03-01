@@ -16,6 +16,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth, errorEm
 import { collection, doc, setDoc, updateDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 import { LiveChatForm } from './chat/live-chat-form';
 import { WhatsappSupportForm } from './chat/whatsapp-support-form';
+import { signInAnonymously } from 'firebase/auth';
 
 type Message = {
     role: 'user' | 'assistant' | 'admin' | 'ai';
@@ -41,6 +42,15 @@ export function AIAssistant() {
         const savedId = localStorage.getItem('tca_conversation_id');
         if (savedId) setCurrentConversationId(savedId);
     }, []);
+
+    // SILENT ANONYMOUS SIGN-IN
+    // Required for security rules to track unique user sessions for chat.
+    // Doesn't affect the Header UI as Header checks !user.isAnonymous.
+    useEffect(() => {
+        if (!user && !userLoading && auth) {
+            signInAnonymously(auth).catch(e => console.error("Anonymous sign-in failed:", e));
+        }
+    }, [user, userLoading, auth]);
 
     // Listen to real-time messages if in live chat
     const messagesQuery = useMemoFirebase(() => {

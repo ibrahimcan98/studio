@@ -23,18 +23,14 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // Kendi dökümanı için doğrudan izin ver (Admin kontrolünden önce gelmeli)
-      allow get, update, delete: if isSignedIn() && request.auth.uid == userId;
-      allow create: if isSignedIn() && request.auth.uid == userId;
+      // Sahiplik kontrolü en başta (Short-circuit)
+      allow get, create, update, delete: if isSignedIn() && request.auth.uid == userId;
       
       // Admin ve öğretmenler için ek izinler
-      allow get: if isAdmin() || isTeacher();
-      allow list: if isAdmin() || isTeacher();
+      allow get, list: if isAdmin() || isTeacher();
 
       match /children/{childId} {
-        // Veli kendi çocuklarını yönetebilir
         allow read, write: if isSignedIn() && request.auth.uid == userId;
-        // Admin ve öğretmenler çocukları görebilir
         allow read: if isAdmin() || isTeacher();
         allow write: if isAdmin();
       }
@@ -59,6 +55,7 @@ service cloud.firestore {
 
     match /messages/{messageId} {
       allow create: if true;
+      // Mesajı okumak için ya admin olmalı, ya gönderen olmalı, ya da konuşmanın sahibi olmalı
       allow read: if isAdmin() || (isSignedIn() && (
         resource.data.senderUid == request.auth.uid || 
         get(/databases/$(database)/documents/conversations/$(resource.data.conversationId)).data.createdBy.uid == request.auth.uid
