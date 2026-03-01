@@ -1,16 +1,18 @@
+
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
-import { Loader2, LogOut } from 'lucide-react';
+import { Loader2, LogOut, Award, Star, Heart, Lock, Infinity as InfinityIcon } from 'lucide-react';
 import { TopicCard } from '@/components/child-mode/topic-card';
 import topics from '@/data/topics.json';
 import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import { ExitDialog } from "@/components/child-mode/exit-dialog";
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 const topicPositions = [
   [20, 22], [19.8, 70], [23.8, 68], [23.7, 25], [29.7, 25], 
@@ -48,25 +50,26 @@ export default function CocukModuPage() {
 
   const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
 
+  // Filter completed topics (exclude sub-games with hyphens)
+  const completedTopicsCount = useMemo(() => {
+      if (!childData?.completedTopics) return 0;
+      return childData.completedTopics.filter((id: string) => !id.includes('-')).length;
+  }, [childData?.completedTopics]);
+
   // Award new item logic
   useEffect(() => {
-    if (!db || !childDocRef || !childData || !childData.completedTopics) return;
+    if (!db || !childDocRef || !childData) return;
   
-    // Count only completed topics (which don't have a hyphen in their ID)
-    const completedTopicsCount = childData.completedTopics.filter((id: string) => !id.includes('-')).length;
-    
-    // Check if an item should be awarded (every 3 topics) and if it's a valid item (1-7)
+    // Award an item every 3 topics
     if (completedTopicsCount > 0 && completedTopicsCount % 3 === 0) {
-      const itemIndexToAward = Math.floor(completedTopicsCount / 3);
-      if (itemIndexToAward > 0 && itemIndexToAward <= 7) {
+      const itemToAward = Math.floor(completedTopicsCount / 3);
+      if (itemToAward >= 1 && itemToAward <= 7) {
         const equippedItems = childData.equippedItems || [];
-        const alreadyAwarded = equippedItems.includes(itemIndexToAward);
-  
-        if (!alreadyAwarded) {
+        if (!equippedItems.includes(itemToAward)) {
           const awardNewItem = async () => {
             try {
               await updateDoc(childDocRef, {
-                equippedItems: arrayUnion(itemIndexToAward)
+                equippedItems: arrayUnion(itemToAward)
               });
             } catch (e) {
               console.error("Error awarding item:", e);
@@ -76,7 +79,7 @@ export default function CocukModuPage() {
         }
       }
     }
-  }, [db, childDocRef, childData?.completedTopics, childData?.equippedItems]);
+  }, [db, childDocRef, completedTopicsCount, childData]);
 
   const isTopicUnlocked = (index: number) => {
       if (index === 0) return true; 
@@ -86,12 +89,6 @@ export default function CocukModuPage() {
   };
   
   const isTopicCompleted = (topicId: string) => childData?.completedTopics?.includes(topicId) ?? false;
-  
-  const completedTopicsCount = useMemo(() => {
-      if (!childData?.completedTopics) return 0;
-      return childData.completedTopics.filter((id: string) => !id.includes('-')).length;
-  }, [childData?.completedTopics]);
-
 
   if (!isMounted || authLoading || childLoading || userDataLoading || isAuthenticated === null || !childData || !userData) {
     return (
@@ -123,7 +120,7 @@ export default function CocukModuPage() {
               <div className="relative w-[30vw] max-w-[340px] bg-white/90 backdrop-blur-xl rounded-[45px] border-[6px] border-white shadow-2xl overflow-hidden">
                 
                 {/* Kart Başlığı (Level Alanı) */}
-                <div className="h-24 bg-gradient-to-r from-orange-400 to-yellow-400 flex items-center justify-center pb-4">
+                <div className="h-24 bg-gradient-to-r from-orange-400 to-yellow-400 flex items-center justify-center pb-6">
                   <div className="bg-white/30 backdrop-blur-md px-5 py-1 rounded-full border border-white/50">
                     <span className="text-white font-black text-lg uppercase">
                       SEVİYE {Math.floor(completedTopicsCount / 3) + 1}
@@ -140,6 +137,7 @@ export default function CocukModuPage() {
                       fill 
                       className="object-contain scale-125 translate-y-4" 
                       alt="Profil" 
+                      priority
                     />
                     {/* Giydiği İtemler */}
                     {(childData.equippedItems || []).map((id: number) => (
@@ -156,7 +154,7 @@ export default function CocukModuPage() {
                   {/* İsim ve İstatistik */}
                   <div className="p-6 text-center w-full">
                     <h2 className="text-2xl font-black text-slate-800 uppercase leading-none mb-1">
-                      {childData.firstName}
+                      {childData.firstName || childData.ad}
                     </h2>
                     <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-4">Usta Gezgin</p>
                     
@@ -179,7 +177,7 @@ export default function CocukModuPage() {
             {/* SAĞ: ROZETLER VE GARDIROP */}
             <div className="flex flex-col gap-6 pointer-events-auto w-[350px]">
               
-              {/* ROZETLER (Bölüm ve Öğretmen Rozetleri) */}
+              {/* ROZETLER (Bölüm Rozetleri) */}
               <div className="bg-white/90 backdrop-blur-md p-5 rounded-[35px] border-4 border-orange-100 shadow-xl">
                 <h3 className="text-center font-black text-orange-400 text-sm mb-4 tracking-widest uppercase">Rozet Koleksiyonu</h3>
                 <div className="flex flex-wrap justify-center gap-3">
@@ -192,6 +190,9 @@ export default function CocukModuPage() {
                         </div>
                     );
                   })}
+                  {(childData.badges || []).length === 0 && (
+                    <p className="text-[10px] text-slate-400 font-bold text-center w-full uppercase">Henüz rozet kazanılmadı</p>
+                  )}
                 </div>
               </div>
 
@@ -199,7 +200,7 @@ export default function CocukModuPage() {
               <div className="bg-white/90 backdrop-blur-md p-5 rounded-[35px] border-4 border-sky-100 shadow-xl">
                 <div className="flex justify-between items-center mb-4 px-2">
                   <h3 className="font-black text-sky-400 text-sm tracking-widest uppercase">GARDIROP</h3>
-                  <span className="text-[10px] font-bold text-sky-300">Seviye {Math.floor(completedTopicsCount / 3) + 1}</span>
+                  <span className="text-[10px] font-bold text-sky-300">Level {Math.floor(completedTopicsCount / 3) + 1}</span>
                 </div>
                 
                 <div className="grid grid-cols-4 gap-2">

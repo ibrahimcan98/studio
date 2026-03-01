@@ -1,3 +1,4 @@
+
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
@@ -42,32 +43,30 @@ export {
   Timestamp
 };
 
-export function initializeFirebase() {
-  const firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
-  return getSdks(firebaseApp);
-}
-
-export function getSdks(firebaseApp: FirebaseApp) {
-  // Use initializeFirestore to apply settings like long polling
-  const firestore = initializeFirestore(firebaseApp, {
-    experimentalForceLongPolling: true,
-  });
-  const auth = getAuth(firebaseApp);
-
-  return {
-    firebaseApp,
-    auth,
-    firestore
-  };
-}
-
 // Global instances for direct imports if needed
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+// Use initializeFirestore once at the module level to ensure settings are applied consistently
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
 });
 
+export function initializeFirebase() {
+  return {
+    firebaseApp: app,
+    auth,
+    firestore: db
+  };
+}
+
+export function getSdks(firebaseApp: FirebaseApp) {
+  // Return the single instances
+  return {
+    firebaseApp: app,
+    auth,
+    firestore: db
+  };
+}
 
 // Non-blocking helpers
 export function setDocumentNonBlocking(docRef: DocumentReference, data: any, options?: SetOptions) {
