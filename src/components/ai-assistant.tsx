@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -254,7 +253,7 @@ export function AIAssistant() {
                                 {mode === 'ai' && !isLoading && (
                                     <div className="grid grid-cols-2 gap-2 w-full">
                                         <Button variant="outline" size="sm" className="text-[10px] h-8 font-bold border-blue-200 text-blue-600" onClick={() => setMode('form-live')}>
-                                            <Headphones className="w-3 h-3 mr-1" /> Siteden Destek
+                                            <Headphones className="w-3 h-3 mr-1" /> Canli Destek
                                         </Button>
                                         <Button variant="outline" size="sm" className="text-[10px] h-8 font-bold border-green-200 text-green-600" onClick={() => setMode('form-whatsapp')}>
                                             <MessageCircle className="w-3 h-3 mr-1" /> WhatsApp
