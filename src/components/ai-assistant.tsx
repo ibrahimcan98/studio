@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, X, Bot, User, Loader2, Sparkles, MessageCircle, MessageSquareText, ArrowLeft, Headphones } from 'lucide-react';
+import { Send, X, Bot, User, Loader2, MessageSquareText, ArrowLeft, Headphones, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -44,8 +44,6 @@ export function AIAssistant() {
     }, []);
 
     // SILENT ANONYMOUS SIGN-IN
-    // Required for security rules to track unique user sessions for chat.
-    // Doesn't affect the Header UI as Header checks !user.isAnonymous.
     useEffect(() => {
         if (!user && !userLoading && auth) {
             signInAnonymously(auth).catch(e => console.error("Anonymous sign-in failed:", e));
@@ -67,7 +65,8 @@ export function AIAssistant() {
     useEffect(() => {
         const shouldBeHidden = pathname.startsWith('/ogretmen-portali') || 
                                pathname.startsWith('/cocuk-modu') ||
-                               pathname.startsWith('/live-lesson');
+                               pathname.startsWith('/live-lesson') ||
+                               pathname.startsWith('/yonetici');
         if (shouldBeHidden) setIsOpen(false);
     }, [pathname]);
 
@@ -114,14 +113,15 @@ export function AIAssistant() {
             } finally {
                 setIsLoading(false);
             }
-        } else if (mode === 'live' && currentConversationId && db) {
+        } else if (mode === 'live' && currentConversationId && db && user) {
             if (!customInput) setInput('');
             const msgRef = doc(collection(db, 'messages'));
             const msgData = {
                 conversationId: currentConversationId,
+                conversationOwnerUid: user.uid, // Add this for security rules to work in 'list'
                 text: textToSend,
-                senderType: (user && !user.isAnonymous) ? 'parent' : 'anonymous',
-                senderUid: user?.uid || null,
+                senderType: !user.isAnonymous ? 'parent' : 'anonymous',
+                senderUid: user.uid,
                 createdAt: serverTimestamp()
             };
 
@@ -147,7 +147,7 @@ export function AIAssistant() {
     };
 
     const startLiveChat = (formData: any) => {
-        if (!db) return;
+        if (!db || !user) return;
 
         const convRef = doc(collection(db, 'conversations'));
         const convData = {
@@ -157,8 +157,8 @@ export function AIAssistant() {
             topic: formData.topic,
             assignedTeam: formData.topic === 'kurslar' ? 'Eğitim' : 'Teknik/Satış',
             createdBy: {
-                type: (user && !user.isAnonymous) ? 'parent' : 'anonymous',
-                uid: user?.uid || null,
+                type: !user.isAnonymous ? 'parent' : 'anonymous',
+                uid: user.uid,
                 name: formData.name,
                 email: formData.email,
                 phone: formData.phone
@@ -181,9 +181,10 @@ export function AIAssistant() {
         const msgRef = doc(collection(db, 'messages'));
         const msgData = {
             conversationId: convRef.id,
+            conversationOwnerUid: user.uid, // Add this for security rules
             text: `Destek talebi başlatıldı. Konu: ${formData.topic}. Mesaj: ${formData.message}`,
-            senderType: (user && !user.isAnonymous) ? 'parent' : 'anonymous',
-            senderUid: user?.uid || null,
+            senderType: !user.isAnonymous ? 'parent' : 'anonymous',
+            senderUid: user.uid,
             createdAt: serverTimestamp()
         };
 
@@ -201,7 +202,7 @@ export function AIAssistant() {
     };
 
     const handleWhatsappSubmit = (formData: any) => {
-        if (!db) return;
+        if (!db || !user) return;
 
         const ticketId = Math.random().toString(36).substring(7).toUpperCase();
         const convRef = doc(collection(db, 'conversations'));
@@ -211,8 +212,8 @@ export function AIAssistant() {
             topic: formData.topic,
             assignedTeam: 'Teknik/Satış',
             createdBy: {
-                type: (user && !user.isAnonymous) ? 'parent' : 'anonymous',
-                uid: user?.uid || null,
+                type: !user.isAnonymous ? 'parent' : 'anonymous',
+                uid: user.uid,
                 name: formData.name,
                 email: formData.email || null,
                 phone: formData.phone

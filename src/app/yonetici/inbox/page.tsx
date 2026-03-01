@@ -59,11 +59,12 @@ export default function InboxPage() {
     const { data: messages } = useCollection(msgQuery);
 
     const handleSendReply = () => {
-        if (!db || !selectedConvId || !replyText.trim() || !user) return;
+        if (!db || !selectedConvId || !replyText.trim() || !user || !selectedConv) return;
         
         const msgRef = doc(collection(db, 'messages'));
         const msgData = {
             conversationId: selectedConvId,
+            conversationOwnerUid: selectedConv.createdBy.uid, // Required for security rules
             text: replyText,
             senderType: 'admin',
             senderUid: user.uid,
@@ -203,7 +204,7 @@ export default function InboxPage() {
                                     onChange={(e) => setInputText(e.target.value)}
                                     className="flex-1 h-10 text-sm rounded-xl"
                                 />
-                                <Button type="submit" className="rounded-xl h-10">
+                                <Button type="submit" size="icon" className="rounded-xl h-10 w-10">
                                     <Send className="w-4 h-4" />
                                 </Button>
                             </form>

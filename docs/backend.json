@@ -56,12 +56,13 @@
       "properties": {
         "id": { "type": "string" },
         "conversationId": { "type": "string" },
+        "conversationOwnerUid": { "type": "string", "description": "The UID of the user who started the conversation. Required for listing messages." },
         "senderType": { "type": "string", "enum": ["anonymous", "parent", "admin", "ai"] },
         "senderUid": { "type": "string" },
         "text": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["conversationId", "senderType", "text", "createdAt"]
+      "required": ["conversationId", "conversationOwnerUid", "senderType", "text", "createdAt"]
     }
   },
   "auth": {

@@ -51,10 +51,10 @@ service cloud.firestore {
     }
 
     match /messages/{messageId} {
-      allow create: if true;
+      allow create: if isSignedIn();
       allow read: if isAdmin() || (isSignedIn() && (
         resource.data.senderUid == request.auth.uid || 
-        get(/databases/$(database)/documents/conversations/$(resource.data.conversationId)).data.createdBy.uid == request.auth.uid
+        resource.data.conversationOwnerUid == request.auth.uid
       ));
     }
     

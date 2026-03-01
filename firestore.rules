@@ -23,10 +23,7 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // Sahiplik kontrolü en başta (Short-circuit)
       allow get, create, update, delete: if isSignedIn() && request.auth.uid == userId;
-      
-      // Admin ve öğretmenler için ek izinler
       allow get, list: if isAdmin() || isTeacher();
 
       match /children/{childId} {
@@ -54,11 +51,12 @@ service cloud.firestore {
     }
 
     match /messages/{messageId} {
-      allow create: if true;
-      // Mesajı okumak için ya admin olmalı, ya gönderen olmalı, ya da konuşmanın sahibi olmalı
+      allow create: if isSignedIn();
+      // Liste işlemleri için doğrudan doküman üzerindeki ownerUid veya senderUid kontrol edilir.
+      // get() çağrısı içeren kurallar listeleme (query) sırasında hata verir.
       allow read: if isAdmin() || (isSignedIn() && (
         resource.data.senderUid == request.auth.uid || 
-        get(/databases/$(database)/documents/conversations/$(resource.data.conversationId)).data.createdBy.uid == request.auth.uid
+        resource.data.conversationOwnerUid == request.auth.uid
       ));
     }
     
