@@ -48,7 +48,10 @@ export function initializeFirebase() {
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
-  const firestore = getFirestore(firebaseApp);
+  // Use initializeFirestore to apply settings like long polling
+  const firestore = initializeFirestore(firebaseApp, {
+    experimentalForceLongPolling: true,
+  });
   const auth = getAuth(firebaseApp);
 
   return {
@@ -58,7 +61,7 @@ export function getSdks(firebaseApp: FirebaseApp) {
   };
 }
 
-// Global instances
+// Global instances for direct imports if needed
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = initializeFirestore(app, {
@@ -123,6 +126,5 @@ export * from './provider';
 export * from './client-provider';
 export * from './firestore/use-collection';
 export * from './firestore/use-doc';
-// REMOVED redundant export * from './auth/use-user' because provider already exports useUser
 export * from './errors';
 export * from './error-emitter';

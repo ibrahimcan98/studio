@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -124,7 +123,7 @@ export default function CocukModuPage() {
               <div className="relative w-[30vw] max-w-[340px] bg-white/90 backdrop-blur-xl rounded-[45px] border-[6px] border-white shadow-2xl overflow-hidden">
                 
                 {/* Kart Başlığı (Level Alanı) */}
-                <div className="h-20 bg-gradient-to-r from-orange-400 to-yellow-400 flex items-center justify-center pb-4">
+                <div className="h-24 bg-gradient-to-r from-orange-400 to-yellow-400 flex items-center justify-center pb-4">
                   <div className="bg-white/30 backdrop-blur-md px-5 py-1 rounded-full border border-white/50">
                     <span className="text-white font-black text-lg uppercase">
                       SEVİYE {Math.floor(completedTopicsCount / 3) + 1}
@@ -177,7 +176,7 @@ export default function CocukModuPage() {
               </div>
             </div>
 
-            {/* SAĞ: ROZETLER VE GARDEROP */}
+            {/* SAĞ: ROZETLER VE GARDIROP */}
             <div className="flex flex-col gap-6 pointer-events-auto w-[350px]">
               
               {/* ROZETLER (Bölüm ve Öğretmen Rozetleri) */}
@@ -196,7 +195,7 @@ export default function CocukModuPage() {
                 </div>
               </div>
 
-              {/* GARDEROP (Level Mantığı ile Kilit Açma) */}
+              {/* GARDIROP (Level Mantığı ile Kilit Açma) */}
               <div className="bg-white/90 backdrop-blur-md p-5 rounded-[35px] border-4 border-sky-100 shadow-xl">
                 <div className="flex justify-between items-center mb-4 px-2">
                   <h3 className="font-black text-sky-400 text-sm tracking-widest uppercase">GARDIROP</h3>
