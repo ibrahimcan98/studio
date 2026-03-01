@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -43,21 +42,13 @@ export function AIAssistant() {
         if (savedId) setCurrentConversationId(savedId);
     }, []);
 
-    // SILENT ANONYMOUS SIGN-IN - Required for messaging security
-    useEffect(() => {
-        if (!user && !userLoading && auth && isOpen) {
-            signInAnonymously(auth).catch(e => console.error("Anonymous sign-in failed:", e));
-        }
-    }, [user, userLoading, auth, isOpen]);
-
     // Listen to real-time messages if in live chat
-    // FIX: Included conversationOwnerUid in the query to satisfy security rules for 'list'
     const messagesQuery = useMemoFirebase(() => {
         if (!db || !currentConversationId || mode !== 'live' || !user) return null;
         return query(
             collection(db, 'messages'),
             where('conversationId', '==', currentConversationId),
-            where('conversationOwnerUid', '==', user.uid),
+            where('conversationOwnerUid', '==', user.uid), // Crucial for security rules
             orderBy('createdAt', 'asc')
         );
     }, [db, currentConversationId, mode, user?.uid]);
@@ -85,6 +76,20 @@ export function AIAssistant() {
     useEffect(() => {
         if (isOpen) scrollToBottom();
     }, [messages, liveMessages, isOpen, scrollToBottom]);
+
+    // Helper function to ensure user is authenticated (at least anonymously) before database ops
+    const ensureAuth = async () => {
+        if (!user && auth) {
+            try {
+                const cred = await signInAnonymously(auth);
+                return cred.user;
+            } catch (e) {
+                console.error("Anonymous sign-in failed:", e);
+                return null;
+            }
+        }
+        return user;
+    };
 
     const handleSend = async (customInput?: string) => {
         const textToSend = customInput || input;
@@ -115,15 +120,18 @@ export function AIAssistant() {
             } finally {
                 setIsLoading(false);
             }
-        } else if (mode === 'live' && currentConversationId && db && user) {
+        } else if (mode === 'live' && currentConversationId && db) {
+            const currentUser = await ensureAuth();
+            if (!currentUser) return;
+
             if (!customInput) setInput('');
             const msgRef = doc(collection(db, 'messages'));
             const msgData = {
                 conversationId: currentConversationId,
-                conversationOwnerUid: user.uid, // Required for security rules
+                conversationOwnerUid: currentUser.uid,
                 text: textToSend,
-                senderType: !user.isAnonymous ? 'parent' : 'anonymous',
-                senderUid: user.uid,
+                senderType: !currentUser.isAnonymous ? 'parent' : 'anonymous',
+                senderUid: currentUser.uid,
                 createdAt: serverTimestamp()
             };
 
@@ -148,8 +156,10 @@ export function AIAssistant() {
         }
     };
 
-    const startLiveChat = (formData: any) => {
-        if (!db || !user) return;
+    const startLiveChat = async (formData: any) => {
+        if (!db) return;
+        const currentUser = await ensureAuth();
+        if (!currentUser) return;
 
         const convRef = doc(collection(db, 'conversations'));
         const convData = {
@@ -159,8 +169,8 @@ export function AIAssistant() {
             topic: formData.topic,
             assignedTeam: formData.topic === 'kurslar' ? 'Eğitim' : 'Teknik/Satış',
             createdBy: {
-                type: !user.isAnonymous ? 'parent' : 'anonymous',
-                uid: user.uid,
+                type: !currentUser.isAnonymous ? 'parent' : 'anonymous',
+                uid: currentUser.uid,
                 name: formData.name,
                 email: formData.email,
                 phone: formData.phone
@@ -183,10 +193,10 @@ export function AIAssistant() {
         const msgRef = doc(collection(db, 'messages'));
         const msgData = {
             conversationId: convRef.id,
-            conversationOwnerUid: user.uid, // Required for security rules
+            conversationOwnerUid: currentUser.uid,
             text: `Destek talebi başlatıldı. Konu: ${formData.topic}. Mesaj: ${formData.message}`,
-            senderType: !user.isAnonymous ? 'parent' : 'anonymous',
-            senderUid: user.uid,
+            senderType: !currentUser.isAnonymous ? 'parent' : 'anonymous',
+            senderUid: currentUser.uid,
             createdAt: serverTimestamp()
         };
 
@@ -203,8 +213,10 @@ export function AIAssistant() {
         setMode('live');
     };
 
-    const handleWhatsappSubmit = (formData: any) => {
-        if (!db || !user) return;
+    const handleWhatsappSubmit = async (formData: any) => {
+        if (!db) return;
+        const currentUser = await ensureAuth();
+        if (!currentUser) return;
 
         const ticketId = Math.random().toString(36).substring(7).toUpperCase();
         const convRef = doc(collection(db, 'conversations'));
@@ -214,8 +226,8 @@ export function AIAssistant() {
             topic: formData.topic,
             assignedTeam: 'Teknik/Satış',
             createdBy: {
-                type: !user.isAnonymous ? 'parent' : 'anonymous',
-                uid: user.uid,
+                type: !currentUser.isAnonymous ? 'parent' : 'anonymous',
+                uid: currentUser.uid,
                 name: formData.name,
                 email: formData.email || null,
                 phone: formData.phone

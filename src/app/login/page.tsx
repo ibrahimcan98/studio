@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -37,7 +36,7 @@ export default function LoginPage() {
   const { user, loading } = useUser();
 
   useEffect(() => {
-    // If user is already logged in with a real account, redirect to their portal
+    // Sadece gerçek hesaplar portal yönlendirmesine girsin (Anonim kullanıcılar asistan içindir)
     if (!loading && user && !user.isAnonymous) {
         const checkRoleAndRedirect = async () => {
             if (!db) return;
@@ -121,7 +120,7 @@ export default function LoginPage() {
     }
   };
 
-  // Only show loader if we're waiting for auth or if a real user is already present (waiting for redirect)
+  // Anonim bir kullanıcı varsa bile login formunu göster
   if (loading || (user && !user.isAnonymous)) {
      return (
       <div className="flex min-h-screen items-center justify-center">

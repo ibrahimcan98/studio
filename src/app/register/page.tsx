@@ -43,7 +43,8 @@ export default function RegisterPage() {
   const { user, loading } = useUser();
 
   useEffect(() => {
-    if (!loading && user) {
+    // Sadece gerçek kullanıcılar yönlendirilsin
+    if (!loading && user && !user.isAnonymous) {
       router.push('/ebeveyn-portali');
     }
   }, [user, loading, router]);
@@ -122,7 +123,7 @@ export default function RegisterPage() {
     }
   };
 
-  if (loading || user) {
+  if (loading || (user && !user.isAnonymous)) {
      return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
