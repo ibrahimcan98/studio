@@ -26,6 +26,8 @@ export function WhatsappSupportForm({ onSubmit }: { onSubmit: (data: any) => voi
     const userDocRef = useMemoFirebase(() => (user && db) ? doc(db, 'users', user.uid) : null, [user, db]);
     const { data: userData } = useDoc(userDocRef);
 
+    const isActualUser = user && !user.isAnonymous;
+
     const { register, handleSubmit, setValue, formState: { errors } } = useForm({
         resolver: zodResolver(formSchema)
     });
@@ -33,32 +35,57 @@ export function WhatsappSupportForm({ onSubmit }: { onSubmit: (data: any) => voi
     useEffect(() => {
         if (userData) {
             setValue('name', `${userData.firstName} ${userData.lastName}`);
-            setValue('phone', userData.phoneNumber);
+            setValue('phone', userData.phoneNumber || '');
             setValue('email', userData.email);
+        } else if (user && !user.isAnonymous) {
+            setValue('name', user.displayName || '');
+            setValue('email', user.email || '');
         }
-    }, [userData, setValue]);
+    }, [userData, user, setValue]);
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-1">
             <div className="flex flex-col items-center gap-2 mb-4">
-                <div className="p-3 bg-green-100 rounded-full"><MessageCircle className="text-green-600 w-6 h-6" /></div>
+                <div className="p-3 bg-green-100 rounded-full">
+                    <MessageCircle className="text-green-600 w-6 h-6" />
+                </div>
                 <h3 className="font-bold text-slate-800 text-sm">WhatsApp Destek Hattı</h3>
-                <p className="text-[10px] text-muted-foreground text-center">Bilgilerinizi doldurun, sizi WhatsApp'a yönlendirelim.</p>
+                <p className="text-[10px] text-muted-foreground text-center px-4">
+                    {isActualUser 
+                        ? `Sayın ${user?.displayName?.split(' ')[0]}, bilgilerinizi onaylayıp WhatsApp'a geçebilirsiniz.`
+                        : "Bilgilerinizi doldurun, sizi WhatsApp'a yönlendirelim."
+                    }
+                </p>
             </div>
+
+            {!isActualUser && (
+                <div className="space-y-2">
+                    <Label className="text-xs">Ad Soyad</Label>
+                    <Input {...register('name')} placeholder="Adınız" className="h-9 text-sm" />
+                    {errors.name && <p className="text-[10px] text-red-500">{errors.name.message as string}</p>}
+                </div>
+            )}
+
             <div className="space-y-2">
-                <Label className="text-xs">Ad Soyad</Label>
-                <Input {...register('name')} placeholder="Adınız" className="h-9 text-sm" />
-                {errors.name && <p className="text-[10px] text-red-500">{errors.name.message as string}</p>}
-            </div>
-            <div className="space-y-2">
-                <Label className="text-xs">Telefon</Label>
+                <Label className="text-xs">Telefon Numarası</Label>
                 <Input {...register('phone')} placeholder="+90 ..." className="h-9 text-sm" />
                 {errors.phone && <p className="text-[10px] text-red-500">{errors.phone.message as string}</p>}
             </div>
+
+            {!isActualUser && (
+                <div className="space-y-2">
+                    <Label className="text-xs">E-posta (Opsiyonel)</Label>
+                    <Input {...register('email')} type="email" placeholder="ornek@mail.com" className="h-9 text-sm" />
+                    {errors.email && <p className="text-[10px] text-red-500">{errors.email.message as string}</p>}
+                </div>
+            )}
+
             <div className="space-y-2">
                 <Label className="text-xs">Konu</Label>
                 <Select onValueChange={(v) => setValue('topic', v)}>
-                    <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Seçiniz" /></SelectTrigger>
+                    <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="Seçiniz" />
+                    </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="fiyatlandirma">Fiyatlar & Ödeme</SelectItem>
                         <SelectItem value="deneme-dersi">Deneme Dersi</SelectItem>
@@ -68,7 +95,10 @@ export function WhatsappSupportForm({ onSubmit }: { onSubmit: (data: any) => voi
                 </Select>
                 {errors.topic && <p className="text-[10px] text-red-500">{errors.topic.message as string}</p>}
             </div>
-            <Button type="submit" className="w-full h-10 font-bold bg-green-600 hover:bg-green-700">WhatsApp'a Bağlan</Button>
+
+            <Button type="submit" className="w-full h-10 font-bold bg-green-600 hover:bg-green-700 shadow-md">
+                WhatsApp'a Bağlan
+            </Button>
         </form>
     );
 }
