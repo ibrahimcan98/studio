@@ -7,7 +7,7 @@ import Script from 'next/script';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
-// A new component to safely use hooks for Intercom
+// A component to safely load Intercom and identify users
 function IntercomScriptLoader() {
   const { user, loading } = useUser();
   const db = useFirestore();
@@ -19,8 +19,8 @@ function IntercomScriptLoader() {
 
   const { data: userData } = useDoc(userDocRef);
 
-  // NOTE: Replace 'YOUR_APP_ID' with your actual Intercom App ID from Intercom Dashboard
-  const INTERCOM_APP_ID = "YOUR_APP_ID"; 
+  // NOTE: Replace 'omihlk0y' with your actual Intercom App ID if different
+  const INTERCOM_APP_ID = "omihlk0y"; 
 
   const intercomSettings = {
     api_base: "https://api-iam.intercom.io",

@@ -90,7 +90,7 @@ export function AIAssistant() {
             (window as any).Intercom('show');
             setIsOpen(false);
         } else {
-            alert("Canlı destek şu an hazırlık aşamasında.");
+            alert("Canlı destek sistemi şu an aktif değil.");
         }
     };
     
