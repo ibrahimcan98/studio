@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -77,7 +76,7 @@ export default function RegisterPage() {
 
       const userDocRef = doc(db, 'users', user.uid);
       
-      const role = email === adminEmail ? 'admin' : 'parent';
+      const role = email.toLowerCase() === adminEmail.toLowerCase() ? 'admin' : 'parent';
       let targetPath = '/ebeveyn-portali';
       if (role === 'admin') {
         targetPath = '/yonetici';
@@ -87,11 +86,12 @@ export default function RegisterPage() {
         id: user.uid,
         firstName: name.split(' ')[0] || '',
         lastName: name.split(' ').slice(1).join(' ') || '',
-        email: user.email,
+        email: user.email?.toLowerCase(),
         phoneNumber: `${areaCode}${phoneNumber}`,
         role: role,
         lives: 5,
         livesLastUpdatedAt: serverTimestamp(),
+        createdAt: serverTimestamp()
       }, { merge: true });
 
       toast({
