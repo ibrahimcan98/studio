@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, X, Bot, User, Loader2, MessageSquareText, ArrowLeft, Headphones, MessageCircle } from 'lucide-react';
+import { Send, X, Bot, Loader2, MessageSquareText, ArrowLeft, Headphones, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,11 +11,10 @@ import { assistantFlow, AssistantInput } from '@/ai/flows/assistant-flow';
 import { assistantData } from '@/data/ai-assistant-data';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
-import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, updateDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 import { LiveChatForm } from './chat/live-chat-form';
 import { WhatsappSupportForm } from './chat/whatsapp-support-form';
-import { signInAnonymously } from 'firebase/auth';
 
 type Message = {
     role: 'user' | 'assistant' | 'admin' | 'ai';
@@ -31,8 +30,6 @@ export function AIAssistant() {
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const pathname = usePathname();
-    const { user, loading: userLoading } = useUser();
-    const auth = useAuth();
     const db = useFirestore();
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
 
@@ -44,15 +41,13 @@ export function AIAssistant() {
 
     // Listen to real-time messages if in live chat
     const messagesQuery = useMemoFirebase(() => {
-        // MUST filter by conversationOwnerUid to satisfy security rules for 'list' operations
-        if (!db || !currentConversationId || mode !== 'live' || !user) return null;
+        if (!db || !currentConversationId || mode !== 'live') return null;
         return query(
             collection(db, 'messages'),
             where('conversationId', '==', currentConversationId),
-            where('conversationOwnerUid', '==', user.uid),
             orderBy('createdAt', 'asc')
         );
-    }, [db, currentConversationId, mode, user?.uid]);
+    }, [db, currentConversationId, mode]);
 
     const { data: liveMessages } = useCollection(messagesQuery);
 
@@ -78,20 +73,6 @@ export function AIAssistant() {
         if (isOpen) scrollToBottom();
     }, [messages, liveMessages, isOpen, scrollToBottom]);
 
-    // Helper function to ensure user is authenticated (at least anonymously) before database ops
-    const ensureAuth = async () => {
-        if (!user && auth) {
-            try {
-                const cred = await signInAnonymously(auth);
-                return cred.user;
-            } catch (e) {
-                console.error("Anonymous sign-in failed:", e);
-                return null;
-            }
-        }
-        return user;
-    };
-
     const handleSend = async (customInput?: string) => {
         const textToSend = customInput || input;
         if (textToSend.trim() === '' || isLoading) return;
@@ -102,65 +83,41 @@ export function AIAssistant() {
             if (!customInput) setInput('');
             setIsLoading(true);
 
-            const needsHuman = /canlı destek|insan|bağlan|yardım|operator/i.test(textToSend.toLowerCase());
-            
             try {
                 const assistantInput: AssistantInput = {
                     history: messages.map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content })),
                     question: textToSend,
                 };
                 const result = await assistantFlow(assistantInput);
-                
                 setMessages(prev => [...prev, { role: 'assistant', content: result.answer }]);
-                
-                if (needsHuman) {
-                    setMessages(prev => [...prev, { role: 'assistant', content: "Size daha detaylı yardımcı olabilmem için bir ekip arkadaşıma bağlamak ister misiniz?" }]);
-                }
             } catch (error) {
                 setMessages(prev => [...prev, { role: 'assistant', content: "Üzgünüm, bir sorun oluştu." }]);
             } finally {
                 setIsLoading(false);
             }
         } else if (mode === 'live' && currentConversationId && db) {
-            const currentUser = await ensureAuth();
-            if (!currentUser) return;
-
             if (!customInput) setInput('');
+            
             const msgRef = doc(collection(db, 'messages'));
             const msgData = {
                 conversationId: currentConversationId,
-                conversationOwnerUid: currentUser.uid, // Required for list query security
                 text: textToSend,
-                senderType: !currentUser.isAnonymous ? 'parent' : 'anonymous',
-                senderUid: currentUser.uid,
+                senderType: 'anonymous', // Public context
                 createdAt: serverTimestamp()
             };
 
-            setDoc(msgRef, msgData).catch(error => {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({
-                    path: msgRef.path,
-                    operation: 'create',
-                    requestResourceData: msgData
-                }));
-            });
+            setDoc(msgRef, msgData);
 
             const convRef = doc(db, 'conversations', currentConversationId);
             updateDoc(convRef, {
                 lastMessageAt: serverTimestamp(),
                 updatedAt: serverTimestamp()
-            }).catch(error => {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({
-                    path: convRef.path,
-                    operation: 'update'
-                }));
             });
         }
     };
 
     const startLiveChat = async (formData: any) => {
         if (!db) return;
-        const currentUser = await ensureAuth();
-        if (!currentUser) return;
 
         const convRef = doc(collection(db, 'conversations'));
         const convData = {
@@ -170,8 +127,7 @@ export function AIAssistant() {
             topic: formData.topic,
             assignedTeam: formData.topic === 'kurslar' ? 'Eğitim' : 'Teknik/Satış',
             createdBy: {
-                type: !currentUser.isAnonymous ? 'parent' : 'anonymous',
-                uid: currentUser.uid,
+                type: 'anonymous',
                 name: formData.name,
                 email: formData.email,
                 phone: formData.phone
@@ -179,35 +135,20 @@ export function AIAssistant() {
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
             lastMessageAt: serverTimestamp(),
-            pageUrl: window.location.href,
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+            pageUrl: window.location.href
         };
 
-        setDoc(convRef, convData).catch(error => {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: convRef.path,
-                operation: 'create',
-                requestResourceData: convData
-            }));
-        });
+        setDoc(convRef, convData);
         
         const msgRef = doc(collection(db, 'messages'));
         const msgData = {
             conversationId: convRef.id,
-            conversationOwnerUid: currentUser.uid, // Required for list query security
             text: `Destek talebi başlatıldı. Konu: ${formData.topic}. Mesaj: ${formData.message}`,
-            senderType: !currentUser.isAnonymous ? 'parent' : 'anonymous',
-            senderUid: currentUser.uid,
+            senderType: 'anonymous',
             createdAt: serverTimestamp()
         };
 
-        setDoc(msgRef, msgData).catch(error => {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: msgRef.path,
-                operation: 'create',
-                requestResourceData: msgData
-            }));
-        });
+        setDoc(msgRef, msgData);
 
         setCurrentConversationId(convRef.id);
         localStorage.setItem('tca_conversation_id', convRef.id);
@@ -216,8 +157,6 @@ export function AIAssistant() {
 
     const handleWhatsappSubmit = async (formData: any) => {
         if (!db) return;
-        const currentUser = await ensureAuth();
-        if (!currentUser) return;
 
         const ticketId = Math.random().toString(36).substring(7).toUpperCase();
         const convRef = doc(collection(db, 'conversations'));
@@ -227,8 +166,7 @@ export function AIAssistant() {
             topic: formData.topic,
             assignedTeam: 'Teknik/Satış',
             createdBy: {
-                type: !currentUser.isAnonymous ? 'parent' : 'anonymous',
-                uid: currentUser.uid,
+                type: 'anonymous',
                 name: formData.name,
                 email: formData.email || null,
                 phone: formData.phone
@@ -237,13 +175,7 @@ export function AIAssistant() {
             ticketId
         };
 
-        setDoc(convRef, convData).catch(error => {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: convRef.path,
-                operation: 'create',
-                requestResourceData: convData
-            }));
-        });
+        setDoc(convRef, convData);
 
         const message = `Merhaba, ben ${formData.name}. Telefon: ${formData.phone}. Konu: ${formData.topic}. Destek No: ${ticketId}`;
         window.open(`https://wa.me/905058029734?text=${encodeURIComponent(message)}`, '_blank');
@@ -307,9 +239,9 @@ export function AIAssistant() {
                                 ))}
 
                                 {mode === 'live' && liveMessages?.map((msg, i) => (
-                                    <div key={i} className={cn("flex items-start gap-2", ['parent', 'anonymous'].includes(msg.senderType) ? 'justify-end' : 'justify-start')}>
+                                    <div key={i} className={cn("flex items-start gap-2", msg.senderType === 'anonymous' ? 'justify-end' : 'justify-start')}>
                                         {['admin', 'ai'].includes(msg.senderType) && <Headphones className="w-6 h-6 mt-1 text-primary" />}
-                                        <div className={cn("max-w-[85%] rounded-2xl p-3 text-sm shadow-sm", ['parent', 'anonymous'].includes(msg.senderType) ? "bg-primary text-white rounded-br-none" : "bg-white border text-slate-700 rounded-bl-none")}>
+                                        <div className={cn("max-w-[85%] rounded-2xl p-3 text-sm shadow-sm", msg.senderType === 'anonymous' ? "bg-primary text-white rounded-br-none" : "bg-white border text-slate-700 rounded-bl-none")}>
                                             {msg.text}
                                         </div>
                                     </div>

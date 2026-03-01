@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, query, where, orderBy, doc, updateDoc, serverTimestamp, setDoc, limit } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { collection, query, orderBy, doc, updateDoc, serverTimestamp, setDoc, limit, where } from 'firebase/firestore';
 import { 
     Search, 
     MessageSquare, 
@@ -64,31 +63,19 @@ export default function InboxPage() {
         const msgRef = doc(collection(db, 'messages'));
         const msgData = {
             conversationId: selectedConvId,
-            conversationOwnerUid: selectedConv.createdBy.uid, // Required for security rules
             text: replyText,
             senderType: 'admin',
             senderUid: user.uid,
             createdAt: serverTimestamp()
         };
 
-        setDoc(msgRef, msgData).catch(error => {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: msgRef.path,
-                operation: 'create',
-                requestResourceData: msgData
-            }));
-        });
+        setDoc(msgRef, msgData);
 
         const convRef = doc(db, 'conversations', selectedConvId);
         updateDoc(convRef, {
             lastMessageAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
             status: 'pending'
-        }).catch(error => {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: convRef.path,
-                operation: 'update'
-            }));
         });
 
         setInputText('');
@@ -97,12 +84,7 @@ export default function InboxPage() {
     const toggleStatus = (status: string) => {
         if (!db || !selectedConvId) return;
         const convRef = doc(db, 'conversations', selectedConvId);
-        updateDoc(convRef, { status }).catch(error => {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: convRef.path,
-                operation: 'update'
-            }));
-        });
+        updateDoc(convRef, { status });
     };
 
     if (isConvLoading) return <div className="flex h-96 items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;

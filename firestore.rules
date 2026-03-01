@@ -45,21 +45,13 @@ service cloud.firestore {
         allow delete: if (isSignedIn() && request.auth.uid == resource.data.teacherId) || isAdmin();
     }
     
-    // KONUŞMA KURALLARI
+    // KONUŞMA VE MESAJ KURALLARI - HERKESE AÇIK (KULLANICI TALEBİ)
     match /conversations/{conversationId} {
-      allow create: if true;
-      allow read: if isAdmin();
-      allow read: if isSignedIn() && resource.data.createdBy.uid == request.auth.uid;
-      allow update: if isAdmin();
-      allow update: if isSignedIn() && resource.data.createdBy.uid == request.auth.uid;
+      allow read, write: if true;
     }
 
-    // MESAJ KURALLARI - TOP LEVEL VE DENORMALIZE
     match /messages/{messageId} {
-      allow create: if isSignedIn();
-      allow read: if isAdmin();
-      allow read: if isSignedIn() && resource.data.conversationOwnerUid == request.auth.uid;
-      allow read: if isSignedIn() && resource.data.senderUid == request.auth.uid;
+      allow read, write: if true;
     }
     
     // DİĞER KURALLAR
