@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, X, Bot, Loader2, MessageSquareText, ArrowLeft, Headphones, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,8 +11,8 @@ import { assistantFlow, AssistantInput } from '@/ai/flows/assistant-flow';
 import { assistantData } from '@/data/ai-assistant-data';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, setDoc, updateDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { collection, doc, setDoc, updateDoc, query, where, serverTimestamp } from 'firebase/firestore';
 import { LiveChatForm } from './chat/live-chat-form';
 import { WhatsappSupportForm } from './chat/whatsapp-support-form';
 
@@ -31,25 +31,34 @@ export function AIAssistant() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const pathname = usePathname();
     const db = useFirestore();
+    const { user } = useUser();
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
 
-    // Track conversation via localStorage for continuity
     useEffect(() => {
-        const savedId = localStorage.getItem('tca_conversation_id');
+        const savedId = typeof window !== 'undefined' ? localStorage.getItem('tca_conversation_id') : null;
         if (savedId) setCurrentConversationId(savedId);
     }, []);
 
-    // Listen to real-time messages if in live chat
+    // Basitleştirilmiş mesaj sorgusu (Permissions hatasını önlemek için filtreleri azalttık)
     const messagesQuery = useMemoFirebase(() => {
         if (!db || !currentConversationId || mode !== 'live') return null;
         return query(
             collection(db, 'messages'),
-            where('conversationId', '==', currentConversationId),
-            orderBy('createdAt', 'asc')
+            where('conversationId', '==', currentConversationId)
         );
     }, [db, currentConversationId, mode]);
 
-    const { data: liveMessages } = useCollection(messagesQuery);
+    const { data: rawLiveMessages } = useCollection(messagesQuery);
+
+    // Mesajları client-side'da sıralıyoruz
+    const liveMessages = useMemo(() => {
+        if (!rawLiveMessages) return [];
+        return [...rawLiveMessages].sort((a, b) => {
+            const timeA = a.createdAt?.seconds || 0;
+            const timeB = b.createdAt?.seconds || 0;
+            return timeA - timeB;
+        });
+    }, [rawLiveMessages]);
 
     useEffect(() => {
         const shouldBeHidden = pathname.startsWith('/ogretmen-portali') || 
@@ -99,14 +108,12 @@ export function AIAssistant() {
             if (!customInput) setInput('');
             
             const msgRef = doc(collection(db, 'messages'));
-            const msgData = {
+            setDoc(msgRef, {
                 conversationId: currentConversationId,
                 text: textToSend,
-                senderType: 'anonymous', // Public context
+                senderType: 'anonymous',
                 createdAt: serverTimestamp()
-            };
-
-            setDoc(msgRef, msgData);
+            });
 
             const convRef = doc(db, 'conversations', currentConversationId);
             updateDoc(convRef, {
@@ -134,21 +141,18 @@ export function AIAssistant() {
             },
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
-            lastMessageAt: serverTimestamp(),
-            pageUrl: window.location.href
+            lastMessageAt: serverTimestamp()
         };
 
         setDoc(convRef, convData);
         
         const msgRef = doc(collection(db, 'messages'));
-        const msgData = {
+        setDoc(msgRef, {
             conversationId: convRef.id,
             text: `Destek talebi başlatıldı. Konu: ${formData.topic}. Mesaj: ${formData.message}`,
             senderType: 'anonymous',
             createdAt: serverTimestamp()
-        };
-
-        setDoc(msgRef, msgData);
+        });
 
         setCurrentConversationId(convRef.id);
         localStorage.setItem('tca_conversation_id', convRef.id);
@@ -160,7 +164,7 @@ export function AIAssistant() {
 
         const ticketId = Math.random().toString(36).substring(7).toUpperCase();
         const convRef = doc(collection(db, 'conversations'));
-        const convData = {
+        setDoc(convRef, {
             status: 'open',
             channel: 'whatsapp',
             topic: formData.topic,
@@ -173,9 +177,7 @@ export function AIAssistant() {
             },
             createdAt: serverTimestamp(),
             ticketId
-        };
-
-        setDoc(convRef, convData);
+        });
 
         const message = `Merhaba, ben ${formData.name}. Telefon: ${formData.phone}. Konu: ${formData.topic}. Destek No: ${ticketId}`;
         window.open(`https://wa.me/905058029734?text=${encodeURIComponent(message)}`, '_blank');
@@ -238,7 +240,7 @@ export function AIAssistant() {
                                     </div>
                                 ))}
 
-                                {mode === 'live' && liveMessages?.map((msg, i) => (
+                                {mode === 'live' && liveMessages.map((msg, i) => (
                                     <div key={i} className={cn("flex items-start gap-2", msg.senderType === 'anonymous' ? 'justify-end' : 'justify-start')}>
                                         {['admin', 'ai'].includes(msg.senderType) && <Headphones className="w-6 h-6 mt-1 text-primary" />}
                                         <div className={cn("max-w-[85%] rounded-2xl p-3 text-sm shadow-sm", msg.senderType === 'anonymous' ? "bg-primary text-white rounded-br-none" : "bg-white border text-slate-700 rounded-bl-none")}>

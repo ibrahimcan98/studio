@@ -36,10 +36,19 @@ export default function InboxPage() {
     // Conversations List
     const convQuery = useMemoFirebase(() => {
         if (!db) return null;
-        return query(collection(db, 'conversations'), orderBy('lastMessageAt', 'desc'), limit(50));
+        return query(collection(db, 'conversations'), limit(50));
     }, [db]);
 
-    const { data: conversations, isLoading: isConvLoading } = useCollection(convQuery);
+    const { data: rawConversations, isLoading: isConvLoading } = useCollection(convQuery);
+
+    const conversations = useMemo(() => {
+        if (!rawConversations) return [];
+        return [...rawConversations].sort((a, b) => {
+            const timeA = a.lastMessageAt?.seconds || 0;
+            const timeB = b.lastMessageAt?.seconds || 0;
+            return timeB - timeA;
+        });
+    }, [rawConversations]);
 
     const selectedConv = useMemo(() => 
         conversations?.find(c => c.id === selectedConvId), 
@@ -50,26 +59,32 @@ export default function InboxPage() {
         if (!db || !selectedConvId) return null;
         return query(
             collection(db, 'messages'), 
-            where('conversationId', '==', selectedConvId),
-            orderBy('createdAt', 'asc')
+            where('conversationId', '==', selectedConvId)
         );
     }, [db, selectedConvId]);
 
-    const { data: messages } = useCollection(msgQuery);
+    const { data: rawMessages } = useCollection(msgQuery);
+
+    const messages = useMemo(() => {
+        if (!rawMessages) return [];
+        return [...rawMessages].sort((a, b) => {
+            const timeA = a.createdAt?.seconds || 0;
+            const timeB = b.createdAt?.seconds || 0;
+            return timeA - timeB;
+        });
+    }, [rawMessages]);
 
     const handleSendReply = () => {
         if (!db || !selectedConvId || !replyText.trim() || !user || !selectedConv) return;
         
         const msgRef = doc(collection(db, 'messages'));
-        const msgData = {
+        setDoc(msgRef, {
             conversationId: selectedConvId,
             text: replyText,
             senderType: 'admin',
             senderUid: user.uid,
             createdAt: serverTimestamp()
-        };
-
-        setDoc(msgRef, msgData);
+        });
 
         const convRef = doc(db, 'conversations', selectedConvId);
         updateDoc(convRef, {
