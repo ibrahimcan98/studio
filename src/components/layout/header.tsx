@@ -30,7 +30,7 @@ export default function Header() {
   const { user, loading: userLoading } = useUser();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const isLoggedIn = !!user;
+  const isLoggedIn = !!user && !user.isAnonymous; // Sadece gerçek hesaplar giriş yapmış sayılır
   const { cartItems, isCartLoaded } = useCart();
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -71,7 +71,7 @@ export default function Header() {
     const { user } = useUser();
     const db = useFirestore();
     const userDocRef = useMemoFirebase(() => {
-        if (!user || !db) return null;
+        if (!user || !db || user.isAnonymous) return null;
         return doc(db, 'users', user.uid);
     }, [user, db]);
     const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);

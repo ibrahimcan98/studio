@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import Link from 'next/link';
@@ -234,7 +233,8 @@ export default function EbeveynPortaliPage() {
   const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
   
   useEffect(() => {
-    if (!userLoading && !user) {
+    // Redirect if no user or anonymous user
+    if (!userLoading && (!user || user.isAnonymous)) {
       router.push('/login');
     }
   }, [user, userLoading, router]);
@@ -309,7 +309,7 @@ export default function EbeveynPortaliPage() {
     );
   }
 
-  if (!user) {
+  if (!user || user.isAnonymous) {
     return null;
   }
 

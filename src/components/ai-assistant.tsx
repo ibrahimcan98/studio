@@ -14,7 +14,6 @@ import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth } from '@/firebase';
 import { collection, addDoc, serverTimestamp, query, where, orderBy, doc, updateDoc, limit } from 'firebase/firestore';
-import { signInAnonymously } from 'firebase/auth';
 import { LiveChatForm } from './chat/live-chat-form';
 import { WhatsappSupportForm } from './chat/whatsapp-support-form';
 
@@ -36,13 +35,6 @@ export function AIAssistant() {
     const auth = useAuth();
     const db = useFirestore();
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
-
-    // Ensure user is at least anonymously authenticated for security rules to work
-    useEffect(() => {
-        if (!userLoading && !user && auth) {
-            signInAnonymously(auth).catch(err => console.error("Anonymous auth error:", err));
-        }
-    }, [user, userLoading, auth]);
 
     // Track conversation via localStorage for anonymous
     useEffect(() => {
