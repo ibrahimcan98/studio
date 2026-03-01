@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -6,7 +5,7 @@ import { useFirebase, useUser, useFirestore, useDoc, useMemoFirebase } from '@/f
 import { doc, updateDoc } from 'firebase/firestore';
 import { getAuth, updateProfile, updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider, sendEmailVerification } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Loader2, ArrowLeft, User, Image as ImageIcon, KeyRound, Mail, AlertCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, User, Image as ImageIcon, KeyRound, Mail, AlertCircle, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -46,6 +45,7 @@ export default function AyarlarPage() {
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [currentPassword, setCurrentPassword] = useState('');
@@ -62,6 +62,7 @@ export default function AyarlarPage() {
         if (userData) {
             setFirstName(userData.firstName || '');
             setLastName(userData.lastName || '');
+            setPhoneNumber(userData.phoneNumber || '');
         }
         if (authUser) {
             setEmail(authUser.email || '');
@@ -78,7 +79,7 @@ export default function AyarlarPage() {
             if(authUser.displayName !== newDisplayName) {
                 await updateProfile(authUser, { displayName: newDisplayName });
             }
-            await updateDoc(userDocRef, { firstName, lastName });
+            await updateDoc(userDocRef, { firstName, lastName, phoneNumber });
             
             if (email !== authUser.email) {
                 setIsReauthRequired(true);
@@ -216,7 +217,7 @@ export default function AyarlarPage() {
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2"><User /> Kişisel Bilgiler</CardTitle>
-                            <CardDescription>Adınızı, soyadınızı ve e-posta adresinizi güncelleyin.</CardDescription>
+                            <CardDescription>Adınızı, soyadınızı ve iletişim bilgilerinizi güncelleyin.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid sm:grid-cols-2 gap-4">
@@ -229,15 +230,31 @@ export default function AyarlarPage() {
                                     <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} />
                                 </div>
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="email">E-posta</Label>
-                                <Input 
-                                    id="email" 
-                                    type="email" 
-                                    value={email} 
-                                    onChange={(e) => setEmail(e.target.value)} 
-                                    className={cn(!isEmailVerified && "border-destructive focus-visible:ring-destructive")}
-                                />
+                            <div className="grid sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="email">E-posta</Label>
+                                    <Input 
+                                        id="email" 
+                                        type="email" 
+                                        value={email} 
+                                        onChange={(e) => setEmail(e.target.value)} 
+                                        className={cn(!isEmailVerified && "border-destructive focus-visible:ring-destructive")}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="phoneNumber">Telefon Numarası</Label>
+                                    <div className="relative">
+                                        <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                        <Input 
+                                            id="phoneNumber" 
+                                            type="tel" 
+                                            value={phoneNumber} 
+                                            onChange={(e) => setPhoneNumber(e.target.value)} 
+                                            className="pl-10"
+                                            placeholder="+90 ..."
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </CardContent>
                         <CardFooter>
