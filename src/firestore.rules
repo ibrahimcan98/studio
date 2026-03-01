@@ -7,6 +7,7 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Admin kontrolü
     function isAdmin() {
       return isSignedIn() && (
         request.auth.token.email == 'admin@hotmail.com' || 
@@ -20,6 +21,15 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher'
       );
+    }
+
+    // KONUŞMA VE MESAJ KURALLARI - TAMAMEN AÇIK (KULLANICI TALEBİ)
+    match /conversations/{conversationId} {
+      allow read, write: if true;
+    }
+
+    match /messages/{messageId} {
+      allow read, write: if true;
     }
 
     // KULLANICI KURALLARI
@@ -42,23 +52,6 @@ service cloud.firestore {
         allow update: if (isSignedIn() && resource.data.status == 'available' && request.resource.data.status == 'booked') || 
                        (isSignedIn() && request.auth.uid == resource.data.teacherId) || isAdmin();
         allow delete: if (isSignedIn() && request.auth.uid == resource.data.teacherId) || isAdmin();
-    }
-    
-    // KONUŞMA KURALLARI
-    match /conversations/{conversationId} {
-      allow create: if true;
-      allow read: if isAdmin();
-      allow read: if isSignedIn() && resource.data.createdBy.uid == request.auth.uid;
-      allow update: if isAdmin();
-      allow update: if isSignedIn() && resource.data.createdBy.uid == request.auth.uid;
-    }
-
-    // MESAJ KURALLARI - TOP LEVEL VE DENORMALIZE
-    match /messages/{messageId} {
-      allow create: if isSignedIn();
-      allow read: if isAdmin();
-      allow read: if isSignedIn() && resource.data.conversationOwnerUid == request.auth.uid;
-      allow read: if isSignedIn() && resource.data.senderUid == request.auth.uid;
     }
     
     // DİĞER KURALLAR
