@@ -71,7 +71,7 @@ export default function GameClient({ questions }: GameClientProps) {
     const currentQuestion = questions[currentIndex];
 
     const playQuestionAudio = useCallback(async () => {
-        if (audioRef.current) {
+        if (audioRef.current && currentQuestion?.audio) {
             if (!audioRef.current.paused) {
                 audioRef.current.pause();
                 audioRef.current.currentTime = 0;
@@ -85,7 +85,7 @@ export default function GameClient({ questions }: GameClientProps) {
                 }
             }
         }
-    }, [currentQuestion.audio]);
+    }, [currentQuestion?.audio]);
 
     useEffect(() => {
         playQuestionAudio();
@@ -229,5 +229,3 @@ export default function GameClient({ questions }: GameClientProps) {
         </div>
     );
 }
-
-    

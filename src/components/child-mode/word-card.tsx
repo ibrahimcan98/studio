@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -38,6 +39,8 @@ export function WordCard({ wordList, childId, topicId }: WordCardProps) {
     const isLastWord = currentIndex === wordList.length - 1;
 
     const playAudio = useCallback(async (audioSrc: string) => {
+        if (!audioSrc || !audioRef.current) return;
+        
         if (audioRef.current) {
             // Stop and reset any currently playing audio
             if (!audioRef.current.paused) {
@@ -60,7 +63,9 @@ export function WordCard({ wordList, childId, topicId }: WordCardProps) {
     useEffect(() => {
         setGradient(backgroundGradients[currentIndex % backgroundGradients.length]);
         // Autoplay audio when word changes
-        playAudio(currentWord.audio);
+        if (currentWord?.audio) {
+            playAudio(currentWord.audio);
+        }
     }, [currentIndex, currentWord, playAudio]);
 
 
@@ -98,12 +103,12 @@ export function WordCard({ wordList, childId, topicId }: WordCardProps) {
                         size="icon"
                         variant="outline"
                         className="rounded-full w-16 h-16 bg-green-100 hover:bg-green-200 text-green-600 border-none shadow-md"
-                        onClick={() => playAudio(currentWord.audio)}
+                        onClick={() => currentWord?.audio && playAudio(currentWord.audio)}
                     >
                         <Volume2 className="w-8 h-8" />
                     </Button>
                     <h2 className="text-5xl font-bold text-gray-800 ">{currentWord.word}</h2>
-                    <audio ref={audioRef} src={currentWord.audio} />
+                    <audio ref={audioRef} />
                 </div>
                 <div className="flex justify-between items-center">
                     <Button

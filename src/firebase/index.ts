@@ -43,10 +43,11 @@ export {
   Timestamp
 };
 
-// Global instances for direct imports if needed
+// Singleton initialization to prevent multiple instances
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-// Use initializeFirestore once at the module level to ensure settings are applied consistently
+
+// Use initializeFirestore only once at the module level
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
 });
@@ -60,7 +61,6 @@ export function initializeFirebase() {
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
-  // Return the single instances
   return {
     firebaseApp: app,
     auth,

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Card } from '@/components/ui/card';
@@ -77,6 +77,15 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
         setSelectedPiece(null);
     }, [currentWordIndex]);
 
+    const playWordAudio = useCallback(async () => {
+        if (audioRef.current && currentWord?.audio) {
+            audioRef.current.src = currentWord.audio;
+            try {
+                await audioRef.current.play();
+            } catch (e) {}
+        }
+    }, [currentWord?.audio]);
+
     const handleSelectPiece = (piece: number, index: number) => {
         if (isSolved || piece === null) return;
         setSelectedPiece({ piece, index });
@@ -98,7 +107,7 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
 
             if (newPlaced.every(p => p !== null)) {
                 setIsSolved(true);
-                audioRef.current?.play().catch(() => {});
+                playWordAudio();
             }
         } else {
             if (!(userData?.isPremium)) {
@@ -128,7 +137,7 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
 
     return (
         <div className="bg-blue-50 h-screen p-4 sm:p-8 flex flex-col">
-            <audio ref={audioRef} src={currentWord.audio} />
+            <audio ref={audioRef} />
             <header className="flex-shrink-0 mb-4 flex items-center justify-between max-w-4xl mx-auto w-full">
                 <Button variant="outline" size="icon" className="rounded-full" onClick={() => router.back()}><ArrowLeft /></Button>
                 <h1 className="text-2xl font-bold text-gray-800">Resmi Tamamla: {currentWord.word}</h1>
