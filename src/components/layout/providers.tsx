@@ -5,8 +5,7 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { CartProvider } from '@/context/cart-context';
 import Script from 'next/script';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, getFirestore } from 'firebase/firestore';
-import { useMemo } from 'react';
+import { doc } from 'firebase/firestore';
 
 // A new component to safely use hooks for Intercom
 function IntercomScriptLoader() {
@@ -20,9 +19,12 @@ function IntercomScriptLoader() {
 
   const { data: userData } = useDoc(userDocRef);
 
+  // NOTE: Replace 'YOUR_APP_ID' with your actual Intercom App ID from Intercom Dashboard
+  const INTERCOM_APP_ID = "YOUR_APP_ID"; 
+
   const intercomSettings = {
     api_base: "https://api-iam.intercom.io",
-    app_id: "YOUR_APP_ID", // IMPORTANT: Replace with your actual Intercom App ID
+    app_id: INTERCOM_APP_ID,
     ...(user && {
       name: userData?.firstName ? `${userData.firstName} ${userData.lastName}` : user.displayName,
       email: user.email,
@@ -32,14 +34,14 @@ function IntercomScriptLoader() {
   };
   
   if (loading) {
-    return null; // Don't render script until user state is known
+    return null; 
   }
 
   return (
      <Script id="intercom-script" strategy="afterInteractive">
         {`
           window.intercomSettings = ${JSON.stringify(intercomSettings)};
-          (function(){var w=window;var ic=w.Intercom;if(typeof ic==="function"){ic('reattach_activator');ic('update',w.intercomSettings);}else{var d=document;var i=function(){i.c(arguments);};i.q=[];i.c=function(args){i.q.push(args);};w.Intercom=i;var l=function(){var s=d.createElement('script');s.type='text/javascript';s.async=true;s.src='https://widget.intercom.io/widget/YOUR_APP_ID';var x=d.getElementsByTagName('script')[0];x.parentNode.insertBefore(s,x);};if(document.readyState==='complete'){l();}else if(w.attachEvent){w.attachEvent('onload',l);}else{w.addEventListener('load',l,false);}}})();
+          (function(){var w=window;var ic=w.Intercom;if(typeof ic==="function"){ic('reattach_activator');ic('update',w.intercomSettings);}else{var d=document;var i=function(){i.c(arguments);};i.q=[];i.c=function(args){i.q.push(args);};w.Intercom=i;var l=function(){var s=d.createElement('script');s.type='text/javascript';s.async=true;s.src='https://widget.intercom.io/widget/${INTERCOM_APP_ID}';var x=d.getElementsByTagName('script')[0];x.parentNode.insertBefore(s,x);};if(document.readyState==='complete'){l();}else if(w.attachEvent){w.attachEvent('onload',l);}else{w.addEventListener('load',l,false);}}})();
         `}
       </Script>
   );

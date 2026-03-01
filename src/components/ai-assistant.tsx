@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, X, Bot, User, Loader2, Sparkles, MessageCircle, ArrowRight } from 'lucide-react';
+import { Send, X, Bot, User, Loader2, Sparkles, MessageCircle, MessageSquareText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,7 +11,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { assistantFlow, AssistantInput } from '@/ai/flows/assistant-flow';
 import { assistantData } from '@/data/ai-assistant-data';
 import { cn } from '@/lib/utils';
-import { Badge } from './ui/badge';
 import { usePathname } from 'next/navigation';
 
 type Message = {
@@ -44,7 +44,6 @@ export function AIAssistant() {
 
     useEffect(() => {
         if(isOpen && messages.length === 0) {
-            // Add initial greeting when chat opens for the first time
             setMessages([{ role: 'assistant', content: assistantData.greeting }]);
         }
     }, [isOpen, messages.length]);
@@ -85,12 +84,23 @@ export function AIAssistant() {
              setTimeout(scrollToBottom, 100);
         }
     };
+
+    const toggleIntercom = () => {
+        if (typeof window !== 'undefined' && (window as any).Intercom) {
+            (window as any).Intercom('show');
+            setIsOpen(false);
+        } else {
+            alert("Canlı destek şu an hazırlık aşamasında.");
+        }
+    };
     
     if (isHidden) {
         return null;
     }
 
-    const showSuggestions = messages.length === 1 && !isLoading;
+    // Always show suggestions if assistant just spoke and it's not loading
+    const lastMessageWasAssistant = messages.length > 0 && messages[messages.length - 1].role === 'assistant';
+    const showSuggestions = lastMessageWasAssistant && !isLoading;
 
     return (
         <>
@@ -103,7 +113,7 @@ export function AIAssistant() {
                 >
                     <Button
                         size="icon"
-                        className="rounded-full w-16 h-16 bg-gradient-to-br from-primary to-accent text-white shadow-2xl"
+                        className="rounded-full w-16 h-16 bg-gradient-to-br from-primary to-accent text-white shadow-2xl border-4 border-white"
                         onClick={() => setIsOpen(true)}
                     >
                         <Sparkles className="w-8 h-8" />
@@ -181,30 +191,42 @@ export function AIAssistant() {
                                         animate={{ opacity: 1, y: 0 }}
                                         className="space-y-2 ml-11"
                                     >
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Hızlı Sorular</p>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Devam etmek ister misiniz?</p>
                                         <div className="flex flex-col gap-2">
                                             {assistantData.suggestedQuestions.map((q, i) => (
                                                 <Button 
                                                     key={i} 
                                                     variant="outline" 
                                                     size="sm" 
-                                                    className="justify-start text-left h-auto py-2 px-3 rounded-xl border-slate-200 hover:border-primary hover:text-primary transition-all text-xs bg-white"
+                                                    className="justify-start text-left h-auto py-2.5 px-3 rounded-xl border-slate-200 hover:border-primary hover:text-primary transition-all text-xs bg-white shadow-sm"
                                                     onClick={() => handleSend(q)}
                                                 >
                                                     {q}
                                                 </Button>
                                             ))}
-                                            <Button 
-                                                variant="outline" 
-                                                size="sm" 
-                                                className="justify-start text-left h-auto py-2 px-3 rounded-xl border-green-200 text-green-600 hover:bg-green-50 transition-all text-xs bg-white font-bold"
-                                                asChild
-                                            >
-                                                <a href={assistantData.liveSupportUrl} target="_blank" rel="noopener noreferrer">
-                                                    <MessageCircle className="w-3.5 h-3.5 mr-2" />
-                                                    Canlı Birine Bağlan (WhatsApp)
-                                                </a>
-                                            </Button>
+                                            
+                                            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 mt-2">
+                                                <Button 
+                                                    variant="outline" 
+                                                    size="sm" 
+                                                    className="justify-start text-left h-auto py-2 px-3 rounded-xl border-blue-200 text-blue-600 hover:bg-blue-50 transition-all text-[10px] bg-white font-bold"
+                                                    onClick={toggleIntercom}
+                                                >
+                                                    <MessageSquareText className="w-3.5 h-3.5 mr-1.5" />
+                                                    Siteden Destek
+                                                </Button>
+                                                <Button 
+                                                    variant="outline" 
+                                                    size="sm" 
+                                                    className="justify-start text-left h-auto py-2 px-3 rounded-xl border-green-200 text-green-600 hover:bg-green-50 transition-all text-[10px] bg-white font-bold"
+                                                    asChild
+                                                >
+                                                    <a href={assistantData.liveSupportUrl} target="_blank" rel="noopener noreferrer">
+                                                        <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
+                                                        WhatsApp
+                                                    </a>
+                                                </Button>
+                                            </div>
                                         </div>
                                     </motion.div>
                                 )}
