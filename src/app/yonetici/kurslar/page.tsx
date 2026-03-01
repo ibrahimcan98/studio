@@ -1,6 +1,6 @@
 
 'use client';
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import {
   Card,
@@ -22,9 +22,13 @@ import { Button } from '@/components/ui/button';
 
 export default function CoursesPage() {
   const db = useFirestore();
-  const { data: courses, isLoading: coursesLoading } = useCollection(
-    db ? collection(db, 'courses') : null
-  );
+  
+  const coursesRef = useMemoFirebase(() => {
+    if (!db) return null;
+    return collection(db, 'courses');
+  }, [db]);
+
+  const { data: courses, isLoading: coursesLoading } = useCollection(coursesRef);
 
   return (
     <div className="space-y-8">

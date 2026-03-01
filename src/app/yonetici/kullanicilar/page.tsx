@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import {
   Card,
@@ -41,10 +41,13 @@ const statusColors: { [key: string]: string } = {
 
 export default function UsersPage() {
   const db = useFirestore();
-  // Correct the query to look for users with the 'parent' role in the 'users' collection
-  const { data: parents, isLoading: parentsLoading } = useCollection(
-    db ? query(collection(db, 'users'), where('role', '==', 'parent')) : null
-  );
+  
+  const parentsQuery = useMemoFirebase(() => {
+    if (!db) return null;
+    return query(collection(db, 'users'), where('role', '==', 'parent'));
+  }, [db]);
+
+  const { data: parents, isLoading: parentsLoading } = useCollection(parentsQuery);
 
   return (
     <div className="space-y-8">
