@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, orderBy, doc, updateDoc, serverTimestamp, setDoc, limit, where } from 'firebase/firestore';
+import { collection, query, doc, updateDoc, serverTimestamp, setDoc, limit, where } from 'firebase/firestore';
 import { 
     Search, 
     MessageSquare, 
@@ -15,7 +15,8 @@ import {
     Monitor,
     MessageCircle,
     Headphones,
-    Loader2
+    Loader2,
+    Archive
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -32,27 +33,35 @@ export default function InboxPage() {
     const { user } = useUser();
     const [selectedConvId, setSelectedConvId] = useState<string | null>(null);
     const [replyText, setInputText] = useState('');
+    const [showArchived, setShowArchived] = useState(false);
 
     // Conversations List
     const convQuery = useMemoFirebase(() => {
         if (!db) return null;
-        return query(collection(db, 'conversations'), limit(50));
+        return query(collection(db, 'conversations'), limit(100));
     }, [db]);
 
     const { data: rawConversations, isLoading: isConvLoading } = useCollection(convQuery);
 
     const conversations = useMemo(() => {
         if (!rawConversations) return [];
-        return [...rawConversations].sort((a, b) => {
+        
+        // Filtreleme: Kapalı olanları varsayılan olarak gösterme
+        let filtered = rawConversations;
+        if (!showArchived) {
+            filtered = rawConversations.filter(c => c.status !== 'closed');
+        }
+
+        return [...filtered].sort((a, b) => {
             const timeA = a.lastMessageAt?.seconds || 0;
             const timeB = b.lastMessageAt?.seconds || 0;
             return timeB - timeA;
         });
-    }, [rawConversations]);
+    }, [rawConversations, showArchived]);
 
     const selectedConv = useMemo(() => 
-        conversations?.find(c => c.id === selectedConvId), 
-    [conversations, selectedConvId]);
+        rawConversations?.find(c => c.id === selectedConvId), 
+    [rawConversations, selectedConvId]);
 
     // Messages List
     const msgQuery = useMemoFirebase(() => {
@@ -99,7 +108,10 @@ export default function InboxPage() {
     const toggleStatus = (status: string) => {
         if (!db || !selectedConvId) return;
         const convRef = doc(db, 'conversations', selectedConvId);
+        
+        // Durumu güncelle ve seçimi temizle
         updateDoc(convRef, { status });
+        setSelectedConvId(null);
     };
 
     if (isConvLoading) return <div className="flex h-96 items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
@@ -108,7 +120,19 @@ export default function InboxPage() {
         <div className="flex h-[calc(100vh-160px)] gap-4 font-sans">
             {/* Sidebar List */}
             <Card className="w-80 flex flex-col overflow-hidden border-none shadow-md">
-                <div className="p-4 border-b bg-white">
+                <div className="p-4 border-b bg-white space-y-3">
+                    <div className="flex items-center justify-between">
+                        <h3 className="font-bold text-sm">Mesajlar</h3>
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className={cn("h-7 px-2 text-[10px] gap-1", showArchived && "bg-slate-100 text-primary")}
+                            onClick={() => setShowArchived(!showArchived)}
+                        >
+                            <Archive className="w-3 h-3" />
+                            {showArchived ? 'Arşivi Gizle' : 'Arşivi Göster'}
+                        </Button>
+                    </div>
                     <div className="relative">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input placeholder="Ara..." className="pl-9 h-9 text-sm rounded-xl" />
@@ -116,36 +140,44 @@ export default function InboxPage() {
                 </div>
                 <ScrollArea className="flex-1">
                     <div className="divide-y">
-                        {conversations?.map(conv => (
-                            <div 
-                                key={conv.id}
-                                onClick={() => setSelectedConvId(conv.id)}
-                                className={cn(
-                                    "p-4 cursor-pointer hover:bg-slate-50 transition-colors relative",
-                                    selectedConvId === conv.id ? "bg-primary/5 border-l-4 border-primary" : ""
-                                )}
-                            >
-                                <div className="flex justify-between items-start mb-1">
-                                    <span className="font-bold text-xs truncate max-w-[120px]">
-                                        {conv.createdBy?.name || 'Anonim'}
-                                    </span>
-                                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                                        {conv.lastMessageAt ? format(conv.lastMessageAt.toDate(), 'HH:mm') : ''}
-                                    </span>
+                        {conversations.length > 0 ? (
+                            conversations.map(conv => (
+                                <div 
+                                    key={conv.id}
+                                    onClick={() => setSelectedConvId(conv.id)}
+                                    className={cn(
+                                        "p-4 cursor-pointer hover:bg-slate-50 transition-colors relative",
+                                        selectedConvId === conv.id ? "bg-primary/5 border-l-4 border-primary" : "",
+                                        conv.status === 'closed' && "opacity-60 bg-slate-50/50"
+                                    )}
+                                >
+                                    <div className="flex justify-between items-start mb-1">
+                                        <span className="font-bold text-xs truncate max-w-[120px]">
+                                            {conv.createdBy?.name || 'Anonim'}
+                                        </span>
+                                        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                            {conv.lastMessageAt ? format(conv.lastMessageAt.toDate(), 'HH:mm') : ''}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        {conv.channel === 'whatsapp' ? 
+                                            <MessageCircle className="w-3 h-3 text-green-500" /> : 
+                                            <Monitor className="w-3 h-3 text-blue-500" />
+                                        }
+                                        <Badge variant="outline" className="text-[9px] px-1 h-4">{conv.topic}</Badge>
+                                        {conv.status === 'closed' && <Badge className="text-[8px] h-4 bg-slate-200 text-slate-600">KAPALI</Badge>}
+                                    </div>
+                                    {conv.needsHuman && conv.status !== 'closed' && (
+                                        <Badge className="bg-red-100 text-red-600 text-[8px] h-4 mb-1">CANLI DESTEK</Badge>
+                                    )}
+                                    <p className="text-[10px] text-muted-foreground line-clamp-1">{conv.lastMessage || 'Mesaj yok'}</p>
                                 </div>
-                                <div className="flex items-center gap-2 mb-2">
-                                    {conv.channel === 'whatsapp' ? 
-                                        <MessageCircle className="w-3 h-3 text-green-500" /> : 
-                                        <Monitor className="w-3 h-3 text-blue-500" />
-                                    }
-                                    <Badge variant="outline" className="text-[9px] px-1 h-4">{conv.topic}</Badge>
-                                </div>
-                                {conv.needsHuman && (
-                                    <Badge className="bg-red-100 text-red-600 text-[8px] h-4 mb-1">CANLI DESTEK</Badge>
-                                )}
-                                <p className="text-[10px] text-muted-foreground line-clamp-1">{conv.lastMessage}</p>
+                            ))
+                        ) : (
+                            <div className="p-10 text-center text-muted-foreground text-xs italic">
+                                Aktif konuşma bulunmuyor.
                             </div>
-                        ))}
+                        )}
                     </div>
                 </ScrollArea>
             </Card>
@@ -156,56 +188,68 @@ export default function InboxPage() {
                     <>
                         <div className="p-4 border-b flex justify-between items-center bg-white">
                             <div className="flex items-center gap-3">
-                                <Avatar><AvatarFallback>{selectedConv.createdBy.name?.[0] || '?'}</AvatarFallback></Avatar>
+                                <Avatar><AvatarFallback>{selectedConv.createdBy?.name?.[0] || '?'}</AvatarFallback></Avatar>
                                 <div>
-                                    <h2 className="font-bold text-sm">{selectedConv.createdBy.name}</h2>
-                                    <p className="text-[10px] text-muted-foreground">{selectedConv.createdBy.email}</p>
+                                    <h2 className="font-bold text-sm">{selectedConv.createdBy?.name || 'Anonim'}</h2>
+                                    <p className="text-[10px] text-muted-foreground">{selectedConv.createdBy?.email || 'E-posta yok'}</p>
                                 </div>
                             </div>
                             <div className="flex gap-2">
-                                <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => toggleStatus('closed')}>
-                                    <CheckCircle2 className="w-3 h-3 mr-1" /> Kapat
-                                </Button>
+                                {selectedConv.status !== 'closed' ? (
+                                    <Button variant="outline" size="sm" className="text-xs h-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => toggleStatus('closed')}>
+                                        <CheckCircle2 className="w-3 h-3 mr-1" /> Konuşmayı Kapat
+                                    </Button>
+                                ) : (
+                                    <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => toggleStatus('open')}>
+                                        Tekrar Aç
+                                    </Button>
+                                )}
                             </div>
                         </div>
                         
                         <ScrollArea className="flex-1 p-6 bg-slate-50/30">
                             <div className="space-y-6">
-                                {messages?.map((msg, i) => (
-                                    <div key={i} className={cn("flex flex-col", msg.senderType === 'admin' ? 'items-end' : 'items-start')}>
-                                        <div className={cn(
-                                            "max-w-[70%] p-3 rounded-2xl text-sm shadow-sm",
-                                            msg.senderType === 'admin' ? "bg-primary text-white rounded-tr-none" : "bg-white border rounded-tl-none"
-                                        )}>
-                                            {msg.text}
+                                {messages.length > 0 ? (
+                                    messages.map((msg, i) => (
+                                        <div key={i} className={cn("flex flex-col", msg.senderType === 'admin' ? 'items-end' : 'items-start')}>
+                                            <div className={cn(
+                                                "max-w-[70%] p-3 rounded-2xl text-sm shadow-sm",
+                                                msg.senderType === 'admin' ? "bg-primary text-white rounded-tr-none" : "bg-white border rounded-tl-none"
+                                            )}>
+                                                {msg.text}
+                                            </div>
+                                            <span className="text-[9px] text-muted-foreground mt-1 px-1">
+                                                {msg.createdAt ? format(msg.createdAt.toDate(), 'HH:mm') : ''}
+                                            </span>
                                         </div>
-                                        <span className="text-[9px] text-muted-foreground mt-1 px-1">
-                                            {msg.createdAt ? format(msg.createdAt.toDate(), 'HH:mm') : ''}
-                                        </span>
-                                    </div>
-                                ))}
+                                    ))
+                                ) : (
+                                    <div className="text-center py-10 opacity-20"><MessageSquare className="mx-auto w-10 h-10 mb-2"/>Henüz mesaj yok.</div>
+                                )}
                             </div>
                         </ScrollArea>
 
-                        <div className="p-4 border-t bg-white">
-                            <form 
-                                className="flex gap-2"
-                                onSubmit={(e) => {
-                                    e.preventDefault();
-                                    handleSendReply();
-                                }}
-                            >
-                                <Input 
-                                    placeholder="Yanıtınızı yazın..." 
-                                    value={replyText}
-                                    onChange={(e) => setInputText(e.target.value)}
-                                    className="flex-1 h-10 text-sm rounded-xl"
-                                />
-                                <Button type="submit" size="icon" className="rounded-xl h-10 w-10">
-                                    <Send className="w-4 h-4" />
-                                </Button>
-                            </form>
-                        </div>
+                        {selectedConv.status !== 'closed' && (
+                            <div className="p-4 border-t bg-white">
+                                <form 
+                                    className="flex gap-2"
+                                    onSubmit={(e) => {
+                                        e.preventDefault();
+                                        handleSendReply();
+                                    }}
+                                >
+                                    <Input 
+                                        placeholder="Yanıtınızı yazın..." 
+                                        value={replyText}
+                                        onChange={(e) => setInputText(e.target.value)}
+                                        className="flex-1 h-10 text-sm rounded-xl"
+                                    />
+                                    <Button type="submit" size="icon" className="rounded-xl h-10 w-10">
+                                        <Send className="w-4 h-4" />
+                                    </Button>
+                                </form>
+                            </div>
+                        )}
                     </>
                 ) : (
                     <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-4">
@@ -225,21 +269,21 @@ export default function InboxPage() {
                             <User className="w-4 h-4 text-slate-400 mt-0.5" />
                             <div>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase">İsim</p>
-                                <p className="text-sm font-semibold">{selectedConv.createdBy.name}</p>
+                                <p className="text-sm font-semibold">{selectedConv.createdBy?.name || 'Belirtilmedi'}</p>
                             </div>
                         </div>
                         <div className="flex items-start gap-3">
                             <Mail className="w-4 h-4 text-slate-400 mt-0.5" />
                             <div>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase">E-posta</p>
-                                <p className="text-sm break-all">{selectedConv.createdBy.email || 'Yok'}</p>
+                                <p className="text-sm break-all">{selectedConv.createdBy?.email || 'Yok'}</p>
                             </div>
                         </div>
                         <div className="flex items-start gap-3">
                             <Phone className="w-4 h-4 text-slate-400 mt-0.5" />
                             <div>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase">Telefon</p>
-                                <p className="text-sm">{selectedConv.createdBy.phone || 'Yok'}</p>
+                                <p className="text-sm">{selectedConv.createdBy?.phone || 'Yok'}</p>
                             </div>
                         </div>
                         <Separator />
@@ -247,7 +291,7 @@ export default function InboxPage() {
                             <p className="text-[10px] font-bold text-slate-400 uppercase mb-3 flex items-center gap-1">
                                 <Headphones className="w-3 h-3" /> Destek Ekibi
                             </p>
-                            <Badge className="bg-indigo-100 text-indigo-600 hover:bg-indigo-100">{selectedConv.assignedTeam}</Badge>
+                            <Badge className="bg-indigo-100 text-indigo-600 hover:bg-indigo-100">{selectedConv.assignedTeam || 'Genel'}</Badge>
                         </div>
                         <div>
                             <p className="text-[10px] font-bold text-slate-400 uppercase mb-3 flex items-center gap-1">
