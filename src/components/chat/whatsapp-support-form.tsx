@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -12,10 +11,11 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useEffect } from 'react';
 import { MessageCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const formSchema = z.object({
-    name: z.string().min(2, 'İsim zorunludur'),
-    phone: z.string().min(10, 'Telefon numarası zorunludur'),
+    name: z.string().min(1, 'İsim zorunludur'),
+    phone: z.string().optional(),
     email: z.string().email().optional().or(z.literal('')),
     topic: z.string().min(1, 'Konu seçiniz')
 });
@@ -34,11 +34,11 @@ export function WhatsappSupportForm({ onSubmit }: { onSubmit: (data: any) => voi
 
     useEffect(() => {
         if (userData) {
-            setValue('name', `${userData.firstName} ${userData.lastName}`);
+            setValue('name', `${userData.firstName} ${userData.lastName}`.trim() || userData.email);
             setValue('email', userData.email);
-            // Telefon numarasını otomatik doldurmayı kaldırdık (kullanıcı isteği üzerine)
+            setValue('phone', userData.phoneNumber || '');
         } else if (user && !user.isAnonymous) {
-            setValue('name', user.displayName || '');
+            setValue('name', user.displayName || user.email || '');
             setValue('email', user.email || '');
         }
     }, [userData, user, setValue]);
@@ -52,39 +52,37 @@ export function WhatsappSupportForm({ onSubmit }: { onSubmit: (data: any) => voi
                 <h3 className="font-bold text-slate-800 text-sm">WhatsApp Destek Hattı</h3>
                 <p className="text-[10px] text-muted-foreground text-center px-4">
                     {isActualUser 
-                        ? `Sayın ${user?.displayName?.split(' ')[0]}, bilgilerinizi onaylayıp WhatsApp'a geçebilirsiniz.`
+                        ? `Sayın ${user?.displayName?.split(' ')[0] || 'Üye'}, bilgilerinizi onaylayıp WhatsApp'a geçebilirsiniz.`
                         : "Bilgilerinizi doldurun, sizi WhatsApp'a yönlendirelim."
                     }
                 </p>
             </div>
 
-            {!isActualUser && (
+            <div className={cn("space-y-4", isActualUser && "hidden")}>
                 <div className="space-y-2">
                     <Label className="text-xs">Ad Soyad</Label>
                     <Input {...register('name')} placeholder="Adınız" className="h-9 text-sm" />
                     {errors.name && <p className="text-[10px] text-red-500">{errors.name.message as string}</p>}
                 </div>
-            )}
 
-            <div className="space-y-2">
-                <Label className="text-xs">Telefon Numarası</Label>
-                <Input 
-                    {...register('phone')} 
-                    type="tel"
-                    placeholder="+90 ..." 
-                    className="h-9 text-sm" 
-                    autoComplete="tel"
-                />
-                {errors.phone && <p className="text-[10px] text-red-500">{errors.phone.message as string}</p>}
-            </div>
+                <div className="space-y-2">
+                    <Label className="text-xs">Telefon Numarası</Label>
+                    <Input 
+                        {...register('phone')} 
+                        type="tel"
+                        placeholder="+90 ..." 
+                        className="h-9 text-sm" 
+                        autoComplete="tel"
+                    />
+                    {errors.phone && <p className="text-[10px] text-red-500">{errors.phone.message as string}</p>}
+                </div>
 
-            {!isActualUser && (
                 <div className="space-y-2">
                     <Label className="text-xs">E-posta (Opsiyonel)</Label>
                     <Input {...register('email')} type="email" placeholder="ornek@mail.com" className="h-9 text-sm" />
                     {errors.email && <p className="text-[10px] text-red-500">{errors.email.message as string}</p>}
                 </div>
-            )}
+            </div>
 
             <div className="space-y-2">
                 <Label className="text-xs">Konu</Label>

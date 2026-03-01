@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -12,12 +11,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useEffect } from 'react';
-import { User, Mail } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const formSchema = z.object({
-    name: z.string().min(2, 'İsim zorunludur'),
+    name: z.string().min(1, 'İsim zorunludur'),
     email: z.string().email('Geçerli bir e-posta girin'),
-    phone: z.string().min(10, 'Telefon numarası zorunludur'),
+    phone: z.string().optional(),
     topic: z.string().min(1, 'Konu seçiniz'),
     message: z.string().min(5, 'Lütfen sorunuzu kısaca yazın')
 });
@@ -36,11 +35,11 @@ export function LiveChatForm({ onSubmit }: { onSubmit: (data: any) => void }) {
 
     useEffect(() => {
         if (userData) {
-            setValue('name', `${userData.firstName} ${userData.lastName}`);
+            setValue('name', `${userData.firstName} ${userData.lastName}`.trim() || userData.email);
             setValue('email', userData.email);
-            // Telefon numarasını otomatik doldurmayı kaldırdık (kullanıcı isteği üzerine)
+            setValue('phone', userData.phoneNumber || '');
         } else if (user && !user.isAnonymous) {
-            setValue('name', user.displayName || '');
+            setValue('name', user.displayName || user.email || '');
             setValue('email', user.email || '');
         }
     }, [userData, user, setValue]);
@@ -51,36 +50,33 @@ export function LiveChatForm({ onSubmit }: { onSubmit: (data: any) => void }) {
                 <h3 className="font-bold text-slate-800 text-sm">Canlı Desteğe Başla</h3>
                 {isActualUser && (
                     <p className="text-[10px] text-muted-foreground italic">
-                        Hoş geldiniz, <span className="font-bold text-primary">{user?.displayName?.split(' ')[0]}</span>. Bilgileriniz otomatik olarak eklendi.
+                        Hoş geldiniz, <span className="font-bold text-primary">{user?.displayName?.split(' ')[0] || 'Üye'}</span>. Bilgileriniz otomatik olarak eklendi.
                     </p>
                 )}
             </div>
 
-            {!isActualUser && (
-                <>
-                    <div className="space-y-2">
-                        <Label className="text-xs">Ad Soyad</Label>
-                        <Input {...register('name')} placeholder="Adınız" className="h-9 text-sm" />
-                        {errors.name && <p className="text-[10px] text-red-500">{errors.name.message as string}</p>}
-                    </div>
-                    <div className="space-y-2">
-                        <Label className="text-xs">E-posta</Label>
-                        <Input {...register('email')} type="email" placeholder="ornek@mail.com" className="h-9 text-sm" />
-                        {errors.email && <p className="text-[10px] text-red-500">{errors.email.message as string}</p>}
-                    </div>
-                </>
-            )}
-
-            <div className="space-y-2">
-                <Label className="text-xs">Telefon Numarası</Label>
-                <Input 
-                    {...register('phone')} 
-                    type="tel" 
-                    placeholder="+90 ..." 
-                    className="h-9 text-sm" 
-                    autoComplete="tel"
-                />
-                {errors.phone && <p className="text-[10px] text-red-500">{errors.phone.message as string}</p>}
+            <div className={cn("space-y-4", isActualUser && "hidden")}>
+                <div className="space-y-2">
+                    <Label className="text-xs">Ad Soyad</Label>
+                    <Input {...register('name')} placeholder="Adınız" className="h-9 text-sm" />
+                    {errors.name && <p className="text-[10px] text-red-500">{errors.name.message as string}</p>}
+                </div>
+                <div className="space-y-2">
+                    <Label className="text-xs">E-posta</Label>
+                    <Input {...register('email')} type="email" placeholder="ornek@mail.com" className="h-9 text-sm" />
+                    {errors.email && <p className="text-[10px] text-red-500">{errors.email.message as string}</p>}
+                </div>
+                <div className="space-y-2">
+                    <Label className="text-xs">Telefon Numarası</Label>
+                    <Input 
+                        {...register('phone')} 
+                        type="tel" 
+                        placeholder="+90 ..." 
+                        className="h-9 text-sm" 
+                        autoComplete="tel"
+                    />
+                    {errors.phone && <p className="text-[10px] text-red-500">{errors.phone.message as string}</p>}
+                </div>
             </div>
 
             <div className="space-y-2">
