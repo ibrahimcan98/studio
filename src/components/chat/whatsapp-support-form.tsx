@@ -35,8 +35,8 @@ export function WhatsappSupportForm({ onSubmit }: { onSubmit: (data: any) => voi
     useEffect(() => {
         if (userData) {
             setValue('name', `${userData.firstName} ${userData.lastName}`);
-            setValue('phone', userData.phoneNumber || '');
             setValue('email', userData.email);
+            // Telefon numarasını otomatik doldurmayı kaldırdık (kullanıcı isteği üzerine)
         } else if (user && !user.isAnonymous) {
             setValue('name', user.displayName || '');
             setValue('email', user.email || '');
@@ -68,7 +68,13 @@ export function WhatsappSupportForm({ onSubmit }: { onSubmit: (data: any) => voi
 
             <div className="space-y-2">
                 <Label className="text-xs">Telefon Numarası</Label>
-                <Input {...register('phone')} placeholder="+90 ..." className="h-9 text-sm" />
+                <Input 
+                    {...register('phone')} 
+                    type="tel"
+                    placeholder="+90 ..." 
+                    className="h-9 text-sm" 
+                    autoComplete="tel"
+                />
                 {errors.phone && <p className="text-[10px] text-red-500">{errors.phone.message as string}</p>}
             </div>
 
