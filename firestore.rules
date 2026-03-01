@@ -15,15 +15,38 @@ service cloud.firestore {
       );
     }
 
-    match /users/{userId} {
-      allow get: if request.auth.uid == userId || isAdmin();
-      allow list: if isAdmin();
-      allow create: if request.auth.uid == userId;
-      allow update: if request.auth.uid == userId || isAdmin();
+    function isTeacher() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher'
+      );
     }
 
+    match /users/{userId} {
+      allow get: if request.auth.uid == userId || isAdmin() || isTeacher();
+      allow list: if isAdmin() || isTeacher();
+      allow create: if request.auth.uid == userId;
+      allow update, delete: if request.auth.uid == userId || isAdmin();
+
+      match /children/{childId} {
+        allow read: if request.auth.uid == userId || isAdmin() || isTeacher();
+        allow write: if request.auth.uid == userId || isAdmin();
+      }
+    }
+
+    match /lesson-slots/{slotId} {
+        allow read: if isSignedIn();
+        allow create: if isTeacher() || isAdmin();
+        allow update: if (isSignedIn() && resource.data.status == 'available' && request.resource.data.status == 'booked') || 
+                       (isSignedIn() && request.auth.uid == resource.data.teacherId) || isAdmin();
+        allow delete: if (isSignedIn() && request.auth.uid == resource.data.teacherId) || isAdmin();
+    }
+    
     match /conversations/{conversationId} {
-      allow read: if isAdmin() || (isSignedIn() && resource.data.createdBy.uid == request.auth.uid);
+      allow read: if isAdmin() || (isSignedIn() && (
+        resource.data.createdBy.uid == request.auth.uid || 
+        request.auth.uid == resource.data.assignedTo
+      ));
       allow create: if true;
       allow update: if isAdmin() || (isSignedIn() && resource.data.createdBy.uid == request.auth.uid);
     }
@@ -34,6 +57,17 @@ service cloud.firestore {
         get(/databases/$(database)/documents/conversations/$(resource.data.conversationId)).data.createdBy.uid == request.auth.uid
       ));
       allow create: if true;
+    }
+    
+    match /courses/{courseId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
     match /{document=**} {
