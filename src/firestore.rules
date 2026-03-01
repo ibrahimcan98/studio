@@ -2,7 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // HELPER FUNCTIONS
+    // YARDIMCI FONKSİYONLAR
     function isSignedIn() {
       return request.auth != null;
     }
@@ -22,7 +22,7 @@ service cloud.firestore {
       );
     }
 
-    // USER RULES
+    // KULLANICI KURALLARI
     match /users/{userId} {
       allow get, create, update, delete: if isSignedIn() && request.auth.uid == userId;
       allow get, list: if isAdmin() || isTeacher();
@@ -34,7 +34,7 @@ service cloud.firestore {
       }
     }
 
-    // LESSON RULES
+    // DERS KURALLARI
     match /lesson-slots/{slotId} {
         allow read: if isSignedIn();
         allow create: if isTeacher() || isAdmin();
@@ -43,17 +43,14 @@ service cloud.firestore {
         allow delete: if (isSignedIn() && request.auth.uid == resource.data.teacherId) || isAdmin();
     }
     
-    // CONVERSATION RULES
+    // KONUŞMA KURALLARI
     match /conversations/{conversationId} {
       allow create: if true;
-      allow read: if isAdmin() || (isSignedIn() && (
-        resource.data.createdBy.uid == request.auth.uid || 
-        request.auth.uid == resource.data.assignedTo
-      ));
+      allow read: if isAdmin() || (isSignedIn() && resource.data.createdBy.uid == request.auth.uid);
       allow update: if isAdmin() || (isSignedIn() && resource.data.createdBy.uid == request.auth.uid);
     }
 
-    // MESSAGE RULES - FIXED FOR LISTING
+    // MESAJ KURALLARI - TOP LEVEL VE DENORMALIZE
     match /messages/{messageId} {
       allow create: if isSignedIn();
       allow read: if isAdmin() || (isSignedIn() && (
@@ -62,7 +59,7 @@ service cloud.firestore {
       ));
     }
     
-    // OTHER RULES
+    // DİĞER KURALLAR
     match /courses/{courseId} {
       allow read: if true;
       allow write: if isAdmin();

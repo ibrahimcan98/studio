@@ -44,11 +44,12 @@ export function AIAssistant() {
 
     // Listen to real-time messages if in live chat
     const messagesQuery = useMemoFirebase(() => {
+        // MUST filter by conversationOwnerUid to satisfy security rules for 'list' operations
         if (!db || !currentConversationId || mode !== 'live' || !user) return null;
         return query(
             collection(db, 'messages'),
             where('conversationId', '==', currentConversationId),
-            where('conversationOwnerUid', '==', user.uid), // Crucial for security rules
+            where('conversationOwnerUid', '==', user.uid),
             orderBy('createdAt', 'asc')
         );
     }, [db, currentConversationId, mode, user?.uid]);
@@ -128,7 +129,7 @@ export function AIAssistant() {
             const msgRef = doc(collection(db, 'messages'));
             const msgData = {
                 conversationId: currentConversationId,
-                conversationOwnerUid: currentUser.uid,
+                conversationOwnerUid: currentUser.uid, // Required for list query security
                 text: textToSend,
                 senderType: !currentUser.isAnonymous ? 'parent' : 'anonymous',
                 senderUid: currentUser.uid,
@@ -193,7 +194,7 @@ export function AIAssistant() {
         const msgRef = doc(collection(db, 'messages'));
         const msgData = {
             conversationId: convRef.id,
-            conversationOwnerUid: currentUser.uid,
+            conversationOwnerUid: currentUser.uid, // Required for list query security
             text: `Destek talebi başlatıldı. Konu: ${formData.topic}. Mesaj: ${formData.message}`,
             senderType: !currentUser.isAnonymous ? 'parent' : 'anonymous',
             senderUid: currentUser.uid,
