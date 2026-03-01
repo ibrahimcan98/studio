@@ -36,12 +36,35 @@ export default function LoginPage() {
   const { toast } = useToast();
   const { user, loading } = useUser();
 
-   useEffect(() => {
-    // This effect is now safe because handleLogin will do the final redirect.
-    if (!loading && user) {
-        // A simple redirect to a default portal page, subsequent navigations will be role-checked.
+  useEffect(() => {
+    // If user is already logged in with a real account, redirect to their portal
+    if (!loading && user && !user.isAnonymous) {
+        const checkRoleAndRedirect = async () => {
+            if (!db) return;
+            try {
+                const userDocRef = doc(db, 'users', user.uid);
+                const userDoc = await getDoc(userDocRef);
+                
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    if (userData.role === 'admin') {
+                        router.replace('/yonetici');
+                    } else if (userData.role === 'teacher') {
+                        router.replace('/ogretmen-portali/takvim');
+                    } else {
+                        router.replace('/ebeveyn-portali');
+                    }
+                } else {
+                    router.replace('/ebeveyn-portali');
+                }
+            } catch (e) {
+                console.error("Error checking role:", e);
+                router.replace('/ebeveyn-portali');
+            }
+        };
+        checkRoleAndRedirect();
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, db]);
 
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -87,7 +110,6 @@ export default function LoginPage() {
         title: 'Başarılı!',
         description: 'Giriş yaptınız. Yönlendiriliyorsunuz...',
       });
-      // The crucial change: router.push is now called with the correct targetPath
       router.push(targetPath);
     } catch (error) {
        toast({
@@ -95,12 +117,12 @@ export default function LoginPage() {
         title: 'Hata',
         description: 'E-posta veya şifre hatalı.',
       });
-      setIsSubmitting(false); // Ensure isSubmitting is false on error
+      setIsSubmitting(false);
     }
-    // We don't set isSubmitting to false here because the page will redirect on success
   };
 
-  if (loading || user) {
+  // Only show loader if we're waiting for auth or if a real user is already present (waiting for redirect)
+  if (loading || (user && !user.isAnonymous)) {
      return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
