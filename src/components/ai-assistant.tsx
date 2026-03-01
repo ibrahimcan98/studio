@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, X, Bot, User, Loader2, Sparkles, MessageCircle, MessageSquareText } from 'lucide-react';
+import { Send, X, Bot, User, Loader2, Sparkles, MessageCircle, MessageSquareText, ArrowLeft, Headphones } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,138 +12,211 @@ import { assistantFlow, AssistantInput } from '@/ai/flows/assistant-flow';
 import { assistantData } from '@/data/ai-assistant-data';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, addDoc, serverTimestamp, query, where, orderBy, doc, updateDoc, limit } from 'firebase/firestore';
+import { LiveChatForm } from './chat/live-chat-form';
+import { WhatsappSupportForm } from './chat/whatsapp-support-form';
 
 type Message = {
-    role: 'user' | 'assistant';
+    role: 'user' | 'assistant' | 'admin' | 'ai';
     content: string;
+    createdAt?: any;
 };
 
 export function AIAssistant() {
     const [isOpen, setIsOpen] = useState(false);
+    const [mode, setMode] = useState<'ai' | 'live' | 'whatsapp' | 'form-live' | 'form-whatsapp'>('ai');
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const pathname = usePathname();
-    const [isHidden, setIsHidden] = useState(false);
+    const { user } = useUser();
+    const db = useFirestore();
+    const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+
+    // Track conversation via localStorage for anonymous
+    useEffect(() => {
+        const savedId = localStorage.getItem('tca_conversation_id');
+        if (savedId) setCurrentConversationId(savedId);
+    }, []);
+
+    // Listen to real-time messages if in live chat
+    const messagesQuery = useMemoFirebase(() => {
+        if (!db || !currentConversationId || mode !== 'live') return null;
+        return query(
+            collection(db, 'messages'),
+            where('conversationId', '==', currentConversationId),
+            orderBy('createdAt', 'asc')
+        );
+    }, [db, currentConversationId, mode]);
+
+    const { data: liveMessages } = useCollection(messagesQuery);
 
     useEffect(() => {
         const shouldBeHidden = pathname.startsWith('/ogretmen-portali') || 
                                pathname.startsWith('/cocuk-modu') ||
                                pathname.startsWith('/live-lesson');
-        setIsHidden(shouldBeHidden);
-        if (shouldBeHidden) {
-            setIsOpen(false);
-        }
+        if (shouldBeHidden) setIsOpen(false);
     }, [pathname]);
-
 
     const scrollToBottom = useCallback(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, []);
 
     useEffect(() => {
-        if(isOpen && messages.length === 0) {
+        if (isOpen && messages.length === 0 && mode === 'ai') {
             setMessages([{ role: 'assistant', content: assistantData.greeting }]);
         }
-    }, [isOpen, messages.length]);
+    }, [isOpen, messages.length, mode]);
 
     useEffect(() => {
-        if (isOpen) {
-            scrollToBottom();
-        }
-    }, [messages, isOpen, scrollToBottom]);
-
+        if (isOpen) scrollToBottom();
+    }, [messages, liveMessages, isOpen, scrollToBottom]);
 
     const handleSend = async (customInput?: string) => {
         const textToSend = customInput || input;
         if (textToSend.trim() === '' || isLoading) return;
 
-        const userMessage: Message = { role: 'user', content: textToSend };
-        setMessages(prev => [...prev, userMessage]);
-        if (!customInput) setInput('');
-        setIsLoading(true);
-        scrollToBottom();
-        
-        try {
-            const assistantInput: AssistantInput = {
-                history: messages.map(m => ({ role: m.role, content: m.content })),
-                question: textToSend,
-            };
-            const result = await assistantFlow(assistantInput);
+        if (mode === 'ai') {
+            const userMessage: Message = { role: 'user', content: textToSend };
+            setMessages(prev => [...prev, userMessage]);
+            if (!customInput) setInput('');
+            setIsLoading(true);
+
+            // Check for human help keywords
+            const needsHuman = /canlı destek|insan|bağlan|yardım|operator/i.test(textToSend.toLowerCase());
             
-            const assistantMessage: Message = { role: 'assistant', content: result.answer };
-            setMessages(prev => [...prev, assistantMessage]);
-
-        } catch (error) {
-            console.error("AI Assistant Error:", error);
-            const errorMessage: Message = { role: 'assistant', content: "Üzgünüm, bir sorun oluştu. Lütfen daha sonra tekrar deneyin." };
-            setMessages(prev => [...prev, errorMessage]);
-        } finally {
-            setIsLoading(false);
-             setTimeout(scrollToBottom, 100);
+            try {
+                const assistantInput: AssistantInput = {
+                    history: messages.map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content })),
+                    question: textToSend,
+                };
+                const result = await assistantFlow(assistantInput);
+                
+                setMessages(prev => [...prev, { role: 'assistant', content: result.answer }]);
+                
+                if (needsHuman) {
+                    setMessages(prev => [...prev, { role: 'assistant', content: "Size daha detaylı yardımcı olabilmem için bir ekip arkadaşıma bağlamak ister misiniz?" }]);
+                }
+            } catch (error) {
+                setMessages(prev => [...prev, { role: 'assistant', content: "Üzgünüm, bir sorun oluştu." }]);
+            } finally {
+                setIsLoading(false);
+            }
+        } else if (mode === 'live' && currentConversationId) {
+            if (!customInput) setInput('');
+            await addDoc(collection(db, 'messages'), {
+                conversationId: currentConversationId,
+                text: textToSend,
+                senderType: user ? 'parent' : 'anonymous',
+                senderUid: user?.uid || null,
+                createdAt: serverTimestamp()
+            });
+            await updateDoc(doc(db, 'conversations', currentConversationId), {
+                lastMessageAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+            });
         }
     };
 
-    const toggleIntercom = () => {
-        if (typeof window !== 'undefined' && (window as any).Intercom) {
-            (window as any).Intercom('show');
-            setIsOpen(false);
-        } else {
-            alert("Canlı destek sistemi şu an aktif değil.");
-        }
-    };
-    
-    if (isHidden) {
-        return null;
-    }
+    const startLiveChat = async (formData: any) => {
+        const convRef = await addDoc(collection(db, 'conversations'), {
+            status: 'open',
+            channel: 'website',
+            needsHuman: true,
+            topic: formData.topic,
+            assignedTeam: formData.topic === 'kurslar' ? 'Eğitim' : 'Teknik/Satış',
+            createdBy: {
+                type: user ? 'parent' : 'anonymous',
+                uid: user?.uid || null,
+                name: formData.name,
+                email: formData.email,
+                phone: formData.phone
+            },
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            lastMessageAt: serverTimestamp(),
+            pageUrl: window.location.href,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        });
+        
+        const firstMsg = `Destek talebi başlatıldı. Konu: ${formData.topic}. Mesaj: ${formData.message}`;
+        await addDoc(collection(db, 'messages'), {
+            conversationId: convRef.id,
+            text: firstMsg,
+            senderType: user ? 'parent' : 'anonymous',
+            senderUid: user?.uid || null,
+            createdAt: serverTimestamp()
+        });
 
-    // Always show suggestions if assistant just spoke and it's not loading
-    const lastMessageWasAssistant = messages.length > 0 && messages[messages.length - 1].role === 'assistant';
-    const showSuggestions = lastMessageWasAssistant && !isLoading;
+        setCurrentConversationId(convRef.id);
+        localStorage.setItem('tca_conversation_id', convRef.id);
+        setMode('live');
+    };
+
+    const handleWhatsappSubmit = async (formData: any) => {
+        const ticketId = Math.random().toString(36).substring(7).toUpperCase();
+        await addDoc(collection(db, 'conversations'), {
+            status: 'open',
+            channel: 'whatsapp',
+            topic: formData.topic,
+            assignedTeam: 'Teknik/Satış',
+            createdBy: {
+                type: user ? 'parent' : 'anonymous',
+                uid: user?.uid || null,
+                name: formData.name,
+                email: formData.email || null,
+                phone: formData.phone
+            },
+            createdAt: serverTimestamp(),
+            ticketId
+        });
+
+        const message = `Merhaba, ben ${formData.name}. Telefon: ${formData.phone}. Konu: ${formData.topic}. Destek No: ${ticketId}`;
+        window.open(`https://wa.me/905058029734?text=${encodeURIComponent(message)}`, '_blank');
+        setIsOpen(false);
+    };
 
     return (
         <>
-            {/* Chat Bubble */}
             <div className="fixed bottom-6 right-6 z-50">
-                 <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 1, duration: 0.5, type: 'spring', stiffness: 120 }}
-                >
+                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 1, type: 'spring' }}>
                     <Button
                         size="icon"
                         className="rounded-full w-16 h-16 bg-gradient-to-br from-primary to-accent text-white shadow-2xl border-4 border-white"
                         onClick={() => setIsOpen(true)}
                     >
-                        <Sparkles className="w-8 h-8" />
+                        <MessageSquareText className="w-8 h-8" />
                     </Button>
                 </motion.div>
             </div>
 
-            {/* Chat Window */}
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
                         initial={{ opacity: 0, y: 50, scale: 0.9 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 50, scale: 0.9 }}
-                        transition={{ duration: 0.3, ease: 'easeOut' }}
                         className="fixed bottom-6 right-6 sm:bottom-24 sm:right-6 z-[100] w-[calc(100%-3rem)] max-w-sm"
                     >
-                        <Card className="flex flex-col h-[70vh] max-h-[700px] shadow-2xl rounded-2xl overflow-hidden border-none">
+                        <Card className="flex flex-col h-[70vh] max-h-[700px] shadow-2xl rounded-2xl overflow-hidden border-none bg-white">
                             <CardHeader className="flex flex-row items-center justify-between bg-primary p-4 text-white">
                                 <div className="flex items-center gap-3">
-                                    <Avatar className="border-2 border-white/20">
-                                        <AvatarImage src={assistantData.avatarUrl} alt="AI Assistant" />
-                                        <AvatarFallback>AI</AvatarFallback>
+                                    {mode !== 'ai' && (
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-white p-0 mr-1" onClick={() => setMode('ai')}>
+                                            <ArrowLeft className="w-5 h-5" />
+                                        </Button>
+                                    )}
+                                    <Avatar className="h-10 w-10 border-2 border-white/20">
+                                        <AvatarImage src="/logo.png" />
+                                        <AvatarFallback>TCA</AvatarFallback>
                                     </Avatar>
                                     <div>
-                                        <p className="font-bold">{assistantData.name}</p>
-                                        <div className="flex items-center gap-1.5">
-                                            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                                            <span className="text-[10px] font-medium opacity-80 uppercase tracking-wider">Çevrimiçi</span>
-                                        </div>
+                                        <p className="font-bold text-sm">
+                                            {mode === 'ai' ? 'TCA Asistan' : mode === 'live' ? 'Canlı Destek' : 'Bize Yazın'}
+                                        </p>
+                                        <span className="text-[10px] opacity-80 uppercase font-bold tracking-wider">Çevrimiçi</span>
                                     </div>
                                 </div>
                                 <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="text-white hover:bg-white/10">
@@ -151,122 +224,58 @@ export function AIAssistant() {
                                 </Button>
                             </CardHeader>
                             
-                            <CardContent className="flex-1 overflow-y-auto p-4 space-y-6 bg-slate-50/50">
-                                {messages.map((message, index) => (
-                                     <motion.div 
-                                        key={index}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.3, delay: 0.1 * index }}
-                                        className={cn(
-                                            "flex items-start gap-3",
-                                            message.role === 'user' ? 'justify-end' : 'justify-start'
-                                        )}
-                                    >
-                                        {message.role === 'assistant' && (
-                                            <Avatar className="w-8 h-8 shrink-0">
-                                                <AvatarImage src={assistantData.avatarUrl} />
-                                                <AvatarFallback>AI</AvatarFallback>
-                                            </Avatar>
-                                        )}
-                                        <div className={cn(
-                                            "max-w-[80%] rounded-2xl p-3 text-sm shadow-sm",
-                                            message.role === 'user'
-                                                ? "bg-primary text-primary-foreground rounded-br-none"
-                                                : "bg-white text-slate-700 rounded-bl-none border border-slate-100"
-                                        )}>
-                                            <p className="leading-relaxed">{message.content}</p>
-                                        </div>
-                                         {message.role === 'user' && (
-                                            <Avatar className="w-8 h-8 shrink-0">
-                                                <AvatarFallback className="bg-slate-200 text-slate-500"><User className='w-4 h-4'/></AvatarFallback>
-                                            </Avatar>
-                                        )}
-                                    </motion.div>
-                                ))}
-
-                                {showSuggestions && (
-                                    <motion.div 
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="space-y-2 ml-11"
-                                    >
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Devam etmek ister misiniz?</p>
-                                        <div className="flex flex-col gap-2">
-                                            {assistantData.suggestedQuestions.map((q, i) => (
-                                                <Button 
-                                                    key={i} 
-                                                    variant="outline" 
-                                                    size="sm" 
-                                                    className="justify-start text-left h-auto py-2.5 px-3 rounded-xl border-slate-200 hover:border-primary hover:text-primary transition-all text-xs bg-white shadow-sm"
-                                                    onClick={() => handleSend(q)}
-                                                >
-                                                    {q}
-                                                </Button>
-                                            ))}
-                                            
-                                            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 mt-2">
-                                                <Button 
-                                                    variant="outline" 
-                                                    size="sm" 
-                                                    className="justify-start text-left h-auto py-2 px-3 rounded-xl border-blue-200 text-blue-600 hover:bg-blue-50 transition-all text-[10px] bg-white font-bold"
-                                                    onClick={toggleIntercom}
-                                                >
-                                                    <MessageSquareText className="w-3.5 h-3.5 mr-1.5" />
-                                                    Siteden Destek
-                                                </Button>
-                                                <Button 
-                                                    variant="outline" 
-                                                    size="sm" 
-                                                    className="justify-start text-left h-auto py-2 px-3 rounded-xl border-green-200 text-green-600 hover:bg-green-50 transition-all text-[10px] bg-white font-bold"
-                                                    asChild
-                                                >
-                                                    <a href={assistantData.liveSupportUrl} target="_blank" rel="noopener noreferrer">
-                                                        <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
-                                                        WhatsApp
-                                                    </a>
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                )}
-
-                                 {isLoading && (
-                                    <div className="flex items-center gap-3">
-                                        <Avatar className="w-8 h-8">
-                                            <AvatarImage src={assistantData.avatarUrl} />
-                                            <AvatarFallback>AI</AvatarFallback>
-                                        </Avatar>
-                                        <div className="p-3 bg-white border border-slate-100 rounded-2xl rounded-bl-none shadow-sm">
-                                            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                            <CardContent className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
+                                {mode === 'ai' && messages.map((msg, i) => (
+                                    <div key={i} className={cn("flex items-start gap-2", msg.role === 'user' ? 'justify-end' : 'justify-start')}>
+                                        {msg.role !== 'user' && <Bot className="w-6 h-6 mt-1 text-primary" />}
+                                        <div className={cn("max-w-[85%] rounded-2xl p-3 text-sm shadow-sm", msg.role === 'user' ? "bg-primary text-white rounded-br-none" : "bg-white border text-slate-700 rounded-bl-none")}>
+                                            {msg.content}
                                         </div>
                                     </div>
-                                )}
+                                ))}
+
+                                {mode === 'live' && liveMessages?.map((msg, i) => (
+                                    <div key={i} className={cn("flex items-start gap-2", ['parent', 'anonymous'].includes(msg.senderType) ? 'justify-end' : 'justify-start')}>
+                                        {['admin', 'ai'].includes(msg.senderType) && <Headphones className="w-6 h-6 mt-1 text-primary" />}
+                                        <div className={cn("max-w-[85%] rounded-2xl p-3 text-sm shadow-sm", ['parent', 'anonymous'].includes(msg.senderType) ? "bg-primary text-white rounded-br-none" : "bg-white border text-slate-700 rounded-bl-none")}>
+                                            {msg.text}
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {mode === 'form-live' && <LiveChatForm onSubmit={startLiveChat} />}
+                                {mode === 'form-whatsapp' && <WhatsappSupportForm onSubmit={handleWhatsappSubmit} />}
+
+                                {isLoading && <Loader2 className="w-5 h-5 animate-spin mx-auto text-primary" />}
                                 <div ref={messagesEndRef} />
                             </CardContent>
 
-                            <CardFooter className="p-4 border-t bg-white">
-                                <form
-                                    onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-                                    className="flex w-full items-center gap-2"
-                                >
-                                    <Input
-                                        value={input}
-                                        onChange={(e) => setInput(e.target.value)}
-                                        placeholder="Bir soru sorun..."
-                                        className="flex-1 bg-slate-50 border-none focus-visible:ring-1 focus-visible:ring-primary h-11 rounded-xl"
-                                        disabled={isLoading}
-                                        autoComplete="off"
-                                    />
-                                    <Button 
-                                        type="submit" 
-                                        size="icon" 
-                                        disabled={isLoading || input.trim() === ''}
-                                        className="rounded-xl h-11 w-11 shrink-0 shadow-lg shadow-primary/20"
-                                    >
-                                        <Send className="w-4 h-4" />
-                                    </Button>
-                                </form>
+                            <CardFooter className="flex flex-col p-4 border-t bg-white gap-3">
+                                {mode === 'ai' && !isLoading && (
+                                    <div className="grid grid-cols-2 gap-2 w-full">
+                                        <Button variant="outline" size="sm" className="text-[10px] h-8 font-bold border-blue-200 text-blue-600" onClick={() => setMode('form-live')}>
+                                            <Headphones className="w-3 h-3 mr-1" /> Siteden Destek
+                                        </Button>
+                                        <Button variant="outline" size="sm" className="text-[10px] h-8 font-bold border-green-200 text-green-600" onClick={() => setMode('form-whatsapp')}>
+                                            <MessageCircle className="w-3 h-3 mr-1" /> WhatsApp
+                                        </Button>
+                                    </div>
+                                )}
+                                
+                                {['ai', 'live'].includes(mode) && (
+                                    <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex w-full gap-2">
+                                        <Input
+                                            value={input}
+                                            onChange={(e) => setInput(e.target.value)}
+                                            placeholder="Mesajınızı yazın..."
+                                            className="flex-1 h-10 text-sm rounded-xl"
+                                            disabled={isLoading}
+                                        />
+                                        <Button type="submit" size="icon" disabled={isLoading || !input.trim()} className="rounded-xl h-10 w-10">
+                                            <Send className="w-4 h-4" />
+                                        </Button>
+                                    </form>
+                                )}
                             </CardFooter>
                         </Card>
                     </motion.div>

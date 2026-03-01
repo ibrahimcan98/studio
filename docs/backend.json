@@ -1,119 +1,98 @@
+
 {
   "entities": {
-    "Parent": {
+    "User": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Parent",
+      "title": "User",
       "type": "object",
-      "description": "Represents a parent user on the platform.",
+      "description": "Represents a user of the Türk Çocuk Akademisi platform.",
       "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the parent." },
-        "name": { "type": "string", "description": "Full name of the parent." },
-        "email": { "type": "string", "format": "email", "description": "Email address of the parent." },
-        "phone": { "type": "string", "description": "Phone number of the parent." },
-        "country": { "type": "string", "description": "Country of residence." },
-        "children_ids": { "type": "array", "items": { "type": "string" }, "description": "Array of child IDs associated with this parent." },
-        "status": { "type": "string", "enum": ["lead", "trial_scheduled", "trial_done", "active", "churn"], "description": "The current status of the parent." },
-        "tags": { "type": "array", "items": { "type": "string" }, "description": "Manual and automatic tags for filtering and segmentation." },
-        "created_at": { "type": "string", "format": "date-time", "description": "Timestamp when the parent was created." },
-        "first_sale_date": { "type": "string", "format": "date-time", "description": "Timestamp of the first sale." },
-        "last_sale_date": { "type": "string", "format": "date-time", "description": "Timestamp of the most recent sale." },
-        "total_sales_count": { "type": "number", "description": "Total number of sales made by this parent." },
-        "notes": { "type": "string", "description": "Manual notes added by an admin." }
+        "id": { "type": "string" },
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phoneNumber": { "type": "string" },
+        "role": { "type": "string", "enum": ["parent", "teacher", "admin"] },
+        "isPremium": { "type": "boolean" },
+        "lives": { "type": "number" },
+        "timezone": { "type": "string" }
       },
-      "required": ["id", "name", "email", "created_at"]
+      "required": ["id", "firstName", "lastName", "email", "role"]
     },
-    "Student": {
+    "Conversation": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Student",
+      "title": "Conversation",
       "type": "object",
-      "description": "Represents a student on the platform.",
+      "description": "Represents a support conversation or lead.",
       "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the student." },
-        "parent_id": { "type": "string", "description": "The ID of the parent user." },
-        "name": { "type": "string", "description": "The student's name." },
-        "age": { "type": "number", "description": "The student's age." },
-        "level": { "type": "string", "description": "The student's learning level." },
-        "course_type": { "type": "string", "enum": ["başlangıç", "konuşma", "akademik", "GCSE"], "description": "The type of course the student is enrolled in." },
-        "teacher_id": { "type": "string", "description": "The ID of the assigned teacher." },
-        "remaining_lessons": { "type": "number", "description": "Number of lessons remaining." },
-        "status": { "type": "string", "enum": ["trial", "active", "churn"], "description": "The student's status." }
-      },
-      "required": ["id", "parent_id", "name"]
-    },
-    "Sale": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Sale",
-      "type": "object",
-      "description": "Represents a sales transaction.",
-      "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the sale." },
-        "parent_id": { "type": "string", "description": "The ID of the parent who made the purchase." },
-        "student_id": { "type": "string", "description": "The ID of the student for whom the package was purchased." },
-        "package_type": { "type": "number", "enum": [4, 8, 12, 24], "description": "The number of lessons in the package." },
-        "sale_type": { "type": "string", "enum": ["first_sale", "repeat_sale"], "description": "Type of the sale." },
-        "price": { "type": "number", "description": "The price of the sale." },
-        "currency": { "type": "string", "description": "Currency of the sale (e.g., EUR, USD)." },
-        "sale_date": { "type": "string", "format": "date-time", "description": "Timestamp of the sale." }
-      },
-      "required": ["id", "parent_id", "package_type", "price", "currency", "sale_date"]
-    },
-    "Trial": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "Trial",
-        "type": "object",
-        "description": "Represents a trial lesson.",
-        "properties": {
-            "id": { "type": "string", "description": "Unique identifier for the trial." },
-            "parent_id": { "type": "string", "description": "The ID of the parent." },
-            "student_id": { "type": "string", "description": "The ID of the student." },
-            "trial_date": { "type": "string", "format": "date-time", "description": "The scheduled date and time of the trial." },
-            "trial_status": { "type": "string", "enum": ["scheduled", "done", "cancelled"], "description": "The status of the trial lesson." }
+        "id": { "type": "string" },
+        "status": { "type": "string", "enum": ["open", "pending", "closed"] },
+        "channel": { "type": "string", "enum": ["website", "whatsapp"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "lastMessageAt": { "type": "string", "format": "date-time" },
+        "createdBy": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "enum": ["anonymous", "parent"] },
+            "uid": { "type": "string" },
+            "name": { "type": "string" },
+            "email": { "type": "string" },
+            "phone": { "type": "string" }
+          }
         },
-        "required": ["id", "parent_id", "student_id", "trial_date", "trial_status"]
+        "topic": { "type": "string" },
+        "assignedTeam": { "type": "string", "enum": ["Eğitim", "Teknik/Satış"] },
+        "needsHuman": { "type": "boolean" },
+        "tags": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["status", "channel", "createdAt", "createdBy"]
+    },
+    "Message": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Message",
+      "type": "object",
+      "description": "A single message within a conversation.",
+      "properties": {
+        "id": { "type": "string" },
+        "conversationId": { "type": "string" },
+        "senderType": { "type": "string", "enum": ["anonymous", "parent", "admin", "ai"] },
+        "senderUid": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["conversationId", "senderType", "text", "createdAt"]
     }
   },
   "auth": {
-    "providers": ["password", "anonymous", "phone"]
+    "providers": ["password", "anonymous"]
   },
   "firestore": {
     "structure": [
       {
-        "path": "/parents/{parentId}",
+        "path": "/users/{userId}",
         "definition": {
-          "entityName": "Parent",
-          "schema": { "$ref": "#/backend/entities/Parent" },
-          "description": "Stores parent user profiles.",
-          "params": [{ "name": "parentId", "description": "The unique identifier for the parent user." }]
+          "entityName": "User",
+          "schema": { "$ref": "#/backend/entities/User" },
+          "description": "User profiles."
         }
       },
       {
-        "path": "/students/{studentId}",
+        "path": "/conversations/{conversationId}",
         "definition": {
-            "entityName": "Student",
-            "schema": { "$ref": "#/backend/entities/Student"},
-            "description": "Stores student profiles. Grouped under a top-level collection for easier querying by admins.",
-            "params": [{"name": "studentId", "description": "The unique identifier for the student."}]
+          "entityName": "Conversation",
+          "schema": { "$ref": "#/backend/entities/Conversation" },
+          "description": "Support conversations."
         }
       },
       {
-        "path": "/sales/{saleId}",
+        "path": "/messages/{messageId}",
         "definition": {
-            "entityName": "Sale",
-            "schema": { "$ref": "#/backend/entities/Sale" },
-            "description": "Stores all sales transactions.",
-            "params": [{"name": "saleId", "description": "The unique identifier for the sale."}]
-        }
-      },
-      {
-        "path": "/trials/{trialId}",
-        "definition": {
-            "entityName": "Trial",
-            "schema": { "$ref": "#/backend/entities/Trial"},
-            "description": "Stores all trial lesson records.",
-            "params": [{"name": "trialId", "description": "The unique identifier for the trial lesson."}]
+          "entityName": "Message",
+          "schema": { "$ref": "#/backend/entities/Message" },
+          "description": "Individual chat messages."
         }
       }
-    ],
-    "reasoning": "The data structure is designed for a CRM-style admin panel. All major entities (parents, students, sales, trials) are top-level collections. This avoids deep nesting, simplifies security rules, and makes querying/filtering for the admin panel much more efficient. For example, admins can easily query all students or all sales without needing to know parent IDs. The relationships are maintained via ID fields (e.g., `parent_id` in the Student document)."
+    ]
   }
 }
