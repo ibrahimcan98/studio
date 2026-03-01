@@ -1,6 +1,4 @@
 
-
-'use server'; // Convert this to a server component to fetch data on the server
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/layout/footer";

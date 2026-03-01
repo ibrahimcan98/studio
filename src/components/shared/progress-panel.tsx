@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -33,7 +32,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { doc, updateDoc, arrayUnion, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { COURSES } from '@/data/courses';
 import { Textarea } from '../ui/textarea';
@@ -153,7 +152,7 @@ export function ProgressPanel({ child, lessonId, isEditable = false }: { child: 
         }
     };
     
-    const handleUpdateFeedback = async () => {
+    const handleUpdateFeedback = () => {
         if (!db || !child || !editingFeedback) return;
         
         setIsSaving(true);
@@ -181,30 +180,28 @@ export function ProgressPanel({ child, lessonId, isEditable = false }: { child: 
              });
         }
 
-
-        try {
-            await batch.commit();
+        batch.commit().then(() => {
             toast({
                 title: 'Güncellendi',
                 description: 'Geri bildirim başarıyla güncellendi.',
                 className: 'bg-green-500 text-white'
             });
             setFeedbackHistory(updatedHistory);
-            setEditingFeedback(null); // This will close the dialog via onOpenChange
-        } catch (serverError) {
+            setEditingFeedback(null);
+        }).catch(serverError => {
              const permissionError = new FirestorePermissionError({
                 path: childDocRef.path,
                 operation: 'update',
                 requestResourceData: { feedbackHistory: updatedHistory },
             });
             errorEmitter.emit('permission-error', permissionError);
-        } finally {
+        }).finally(() => {
             setIsSaving(false);
-        }
+        });
     };
 
 
-    const handleSave = async () => {
+    const handleSave = () => {
         if (!db || !child) return;
         setIsSaving(true);
         
@@ -223,19 +220,18 @@ export function ProgressPanel({ child, lessonId, isEditable = false }: { child: 
             weaknesses,
             recommendedCourseId: selectedCourseData?.id || null,
             recommendedCourseName: selectedCourseData?.title || null,
-            isProfileComplete: true, // Mark profile as complete after first teacher edit
+            isProfileComplete: true, 
         };
 
         if (newFeedback.trim() !== "") {
              const feedbackEntry = {
-                id: lessonId || Date.now().toString(), // Use lessonId if available, otherwise fallback
+                id: lessonId || Date.now().toString(),
                 text: newFeedback,
                 createdAt: new Date().toISOString()
             };
             updatedFeedbackHistory.push(feedbackEntry);
             updatedData.feedbackHistory = updatedFeedbackHistory;
             
-            // Also update the specific lesson-slot if lessonId is provided
             if (lessonId) {
                 const lessonDocRef = doc(db, 'lesson-slots', lessonId);
                 batch.update(lessonDocRef, {
@@ -249,8 +245,7 @@ export function ProgressPanel({ child, lessonId, isEditable = false }: { child: 
         
         batch.update(childDocRef, updatedData);
 
-        try {
-            await batch.commit();
+        batch.commit().then(() => {
             toast({
                 title: 'Kaydedildi',
                 description: `${child.firstName} için ilerleme paneli güncellendi.`,
@@ -260,16 +255,16 @@ export function ProgressPanel({ child, lessonId, isEditable = false }: { child: 
                 setFeedbackHistory(updatedFeedbackHistory);
                 setNewFeedback("");
             }
-        } catch (serverError) {
+        }).catch(serverError => {
              const permissionError = new FirestorePermissionError({
                 path: childDocRef.path,
                 operation: 'update',
                 requestResourceData: updatedData,
             });
             errorEmitter.emit('permission-error', permissionError);
-        } finally {
+        }).finally(() => {
             setIsSaving(false);
-        }
+        });
     };
 
     const dateOfBirth = child.dateOfBirth ? new Date(child.dateOfBirth) : null;
@@ -613,5 +608,3 @@ export function ProgressPanel({ child, lessonId, isEditable = false }: { child: 
         </div>
     );
 }
-
-    

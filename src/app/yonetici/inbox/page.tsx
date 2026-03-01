@@ -1,28 +1,24 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, orderBy, doc, updateDoc, serverTimestamp, addDoc, limit } from 'firebase/firestore';
+import { useState, useMemo } from 'react';
+import { useFirestore, useCollection, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { collection, query, where, orderBy, doc, updateDoc, serverTimestamp, setDoc, limit } from 'firebase/firestore';
 import { 
     Search, 
     MessageSquare, 
-    Clock, 
-    Filter, 
     Send, 
     CheckCircle2, 
     User, 
     Phone, 
     Mail, 
     Tag as TagIcon,
-    AlertCircle,
     Monitor,
     MessageCircle,
     Headphones,
-    ChevronRight,
     Loader2
 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,7 +26,6 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
-import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
 export default function InboxPage() {
@@ -63,29 +58,50 @@ export default function InboxPage() {
 
     const { data: messages } = useCollection(msgQuery);
 
-    const handleSendReply = async () => {
+    const handleSendReply = () => {
         if (!db || !selectedConvId || !replyText.trim() || !user) return;
         
-        await addDoc(collection(db, 'messages'), {
+        const msgRef = doc(collection(db, 'messages'));
+        const msgData = {
             conversationId: selectedConvId,
             text: replyText,
             senderType: 'admin',
             senderUid: user.uid,
             createdAt: serverTimestamp()
+        };
+
+        setDoc(msgRef, msgData).catch(error => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: msgRef.path,
+                operation: 'create',
+                requestResourceData: msgData
+            }));
         });
 
-        await updateDoc(doc(db, 'conversations', selectedConvId), {
+        const convRef = doc(db, 'conversations', selectedConvId);
+        updateDoc(convRef, {
             lastMessageAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
             status: 'pending'
+        }).catch(error => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: convRef.path,
+                operation: 'update'
+            }));
         });
 
         setInputText('');
     };
 
-    const toggleStatus = async (status: string) => {
+    const toggleStatus = (status: string) => {
         if (!db || !selectedConvId) return;
-        await updateDoc(doc(db, 'conversations', selectedConvId), { status });
+        const convRef = doc(db, 'conversations', selectedConvId);
+        updateDoc(convRef, { status }).catch(error => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: convRef.path,
+                operation: 'update'
+            }));
+        });
     };
 
     if (isConvLoading) return <div className="flex h-96 items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
@@ -174,18 +190,23 @@ export default function InboxPage() {
                         </ScrollArea>
 
                         <div className="p-4 border-t bg-white">
-                            <div className="flex gap-2">
+                            <form 
+                                className="flex gap-2"
+                                onSubmit={(e) => {
+                                    e.preventDefault();
+                                    handleSendReply();
+                                }}
+                            >
                                 <Input 
                                     placeholder="Yanıtınızı yazın..." 
                                     value={replyText}
                                     onChange={(e) => setInputText(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSendReply()}
                                     className="flex-1 h-10 text-sm rounded-xl"
                                 />
-                                <Button className="rounded-xl h-10" onClick={handleSendReply}>
+                                <Button type="submit" className="rounded-xl h-10">
                                     <Send className="w-4 h-4" />
                                 </Button>
-                            </div>
+                            </form>
                         </div>
                     </>
                 ) : (
