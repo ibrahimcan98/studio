@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -35,18 +36,18 @@ service cloud.firestore {
 
     // Konuşmalar (Chat Support)
     match /conversations/{conversationId} {
-      // Admin her şeyi görür, kullanıcı sadece kendi başlattıklarını.
-      // allow read (get + list)
       allow read: if isAdmin() || (isSignedIn() && resource.data.createdBy.uid == request.auth.uid);
-      // create: herkes (anonim dahil) başlatabilir.
       allow create: if true;
-      // update: admin veya sahibi güncelleyebilir.
       allow update: if isAdmin() || (isSignedIn() && resource.data.createdBy.uid == request.auth.uid);
     }
 
     // Mesajlar
     match /messages/{messageId} {
-      allow read: if isAdmin() || (isSignedIn() && resource.data.senderUid == request.auth.uid);
+      // Bir mesajı adminler veya konuşmayı başlatan kişi okuyabilir.
+      allow read: if isAdmin() || (isSignedIn() && (
+        resource.data.senderUid == request.auth.uid || 
+        get(/databases/$(database)/documents/conversations/$(resource.data.conversationId)).data.createdBy.uid == request.auth.uid
+      ));
       allow create: if true;
     }
 

@@ -3,8 +3,15 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
     function isAdmin() {
-      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return isSignedIn() && (
+        request.auth.token.email == 'admin@hotmail.com' || 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
     }
 
     match /users/{userId} {
@@ -15,13 +22,16 @@ service cloud.firestore {
     }
 
     match /conversations/{conversationId} {
-      allow read: if isAdmin() || (request.auth != null && resource.data.createdBy.uid == request.auth.uid) || true; // Reading is more open for local tracking
+      allow read: if isAdmin() || (isSignedIn() && resource.data.createdBy.uid == request.auth.uid);
       allow create: if true;
-      allow update: if isAdmin() || (request.auth != null && resource.data.createdBy.uid == request.auth.uid);
+      allow update: if isAdmin() || (isSignedIn() && resource.data.createdBy.uid == request.auth.uid);
     }
 
     match /messages/{messageId} {
-      allow read: if isAdmin() || (request.auth != null && resource.data.senderUid == request.auth.uid) || true;
+      allow read: if isAdmin() || (isSignedIn() && (
+        resource.data.senderUid == request.auth.uid || 
+        get(/databases/$(database)/documents/conversations/$(resource.data.conversationId)).data.createdBy.uid == request.auth.uid
+      ));
       allow create: if true;
     }
 

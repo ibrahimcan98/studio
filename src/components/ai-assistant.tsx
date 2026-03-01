@@ -12,8 +12,9 @@ import { assistantFlow, AssistantInput } from '@/ai/flows/assistant-flow';
 import { assistantData } from '@/data/ai-assistant-data';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth } from '@/firebase';
 import { collection, addDoc, serverTimestamp, query, where, orderBy, doc, updateDoc, limit } from 'firebase/firestore';
+import { signInAnonymously } from 'firebase/auth';
 import { LiveChatForm } from './chat/live-chat-form';
 import { WhatsappSupportForm } from './chat/whatsapp-support-form';
 
@@ -31,9 +32,17 @@ export function AIAssistant() {
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const pathname = usePathname();
-    const { user } = useUser();
+    const { user, loading: userLoading } = useUser();
+    const auth = useAuth();
     const db = useFirestore();
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+
+    // Ensure user is at least anonymously authenticated for security rules to work
+    useEffect(() => {
+        if (!userLoading && !user && auth) {
+            signInAnonymously(auth).catch(err => console.error("Anonymous auth error:", err));
+        }
+    }, [user, userLoading, auth]);
 
     // Track conversation via localStorage for anonymous
     useEffect(() => {
@@ -84,7 +93,6 @@ export function AIAssistant() {
             if (!customInput) setInput('');
             setIsLoading(true);
 
-            // Check for human help keywords
             const needsHuman = /canlı destek|insan|bağlan|yardım|operator/i.test(textToSend.toLowerCase());
             
             try {
@@ -109,7 +117,7 @@ export function AIAssistant() {
             await addDoc(collection(db, 'messages'), {
                 conversationId: currentConversationId,
                 text: textToSend,
-                senderType: user ? 'parent' : 'anonymous',
+                senderType: (user && !user.isAnonymous) ? 'parent' : 'anonymous',
                 senderUid: user?.uid || null,
                 createdAt: serverTimestamp()
             });
@@ -128,7 +136,7 @@ export function AIAssistant() {
             topic: formData.topic,
             assignedTeam: formData.topic === 'kurslar' ? 'Eğitim' : 'Teknik/Satış',
             createdBy: {
-                type: user ? 'parent' : 'anonymous',
+                type: (user && !user.isAnonymous) ? 'parent' : 'anonymous',
                 uid: user?.uid || null,
                 name: formData.name,
                 email: formData.email,
@@ -145,7 +153,7 @@ export function AIAssistant() {
         await addDoc(collection(db, 'messages'), {
             conversationId: convRef.id,
             text: firstMsg,
-            senderType: user ? 'parent' : 'anonymous',
+            senderType: (user && !user.isAnonymous) ? 'parent' : 'anonymous',
             senderUid: user?.uid || null,
             createdAt: serverTimestamp()
         });
@@ -163,7 +171,7 @@ export function AIAssistant() {
             topic: formData.topic,
             assignedTeam: 'Teknik/Satış',
             createdBy: {
-                type: user ? 'parent' : 'anonymous',
+                type: (user && !user.isAnonymous) ? 'parent' : 'anonymous',
                 uid: user?.uid || null,
                 name: formData.name,
                 email: formData.email || null,
