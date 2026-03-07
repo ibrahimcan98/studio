@@ -35,8 +35,8 @@ export function LiveChatForm({ onSubmit }: { onSubmit: (data: any) => void }) {
 
     useEffect(() => {
         if (userData) {
-            setValue('name', `${userData.firstName} ${userData.lastName}`.trim() || userData.email);
-            setValue('email', userData.email);
+            setValue('name', `${userData.firstName} ${userData.lastName}`.trim() || userData.email || '');
+            setValue('email', userData.email || '');
             setValue('phone', userData.phoneNumber || '');
         } else if (user && !user.isAnonymous) {
             setValue('name', user.displayName || user.email || '');
@@ -55,29 +55,32 @@ export function LiveChatForm({ onSubmit }: { onSubmit: (data: any) => void }) {
                 )}
             </div>
 
-            <div className={cn("space-y-4", isActualUser && "hidden")}>
-                <div className="space-y-2">
-                    <Label className="text-xs">Ad Soyad</Label>
-                    <Input {...register('name')} placeholder="Adınız" className="h-9 text-sm" />
-                    {errors.name && <p className="text-[10px] text-red-500">{errors.name.message as string}</p>}
+            {/* Giriş yapmamış kullanıcılar için gösterilir, giriş yapmışlar için gizlenir */}
+            {!isActualUser && (
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label className="text-xs">Ad Soyad</Label>
+                        <Input {...register('name')} placeholder="Adınız" className="h-9 text-sm" />
+                        {errors.name && <p className="text-[10px] text-red-500">{errors.name.message as string}</p>}
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-xs">E-posta</Label>
+                        <Input {...register('email')} type="email" placeholder="ornek@mail.com" className="h-9 text-sm" />
+                        {errors.email && <p className="text-[10px] text-red-500">{errors.email.message as string}</p>}
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-xs">Telefon Numarası</Label>
+                        <Input 
+                            {...register('phone')} 
+                            type="tel" 
+                            placeholder="+90 ..." 
+                            className="h-9 text-sm" 
+                            autoComplete="tel"
+                        />
+                        {errors.phone && <p className="text-[10px] text-red-500">{errors.phone.message as string}</p>}
+                    </div>
                 </div>
-                <div className="space-y-2">
-                    <Label className="text-xs">E-posta</Label>
-                    <Input {...register('email')} type="email" placeholder="ornek@mail.com" className="h-9 text-sm" />
-                    {errors.email && <p className="text-[10px] text-red-500">{errors.email.message as string}</p>}
-                </div>
-                <div className="space-y-2">
-                    <Label className="text-xs">Telefon Numarası</Label>
-                    <Input 
-                        {...register('phone')} 
-                        type="tel" 
-                        placeholder="+90 ..." 
-                        className="h-9 text-sm" 
-                        autoComplete="tel"
-                    />
-                    {errors.phone && <p className="text-[10px] text-red-500">{errors.phone.message as string}</p>}
-                </div>
-            </div>
+            )}
 
             <div className="space-y-2">
                 <Label className="text-xs">Konu</Label>
