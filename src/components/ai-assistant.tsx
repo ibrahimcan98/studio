@@ -39,7 +39,6 @@ export function AIAssistant() {
         if (savedId) setCurrentConversationId(savedId);
     }, []);
 
-    // Basitleştirilmiş mesaj sorgusu (Permissions hatasını önlemek için filtreleri azalttık)
     const messagesQuery = useMemoFirebase(() => {
         if (!db || !currentConversationId || mode !== 'live') return null;
         return query(
@@ -50,7 +49,6 @@ export function AIAssistant() {
 
     const { data: rawLiveMessages } = useCollection(messagesQuery);
 
-    // Mesajları client-side'da sıralıyoruz
     const liveMessages = useMemo(() => {
         if (!rawLiveMessages) return [];
         return [...rawLiveMessages].sort((a, b) => {
@@ -111,14 +109,16 @@ export function AIAssistant() {
             setDoc(msgRef, {
                 conversationId: currentConversationId,
                 text: textToSend,
-                senderType: 'anonymous',
+                senderType: user && !user.isAnonymous ? 'parent' : 'anonymous',
+                senderUid: user?.uid || null,
                 createdAt: serverTimestamp()
             });
 
             const convRef = doc(db, 'conversations', currentConversationId);
             updateDoc(convRef, {
                 lastMessageAt: serverTimestamp(),
-                updatedAt: serverTimestamp()
+                updatedAt: serverTimestamp(),
+                lastMessage: textToSend
             });
         }
     };
@@ -126,6 +126,7 @@ export function AIAssistant() {
     const startLiveChat = async (formData: any) => {
         if (!db) return;
 
+        const isActualUser = user && !user.isAnonymous;
         const convRef = doc(collection(db, 'conversations'));
         const convData = {
             status: 'open',
@@ -134,23 +135,26 @@ export function AIAssistant() {
             topic: formData.topic,
             assignedTeam: formData.topic === 'kurslar' ? 'Eğitim' : 'Teknik/Satış',
             createdBy: {
-                type: 'anonymous',
+                type: isActualUser ? 'parent' : 'anonymous',
+                uid: user?.uid || null,
                 name: formData.name,
                 email: formData.email,
                 phone: formData.phone
             },
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
-            lastMessageAt: serverTimestamp()
+            lastMessageAt: serverTimestamp(),
+            lastMessage: formData.message
         };
 
-        setDoc(convRef, convData);
+        await setDoc(convRef, convData);
         
         const msgRef = doc(collection(db, 'messages'));
-        setDoc(msgRef, {
+        await setDoc(msgRef, {
             conversationId: convRef.id,
-            text: `Destek talebi başlatıldı. Konu: ${formData.topic}. Mesaj: ${formData.message}`,
-            senderType: 'anonymous',
+            text: formData.message,
+            senderType: isActualUser ? 'parent' : 'anonymous',
+            senderUid: user?.uid || null,
             createdAt: serverTimestamp()
         });
 
@@ -162,20 +166,24 @@ export function AIAssistant() {
     const handleWhatsappSubmit = async (formData: any) => {
         if (!db) return;
 
+        const isActualUser = user && !user.isAnonymous;
         const ticketId = Math.random().toString(36).substring(7).toUpperCase();
         const convRef = doc(collection(db, 'conversations'));
-        setDoc(convRef, {
+        
+        await setDoc(convRef, {
             status: 'open',
             channel: 'whatsapp',
             topic: formData.topic,
             assignedTeam: 'Teknik/Satış',
             createdBy: {
-                type: 'anonymous',
+                type: isActualUser ? 'parent' : 'anonymous',
+                uid: user?.uid || null,
                 name: formData.name,
                 email: formData.email || null,
                 phone: formData.phone
             },
             createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
             ticketId
         });
 
@@ -241,9 +249,9 @@ export function AIAssistant() {
                                 ))}
 
                                 {mode === 'live' && liveMessages.map((msg, i) => (
-                                    <div key={i} className={cn("flex items-start gap-2", msg.senderType === 'anonymous' ? 'justify-end' : 'justify-start')}>
+                                    <div key={i} className={cn("flex items-start gap-2", ['anonymous', 'parent'].includes(msg.senderType) ? 'justify-end' : 'justify-start')}>
                                         {['admin', 'ai'].includes(msg.senderType) && <Headphones className="w-6 h-6 mt-1 text-primary" />}
-                                        <div className={cn("max-w-[85%] rounded-2xl p-3 text-sm shadow-sm", msg.senderType === 'anonymous' ? "bg-primary text-white rounded-br-none" : "bg-white border text-slate-700 rounded-bl-none")}>
+                                        <div className={cn("max-w-[85%] rounded-2xl p-3 text-sm shadow-sm", ['anonymous', 'parent'].includes(msg.senderType) ? "bg-primary text-white rounded-br-none" : "bg-white border text-slate-700 rounded-bl-none")}>
                                             {msg.text}
                                         </div>
                                     </div>
@@ -260,7 +268,7 @@ export function AIAssistant() {
                                 {mode === 'ai' && !isLoading && (
                                     <div className="grid grid-cols-2 gap-2 w-full">
                                         <Button variant="outline" size="sm" className="text-[10px] h-8 font-bold border-blue-200 text-blue-600" onClick={() => setMode('form-live')}>
-                                            <Headphones className="w-3 h-3 mr-1" /> Canli Destek
+                                            <Headphones className="w-3 h-3 mr-1" /> Canlı Destek
                                         </Button>
                                         <Button variant="outline" size="sm" className="text-[10px] h-8 font-bold border-green-200 text-green-600" onClick={() => setMode('form-whatsapp')}>
                                             <MessageCircle className="w-3 h-3 mr-1" /> WhatsApp

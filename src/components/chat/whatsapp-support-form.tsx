@@ -34,7 +34,8 @@ export function WhatsappSupportForm({ onSubmit }: { onSubmit: (data: any) => voi
 
     useEffect(() => {
         if (userData) {
-            setValue('name', `${userData.firstName} ${userData.lastName}`.trim() || userData.email || '');
+            const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
+            setValue('name', fullName || userData.email || '');
             setValue('email', userData.email || '');
             setValue('phone', userData.phoneNumber || '');
         } else if (user && !user.isAnonymous) {
@@ -58,7 +59,6 @@ export function WhatsappSupportForm({ onSubmit }: { onSubmit: (data: any) => voi
                 </p>
             </div>
 
-            {/* Giriş yapmamış kullanıcılar için gösterilir */}
             {!isActualUser && (
                 <div className="space-y-4">
                     <div className="space-y-2">
