@@ -1,46 +1,36 @@
-'use client';
-
 import { Poppins } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
-import Header from '@/components/layout/header';
 import { Providers } from '@/components/layout/providers';
-import { AIAssistant } from '@/components/ai-assistant';
-import { usePathname } from 'next/navigation';
+import { LayoutContent } from '@/components/layout/layout-content';
+import { Metadata } from 'next';
 
 const poppins = Poppins({ 
   subsets: ['latin'],
   weight: ['400', '500', '600', '700', '800']
 });
 
+export const metadata: Metadata = {
+  title: 'Türk Çocuk Akademisi',
+  description: 'Yurt dışındaki çocuklar için oyun tabanlı, eğlenceli ve etkili Türkçe öğrenimi platformu.',
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const pathname = usePathname();
-
-  const isCocukModu = pathname?.startsWith('/cocuk-modu');
-  const isLiveLesson = pathname?.includes('/live-lesson/');
-  const isSpecialLayout = pathname?.startsWith('/ogretmen-portali') || pathname?.startsWith('/yonetici');
-
-  const showHeader = !isCocukModu && !isLiveLesson && !isSpecialLayout;
-  const showAIAssistant = !isCocukModu && !isLiveLesson && !isSpecialLayout;
-
-
   return (
     <html lang="tr">
       <body className={`${poppins.className} antialiased`}>
         <Providers>
-          <div className="flex min-h-screen flex-col bg-background">
-            {showHeader && <Header />}
-            
-            <main className="flex-1">
-              {children}
-            </main>
-            
-            {showAIAssistant && <AIAssistant />}
-          </div>
+          <LayoutContent>
+            {children}
+          </LayoutContent>
         </Providers>
         <Toaster />
       </body>
