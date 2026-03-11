@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
@@ -23,14 +24,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useCart } from '@/context/cart-context';
+import Image from 'next/image';
 
-const courseImages: { [key: string]: string } = {
-    baslangic: "/images/topics/animals.png",
-    konusma: "/images/topics/family.png",
-    akademik: "/images/topics/school.png",
-    gelisim: "/images/topics/nature.png",
-    gcse: "/images/topics/turkey.png"
-};
+const BOOK_IMAGE = "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=200&h=200&auto=format&fit=crop";
 
 const getCourseByCode = (code?: string): Course | undefined => {
     if (!code) return undefined;
@@ -163,7 +159,7 @@ export default function PaketlerimPage() {
             description: `${pkg.lessons} derslik paket`,
             price: pkg.price,
             quantity: 1,
-            image: courseImages[course.id] || `/images/topics/family.png`
+            image: BOOK_IMAGE
         });
 
         toast({
@@ -217,7 +213,10 @@ export default function PaketlerimPage() {
                                     const course = getCourseByCode(pkg);
                                     const lessons = parseInt(pkg.replace(/\D/g, ''), 10);
                                     return (
-                                        <Badge key={`${pkg}-${index}`} variant='secondary' className='p-2 text-base'>
+                                        <Badge key={`${pkg}-${index}`} variant='secondary' className='p-2 text-base flex gap-3 items-center'>
+                                            <div className="w-8 h-8 relative rounded overflow-hidden">
+                                                <Image src={BOOK_IMAGE} alt="Paket" fill className="object-cover" />
+                                            </div>
                                             {course ? `${course.title} ${lessons} derslik paket` : `Bilinmeyen Paket (${pkg})`}
                                         </Badge>
                                     )
@@ -249,24 +248,29 @@ export default function PaketlerimPage() {
                         <div className="space-y-6">
                             {children.map((child: any) => (
                                 <div key={child.id} className="p-4 border rounded-lg bg-background flex flex-col sm:flex-row justify-between items-start sm:items-center">
-                                    <div className='mb-4 sm:mb-0'>
-                                        <p className="font-bold text-lg">{child.firstName}</p>
-                                        {child.assignedPackage && child.remainingLessons > 0 ? (
-                                            <>
-                                                <p className="text-muted-foreground">{child.assignedPackageName}</p>
-                                                <Badge className='mt-2'>{child.remainingLessons} ders kaldı</Badge>
-                                            </>
-                                        ) : child.finishedPackage ? (
-                                            <div className='mt-2 space-y-2'>
-                                                 <p className="text-sm text-muted-foreground">{getCourseByCode(child.finishedPackage)?.title} paketi bitti.</p>
-                                                 <Button size="sm" onClick={() => handleBuyAgain(child.finishedPackage)}>
-                                                    <ShoppingCart className='w-4 h-4 mr-2'/>
-                                                    Tekrar Satın Al
-                                                 </Button>
-                                            </div>
-                                        ) : (
-                                            <p className="text-sm text-muted-foreground">Henüz atanmış bir paketi yok.</p>
-                                        )}
+                                    <div className='mb-4 sm:mb-0 flex gap-4 items-center'>
+                                        <div className="w-16 h-16 relative rounded-lg overflow-hidden shrink-0">
+                                            <Image src={BOOK_IMAGE} alt="Paket" fill className="object-cover" />
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-lg">{child.firstName}</p>
+                                            {child.assignedPackage && child.remainingLessons > 0 ? (
+                                                <>
+                                                    <p className="text-muted-foreground">{child.assignedPackageName}</p>
+                                                    <Badge className='mt-2'>{child.remainingLessons} ders kaldı</Badge>
+                                                </>
+                                            ) : child.finishedPackage ? (
+                                                <div className='mt-2 space-y-2'>
+                                                     <p className="text-sm text-muted-foreground">{getCourseByCode(child.finishedPackage)?.title} paketi bitti.</p>
+                                                     <Button size="sm" onClick={() => handleBuyAgain(child.finishedPackage)}>
+                                                        <ShoppingCart className='w-4 h-4 mr-2'/>
+                                                        Tekrar Satın Al
+                                                     </Button>
+                                                </div>
+                                            ) : (
+                                                <p className="text-sm text-muted-foreground">Henüz atanmış bir paketi yok.</p>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             ))}

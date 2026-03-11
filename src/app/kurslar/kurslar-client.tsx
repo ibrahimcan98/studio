@@ -1,3 +1,4 @@
+
 'use client';
 import { COURSES, Course } from "@/data/courses";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
@@ -14,13 +15,8 @@ type KurslarClientPageProps = {
     exchangeRates: { [key: string]: number };
 };
 
-const courseImages: { [key: string]: string } = {
-    baslangic: "/images/topics/animals.png",
-    konusma: "/images/topics/family.png",
-    akademik: "/images/topics/school.png",
-    gelisim: "/images/topics/nature.png",
-    gcse: "/images/topics/turkey.png"
-};
+// Tüm kurslar için tek bir kitap görseli kullanıyoruz
+const BOOK_IMAGE = "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=200&h=200&auto=format&fit=crop";
 
 export function KurslarClientPage({ 
     exchangeRates: initialRates,
@@ -45,7 +41,7 @@ export function KurslarClientPage({
             description: `${pkg.lessons} derslik paket`,
             price: pkg.price,
             quantity: 1,
-            image: courseImages[course.id] || `/images/topics/family.png`
+            image: BOOK_IMAGE
         });
         toast({
             title: "Sepete Eklendi",
