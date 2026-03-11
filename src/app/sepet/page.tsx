@@ -7,13 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trash2, ShoppingCart, ArrowLeft, CreditCard, Tag, Minus, Plus, XCircle, Loader2, AlertCircle } from "lucide-react";
+import { Trash2, ShoppingCart, ArrowLeft, CreditCard, Tag, Minus, Plus, XCircle, Loader2, Globe } from "lucide-react";
 import Image from 'next/image';
 import Link from 'next/link';
-import { useCart } from '@/context/cart-context';
+import { useCart, currencyDetails } from '@/context/cart-context';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { doc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
@@ -29,7 +29,12 @@ const getCourseCode = (courseId: string) => {
 }
 
 export default function SepetPage() {
-    const { cartItems, updateQuantity, removeFromCart, cartTotal, applyCoupon, discountAmount, finalTotal, appliedCoupon, removeCoupon, clearCart } = useCart();
+    const { 
+        cartItems, updateQuantity, removeFromCart, cartTotal, 
+        applyCoupon, discountAmount, finalTotal, appliedCoupon, 
+        removeCoupon, clearCart, selectedCurrency, exchangeRates 
+    } = useCart();
+    
     const [coupon, setCoupon] = useState('');
     const { toast } = useToast();
     const { user } = useUser();
@@ -37,6 +42,13 @@ export default function SepetPage() {
     const router = useRouter();
     const [isProcessing, setIsProcessing] = useState(false);
     const [step, setStep] = useState<'cart' | 'payment'>('cart');
+
+    const rate = exchangeRates[selectedCurrency] || 1;
+    const symbol = currencyDetails[selectedCurrency]?.symbol || selectedCurrency;
+
+    const formatPrice = (priceEur: number) => {
+        return (priceEur * rate).toFixed(2);
+    };
 
     const handleApplyCoupon = () => {
         if (!coupon) return;
@@ -72,8 +84,7 @@ export default function SepetPage() {
             router.push('/ebeveyn-portali/ayarlar');
             return;
         }
-        // Skip payment form for testing
-        handleCheckout();
+        setStep('payment');
     }
     
     const handleCheckout = async (e?: React.FormEvent) => {
@@ -122,20 +133,24 @@ export default function SepetPage() {
         }
     };
 
-
     return (
         <div className="bg-muted/30 min-h-[calc(100vh-80px)] py-12 px-4 sm:px-6 lg:px-8">
             <div className="container max-w-5xl mx-auto">
-                <div className="flex items-center gap-4 mb-8">
-                    <ShoppingCart className="w-8 h-8 text-primary" />
-                    <h1 className="text-3xl md:text-4xl font-bold text-gray-800">
-                        {step === 'cart' ? 'Alışveriş Sepetim' : 'Ödeme Bilgileri'}
-                    </h1>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+                    <div className="flex items-center gap-4">
+                        <ShoppingCart className="w-8 h-8 text-primary" />
+                        <h1 className="text-3xl md:text-4xl font-bold text-gray-800">
+                            {step === 'cart' ? 'Alışveriş Sepetim' : 'Ödeme Bilgileri'}
+                        </h1>
+                    </div>
+                    <Badge variant="outline" className="w-fit h-8 px-3 gap-2 bg-white">
+                        <Globe className="w-3.5 h-3.5" />
+                        {currencyDetails[selectedCurrency]?.flag} {selectedCurrency}
+                    </Badge>
                 </div>
 
                 {step === 'cart' && (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
-                        {/* Cart Items Section */}
                         <div className="lg:col-span-2">
                             <Card>
                                 <CardHeader>
@@ -171,7 +186,7 @@ export default function SepetPage() {
                                                     </div>
                                                 </div>
                                                 <div className="flex flex-col items-end gap-2 ml-auto">
-                                                    <p className="font-bold text-lg">€{(item.price * item.quantity).toFixed(2)}</p>
+                                                    <p className="font-bold text-lg">{symbol}{formatPrice(item.price * item.quantity)}</p>
                                                     <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive h-8 w-8" onClick={() => removeFromCart(item.id)}>
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
@@ -194,7 +209,6 @@ export default function SepetPage() {
                             </Button>
                         </div>
 
-                        {/* Order Summary Section */}
                         <div className="lg:col-span-1">
                             <Card className="sticky top-28">
                                 <CardHeader>
@@ -204,18 +218,18 @@ export default function SepetPage() {
                                     <div className="space-y-2">
                                         <div className="flex justify-between">
                                             <span>Ara Toplam</span>
-                                            <span>€{cartTotal.toFixed(2)}</span>
+                                            <span>{symbol}{formatPrice(cartTotal)}</span>
                                         </div>
                                         {appliedCoupon && (
                                             <div className="flex justify-between text-green-600">
                                                 <span>İndirim (%20)</span>
-                                                <span>-€{discountAmount.toFixed(2)}</span>
+                                                <span>-{symbol}{formatPrice(discountAmount)}</span>
                                             </div>
                                         )}
                                         <Separator />
                                         <div className="flex justify-between font-bold text-lg">
                                             <span>Toplam</span>
-                                            <span>€{finalTotal.toFixed(2)}</span>
+                                            <span>{symbol}{formatPrice(finalTotal)}</span>
                                         </div>
                                     </div>
                                     <Separator />
@@ -290,7 +304,7 @@ export default function SepetPage() {
                                         ) : (
                                             <CreditCard className="mr-2" />
                                         )}
-                                        {isProcessing ? 'İşleniyor...' : `€${finalTotal.toFixed(2)} Ödemeyi Tamamla`}
+                                        {isProcessing ? 'İşleniyor...' : `${symbol}${formatPrice(finalTotal)} Ödemeyi Tamamla`}
                                     </Button>
                                 </div>
                              </form>
@@ -303,30 +317,30 @@ export default function SepetPage() {
                                 <CardContent className="space-y-4">
                                      {cartItems.map(item => (
                                          <div key={item.id} className="flex justify-between items-center text-sm">
-                                             <div>
-                                                <p className="font-medium">{item.name}</p>
+                                             <div className="max-w-[60%]">
+                                                <p className="font-medium truncate">{item.name}</p>
                                                 <p className="text-xs text-muted-foreground">{item.description}</p>
                                              </div>
-                                             <p>x{item.quantity}</p>
-                                             <p className="font-semibold">€{(item.price * item.quantity).toFixed(2)}</p>
+                                             <p className="shrink-0 text-muted-foreground">x{item.quantity}</p>
+                                             <p className="font-semibold shrink-0">{symbol}{formatPrice(item.price * item.quantity)}</p>
                                          </div>
                                      ))}
                                      <Separator/>
                                      <div className="space-y-2">
                                         <div className="flex justify-between text-sm">
                                             <span>Ara Toplam</span>
-                                            <span>€{cartTotal.toFixed(2)}</span>
+                                            <span>{symbol}{formatPrice(cartTotal)}</span>
                                         </div>
                                         {appliedCoupon && (
                                             <div className="flex justify-between text-sm text-green-600">
                                                 <span>İndirim ({appliedCoupon})</span>
-                                                <span>-€{discountAmount.toFixed(2)}</span>
+                                                <span>-{symbol}{formatPrice(discountAmount)}</span>
                                             </div>
                                         )}
                                         <Separator />
                                         <div className="flex justify-between font-bold text-lg">
                                             <span>Toplam</span>
-                                            <span>€{finalTotal.toFixed(2)}</span>
+                                            <span>{symbol}{formatPrice(finalTotal)}</span>
                                         </div>
                                     </div>
                                 </CardContent>

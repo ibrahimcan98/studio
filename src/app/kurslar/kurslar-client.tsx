@@ -1,49 +1,33 @@
 
-
 'use client';
-import { useState } from 'react';
 import { COURSES, Course } from "@/data/courses";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { Button } from "@/components/ui/button";
 import { CourseCard } from "@/components/courses/course-card";
 import { CheckCircle, Info, BookOpen, ShoppingCart, ShieldCheck, Lock as LockIcon, Heart, Globe } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useCart } from "@/context/cart-context";
+import { useCart, currencyDetails } from "@/context/cart-context";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-
-const currencyDetails: { [key: string]: { name: string; symbol: string; flag: string; } } = {
-    EUR: { name: 'Euro', symbol: '€', flag: '🇪🇺' },
-    GBP: { name: 'İngiliz Sterlini', symbol: '£', flag: '🇬🇧' },
-    USD: { name: 'ABD Doları', symbol: '$', flag: '🇺🇸' },
-    AED: { name: 'BAE Dirhemi', symbol: 'AED', flag: '🇦🇪' },
-    AUD: { name: 'Avustralya Doları', symbol: 'A$', flag: '🇦🇺' },
-    CAD: { name: 'Kanada Doları', symbol: 'C$', flag: '🇨🇦' },
-    CHF: { name: 'İsviçre Frankı', symbol: 'CHF', flag: '🇨🇭' },
-    IDR: { name: 'Endonezya Rupisi', symbol: 'Rp', flag: '🇮🇩' },
-    MYR: { name: 'Malezya Ringgiti', symbol: 'RM', flag: '🇲🇾' },
-    NOK: { name: 'Norveç Kronu', symbol: 'kr', flag: '🇳🇴' },
-    TRY: { name: 'Türk Lirası', symbol: '₺', flag: '🇹🇷' },
-};
-
 
 type KurslarClientPageProps = {
     exchangeRates: { [key: string]: number };
 };
 
 export function KurslarClientPage({ 
-    exchangeRates,
+    exchangeRates: initialRates,
 }: KurslarClientPageProps) {
 
     const { toast } = useToast();
-    const { addToCart } = useCart();
-    const [selectedCurrency, setSelectedCurrency] = useState('EUR');
-    const currencies = Object.keys(exchangeRates).filter(code => currencyDetails[code]);
-
+    const { addToCart, selectedCurrency, setSelectedCurrency, exchangeRates } = useCart();
+    
+    // Use context rates if loaded, otherwise fallback to server initial rates
+    const currentRates = Object.keys(exchangeRates).length > 1 ? exchangeRates : initialRates;
+    const currencies = Object.keys(currentRates).filter(code => currencyDetails[code]);
 
     const convertPrice = (priceInEur: number) => {
-        const rate = exchangeRates[selectedCurrency] || 1;
+        const rate = currentRates[selectedCurrency] || 1;
         return priceInEur * rate;
     };
 
@@ -54,7 +38,7 @@ export function KurslarClientPage({
             description: `${pkg.lessons} derslik paket`,
             price: pkg.price,
             quantity: 1,
-            image: `/images/topics/family.png` // Placeholder image
+            image: `/images/topics/family.png`
         });
         toast({
             title: "Sepete Eklendi",
@@ -78,7 +62,7 @@ export function KurslarClientPage({
                              {currencies.filter(c => c !== selectedCurrency && currencyDetails[c]).slice(0, 5).map(currency => (
                                 <div key={currency} className="flex justify-between gap-2">
                                     <span>{currencyDetails[currency]?.flag} {currency}:</span>
-                                    <span>{currencyDetails[currency]?.symbol}{(price * exchangeRates[currency]).toFixed(2)}</span>
+                                    <span>{currencyDetails[currency]?.symbol}{(price * currentRates[currency]).toFixed(2)}</span>
                                 </div>
                             ))}
                         </div>
@@ -93,7 +77,6 @@ export function KurslarClientPage({
     const akademikKursu = COURSES.find(c => c.id === 'akademik');
     const gelisimKursu = COURSES.find(c => c.id === 'gelisim');
     const gcseKursu = COURSES.find(c => c.id === 'gcse');
-
 
     return (
         <main className="container pb-24">
@@ -120,7 +103,6 @@ export function KurslarClientPage({
                     </SelectContent>
                 </Select>
             </div>
-
 
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
                 {COURSES.map((course) => (
