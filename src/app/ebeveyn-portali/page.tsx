@@ -332,33 +332,12 @@ export default function EbeveynPortaliPage() {
         </div>
          <div className="flex items-center gap-4">
             {children && children.length > 0 && (
-                 <Dialog>
-                    <DialogTrigger asChild>
-                        <Button className="bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold">
-                            <MonitorPlay className="mr-2 h-4 w-4" /> Çocuk Moduna Geç
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Hangi Çocuk Oynayacak?</DialogTitle>
-                            <DialogDescription>
-                                Lütfen oynamak için bir çocuk seçin.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid grid-cols-2 gap-4 py-4">
-                             {children.map(child => (
-                                <SetPinDialog key={child.id} childId={child.id}>
-                                    <Card className="flex flex-col items-center justify-center p-4 gap-2 cursor-pointer hover:bg-muted transition-colors">
-                                        <Avatar className="h-16 w-16 text-2xl">
-                                            <AvatarFallback className="bg-primary/20 text-primary font-bold">{child.firstName?.charAt(0)}</AvatarFallback>
-                                        </Avatar>
-                                        <span className="font-semibold">{child.firstName}</span>
-                                    </Card>
-                                </SetPinDialog>
-                            ))}
-                        </div>
-                    </DialogContent>
-                </Dialog>
+                <div className="flex flex-col items-center">
+                    <span className="text-[10px] font-bold text-muted-foreground mb-1 uppercase tracking-widest">Yakında</span>
+                    <Button disabled className="bg-slate-200 text-slate-500 cursor-not-allowed border-none">
+                        <MonitorPlay className="mr-2 h-4 w-4" /> Çocuk Moduna Geç
+                    </Button>
+                </div>
             )}
         </div>
       </div>
@@ -372,17 +351,11 @@ export default function EbeveynPortaliPage() {
                 <CardTitle className="text-sm font-medium">Premium Üye</CardTitle>
                 <Crown className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              {isPremium ? (
-                <PremiumBadge />
-              ) : (
-                 <Button asChild variant="outline" className="w-full bg-gradient-to-r from-yellow-300 to-orange-400 text-white border-none font-bold">
-                    <Link href="/premium">
-                        <Crown className="mr-2 h-4 w-4" />
-                        Premium'a Yükseltin
-                    </Link>
-                </Button>
-              )}
+            <CardContent className="flex flex-col items-center justify-center py-2">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Yakında Gelecek</span>
+                <Badge variant="secondary" className="bg-slate-100 text-slate-400 border-none font-semibold">
+                    <Lock className="mr-1 h-3 w-3" /> Aktif Değil
+                </Badge>
             </CardContent>
         </Card>
       </div>
