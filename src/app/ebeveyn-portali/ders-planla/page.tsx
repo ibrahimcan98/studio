@@ -5,10 +5,10 @@ import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, updateDoc, where, query, increment, Timestamp, writeBatch, getDocs, getDoc, arrayRemove, addDoc } from 'firebase/firestore';
-import { Loader2, ArrowLeft, Info, BookOpen, User, Calendar as CalendarIcon, Package, Clock, Plus, Eye } from 'lucide-react';
+import { Loader2, ArrowLeft, Info, BookOpen, User, Calendar as CalendarIcon, Package, Clock, Plus, Eye, PlayCircle, Sprout, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { toZonedTime, formatInTimeZone, format } from 'date-fns-tz';
@@ -33,6 +33,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 
 const teachers = [
     { id: 'O2mQCONyczVkAXcgAMBSPpeIfJw2', firstName: 'Tuba' },
@@ -54,6 +55,82 @@ const getCourseDetailsFromPackageCode = (code: string) => {
 
 const MAX_FREE_TRIALS = 3;
 
+// Teacher Preview Component
+function TeacherPreviewDialog({ teacherId, isOpen, onOpenChange }: { teacherId: string, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
+    const db = useFirestore();
+    const teacherRef = useMemoFirebase(() => teacherId ? doc(db, 'users', teacherId) : null, [db, teacherId]);
+    const { data: teacherData, isLoading } = useDoc(teacherRef);
+
+    if (!teacherId) return null;
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-[32px] border-none shadow-2xl">
+                <DialogHeader>
+                    <DialogTitle className="text-2xl font-black flex items-center gap-3">
+                        <Avatar className="h-12 w-12 ring-2 ring-primary/20">
+                            <AvatarFallback className="bg-primary/10 text-primary font-bold">{teacherData?.firstName?.[0]}</AvatarFallback>
+                        </Avatar>
+                        {teacherData?.firstName} {teacherData?.lastName}
+                    </DialogTitle>
+                    <DialogDescription>Öğretmenimizin profili ve tanıtım videosu.</DialogDescription>
+                </DialogHeader>
+
+                {isLoading ? (
+                    <div className="h-64 flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>
+                ) : teacherData ? (
+                    <div className="space-y-6 py-4">
+                        {teacherData.introVideoUrl && (
+                            <div className="aspect-video w-full rounded-2xl overflow-hidden bg-slate-100 shadow-inner relative group">
+                                <iframe 
+                                    src={teacherData.introVideoUrl.replace('watch?v=', 'embed/').replace('kapwing.com/e/', 'kapwing.com/w/')}
+                                    className="w-full h-full border-none"
+                                    allow="autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                />
+                            </div>
+                        )}
+
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div className="space-y-3">
+                                <h4 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wider">
+                                    <User className="w-4 h-4 text-primary" /> Hakkında
+                                </h4>
+                                <p className="text-sm text-slate-600 leading-relaxed italic">
+                                    "{teacherData.bio || 'Henüz bir biyografi eklenmemiş.'}"
+                                </p>
+                            </div>
+
+                            <div className="space-y-3">
+                                <h4 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wider">
+                                    <Heart className="w-4 h-4 text-primary" /> Hobiler
+                                </h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {teacherData.hobbies?.length > 0 ? (
+                                        teacherData.hobbies.map((hobby: string, i: number) => (
+                                            <Badge key={i} variant="secondary" className="bg-slate-100 text-slate-600 border-none font-medium">
+                                                {hobby}
+                                            </Badge>
+                                        ))
+                                    ) : (
+                                        <span className="text-xs text-slate-400">Belirtilmemiş</span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="py-10 text-center text-slate-400">Öğretmen bilgileri bulunamadı.</div>
+                )}
+                
+                <DialogFooter>
+                    <Button onClick={() => onOpenChange(false)} className="rounded-xl w-full sm:w-auto font-bold">Kapat</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 export default function DersPlanlaPage() {
     const router = useRouter();
     const { user, loading: userLoading } = useUser();
@@ -69,13 +146,13 @@ export default function DersPlanlaPage() {
     const [isConfirming, setIsConfirming] = useState(false);
     const [selectedSlot, setSelectedSlot] = useState<{ id: string, startTime: Timestamp, teacherId: string } | null>(null);
     const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
+    const [isTeacherPreviewOpen, setIsTeacherPreviewOpen] = useState(false);
 
-    // FIX: Properly memoized queries
     const userDocRef = useMemoFirebase(() => (user && db) ? doc(db, 'users', user.uid) : null, [user, db]);
     const { data: userData } = useDoc(userDocRef);
 
     const childrenRef = useMemoFirebase(() => (db && user) ? collection(db, 'users', user.uid, 'children') : null, [db, user]);
-    const { data: children, refetch: refetchChildren } = useCollection(childrenRef);
+    const { data: children } = useCollection(childrenRef);
 
     const selectedChildData = useMemo(() => children?.find(c => c.id === selectedChildId), [children, selectedChildId]);
     
@@ -158,69 +235,126 @@ export default function DersPlanlaPage() {
     if (userLoading || !selectedTimeZone) return <div className="flex h-screen items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
 
     return (
-        <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen font-sans">
+        <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen font-sans text-slate-900">
             <div className="flex items-center gap-4">
-                <Button variant="outline" size="icon" onClick={() => router.push('/ebeveyn-portali')}><ArrowLeft className="h-5 w-5" /></Button>
-                <div><h2 className="text-3xl font-bold tracking-tight text-slate-900">Ders Planla</h2><p className="text-muted-foreground text-sm">Öğretmenlerimizin takviminden uygun bir zaman seçin.</p></div>
+                <Button variant="outline" size="icon" onClick={() => router.push('/ebeveyn-portali')} className="rounded-xl"><ArrowLeft className="h-5 w-5" /></Button>
+                <div><h2 className="text-3xl font-black tracking-tight text-slate-900">Ders Planla</h2><p className="text-muted-foreground text-sm font-medium italic">Öğretmenlerimizin takviminden uygun bir zaman seçin.</p></div>
             </div>
 
-            <Card className="p-8 bg-white border-none shadow-sm rounded-3xl">
+            <Card className="p-8 bg-white border-none shadow-xl rounded-[40px]">
                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                      <div className="space-y-8">
                         <div className="space-y-3">
-                             <Label className="font-bold text-slate-800">1. Öğrenci Seçimi</Label>
+                             <Label className="font-black text-slate-800 uppercase tracking-widest text-[10px]">1. Öğrenci Seçimi</Label>
                              <Select value={selectedChildId} onValueChange={setSelectedChildId}>
-                                <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Çocuğunuzu seçin" /></SelectTrigger>
-                                <SelectContent>{children?.map(child => <SelectItem key={child.id} value={child.id}>{child.firstName}</SelectItem>)}</SelectContent>
+                                <SelectTrigger className="h-14 rounded-2xl border-slate-100 bg-slate-50/50 focus:ring-primary/20"><SelectValue placeholder="Çocuğunuzu seçin" /></SelectTrigger>
+                                <SelectContent className="rounded-2xl">{children?.map(child => <SelectItem key={child.id} value={child.id} className="rounded-xl">{child.firstName}</SelectItem>)}</SelectContent>
                              </Select>
                         </div>
 
                         <div className="space-y-3">
-                            <Label className="font-bold text-slate-800">2. Öğretmen Seçimi</Label>
-                            <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId} disabled={!selectedChildId}>
-                                <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Öğretmen seçin" /></SelectTrigger>
-                                <SelectContent>{teachers.map(t => <SelectItem key={t.id} value={t.id}>{t.firstName}</SelectItem>)}</SelectContent>
-                            </Select>
+                            <Label className="font-black text-slate-800 uppercase tracking-widest text-[10px]">2. Öğretmen Seçimi</Label>
+                            <div className="flex gap-2">
+                                <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId} disabled={!selectedChildId}>
+                                    <SelectTrigger className="h-14 rounded-2xl border-slate-100 bg-slate-50/50 flex-1 focus:ring-primary/20"><SelectValue placeholder="Öğretmen seçin" /></SelectTrigger>
+                                    <SelectContent className="rounded-2xl">{teachers.map(t => <SelectItem key={t.id} value={t.id} className="rounded-xl">{t.firstName}</SelectItem>)}</SelectContent>
+                                </Select>
+                                {selectedTeacherId && (
+                                    <Button 
+                                        variant="outline" 
+                                        size="icon" 
+                                        className="h-14 w-14 rounded-2xl border-slate-100 hover:bg-primary/10 hover:text-primary transition-all"
+                                        onClick={() => setIsTeacherPreviewOpen(true)}
+                                    >
+                                        <Eye className="w-6 h-6" />
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                         
                         <div className="space-y-3 flex flex-col">
-                            <Label className="font-bold text-slate-800">3. Tarih Seçimi</Label>
-                            <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} locale={tr} className="rounded-2xl border-slate-100 shadow-sm self-center"
+                            <Label className="font-black text-slate-800 uppercase tracking-widest text-[10px] mb-2">3. Tarih Seçimi</Label>
+                            <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} locale={tr} className="rounded-[32px] border-slate-50 shadow-sm self-center bg-slate-50/30 p-6"
                                 modifiers={{ available: availableDays }}
-                                modifiersClassNames={{ available: 'bg-primary/10 text-primary font-bold rounded-full' }}
+                                modifiersClassNames={{ available: 'bg-primary/10 text-primary font-black rounded-full' }}
                                 disabled={(date) => date < new Date() || !availableDays.some(d => isSameDay(date, d))}
                             />
                         </div>
                     </div>
-                     <div className="space-y-8">
+                     <div className="space-y-8 lg:border-l lg:pl-12 border-slate-50">
                         <div>
-                            <h3 className="font-bold text-slate-800 mb-4 text-lg">4. Müsait Saatler</h3>
-                            {areSlotsLoading ? <Loader2 className="h-8 w-8 animate-spin text-primary" /> : (
-                                <div className="grid grid-cols-3 gap-3">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="font-black text-slate-800 text-sm uppercase tracking-widest">4. Müsait Saatler</h3>
+                                {selectedTeacherId && (
+                                    <Badge variant="secondary" className="bg-primary/5 text-primary border-none rounded-lg px-3 py-1 font-bold">
+                                        {format(selectedDate || new Date(), 'dd MMMM', { locale: tr })}
+                                    </Badge>
+                                )}
+                            </div>
+                            {areSlotsLoading ? <div className="flex justify-center py-10"><Loader2 className="h-10 w-10 animate-spin text-primary/30" /></div> : (
+                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                                     {slotsForSelectedDate.map(slot => (
-                                        <Button key={slot.id} variant="outline" className="h-12 rounded-xl border-slate-100 hover:bg-primary/5 hover:border-primary" onClick={() => { setSelectedSlot(slot); setIsConfirming(true); }}>
+                                        <Button key={slot.id} variant="outline" className="h-14 rounded-2xl border-slate-100 font-bold text-slate-700 hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm" onClick={() => { setSelectedSlot(slot); setIsConfirming(true); }}>
                                             {formatInTimeZone(slot.startTime.toDate(), selectedTimeZone, 'HH:mm')}
                                         </Button>
                                     ))}
-                                    {slotsForSelectedDate.length === 0 && <p className="col-span-full text-slate-400 text-sm italic">Uygun saat bulunamadı.</p>}
+                                    {slotsForSelectedDate.length === 0 && (
+                                        <div className="col-span-full py-12 text-center bg-slate-50 rounded-[32px] border-2 border-dashed border-slate-100">
+                                            <CalendarIcon className="w-10 h-10 mx-auto text-slate-200 mb-3" />
+                                            <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Seçilen gün için müsait saat bulunamadı.</p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
-                         <div className="pt-6 border-t">
-                            <Label className="text-xs text-slate-400 uppercase font-bold tracking-widest">Saat Dilimi</Label>
-                            <Select value={selectedTimeZone} onValueChange={setSelectedTimeZone}>
-                                <SelectTrigger className="mt-2 h-10 bg-slate-50 border-none rounded-lg text-xs"><SelectValue /></SelectTrigger>
-                                <SelectContent>{timezones.map(tz => <SelectItem key={tz.value} value={tz.value} className="text-xs">{tz.label}</SelectItem>)}</SelectContent>
-                            </Select>
+                         <div className="pt-8 border-t border-slate-50">
+                            <div className="bg-slate-50 rounded-2xl p-4 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white rounded-lg shadow-sm"><Clock className="w-4 h-4 text-slate-400" /></div>
+                                    <div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Yerel Saat Dilimi</p>
+                                        <p className="text-xs font-bold text-slate-600 mt-1">{selectedTimeZone.split('/').pop()?.replace('_', ' ')}</p>
+                                    </div>
+                                </div>
+                                <Select value={selectedTimeZone} onValueChange={setSelectedTimeZone}>
+                                    <SelectTrigger className="w-auto h-8 bg-white border-none rounded-lg text-[10px] font-bold shadow-sm px-3 focus:ring-0">Değiştir</SelectTrigger>
+                                    <SelectContent className="rounded-xl">{timezones.map(tz => <SelectItem key={tz.value} value={tz.value} className="text-xs">{tz.label}</SelectItem>)}</SelectContent>
+                                </Select>
+                            </div>
                         </div>
                     </div>
                 </div>
             </Card>
 
+            {/* Modals */}
+            <TeacherPreviewDialog 
+                teacherId={selectedTeacherId} 
+                isOpen={isTeacherPreviewOpen} 
+                onOpenChange={setIsTeacherPreviewOpen} 
+            />
+
             <AlertDialog open={isConfirming} onOpenChange={setIsConfirming}>
-                <AlertDialogContent className="rounded-[32px] border-none shadow-2xl p-8">
-                    <AlertDialogHeader><AlertDialogTitle className="text-2xl font-black">Dersi Onayla</AlertDialogTitle><AlertDialogDescription>Seçilen ders programı kaydedilecektir.</AlertDialogDescription></AlertDialogHeader>
-                    <AlertDialogFooter className="mt-6"><AlertDialogCancel className="rounded-xl">Vazgeç</AlertDialogCancel><AlertDialogAction onClick={handleBookLesson} disabled={isBooking} className="rounded-xl bg-primary font-bold">{isBooking ? "Kaydediliyor..." : "Dersi Planla"}</AlertDialogAction></AlertDialogFooter>
+                <AlertDialogContent className="rounded-[40px] border-none shadow-2xl p-10 max-w-md">
+                    <AlertDialogHeader className="items-center text-center">
+                        <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                            <CalendarIcon className="w-10 h-10 text-primary" />
+                        </div>
+                        <AlertDialogTitle className="text-2xl font-black text-slate-900">Dersi Onayla</AlertDialogTitle>
+                        <AlertDialogDescription className="text-slate-500 font-medium">
+                            <span className="block mt-2 font-bold text-slate-800 bg-slate-50 p-3 rounded-2xl">
+                                {selectedDate && format(selectedDate, 'dd MMMM yyyy, EEEE', { locale: tr })}
+                                <br />
+                                Saat: {selectedSlot && formatInTimeZone(selectedSlot.startTime.toDate(), selectedTimeZone, 'HH:mm')}
+                            </span>
+                            <span className="block mt-4">Seçilen ders programı kaydedilecektir. Onaylıyor musunuz?</span>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="mt-8 flex-col sm:flex-row gap-3">
+                        <AlertDialogCancel className="rounded-2xl h-14 font-bold border-slate-100 flex-1">Vazgeç</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleBookLesson} disabled={isBooking} className="rounded-2xl h-14 bg-primary font-bold flex-1 shadow-lg shadow-primary/20">
+                            {isBooking ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : "Dersi Planla"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
         </div>
