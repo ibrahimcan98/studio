@@ -30,7 +30,13 @@ export default function Header() {
   const { user, loading: userLoading } = useUser();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const isLoggedIn = !!user && !user.isAnonymous; // Sadece gerçek hesaplar giriş yapmış sayılır
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isLoggedIn = !!user && !user.isAnonymous; 
   const { cartItems, isCartLoaded } = useCart();
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -78,7 +84,7 @@ export default function Header() {
     const isPremium = userData?.isPremium || false;
 
 
-    if (userLoading) {
+    if (userLoading || !mounted) {
       return <div className="h-10 w-10 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
     }
     if (!isLoggedIn) {
@@ -178,7 +184,7 @@ export default function Header() {
              <Button variant="ghost" asChild className="relative">
                 <Link href="/sepet">
                     <ShoppingCart className="h-5 w-5"/>
-                    {isCartLoaded && cartItemCount > 0 && (
+                    {mounted && isCartLoaded && cartItemCount > 0 && (
                         <Badge className="absolute -top-2 -right-2 h-5 w-5 justify-center p-0">{cartItemCount}</Badge>
                     )}
                     <span className="sr-only">Sepeti Görüntüle</span>
@@ -225,7 +231,7 @@ export default function Header() {
                                 </button>
                             ))}
                              <button onClick={() => handleLinkClick('/sepet')} className="text-lg font-medium transition-colors hover:text-foreground/80 text-left">
-                                Sepet ({isCartLoaded ? cartItemCount : 0})
+                                Sepet ({mounted && isCartLoaded ? cartItemCount : 0})
                             </button>
                             <Button variant="secondary" className="w-full justify-center p-2 h-auto font-medium text-lg" onClick={handleFreeTrialClick}>
                                 Ücretsiz Deneme

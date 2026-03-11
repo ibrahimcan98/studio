@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -42,6 +42,11 @@ export default function SepetPage() {
     const router = useRouter();
     const [isProcessing, setIsProcessing] = useState(false);
     const [step, setStep] = useState<'cart' | 'payment'>('cart');
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const rate = exchangeRates[selectedCurrency] || 1;
     const symbol = currencyDetails[selectedCurrency]?.symbol || selectedCurrency;
@@ -132,6 +137,10 @@ export default function SepetPage() {
             setIsProcessing(false);
         }
     };
+
+    if (!mounted) {
+        return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
+    }
 
     return (
         <div className="bg-muted/30 min-h-[calc(100vh-80px)] py-12 px-4 sm:px-6 lg:px-8">
