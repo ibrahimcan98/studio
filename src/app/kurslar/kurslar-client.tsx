@@ -1,4 +1,3 @@
-
 'use client';
 import { COURSES, Course } from "@/data/courses";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
@@ -13,6 +12,14 @@ import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/comp
 
 type KurslarClientPageProps = {
     exchangeRates: { [key: string]: number };
+};
+
+const courseImages: { [key: string]: string } = {
+    baslangic: "/images/topics/animals.png",
+    konusma: "/images/topics/family.png",
+    akademik: "/images/topics/school.png",
+    gelisim: "/images/topics/nature.png",
+    gcse: "/images/topics/turkey.png"
 };
 
 export function KurslarClientPage({ 
@@ -38,7 +45,7 @@ export function KurslarClientPage({
             description: `${pkg.lessons} derslik paket`,
             price: pkg.price,
             quantity: 1,
-            image: `/images/topics/family.png`
+            image: courseImages[course.id] || `/images/topics/family.png`
         });
         toast({
             title: "Sepete Eklendi",

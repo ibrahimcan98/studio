@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
@@ -24,6 +23,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useCart } from '@/context/cart-context';
+
+const courseImages: { [key: string]: string } = {
+    baslangic: "/images/topics/animals.png",
+    konusma: "/images/topics/family.png",
+    akademik: "/images/topics/school.png",
+    gelisim: "/images/topics/nature.png",
+    gcse: "/images/topics/turkey.png"
+};
 
 const getCourseByCode = (code?: string): Course | undefined => {
     if (!code) return undefined;
@@ -156,7 +163,7 @@ export default function PaketlerimPage() {
             description: `${pkg.lessons} derslik paket`,
             price: pkg.price,
             quantity: 1,
-            image: `/images/topics/family.png` // Placeholder
+            image: courseImages[course.id] || `/images/topics/family.png`
         });
 
         toast({
