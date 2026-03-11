@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, Suspense } from 'react';
@@ -24,6 +25,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { ProgressPanel } from '@/components/shared/progress-panel';
+import { LessonQuickChat } from '@/components/shared/lesson-quick-chat';
 
 const getCourseDetailsFromPackageCode = (code?: string) => {
     if (!code) return null;
@@ -99,42 +101,53 @@ function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZon
 
 
     return (
-        <Card className='flex flex-col bg-white'>
-            <CardHeader>
+        <Card className='flex flex-col bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow'>
+            <CardHeader className="pb-4">
                 <CardTitle className="flex justify-between items-start">
-                    <span className="text-xl font-bold">{packageDetails?.courseName || 'Ders'}</span>
+                    <span className="text-lg font-bold">{packageDetails?.courseName || 'Ders'}</span>
                      <Badge variant={isPast ? "outline" : "default"} className={cn(isPast ? "" : "bg-green-100 text-green-800", lesson.isLive && !isPast && "bg-red-500 text-white animate-pulse")}>
                         {isPast ? 'Tamamlandı' : (lesson.isLive ? 'Canlı Yayında' : 'Yaklaşıyor')}
                     </Badge>
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs font-semibold">
                     {formatInTimeZone(lesson.startTime, timeZone, 'dd MMMM yyyy, ', { locale: tr })}
-                    {startTimeStr} - {endTimeStr} ({timeZone.split('/').pop()?.replace('_', ' ')})
+                    {startTimeStr} - {endTimeStr}
                 </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm flex-grow">
+            <CardContent className="space-y-3 text-xs flex-grow pb-4">
                 <div className="flex items-center gap-2">
-                    <Baby className="w-4 h-4 text-muted-foreground" />
+                    <Baby className="w-3.5 h-3.5 text-primary" />
                     <span><strong>Öğrenci:</strong> {childData?.firstName}</span>
                 </div>
                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-muted-foreground" />
+                    <User className="w-3.5 h-3.5 text-muted-foreground" />
                     <span><strong>Öğretmen:</strong> {teacher?.firstName} {teacher?.lastName}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-muted-foreground" />
+                    <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
                     <span><strong>Paket:</strong> {lesson.packageCode === 'FREE_TRIAL' ? 'Ücretsiz Deneme' : packageDetails?.courseName}</span>
                 </div>
+
+                {!isPast && (
+                    <div className="mt-4 pt-4 border-t">
+                        <LessonQuickChat 
+                            lessonId={lesson.id}
+                            teacherId={lesson.teacherId}
+                            parentId={lesson.bookedBy}
+                            userRole="parent"
+                        />
+                    </div>
+                )}
             </CardContent>
-            <CardFooter className="flex flex-col items-start gap-3 pt-4">
+            <CardFooter className="flex flex-col items-start gap-3 pt-4 bg-slate-50/50">
                  {!isPast && (
-                    <Button onClick={handleJoinLesson} disabled={!canJoin} className={cn("w-full", canJoin && "bg-red-600 hover:bg-red-700")}>
+                    <Button onClick={handleJoinLesson} disabled={!canJoin} className={cn("w-full font-bold", canJoin && "bg-red-600 hover:bg-red-700")}>
                         <Video className="w-4 h-4 mr-2" />
                         {canJoin ? 'Derse Katıl' : 'Ders Zamanı Gelmedi'}
                     </Button>
                 )}
                 {isPast && lesson.feedback && (
-                    <Button variant="outline" className="w-full" onClick={onShowProgress}>
+                    <Button variant="outline" className="w-full font-bold" onClick={onShowProgress}>
                         <MessageSquare className="w-4 h-4 mr-2" />
                         Geri Bildirimi Gör
                     </Button>
@@ -323,50 +336,40 @@ function DerslerimPageContent() {
                         Geçmiş Dersler ({pastLessons.length})
                     </TabsTrigger>
                 </TabsList>
-                <TabsContent value="upcoming">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Yaklaşan Dersler</CardTitle>
-                            <CardDescription>Planlanmış ve henüz gerçekleşmemiş dersleriniz.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {upcomingLessons.length > 0 ? (
-                                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                                    {upcomingLessons.map(lesson => (
-                                        <LessonCard key={lesson.id} lesson={lesson} timeZone={timeZone} onShowProgress={() => handleShowProgress(lesson)} />
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-10 text-muted-foreground">
-                                    <p>Yaklaşan bir dersiniz bulunmuyor.</p>
-                                    <Button variant="link" className="mt-2" onClick={() => router.push('/ebeveyn-portali/ders-planla')}>
-                                        Hemen Ders Planla
-                                    </Button>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                <TabsContent value="upcoming" className="pt-4">
+                    {upcomingLessons.length > 0 ? (
+                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                            {upcomingLessons.map(lesson => (
+                                <LessonCard key={lesson.id} lesson={lesson} timeZone={timeZone} onShowProgress={() => handleShowProgress(lesson)} />
+                            ))}
+                        </div>
+                    ) : (
+                        <Card className="p-12">
+                            <div className="text-center text-muted-foreground">
+                                <Calendar className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                                <p className="text-lg font-medium">Yaklaşan bir dersiniz bulunmuyor.</p>
+                                <Button className="mt-4 font-bold" onClick={() => router.push('/ebeveyn-portali/ders-planla')}>
+                                    Hemen Ders Planla
+                                </Button>
+                            </div>
+                        </Card>
+                    )}
                 </TabsContent>
-                <TabsContent value="past">
-                    <Card>
-                         <CardHeader>
-                            <CardTitle>Geçmiş Dersler</CardTitle>
-                            <CardDescription>Tamamlanmış olan tüm dersleriniz.</CardDescription>
-                        </CardHeader>
-                         <CardContent className="space-y-4">
-                             {pastLessons.length > 0 ? (
-                                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                                    {pastLessons.map(lesson => (
-                                        <LessonCard key={lesson.id} lesson={lesson} timeZone={timeZone} onShowProgress={() => handleShowProgress(lesson)} />
-                                    ))}
-                                </div>
-                            ) : (
-                                 <div className="text-center py-10 text-muted-foreground">
-                                    <p>Henüz tamamlanmış bir dersiniz yok.</p>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                <TabsContent value="past" className="pt-4">
+                     {pastLessons.length > 0 ? (
+                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                            {pastLessons.map(lesson => (
+                                <LessonCard key={lesson.id} lesson={lesson} timeZone={timeZone} onShowProgress={() => handleShowProgress(lesson)} />
+                            ))}
+                        </div>
+                    ) : (
+                        <Card className="p-12">
+                             <div className="text-center text-muted-foreground">
+                                <History className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                                <p className="text-lg font-medium">Henüz tamamlanmış bir dersiniz yok.</p>
+                            </div>
+                        </Card>
+                    )}
                 </TabsContent>
             </Tabs>
              <Dialog open={isProgressPanelOpen} onOpenChange={setIsProgressPanelOpen}>

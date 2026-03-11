@@ -5,7 +5,7 @@ import { useState, useMemo, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, query, where, doc, writeBatch, getDoc } from 'firebase/firestore';
-import { Loader2, Calendar, History, BookOpen, Baby, Edit, AlertCircle, Video } from 'lucide-react';
+import { Loader2, Calendar, History, BookOpen, Baby, Edit, AlertCircle, Video, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dialog"
 import { useToast } from '@/hooks/use-toast';
 import { ProgressPanel } from '@/components/shared/progress-panel';
+import { LessonQuickChat } from '@/components/shared/lesson-quick-chat';
 import { cn } from '@/lib/utils';
 
 const getCourseDetailsFromPackageCode = (code?: string) => {
@@ -72,41 +73,52 @@ function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any
     const endTimeStr = formatInTimeZone(lesson.endTime, 'Europe/Istanbul', 'HH:mm', { locale: tr });
 
     return (
-        <Card className={cn('flex flex-col h-full', needsFeedback && 'border-destructive ring-1 ring-destructive')}>
-            <CardHeader>
+        <Card className={cn('flex flex-col h-full overflow-hidden shadow-sm hover:shadow-md transition-shadow', needsFeedback && 'border-destructive ring-1 ring-destructive')}>
+            <CardHeader className="pb-4">
                 <CardTitle className="flex justify-between items-start gap-2">
                     <span className="text-lg font-bold leading-tight">{packageDetails?.courseName || 'Ders'}</span>
                     <Badge variant={isPast ? "secondary" : "default"} className="shrink-0">{isPast ? 'Tamamlandı' : 'Sıradaki'}</Badge>
                 </CardTitle>
-                <CardDescription className="font-medium">
+                <CardDescription className="text-xs font-semibold">
                     {formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'dd MMMM yyyy, ', { locale: tr })}
                     {startTimeStr} - {endTimeStr}
                 </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm flex-grow">
+            <CardContent className="space-y-3 text-xs flex-grow pb-4">
                 <div className="flex items-center gap-2">
-                    <Baby className="w-4 h-4 text-primary" />
+                    <Baby className="w-3.5 h-3.5 text-primary" />
                     <span><strong>Öğrenci:</strong> {childData?.firstName || 'Yükleniyor...'}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-muted-foreground" />
+                    <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
                     <span><strong>Paket:</strong> {lesson.packageCode === 'FREE_TRIAL' ? 'Deneme Dersi' : packageDetails?.courseName}</span>
                 </div>
                 {needsFeedback && (
-                     <div className="bg-destructive/10 text-destructive text-xs font-bold px-2 py-1 rounded flex items-center gap-1 mt-2">
+                     <div className="bg-destructive/10 text-destructive text-[10px] font-black px-2 py-1 rounded flex items-center gap-1 mt-2 uppercase tracking-wider">
                         <AlertCircle className="w-3 h-3" />
-                        GERİ BİLDİRİM BEKLİYOR
+                        Geri Bildirim Bekliyor
+                    </div>
+                )}
+
+                {!isPast && (
+                    <div className="mt-4 pt-4 border-t">
+                        <LessonQuickChat 
+                            lessonId={lesson.id}
+                            teacherId={lesson.teacherId}
+                            parentId={lesson.bookedBy}
+                            userRole="teacher"
+                        />
                     </div>
                 )}
             </CardContent>
-             <CardFooter className="flex flex-col items-start gap-2 pt-4">
+             <CardFooter className="flex flex-col items-start gap-2 pt-4 bg-slate-50/50">
                 {!isPast ? (
-                    <Button onClick={() => onJoinLesson(lesson)} className='w-full'>
+                    <Button onClick={() => onJoinLesson(lesson)} className='w-full font-bold'>
                          <Video className='w-4 h-4 mr-2'/>
                         {lesson.isLive ? 'Derse Gir' : 'Dersi Başlat'}
                     </Button>
                 ) : (
-                    <Button onClick={onOpenProgressPanel} variant={needsFeedback ? "destructive" : "outline"} className='w-full'>
+                    <Button onClick={onOpenProgressPanel} variant={needsFeedback ? "destructive" : "outline"} className='w-full font-bold'>
                         <Edit className='w-4 h-4 mr-2'/> 
                         {needsFeedback ? "Geri Bildirim Ekle" : "İlerlemeyi Gör"}
                     </Button>
@@ -279,28 +291,42 @@ function OgretmenDerslerimPageContent() {
     }
 
     return (
-        <div className="flex-1 space-y-8 p-4 md:p-8 pt-6">
+        <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen">
             <h2 className="text-3xl font-bold tracking-tight">Derslerim</h2>
             <Tabs defaultValue="upcoming" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="upcoming"><Calendar className="mr-2 h-4 w-4" />Yaklaşan Dersler ({upcomingLessons.length})</TabsTrigger>
                     <TabsTrigger value="past"><History className="mr-2 h-4 w-4" />Geçmiş Dersler ({pastLessons.length})</TabsTrigger>
                 </TabsList>
-                <TabsContent value="upcoming">
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-4">
+                <TabsContent value="upcoming" className="pt-4">
+                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {upcomingLessons.map(lesson => (
                             <LessonCard key={lesson.id} lesson={lesson} onOpenProgressPanel={() => { setSelectedLesson(lesson); setIsProgressPanelOpen(true); }} onJoinLesson={handleJoinLesson} />
                         ))}
                     </div>
-                    {upcomingLessons.length === 0 && <p className="text-muted-foreground mt-4 text-center py-8">Yaklaşan dersiniz bulunmuyor.</p>}
+                    {upcomingLessons.length === 0 && (
+                        <Card className="p-12">
+                            <div className="text-center text-muted-foreground">
+                                <Calendar className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                                <p className="text-lg font-medium">Yaklaşan dersiniz bulunmuyor.</p>
+                            </div>
+                        </Card>
+                    )}
                 </TabsContent>
-                <TabsContent value="past">
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-4">
+                <TabsContent value="past" className="pt-4">
+                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {pastLessons.map(lesson => (
                             <LessonCard key={lesson.id} lesson={lesson} onOpenProgressPanel={() => { setSelectedLesson(lesson); setIsProgressPanelOpen(true); }} onJoinLesson={handleJoinLesson} />
                         ))}
                     </div>
-                    {pastLessons.length === 0 && <p className="text-muted-foreground mt-4 text-center py-8">Henüz tamamlanmış bir dersiniz yok.</p>}
+                    {pastLessons.length === 0 && (
+                        <Card className="p-12">
+                            <div className="text-center text-muted-foreground">
+                                <History className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                                <p className="text-lg font-medium">Henüz tamamlanmış bir dersiniz yok.</p>
+                            </div>
+                        </Card>
+                    )}
                 </TabsContent>
             </Tabs>
 

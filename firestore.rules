@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -42,11 +43,25 @@ service cloud.firestore {
       }
     }
 
-    // 3. DERS SLOTLARI
+    // 3. DERS SLOTLARI VE HIZLI MESAJLAR
     match /lesson-slots/{slotId} {
         allow read: if true;
         allow create: if isSignedIn();
         allow update, delete: if isSignedIn();
+
+        // Hızlı Mesajlar (Ders Bazlı)
+        match /chats/{chatId} {
+          allow read: if isSignedIn() && (
+            resource == null ||
+            get(/databases/$(database)/documents/lesson-slots/$(slotId)).data.teacherId == request.auth.uid ||
+            get(/databases/$(database)/documents/lesson-slots/$(slotId)).data.bookedBy == request.auth.uid ||
+            request.auth.token.email == 'admin@hotmail.com'
+          );
+          allow create: if isSignedIn() && (
+            get(/databases/$(database)/documents/lesson-slots/$(slotId)).data.teacherId == request.auth.uid ||
+            get(/databases/$(database)/documents/lesson-slots/$(slotId)).data.bookedBy == request.auth.uid
+          );
+        }
     }
     
     // 4. GENEL VERİLER

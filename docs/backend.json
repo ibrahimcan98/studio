@@ -64,6 +64,21 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["conversationId", "conversationOwnerUid", "senderType", "text", "createdAt"]
+    },
+    "LessonMessage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Lesson Message",
+      "type": "object",
+      "description": "A quick message sent between teacher and parent for a specific lesson.",
+      "properties": {
+        "id": { "type": "string" },
+        "lessonId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderRole": { "type": "string", "enum": ["parent", "teacher"] },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["lessonId", "senderId", "senderRole", "text", "createdAt"]
     }
   },
   "auth": {
@@ -93,6 +108,14 @@
           "entityName": "Message",
           "schema": { "$ref": "#/backend/entities/Message" },
           "description": "Individual chat messages."
+        }
+      },
+      {
+        "path": "/lesson-slots/{lessonId}/chats/{messageId}",
+        "definition": {
+          "entityName": "LessonMessage",
+          "schema": { "$ref": "#/backend/entities/LessonMessage" },
+          "description": "Quick messages for a specific lesson."
         }
       }
     ]
