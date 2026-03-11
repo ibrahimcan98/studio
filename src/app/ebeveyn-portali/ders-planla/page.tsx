@@ -34,6 +34,7 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { AddChildForm } from '@/components/parent-portal/add-child-form';
 
 const teachers = [
     { id: 'O2mQCONyczVkAXcgAMBSPpeIfJw2', firstName: 'Tuba' },
@@ -152,7 +153,7 @@ export default function DersPlanlaPage() {
     const { data: userData } = useDoc(userDocRef);
 
     const childrenRef = useMemoFirebase(() => (db && user) ? collection(db, 'users', user.uid, 'children') : null, [db, user]);
-    const { data: children } = useCollection(childrenRef);
+    const { data: children, isLoading: childrenLoading, refetch: refetchChildren } = useCollection(childrenRef);
 
     const selectedChildData = useMemo(() => children?.find(c => c.id === selectedChildId), [children, selectedChildId]);
     
@@ -246,10 +247,25 @@ export default function DersPlanlaPage() {
                      <div className="space-y-8">
                         <div className="space-y-3">
                              <Label className="font-black text-slate-800 uppercase tracking-widest text-[10px]">1. Öğrenci Seçimi</Label>
-                             <Select value={selectedChildId} onValueChange={setSelectedChildId}>
-                                <SelectTrigger className="h-14 rounded-2xl border-slate-100 bg-slate-50/50 focus:ring-primary/20"><SelectValue placeholder="Çocuğunuzu seçin" /></SelectTrigger>
-                                <SelectContent className="rounded-2xl">{children?.map(child => <SelectItem key={child.id} value={child.id} className="rounded-xl">{child.firstName}</SelectItem>)}</SelectContent>
-                             </Select>
+                             {childrenLoading ? (
+                                 <div className="h-14 bg-slate-50 animate-pulse rounded-2xl" />
+                             ) : children && children.length > 0 ? (
+                                 <Select value={selectedChildId} onValueChange={setSelectedChildId}>
+                                    <SelectTrigger className="h-14 rounded-2xl border-slate-100 bg-slate-50/50 focus:ring-primary/20"><SelectValue placeholder="Çocuğunuzu seçin" /></SelectTrigger>
+                                    <SelectContent className="rounded-2xl">{children?.map(child => <SelectItem key={child.id} value={child.id} className="rounded-xl">{child.firstName}</SelectItem>)}</SelectContent>
+                                 </Select>
+                             ) : (
+                                 <div className="flex flex-col gap-3">
+                                    <p className="text-sm text-muted-foreground italic">Henüz bir çocuk eklememişsiniz.</p>
+                                    {user && (
+                                        <AddChildForm userId={user.uid} onChildAdded={refetchChildren}>
+                                            <Button variant="outline" className="w-full h-14 rounded-2xl border-dashed border-2 border-slate-200 hover:bg-primary/5 hover:text-primary hover:border-primary transition-all font-bold">
+                                                <Plus className="mr-2 h-5 w-5" /> Yeni Çocuk Ekle
+                                            </Button>
+                                        </AddChildForm>
+                                    )}
+                                 </div>
+                             )}
                         </div>
 
                         <div className="space-y-3">
