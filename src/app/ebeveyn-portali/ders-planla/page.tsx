@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, updateDoc, where, query, increment, Timestamp, writeBatch, getDocs, getDoc, arrayRemove, addDoc } from 'firebase/firestore';
-import { Loader2, ArrowLeft, Info, BookOpen, User, Calendar as CalendarIcon, Package, Clock, Plus, Eye, PlayCircle, Sprout, Heart } from 'lucide-react';
+import { Loader2, ArrowLeft, Info, BookOpen, User, Calendar as CalendarIcon, Package, Clock, Plus, Eye, PlayCircle, Sprout, Heart, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent } from '@/components/ui/card';
@@ -147,6 +147,7 @@ export default function DersPlanlaPage() {
     const [selectedSlot, setSelectedSlot] = useState<{ id: string, startTime: Timestamp, teacherId: string } | null>(null);
     const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
     const [isTeacherPreviewOpen, setIsTeacherPreviewOpen] = useState(false);
+    const [expandedHour, setExpandedHour] = useState<string | null>(null);
 
     const userDocRef = useMemoFirebase(() => (user && db) ? doc(db, 'users', user.uid) : null, [user, db]);
     const { data: userData } = useDoc(userDocRef);
@@ -195,6 +196,18 @@ export default function DersPlanlaPage() {
         }
         return validStarts;
     }, [availableSlots, selectedDate, selectedTimeZone, selectedPackage]);
+
+    const groupedSlotsByHour = useMemo(() => {
+        const groups: { [key: string]: any[] } = {};
+        slotsForSelectedDate.forEach(slot => {
+            const hour = formatInTimeZone(slot.startTime.toDate(), selectedTimeZone, 'HH:00');
+            if (!groups[hour]) groups[hour] = [];
+            groups[hour].push(slot);
+        });
+        return groups;
+    }, [slotsForSelectedDate, selectedTimeZone]);
+
+    const availableHours = useMemo(() => Object.keys(groupedSlotsByHour).sort(), [groupedSlotsByHour]);
 
     const handleBookLesson = async () => {
         if (!user || !db || !userDocRef || !selectedSlot || !selectedPackage) return;
@@ -277,7 +290,7 @@ export default function DersPlanlaPage() {
                         <div className="space-y-3">
                             <Label className="font-semibold text-primary uppercase tracking-wider text-[11px]">2. Öğretmen Seçimi</Label>
                             <div className="flex gap-2.5">
-                                <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId} disabled={!selectedChildId}>
+                                <Select value={selectedTeacherId} onValueChange={(v) => { setSelectedTeacherId(v); setExpandedHour(null); }}>
                                     <SelectTrigger className="h-14 rounded-xl border-2 border-slate-100 bg-slate-50/50 flex-1 focus:ring-primary/20 text-base font-semibold px-5 text-slate-800 disabled:opacity-50">
                                         <SelectValue placeholder="Öğretmen seçin" />
                                     </SelectTrigger>
@@ -300,7 +313,7 @@ export default function DersPlanlaPage() {
                         
                         <div className="space-y-3 flex flex-col">
                             <Label className="font-semibold text-primary uppercase tracking-wider text-[11px] mb-1">3. Tarih Seçimi</Label>
-                            <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} locale={tr} 
+                            <Calendar mode="single" selected={selectedDate} onSelect={(d) => { setSelectedDate(d); setExpandedHour(null); }} locale={tr} 
                                 className="rounded-[24px] border-2 border-slate-50 shadow-md self-center bg-slate-50/30 p-6"
                                 modifiers={{ available: availableDays }}
                                 modifiersClassNames={{ available: 'bg-primary/10 text-primary font-bold rounded-full scale-105' }}
@@ -309,10 +322,17 @@ export default function DersPlanlaPage() {
                         </div>
                     </div>
 
-                     <div className="space-y-8 lg:border-l-2 lg:pl-12 border-slate-50">
+                     <div className="space-y-8 lg:border-l-2 lg:pl-12 border-slate-50 min-h-[400px]">
                         <div>
                             <div className="flex items-center justify-between mb-6">
-                                <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider">4. Müsait Saatler</h3>
+                                <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider">
+                                    {expandedHour ? (
+                                        <button onClick={() => setExpandedHour(null)} className="flex items-center gap-2 text-primary hover:underline group">
+                                            <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                                            Saatlere Geri Dön
+                                        </button>
+                                    ) : "4. Müsait Saatler"}
+                                </h3>
                                 {selectedTeacherId && (
                                     <Badge variant="secondary" className="bg-primary text-white border-none rounded-lg px-4 py-1.5 text-xs font-bold shadow-sm">
                                         {format(selectedDate || new Date(), 'dd MMMM', { locale: tr })}
@@ -322,18 +342,33 @@ export default function DersPlanlaPage() {
                             {areSlotsLoading ? (
                                 <div className="flex justify-center py-12"><Loader2 className="h-10 w-10 animate-spin text-primary/30" /></div>
                             ) : (
-                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                                    {slotsForSelectedDate.map(slot => (
-                                        <Button 
-                                            key={slot.id} 
-                                            variant="outline" 
-                                            className="h-12 rounded-xl border-2 border-slate-100 font-bold text-base text-slate-700 hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm" 
-                                            onClick={() => { setSelectedSlot(slot); setIsConfirming(true); }}
-                                        >
-                                            {formatInTimeZone(slot.startTime.toDate(), selectedTimeZone, 'HH:mm')}
-                                        </Button>
-                                    ))}
-                                    {slotsForSelectedDate.length === 0 && (
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                    {!expandedHour ? (
+                                        // HOUR GRID
+                                        availableHours.map(hour => (
+                                            <Button 
+                                                key={hour} 
+                                                variant="outline" 
+                                                className="h-14 rounded-xl border-2 border-slate-100 font-bold text-lg text-slate-700 hover:bg-primary/5 hover:border-primary transition-all shadow-sm" 
+                                                onClick={() => setExpandedHour(hour)}
+                                            >
+                                                {hour}
+                                            </Button>
+                                        ))
+                                    ) : (
+                                        // MINUTE GRID (DETAILED SLOTS)
+                                        groupedSlotsByHour[expandedHour]?.map(slot => (
+                                            <Button 
+                                                key={slot.id} 
+                                                variant="outline" 
+                                                className="h-12 rounded-xl border-2 border-primary/20 bg-primary/5 font-bold text-base text-primary hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm" 
+                                                onClick={() => { setSelectedSlot(slot); setIsConfirming(true); }}
+                                            >
+                                                {formatInTimeZone(slot.startTime.toDate(), selectedTimeZone, 'HH:mm')}
+                                            </Button>
+                                        ))
+                                    )}
+                                    {availableHours.length === 0 && (
                                         <div className="col-span-full py-16 text-center bg-slate-50 rounded-[24px] border-2 border-dashed border-slate-100">
                                             <CalendarIcon className="w-10 h-10 mx-auto text-slate-200 mb-3" />
                                             <p className="text-slate-400 text-xs font-bold uppercase tracking-wider px-8">Seçilen gün için müsait saat bulunamadı.</p>
@@ -359,7 +394,7 @@ export default function DersPlanlaPage() {
                             </div>
                         </div>
                     </div>
-                </div>
+                 </div>
             </Card>
 
             {/* Modals */}
