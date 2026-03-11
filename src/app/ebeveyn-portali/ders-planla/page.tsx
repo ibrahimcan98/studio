@@ -65,23 +65,23 @@ function TeacherPreviewDialog({ teacherId, isOpen, onOpenChange }: { teacherId: 
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-[32px] border-none shadow-2xl">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-[24px] border-none shadow-2xl">
                 <DialogHeader>
-                    <DialogTitle className="text-3xl font-black flex items-center gap-4 text-slate-900">
-                        <Avatar className="h-16 w-16 ring-4 ring-primary/10">
-                            <AvatarFallback className="bg-primary/10 text-primary font-black text-xl">{teacherData?.firstName?.[0]}</AvatarFallback>
+                    <DialogTitle className="text-2xl font-bold flex items-center gap-4 text-slate-900">
+                        <Avatar className="h-14 w-14 ring-4 ring-primary/10">
+                            <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">{teacherData?.firstName?.[0]}</AvatarFallback>
                         </Avatar>
                         {teacherData?.firstName} {teacherData?.lastName}
                     </DialogTitle>
-                    <DialogDescription className="text-lg font-bold text-slate-500">Öğretmenimizin profili ve tanıtım videosu.</DialogDescription>
+                    <DialogDescription className="text-base font-medium text-slate-500">Öğretmenimizin profili ve tanıtım videosu.</DialogDescription>
                 </DialogHeader>
 
                 {isLoading ? (
                     <div className="h-64 flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>
                 ) : teacherData ? (
-                    <div className="space-y-8 py-6">
+                    <div className="space-y-6 py-4">
                         {teacherData.introVideoUrl && (
-                            <div className="aspect-video w-full rounded-3xl overflow-hidden bg-slate-100 shadow-xl relative group">
+                            <div className="aspect-video w-full rounded-2xl overflow-hidden bg-slate-100 shadow-lg relative group">
                                 <iframe 
                                     src={teacherData.introVideoUrl.replace('watch?v=', 'embed/').replace('kapwing.com/e/', 'kapwing.com/w/')}
                                     className="w-full h-full border-none"
@@ -91,29 +91,29 @@ function TeacherPreviewDialog({ teacherId, isOpen, onOpenChange }: { teacherId: 
                             </div>
                         )}
 
-                        <div className="grid gap-8 md:grid-cols-2">
-                            <div className="space-y-4">
-                                <h4 className="font-black text-slate-800 flex items-center gap-2 text-base uppercase tracking-widest">
-                                    <User className="w-5 h-5 text-primary" /> Hakkında
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div className="space-y-3">
+                                <h4 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wider">
+                                    <User className="w-4 h-4 text-primary" /> Hakkında
                                 </h4>
-                                <p className="text-base text-slate-600 leading-relaxed italic font-medium">
+                                <p className="text-sm text-slate-600 leading-relaxed italic font-medium">
                                     "{teacherData.bio || 'Henüz bir biyografi eklenmemiş.'}"
                                 </p>
                             </div>
 
-                            <div className="space-y-4">
-                                <h4 className="font-black text-slate-800 flex items-center gap-2 text-base uppercase tracking-widest">
-                                    <Heart className="w-5 h-5 text-primary" /> Hobiler
+                            <div className="space-y-3">
+                                <h4 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wider">
+                                    <Heart className="w-4 h-4 text-primary" /> Hobiler
                                 </h4>
-                                <div className="flex flex-wrap gap-3">
+                                <div className="flex flex-wrap gap-2">
                                     {teacherData.hobbies?.length > 0 ? (
                                         teacherData.hobbies.map((hobby: string, i: number) => (
-                                            <Badge key={i} variant="secondary" className="bg-slate-100 text-slate-700 border-none font-bold px-4 py-1.5 rounded-xl text-sm">
+                                            <Badge key={i} variant="secondary" className="bg-slate-100 text-slate-700 border-none font-semibold px-3 py-1 rounded-lg text-xs">
                                                 {hobby}
                                             </Badge>
                                         ))
                                     ) : (
-                                        <span className="text-sm font-bold text-slate-400">Belirtilmemiş</span>
+                                        <span className="text-xs font-semibold text-slate-400">Belirtilmemiş</span>
                                     )}
                                 </div>
                             </div>
@@ -124,7 +124,7 @@ function TeacherPreviewDialog({ teacherId, isOpen, onOpenChange }: { teacherId: 
                 )}
                 
                 <DialogFooter>
-                    <Button onClick={() => onOpenChange(false)} className="rounded-2xl w-full sm:w-auto font-black text-lg py-6 shadow-lg">Kapat</Button>
+                    <Button onClick={() => onOpenChange(false)} className="rounded-xl w-full sm:w-auto font-bold text-base py-5 shadow-lg">Kapat</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -235,38 +235,38 @@ export default function DersPlanlaPage() {
     if (userLoading || !selectedTimeZone) return <div className="flex h-screen items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
 
     return (
-        <div className="flex-1 space-y-10 p-4 md:p-10 pt-8 bg-muted/20 min-h-screen font-sans text-slate-900">
-            <div className="flex items-center gap-6 max-w-6xl mx-auto">
-                <Button variant="outline" size="icon" onClick={() => router.push('/ebeveyn-portali')} className="h-12 w-12 rounded-2xl border-2 hover:bg-slate-100"><ArrowLeft className="h-6 w-6" /></Button>
+        <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen font-sans text-slate-900">
+            <div className="flex items-center gap-5 max-w-6xl mx-auto">
+                <Button variant="outline" size="icon" onClick={() => router.push('/ebeveyn-portali')} className="h-11 w-11 rounded-xl border-2 hover:bg-slate-100"><ArrowLeft className="h-5 w-5" /></Button>
                 <div>
-                    <h2 className="text-4xl font-black tracking-tight text-slate-900 uppercase">Ders Planla</h2>
-                    <p className="text-slate-500 text-lg font-bold italic mt-1">Öğretmenlerimizin takviminden uygun bir zaman seçin.</p>
+                    <h2 className="text-3xl font-bold tracking-tight text-slate-900">Ders Planla</h2>
+                    <p className="text-slate-500 text-base font-medium mt-0.5">Öğretmenlerimizin takviminden uygun bir zaman seçin.</p>
                 </div>
             </div>
 
-            <Card className="p-10 bg-white border-none shadow-2xl rounded-[48px] max-w-6xl mx-auto">
-                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-                     <div className="space-y-10">
-                        <div className="space-y-4">
-                             <Label className="font-black text-primary uppercase tracking-[0.2em] text-xs">1. Öğrenci Seçimi</Label>
+            <Card className="p-8 bg-white border-none shadow-xl rounded-[32px] max-w-6xl mx-auto">
+                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                     <div className="space-y-8">
+                        <div className="space-y-3">
+                             <Label className="font-semibold text-primary uppercase tracking-wider text-[11px]">1. Öğrenci Seçimi</Label>
                              {childrenLoading ? (
-                                 <div className="h-16 bg-slate-50 animate-pulse rounded-2xl" />
+                                 <div className="h-14 bg-slate-50 animate-pulse rounded-xl" />
                              ) : children && children.length > 0 ? (
                                  <Select value={selectedChildId} onValueChange={setSelectedChildId}>
-                                    <SelectTrigger className="h-16 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:ring-primary/20 text-lg font-bold px-6 text-slate-800">
+                                    <SelectTrigger className="h-14 rounded-xl border-2 border-slate-100 bg-slate-50/50 focus:ring-primary/20 text-base font-semibold px-5 text-slate-800">
                                         <SelectValue placeholder="Çocuğunuzu seçin" />
                                     </SelectTrigger>
-                                    <SelectContent className="rounded-2xl">
-                                        {children?.map(child => <SelectItem key={child.id} value={child.id} className="rounded-xl font-bold text-base py-3">{child.firstName}</SelectItem>)}
+                                    <SelectContent className="rounded-xl">
+                                        {children?.map(child => <SelectItem key={child.id} value={child.id} className="rounded-lg font-semibold text-sm py-2.5">{child.firstName}</SelectItem>)}
                                     </SelectContent>
                                  </Select>
                              ) : (
-                                 <div className="flex flex-col gap-4">
-                                    <p className="text-base text-slate-500 font-bold italic">Henüz bir çocuk eklememişsiniz.</p>
+                                 <div className="flex flex-col gap-3">
+                                    <p className="text-sm text-slate-500 font-medium italic">Henüz bir çocuk eklememişsiniz.</p>
                                     {user && (
                                         <AddChildForm userId={user.uid} onChildAdded={refetchChildren}>
-                                            <Button variant="outline" className="w-full h-16 rounded-2xl border-dashed border-4 border-slate-200 hover:bg-primary/5 hover:text-primary hover:border-primary transition-all font-black text-lg">
-                                                <Plus className="mr-2 h-6 w-6" /> Yeni Çocuk Ekle
+                                            <Button variant="outline" className="w-full h-14 rounded-xl border-dashed border-2 border-slate-200 hover:bg-primary/5 hover:text-primary hover:border-primary transition-all font-bold text-base">
+                                                <Plus className="mr-2 h-5 w-5" /> Yeni Çocuk Ekle
                                             </Button>
                                         </AddChildForm>
                                     )}
@@ -274,87 +274,87 @@ export default function DersPlanlaPage() {
                              )}
                         </div>
 
-                        <div className="space-y-4">
-                            <Label className="font-black text-primary uppercase tracking-[0.2em] text-xs">2. Öğretmen Seçimi</Label>
-                            <div className="flex gap-3">
+                        <div className="space-y-3">
+                            <Label className="font-semibold text-primary uppercase tracking-wider text-[11px]">2. Öğretmen Seçimi</Label>
+                            <div className="flex gap-2.5">
                                 <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId} disabled={!selectedChildId}>
-                                    <SelectTrigger className="h-16 rounded-2xl border-2 border-slate-100 bg-slate-50/50 flex-1 focus:ring-primary/20 text-lg font-bold px-6 text-slate-800 disabled:opacity-50">
+                                    <SelectTrigger className="h-14 rounded-xl border-2 border-slate-100 bg-slate-50/50 flex-1 focus:ring-primary/20 text-base font-semibold px-5 text-slate-800 disabled:opacity-50">
                                         <SelectValue placeholder="Öğretmen seçin" />
                                     </SelectTrigger>
-                                    <SelectContent className="rounded-2xl">
-                                        {teachers.map(t => <SelectItem key={t.id} value={t.id} className="rounded-xl font-bold text-base py-3">{t.firstName}</SelectItem>)}
+                                    <SelectContent className="rounded-xl">
+                                        {teachers.map(t => <SelectItem key={t.id} value={t.id} className="rounded-lg font-semibold text-sm py-2.5">{t.firstName}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                                 {selectedTeacherId && (
                                     <Button 
                                         variant="outline" 
                                         size="icon" 
-                                        className="h-16 w-16 rounded-2xl border-2 border-slate-100 hover:bg-primary/10 hover:text-primary transition-all shadow-sm"
+                                        className="h-14 w-14 rounded-xl border-2 border-slate-100 hover:bg-primary/10 hover:text-primary transition-all shadow-sm"
                                         onClick={() => setIsTeacherPreviewOpen(true)}
                                     >
-                                        <Eye className="w-7 h-7" />
+                                        <Eye className="w-6 h-6" />
                                     </Button>
                                 )}
                             </div>
                         </div>
                         
-                        <div className="space-y-4 flex flex-col">
-                            <Label className="font-black text-primary uppercase tracking-[0.2em] text-xs mb-2">3. Tarih Seçimi</Label>
+                        <div className="space-y-3 flex flex-col">
+                            <Label className="font-semibold text-primary uppercase tracking-wider text-[11px] mb-1">3. Tarih Seçimi</Label>
                             <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} locale={tr} 
-                                className="rounded-[40px] border-2 border-slate-50 shadow-lg self-center bg-slate-50/30 p-8"
+                                className="rounded-[24px] border-2 border-slate-50 shadow-md self-center bg-slate-50/30 p-6"
                                 modifiers={{ available: availableDays }}
-                                modifiersClassNames={{ available: 'bg-primary/10 text-primary font-black rounded-full scale-110' }}
+                                modifiersClassNames={{ available: 'bg-primary/10 text-primary font-bold rounded-full scale-105' }}
                                 disabled={(date) => date < new Date() || !availableDays.some(d => isSameDay(date, d))}
                             />
                         </div>
                     </div>
 
-                     <div className="space-y-10 lg:border-l-2 lg:pl-16 border-slate-50">
+                     <div className="space-y-8 lg:border-l-2 lg:pl-12 border-slate-50">
                         <div>
-                            <div className="flex items-center justify-between mb-8">
-                                <h3 className="font-black text-slate-800 text-base uppercase tracking-widest">4. Müsait Saatler</h3>
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider">4. Müsait Saatler</h3>
                                 {selectedTeacherId && (
-                                    <Badge variant="secondary" className="bg-primary text-white border-none rounded-xl px-5 py-2 text-sm font-black shadow-md shadow-primary/20">
+                                    <Badge variant="secondary" className="bg-primary text-white border-none rounded-lg px-4 py-1.5 text-xs font-bold shadow-sm">
                                         {format(selectedDate || new Date(), 'dd MMMM', { locale: tr })}
                                     </Badge>
                                 )}
                             </div>
                             {areSlotsLoading ? (
-                                <div className="flex justify-center py-16"><Loader2 className="h-12 w-12 animate-spin text-primary/30" /></div>
+                                <div className="flex justify-center py-12"><Loader2 className="h-10 w-10 animate-spin text-primary/30" /></div>
                             ) : (
-                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                                     {slotsForSelectedDate.map(slot => (
                                         <Button 
                                             key={slot.id} 
                                             variant="outline" 
-                                            className="h-16 rounded-2xl border-2 border-slate-100 font-black text-lg text-slate-700 hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm" 
+                                            className="h-12 rounded-xl border-2 border-slate-100 font-bold text-base text-slate-700 hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm" 
                                             onClick={() => { setSelectedSlot(slot); setIsConfirming(true); }}
                                         >
                                             {formatInTimeZone(slot.startTime.toDate(), selectedTimeZone, 'HH:mm')}
                                         </Button>
                                     ))}
                                     {slotsForSelectedDate.length === 0 && (
-                                        <div className="col-span-full py-20 text-center bg-slate-50 rounded-[40px] border-4 border-dashed border-slate-100">
-                                            <CalendarIcon className="w-14 h-14 mx-auto text-slate-200 mb-4" />
-                                            <p className="text-slate-400 text-sm font-black uppercase tracking-[0.1em] px-10">Seçilen gün için müsait saat bulunamadı.</p>
+                                        <div className="col-span-full py-16 text-center bg-slate-50 rounded-[24px] border-2 border-dashed border-slate-100">
+                                            <CalendarIcon className="w-10 h-10 mx-auto text-slate-200 mb-3" />
+                                            <p className="text-slate-400 text-xs font-bold uppercase tracking-wider px-8">Seçilen gün için müsait saat bulunamadı.</p>
                                         </div>
                                     )}
                                 </div>
                             )}
                         </div>
 
-                         <div className="pt-10 border-t-2 border-slate-50">
-                            <div className="bg-slate-50 rounded-[28px] p-6 flex items-center justify-between shadow-inner">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-3 bg-white rounded-2xl shadow-sm"><Clock className="w-6 h-6 text-primary" /></div>
+                         <div className="pt-8 border-t-2 border-slate-50">
+                            <div className="bg-slate-50 rounded-[20px] p-5 flex items-center justify-between shadow-inner">
+                                <div className="flex items-center gap-3.5">
+                                    <div className="p-2.5 bg-white rounded-xl shadow-sm"><Clock className="w-5 h-5 text-primary" /></div>
                                     <div>
-                                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">Yerel Saat Dilimi</p>
-                                        <p className="text-base font-black text-slate-700">{selectedTimeZone.split('/').pop()?.replace('_', ' ')}</p>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">Yerel Saat Dilimi</p>
+                                        <p className="text-sm font-bold text-slate-700">{selectedTimeZone.split('/').pop()?.replace('_', ' ')}</p>
                                     </div>
                                 </div>
                                 <Select value={selectedTimeZone} onValueChange={setSelectedTimeZone}>
-                                    <SelectTrigger className="w-auto h-10 bg-white border-2 border-slate-100 rounded-xl text-sm font-black shadow-sm px-5 focus:ring-0">Değiştir</SelectTrigger>
-                                    <SelectContent className="rounded-2xl">{timezones.map(tz => <SelectItem key={tz.value} value={tz.value} className="text-sm font-bold">{tz.label}</SelectItem>)}</SelectContent>
+                                    <SelectTrigger className="w-auto h-9 bg-white border-2 border-slate-100 rounded-lg text-xs font-bold shadow-sm px-4 focus:ring-0">Değiştir</SelectTrigger>
+                                    <SelectContent className="rounded-xl">{timezones.map(tz => <SelectItem key={tz.value} value={tz.value} className="text-xs font-semibold">{tz.label}</SelectItem>)}</SelectContent>
                                 </Select>
                             </div>
                         </div>
@@ -370,25 +370,25 @@ export default function DersPlanlaPage() {
             />
 
             <AlertDialog open={isConfirming} onOpenChange={setIsConfirming}>
-                <AlertDialogContent className="rounded-[48px] border-none shadow-2xl p-12 max-w-lg">
-                    <AlertDialogHeader className="items-center text-center space-y-6">
-                        <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-2">
-                            <CalendarIcon className="w-12 h-12 text-primary" />
+                <AlertDialogContent className="rounded-[32px] border-none shadow-2xl p-10 max-w-lg">
+                    <AlertDialogHeader className="items-center text-center space-y-5">
+                        <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-1">
+                            <CalendarIcon className="w-10 h-10 text-primary" />
                         </div>
-                        <AlertDialogTitle className="text-3xl font-black text-slate-900 tracking-tight">DERSİ ONAYLA</AlertDialogTitle>
-                        <AlertDialogDescription className="text-slate-500 font-bold text-lg leading-relaxed">
-                            <span className="block mt-4 font-black text-primary bg-primary/5 p-6 rounded-[32px] text-xl border-2 border-primary/10">
+                        <AlertDialogTitle className="text-2xl font-bold text-slate-900 tracking-tight">DERSİ ONAYLA</AlertDialogTitle>
+                        <AlertDialogDescription className="text-slate-500 font-semibold text-base leading-relaxed">
+                            <span className="block mt-3 font-bold text-primary bg-primary/5 p-5 rounded-[20px] text-lg border-2 border-primary/10">
                                 {selectedDate && format(selectedDate, 'dd MMMM yyyy, EEEE', { locale: tr })}
                                 <br />
                                 Saat: {selectedSlot && formatInTimeZone(selectedSlot.startTime.toDate(), selectedTimeZone, 'HH:mm')}
                             </span>
-                            <span className="block mt-8 px-4 text-base">Seçilen ders programı kaydedilecektir. Devam etmek istiyor musunuz?</span>
+                            <span className="block mt-6 px-3 text-sm">Seçilen ders programı kaydedilecektir. Devam etmek istiyor musunuz?</span>
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter className="mt-10 flex-col sm:flex-row gap-4">
-                        <AlertDialogCancel className="rounded-2xl h-16 font-black text-lg border-2 border-slate-100 flex-1 hover:bg-slate-50">Vazgeç</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleBookLesson} disabled={isBooking} className="rounded-2xl h-16 bg-primary font-black text-lg flex-1 shadow-xl shadow-primary/30 hover:scale-105 transition-transform">
-                            {isBooking ? <Loader2 className="animate-spin mr-2 h-6 w-6" /> : "Dersi Planla"}
+                    <AlertDialogFooter className="mt-8 flex-col sm:flex-row gap-3">
+                        <AlertDialogCancel className="rounded-xl h-14 font-bold text-base border-2 border-slate-100 flex-1 hover:bg-slate-50">Vazgeç</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleBookLesson} disabled={isBooking} className="rounded-xl h-14 bg-primary font-bold text-base flex-1 shadow-lg shadow-primary/20 hover:scale-105 transition-transform">
+                            {isBooking ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : "Dersi Planla"}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
