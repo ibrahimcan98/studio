@@ -239,7 +239,7 @@ export default function DersPlanlaPage() {
         
             await batch.commit();
             toast({ title: 'Ders Planlandı!', description: 'Dersiniz başarıyla takvime eklendi.', className: 'bg-green-500 text-white font-bold' });
-            router.push('/ebeveyn-portali/derslerim');
+            router.push('/ebeveyn-portali');
         } catch(error) {
              toast({ variant: 'destructive', title: 'Hata', description: 'İşlem başarısız oldu.' });
         } finally { setIsBooking(false); setIsConfirming(false); }
