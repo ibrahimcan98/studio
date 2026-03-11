@@ -21,6 +21,12 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if isSignedIn() && request.auth.uid == userId;
       
+      // Velilerin öğretmen profillerini görebilmesi için (Ders Planlama Önizlemesi)
+      allow get: if isSignedIn() && (
+        resource.data.role == 'teacher' || 
+        get(/databases/$(database)/documents/users/$(userId)).data.role == 'teacher'
+      );
+      
       // Admin ve öğretmenler için genel erişim
       allow list, get: if isSignedIn() && (
         request.auth.token.email == 'admin@hotmail.com' || 
