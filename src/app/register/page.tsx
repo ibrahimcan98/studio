@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -43,7 +44,6 @@ export default function RegisterPage() {
   const { user, loading } = useUser();
 
   useEffect(() => {
-    // Sadece gerçek kullanıcılar yönlendirilsin
     if (!loading && user && !user.isAnonymous) {
       router.push('/ebeveyn-portali');
     }
@@ -85,6 +85,7 @@ export default function RegisterPage() {
 
       await setDoc(userDocRef, {
         id: user.uid,
+        shortId: user.uid.substring(0, 8).toUpperCase(),
         firstName: name.split(' ')[0] || '',
         lastName: name.split(' ').slice(1).join(' ') || '',
         email: user.email?.toLowerCase(),

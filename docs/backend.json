@@ -8,6 +8,7 @@
       "description": "Represents a user of the Türk Çocuk Akademisi platform.",
       "properties": {
         "id": { "type": "string" },
+        "shortId": { "type": "string", "description": "A shortened version of the UID for display purposes (8 chars)." },
         "firstName": { "type": "string" },
         "lastName": { "type": "string" },
         "email": { "type": "string", "format": "email" },

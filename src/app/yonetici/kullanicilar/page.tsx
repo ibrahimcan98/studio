@@ -68,6 +68,7 @@ export default function UsersPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[100px]">ID</TableHead>
                   <TableHead>İsim</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Durum</TableHead>
@@ -80,6 +81,9 @@ export default function UsersPage() {
               <TableBody>
                 {parents?.map((parent) => (
                   <TableRow key={parent.id}>
+                    <TableCell className="font-mono text-xs font-bold text-primary">
+                      {parent.shortId || parent.id.substring(0, 8).toUpperCase()}
+                    </TableCell>
                     <TableCell className="font-medium">
                       {parent.firstName} {parent.lastName}
                     </TableCell>

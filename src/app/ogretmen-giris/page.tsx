@@ -32,7 +32,6 @@ export default function OgretmenGirisPage() {
   const { toast } = useToast();
   const { user, loading: userLoading } = useUser();
 
-  // Redirect if a teacher is already logged in
   useEffect(() => {
     if (!userLoading && user && user.email && allowedTeacherEmails.includes(user.email)) {
       router.replace('/ogretmen-portali/takvim');
@@ -67,6 +66,7 @@ export default function OgretmenGirisPage() {
     if (!userDoc.exists()) {
       await setDoc(userDocRef, {
         id: user.uid,
+        shortId: user.uid.substring(0, 8).toUpperCase(),
         email: user.email,
         role: 'teacher',
         createdAt: serverTimestamp(),
@@ -74,7 +74,9 @@ export default function OgretmenGirisPage() {
       });
     } else {
       const currentData = userDoc.data();
-      const updates: { [key: string]: any } = {};
+      const updates: { [key: string]: any } = {
+        shortId: user.uid.substring(0, 8).toUpperCase()
+      };
       if (currentData?.role !== 'teacher') {
         updates.role = 'teacher';
       }
@@ -88,9 +90,7 @@ export default function OgretmenGirisPage() {
         updates.introVideoUrl = profileData.introVideoUrl;
       }
 
-      if (Object.keys(updates).length > 0) {
-          await setDoc(userDocRef, updates, { merge: true });
-      }
+      await setDoc(userDocRef, updates, { merge: true });
     }
   };
 
@@ -120,7 +120,7 @@ export default function OgretmenGirisPage() {
         title: 'Başarılı!',
         description: 'Öğretmen portalına yönlendiriliyorsunuz...',
       });
-      router.push('/ogretmen-portali/takvim'); // Directly push to calendar page after successful login
+      router.push('/ogretmen-portali/takvim');
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -132,7 +132,6 @@ export default function OgretmenGirisPage() {
     }
   };
 
-  // Show a loading spinner while checking auth state, especially if a user is already logged in.
   if (userLoading || (user && user.email && allowedTeacherEmails.includes(user.email))) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -204,5 +203,3 @@ export default function OgretmenGirisPage() {
     </div>
   );
 }
-
-    
