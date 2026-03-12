@@ -17,7 +17,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/table';
+} from '@/components/ui/table';
 import { Loader2, Baby, User, Calendar, BookOpen, GraduationCap, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO, differenceInYears } from 'date-fns';
@@ -93,12 +93,12 @@ export default function AdminStudentsPage() {
     <div className="space-y-8 font-sans">
       <div className="flex justify-between items-center">
         <div>
-            <h1 className="text-3xl font-bold tracking-tight">Öğrenci Yönetimi</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Öğrenci Yönetimi</h1>
             <p className="text-muted-foreground mt-1">Platformdaki tüm kayıtlı çocukların gelişim ve paket durumları.</p>
         </div>
       </div>
 
-      <Card className="border-none shadow-md overflow-hidden">
+      <Card className="border-none shadow-xl overflow-hidden rounded-[24px]">
         <CardHeader className="bg-white border-b">
           <CardTitle className="text-lg flex items-center gap-2 text-slate-800">
             <Baby className="w-5 h-5 text-primary" /> Kayıtlı Öğrenciler ({students.length})
@@ -115,77 +115,77 @@ export default function AdminStudentsPage() {
           ) : (
             <Table>
               <TableHeader className="bg-slate-50/50">
-                <TableRow>
-                  <TableHead className="font-bold text-slate-500">Öğrenci</TableHead>
+                <TableRow className="hover:bg-transparent border-slate-100">
+                  <TableHead className="font-bold text-slate-500 py-5 pl-8">Öğrenci</TableHead>
                   <TableHead className="font-bold text-slate-500">Yaş / Ülke</TableHead>
                   <TableHead className="font-bold text-slate-500">Veli Bilgisi</TableHead>
                   <TableHead className="font-bold text-slate-500">Paket Durumu</TableHead>
                   <TableHead className="font-bold text-slate-500">Akademik Seviye</TableHead>
-                  <TableHead className="font-bold text-slate-500 text-right">Rozet</TableHead>
+                  <TableHead className="font-bold text-slate-500 text-right pr-8">Rozet</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {students.length > 0 ? (
                   students.map((student) => (
-                    <TableRow key={student.id} className="hover:bg-slate-50/50 transition-colors border-slate-100">
-                      <TableCell>
+                    <TableRow key={student.id} className="hover:bg-slate-50/30 transition-colors border-slate-100">
+                      <TableCell className="py-5 pl-8">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-xs">
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-xs shrink-0">
                                 {student.firstName?.substring(0,2).toUpperCase()}
                             </div>
-                            <div className="flex flex-col">
-                                <span className="font-bold text-slate-700">{student.firstName}</span>
-                                <span className="text-[9px] font-mono text-slate-300 select-all">ID: {student.id.substring(0, 8).toUpperCase()}</span>
+                            <div className="flex flex-col min-w-0">
+                                <span className="font-bold text-slate-700 truncate">{student.firstName}</span>
+                                <span className="text-[9px] font-mono text-slate-300 select-all uppercase">ID: {student.id.substring(0, 8).toUpperCase()}</span>
                             </div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
-                            <span className="text-sm font-semibold">{getAge(student.dateOfBirth)} Yaş</span>
-                            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                            <span className="text-sm font-semibold text-slate-600">{getAge(student.dateOfBirth)} Yaş</span>
+                            <span className="text-[10px] text-slate-400 flex items-center gap-1 font-medium">
                                 <MapPin className="w-2.5 h-3 text-slate-300" />
                                 {student.countryOfResidence?.split(',')[0] || 'Belirtilmedi'}
                             </span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col">
-                            <span className="text-sm font-semibold text-slate-600 flex items-center gap-1">
+                        <div className="flex flex-col min-w-0">
+                            <span className="text-sm font-bold text-slate-600 flex items-center gap-1 truncate">
                                 <User className="w-3 h-3 text-slate-400" /> {student.parentName}
                             </span>
-                            <span className="text-[10px] text-slate-400 font-medium lowercase">{student.parentEmail}</span>
+                            <span className="text-[10px] text-slate-400 font-medium lowercase truncate">{student.parentEmail}</span>
                         </div>
                       </TableCell>
                       <TableCell>
                         {student.assignedPackage ? (
                             <div className="flex flex-col gap-1">
-                                <Badge variant="secondary" className="w-fit text-[10px] bg-blue-50 text-blue-700 border-blue-100 font-bold">
+                                <Badge variant="secondary" className="w-fit text-[10px] bg-blue-50 text-blue-700 border-blue-100 font-bold uppercase tracking-tighter">
                                     {student.assignedPackageName || student.assignedPackage}
                                 </Badge>
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                     {student.remainingLessons} DERS KALDI
                                 </span>
                             </div>
                         ) : (
-                            <Badge variant="outline" className="text-[9px] text-slate-300 border-slate-200">Paket Atanmamış</Badge>
+                            <Badge variant="outline" className="text-[9px] text-slate-300 border-slate-200 font-bold uppercase tracking-tighter">Paket Atanmamış</Badge>
                         )}
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
-                            <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-1">
+                            <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-1">
                                 <GraduationCap className="w-3 h-3" /> CEFR
                             </span>
                             <div className="flex gap-1">
-                                {student.cefrProfile ? (
+                                {student.cefrProfile?.speaking ? (
                                     <Badge className="text-[9px] h-4 px-1.5 bg-emerald-500 text-white border-none font-black">
-                                        {student.cefrProfile.speaking?.toUpperCase()}
+                                        {student.cefrProfile.speaking.toUpperCase()}
                                     </Badge>
                                 ) : <span className="text-[10px] text-slate-300 font-medium italic">Değerlendirilmedi</span>}
                             </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <Badge className="bg-amber-100 text-amber-700 border-amber-200 font-black text-[10px]">
+                      <TableCell className="text-right pr-8">
+                        <Badge className="bg-amber-100 text-amber-700 border-none font-black text-[10px] uppercase tracking-widest">
                             {(student.badges || []).length} ROZET
                         </Badge>
                       </TableCell>

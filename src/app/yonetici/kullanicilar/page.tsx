@@ -17,7 +17,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/table';
+} from '@/components/ui/table';
 import { 
     Loader2, 
     User, 
@@ -277,7 +277,7 @@ export default function UsersPage() {
                         <div className="flex flex-col min-w-0">
                             <span className="font-bold text-slate-700 truncate">{parent.firstName} {parent.lastName}</span>
                             <span className="text-[10px] text-slate-400 font-medium lowercase truncate">{parent.email}</span>
-                            <span className="text-[9px] text-slate-300 font-mono select-all">ID: {parent.shortId || parent.id.substring(0, 8).toUpperCase()}</span>
+                            <span className="text-[9px] text-slate-300 font-mono select-all uppercase">ID: {parent.shortId || parent.id.substring(0, 8).toUpperCase()}</span>
                         </div>
                       </div>
                     </TableCell>
@@ -357,11 +357,11 @@ export default function UsersPage() {
                                     <div className="flex items-center gap-4 text-slate-400 text-sm font-medium">
                                         <span className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> {selectedParent.email}</span>
                                         <span className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" /> {selectedParent.phoneNumber}</span>
-                                        <span className="text-[10px] font-mono opacity-50 bg-white/10 px-2 py-0.5 rounded ml-2 select-all">ID: {selectedParent.shortId || selectedParent.id.substring(0, 8).toUpperCase()}</span>
+                                        <span className="text-[10px] font-mono opacity-50 bg-white/10 px-2 py-0.5 rounded ml-2 select-all uppercase">ID: {selectedParent.shortId || selectedParent.id.substring(0, 8).toUpperCase()}</span>
                                     </div>
                                 </div>
                             </div>
-                            <Badge className="bg-emerald-500 text-white border-none font-bold px-4 py-1.5 rounded-full">
+                            <Badge className="bg-emerald-500 text-white border-none font-bold px-4 py-1.5 rounded-full uppercase tracking-widest text-[10px]">
                                 {selectedParent.countryName}
                             </Badge>
                         </div>
@@ -393,7 +393,7 @@ export default function UsersPage() {
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Havuzdaki Paketler</p>
                                         <div className="flex flex-wrap gap-1 mt-1">
                                             {selectedParent.enrolledPackages?.length > 0 ? selectedParent.enrolledPackages.map((p: string, i: number) => (
-                                                <Badge key={i} variant="secondary" className="bg-white border-slate-200 text-slate-600 font-bold text-[10px]">{p}</Badge>
+                                                <Badge key={i} variant="secondary" className="bg-white border-slate-200 text-slate-600 font-bold text-[10px] uppercase">{p}</Badge>
                                             )) : <span className="text-sm font-medium text-slate-400">Yok</span>}
                                         </div>
                                     </Card>
@@ -424,7 +424,7 @@ export default function UsersPage() {
                                                         <p className="font-bold text-slate-800 text-lg">{child.firstName}</p>
                                                         <div className="flex items-center gap-2">
                                                             <p className="text-xs text-slate-500 font-medium">{child.dateOfBirth ? `${differenceInYears(new Date(), new Date(child.dateOfBirth))} Yaş` : '-'}</p>
-                                                            <span className="text-[9px] font-mono text-slate-300 bg-slate-50 px-1 rounded select-all">ID: {child.id.substring(0, 8).toUpperCase()}</span>
+                                                            <span className="text-[9px] font-mono text-slate-300 bg-slate-50 px-1 rounded select-all uppercase">ID: {child.id.substring(0, 8).toUpperCase()}</span>
                                                         </div>
                                                     </div>
                                                 </div>
