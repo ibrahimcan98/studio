@@ -29,10 +29,8 @@ import {
     Baby, 
     History, 
     Package, 
-    Plus, 
     X,
     CheckCircle2,
-    Info,
     Mail,
     Phone
 } from 'lucide-react';
@@ -61,8 +59,16 @@ import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
-interface ParentData extends any {
+interface ParentData {
     id: string;
+    shortId?: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string;
+    createdAt?: any;
+    remainingLessons: number;
+    enrolledPackages: string[];
     computedTags: string[];
     manualTags: string[];
     lastPurchaseDate?: Date;
@@ -97,14 +103,12 @@ export default function UsersPage() {
   const [allSlots, setAllSlots] = useState<any[]>([]);
   const [loadingExtras, setLoadingExtras] = useState(true);
   
-  // Modal States
   const [selectedParent, setSelectedParent] = useState<ParentData | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isTagsOpen, setIsTagsOpen] = useState(false);
   const [newTagInput, setNewTagInput] = useState('');
   const [isSavingTags, setIsSavingTags] = useState(false);
 
-  // 1. Fetch Parents
   const parentsQuery = useMemoFirebase(() => {
     if (!db) return null;
     return query(collection(db, 'users'), where('role', '==', 'parent'));
@@ -112,7 +116,6 @@ export default function UsersPage() {
 
   const { data: parents, isLoading: parentsLoading, refetch: refetchParents } = useCollection(parentsQuery);
 
-  // 2. Fetch all children and slots for tag computation
   const fetchData = async () => {
     if (!db) return;
     setLoadingExtras(true);
@@ -153,21 +156,18 @@ export default function UsersPage() {
         const parentChildren = allChildren.filter(c => c.parentId === parent.id);
         const parentSlots = allSlots.filter(s => s.bookedBy === parent.id);
         
-        // Trial logic
         const hasTrial = parentSlots.some(s => s.packageCode === 'FREE_TRIAL');
         if (hasTrial) tags.add('trial');
         
         const hasFinishedTrial = parentSlots.some(s => s.packageCode === 'FREE_TRIAL' && isBefore(s.startTime.toDate(), new Date()));
         if (hasFinishedTrial) tags.add('trialdone');
 
-        // Active/Package logic
         const hasActivePackage = parentChildren.some(c => c.assignedPackage && c.remainingLessons > 0) || (parent.enrolledPackages?.length > 0);
         if (hasActivePackage) tags.add('active');
 
         const packageFinished = parentChildren.some(c => c.finishedPackage && !c.assignedPackage);
         if (packageFinished) tags.add('package finished');
 
-        // Churn logic (No active package and registration > 1 month)
         if (!hasActivePackage && parent.createdAt) {
             const regDate = parent.createdAt.toDate();
             if (differenceInDays(new Date(), regDate) > 30) {
@@ -175,7 +175,6 @@ export default function UsersPage() {
             }
         }
 
-        // Course Specific Tags
         const allPackageCodes = [
             ...(parent.enrolledPackages || []),
             ...parentChildren.map(c => c.assignedPackage),
@@ -190,7 +189,6 @@ export default function UsersPage() {
             if (code.includes('GCSE')) tags.add('gcse');
         });
 
-        // Add manual tags if they exist in DB
         const manualTags = parent.tags || [];
         manualTags.forEach((t: string) => tags.add(t));
 
@@ -344,6 +342,10 @@ export default function UsersPage() {
       {/* DETAIL DIALOG */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0 rounded-[32px] border-none shadow-2xl">
+            <DialogHeader className="sr-only">
+                <DialogTitle>Veli Profil Detayı - {selectedParent?.firstName} {selectedParent?.lastName}</DialogTitle>
+                <DialogDescription>Seçili velinin iletişim bilgileri, çocukları ve ders geçmişini içeren detaylı görünüm.</DialogDescription>
+            </DialogHeader>
             {selectedParent && (
                 <div className="flex flex-col h-full">
                     <div className="p-8 bg-slate-900 text-white shrink-0">
@@ -457,7 +459,7 @@ export default function UsersPage() {
                                                 <div key={i} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
                                                     <div className="flex items-center gap-4">
                                                         <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", slot.packageCode === 'FREE_TRIAL' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600')}>
-                                                            {slot.packageCode === 'FREE_TRIAL' ? <Info className="w-5 h-5" /> : <Package className="w-5 h-5" />}
+                                                            <History className="w-5 h-5" />
                                                         </div>
                                                         <div>
                                                             <p className="font-bold text-sm text-slate-800">{slot.packageCode === 'FREE_TRIAL' ? 'Deneme Dersi' : `Paket Dersi (${slot.packageCode})`}</p>
@@ -534,9 +536,9 @@ export default function UsersPage() {
                 <div className="space-y-3">
                     <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Yeni Etiket Ekle</Label>
                     <div className="flex gap-2">
-                        <Input 
+                        <input 
                             placeholder="Örn: vip-müşteri" 
-                            className="rounded-xl h-11 font-bold"
+                            className="flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm font-bold ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                             value={newTagInput}
                             onChange={e => setNewTagInput(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && addTag(newTagInput)}
