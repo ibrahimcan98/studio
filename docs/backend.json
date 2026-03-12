@@ -8,77 +8,71 @@
       "description": "Represents a user of the Türk Çocuk Akademisi platform.",
       "properties": {
         "id": { "type": "string" },
-        "shortId": { "type": "string", "description": "A shortened version of the UID for display purposes (8 chars)." },
         "firstName": { "type": "string" },
         "lastName": { "type": "string" },
         "email": { "type": "string", "format": "email" },
         "phoneNumber": { "type": "string" },
         "role": { "type": "string", "enum": ["parent", "teacher", "admin"] },
         "isPremium": { "type": "boolean" },
+        "premiumStartDate": { "type": "string", "format": "date-time" },
+        "premiumEndDate": { "type": "string", "format": "date-time" },
         "lives": { "type": "number" },
-        "timezone": { "type": "string" }
+        "livesLastUpdatedAt": { "type": "string", "format": "date-time" },
+        "enrolledPackages": { "type": "array", "items": { "type": "string" } },
+        "remainingLessons": { "type": "number" },
+        "freeTrialsUsed": { "type": "number" },
+        "timezone": { "type": "string" },
+        "bio": { "type": "string" },
+        "hobbies": { "type": "array", "items": { "type": "string" } },
+        "introVideoUrl": { "type": "string", "format": "uri" },
+        "googleMeetLink": { "type": "string", "format": "uri" },
+        "isProfileComplete": { "type": "boolean" }
       },
       "required": ["id", "firstName", "lastName", "email", "role"]
     },
-    "Conversation": {
+    "Transaction": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Conversation",
+      "title": "Transaction",
       "type": "object",
-      "description": "Represents a support conversation or lead.",
+      "description": "Represents a financial transaction/purchase.",
       "properties": {
         "id": { "type": "string" },
-        "status": { "type": "string", "enum": ["open", "pending", "closed"] },
-        "channel": { "type": "string", "enum": ["website", "whatsapp"] },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" },
-        "lastMessageAt": { "type": "string", "format": "date-time" },
-        "createdBy": {
-          "type": "object",
-          "properties": {
-            "type": { "type": "string", "enum": ["anonymous", "parent"] },
-            "uid": { "type": "string" },
-            "name": { "type": "string" },
-            "email": { "type": "string" },
-            "phone": { "type": "string" }
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "amountEur": { "type": "number" },
+        "items": { 
+          "type": "array", 
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "quantity": { "type": "number" },
+              "priceEur": { "type": "number" }
+            }
           }
         },
-        "topic": { "type": "string" },
-        "assignedTeam": { "type": "string", "enum": ["Eğitim", "Teknik/Satış"] },
-        "needsHuman": { "type": "boolean" },
-        "tags": { "type": "array", "items": { "type": "string" } }
-      },
-      "required": ["status", "channel", "createdAt", "createdBy"]
-    },
-    "Message": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Message",
-      "type": "object",
-      "description": "A single message within a conversation.",
-      "properties": {
-        "id": { "type": "string" },
-        "conversationId": { "type": "string" },
-        "conversationOwnerUid": { "type": "string", "description": "The UID of the user who started the conversation. Required for listing messages." },
-        "senderType": { "type": "string", "enum": ["anonymous", "parent", "admin", "ai"] },
-        "senderUid": { "type": "string" },
-        "text": { "type": "string" },
+        "type": { "type": "string", "enum": ["package", "premium"] },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["conversationId", "conversationOwnerUid", "senderType", "text", "createdAt"]
+      "required": ["userId", "amountEur", "type", "createdAt"]
     },
-    "LessonMessage": {
+    "Child": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Lesson Message",
+      "title": "Child",
       "type": "object",
-      "description": "A quick message sent between teacher and parent for a specific lesson.",
       "properties": {
         "id": { "type": "string" },
-        "lessonId": { "type": "string" },
-        "senderId": { "type": "string" },
-        "senderRole": { "type": "string", "enum": ["parent", "teacher"] },
-        "text": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "userId": { "type": "string" },
+        "firstName": { "type": "string" },
+        "dateOfBirth": { "type": "string", "format": "date" },
+        "countryOfResidence": { "type": "string" },
+        "level": { "type": "string" },
+        "remainingLessons": { "type": "number" },
+        "assignedPackage": { "type": "string" },
+        "completedTopics": { "type": "array", "items": { "type": "string" } }
       },
-      "required": ["lessonId", "senderId", "senderRole", "text", "createdAt"]
+      "required": ["id", "userId", "firstName"]
     }
   },
   "auth": {
@@ -95,27 +89,19 @@
         }
       },
       {
-        "path": "/conversations/{conversationId}",
+        "path": "/users/{userId}/children/{childId}",
         "definition": {
-          "entityName": "Conversation",
-          "schema": { "$ref": "#/backend/entities/Conversation" },
-          "description": "Support conversations."
+          "entityName": "Child",
+          "schema": { "$ref": "#/backend/entities/Child" },
+          "description": "Children profiles."
         }
       },
       {
-        "path": "/messages/{messageId}",
+        "path": "/transactions/{transactionId}",
         "definition": {
-          "entityName": "Message",
-          "schema": { "$ref": "#/backend/entities/Message" },
-          "description": "Individual chat messages."
-        }
-      },
-      {
-        "path": "/lesson-slots/{lessonId}/chats/{messageId}",
-        "definition": {
-          "entityName": "LessonMessage",
-          "schema": { "$ref": "#/backend/entities/LessonMessage" },
-          "description": "Quick messages for a specific lesson."
+          "entityName": "Transaction",
+          "schema": { "$ref": "#/backend/entities/Transaction" },
+          "description": "Financial records for admin monitoring."
         }
       }
     ]

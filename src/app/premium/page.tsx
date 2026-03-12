@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { useToast } from "@/hooks/use-toast";
 import { Crown, Zap, Star, Award, CheckCircle, Shield, Lock, Infinity as InfinityIcon, CreditCard, AlertTriangle } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
@@ -104,6 +104,18 @@ export default function PremiumPage() {
 
             const now = new Date();
             const endDate = addMonths(now, 1);
+
+            // Transaction log for admin
+            const transactionRef = collection(db, "transactions");
+            await addDoc(transactionRef, {
+                userId: user.uid,
+                userName: user.displayName,
+                userEmail: user.email,
+                amountEur: 14.00,
+                type: 'premium',
+                createdAt: serverTimestamp(),
+                items: [{ name: "Aylık Premium Üyelik", quantity: 1, priceEur: 14.00 }]
+            });
 
             await updateDoc(userDocRef, {
                 isPremium: true,
@@ -299,5 +311,3 @@ export default function PremiumPage() {
         </div>
     );
 }
-
-    

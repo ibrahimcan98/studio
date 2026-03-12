@@ -12,7 +12,8 @@ import {
   TrendingUp,
   ShieldAlert,
   Inbox,
-  Baby
+  Baby,
+  CreditCard
 } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
@@ -41,20 +42,12 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
   const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
 
   useEffect(() => {
-    // Component mount olana kadar veya auth yüklenene kadar bekle
     if (!isMounted || authLoading) return;
-
-    // Oturum kapalıysa girişe yönlendir
     if (!user) {
       router.replace('/login');
       return;
     }
-
-    // Kullanıcı varsa ama profil verisi henüz yüklenmemişse bekle
-    // userDataLoading true iken veya veri henüz gelmemişken yönlendirme yapma
     if (userDataLoading || !userData) return;
-
-    // Veri yüklendiğinde admin değilse ana sayfaya yönlendir
     if (userData.role !== 'admin') {
       router.replace('/');
     }
@@ -66,7 +59,6 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     router.push('/login');
   };
 
-  // Yükleme ekranı: isMounted false iken, auth yüklenirken veya user varken userData yüklenirken göster
   if (!isMounted || authLoading || (user && (userDataLoading || !userData))) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-white">
@@ -76,7 +68,6 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Yetki kontrolü (Yönlendirme gerçekleşene kadar güvenlik amaçlı)
   if (!user || userData?.role !== 'admin') {
     return (
        <div className="flex h-screen w-full flex-col items-center justify-center bg-slate-50 p-6 text-center">
@@ -94,6 +85,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
   const navItems = [
     { href: '/yonetici', label: 'Dashboard', icon: Home },
     { href: '/yonetici/inbox', label: 'Inbox', icon: Inbox },
+    { href: '/yonetici/satislar', label: 'Satışlar', icon: CreditCard },
     { href: '/yonetici/kullanicilar', label: 'Veliler', icon: Users },
     { href: '/yonetici/ogrenciler', label: 'Öğrenciler', icon: Baby },
   ];

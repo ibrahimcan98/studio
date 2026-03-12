@@ -14,7 +14,7 @@ import { useCart, currencyDetails } from '@/context/cart-context';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { useUser, useFirestore } from '@/firebase';
-import { doc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, increment, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
 const getCourseCode = (courseId: string) => {
@@ -104,15 +104,33 @@ export default function SepetPage() {
             await new Promise(resolve => setTimeout(resolve, 1500));
 
             const totalLessonsToAdd = cartItems.reduce((total, item) => {
-                const lessons = parseInt(item.description.split(' ')[0], 10);
+                const lessonsText = item.description.split(' ')[0];
+                const lessons = parseInt(lessonsText, 10) || 0;
                 return total + (item.quantity * lessons);
             }, 0);
 
             const newPackages = cartItems.flatMap(item => {
                  const [courseId] = item.id.split('-');
-                 const lessons = parseInt(item.description.split(' ')[0], 10);
+                 const lessonsText = item.description.split(' ')[0];
+                 const lessons = parseInt(lessonsText, 10) || 0;
                  const courseCode = getCourseCode(courseId);
                  return Array(item.quantity).fill(`${lessons}${courseCode}`);
+            });
+
+            // Transaction log for admin
+            const transactionRef = collection(db, "transactions");
+            await addDoc(transactionRef, {
+                userId: user.uid,
+                userName: user.displayName,
+                userEmail: user.email,
+                amountEur: finalTotal,
+                type: 'package',
+                createdAt: serverTimestamp(),
+                items: cartItems.map(item => ({
+                    name: item.name,
+                    quantity: item.quantity,
+                    priceEur: item.price
+                }))
             });
 
             await updateDoc(userDocRef, {
