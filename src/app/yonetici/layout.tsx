@@ -8,11 +8,10 @@ import {
   LogOut,
   Home,
   Users,
-  BookOpen,
-  Settings,
   TrendingUp,
   ShieldAlert,
-  Inbox
+  Inbox,
+  Baby
 } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
@@ -21,9 +20,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import {
   Tooltip,
-  TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
 } from '@/components/ui/tooltip';
 
 function AdminPortalLayout({ children }: { children: React.ReactNode }) {
@@ -47,7 +44,6 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
       if (!user) {
         router.replace('/login');
       } else if (!userData || userData.role !== 'admin') {
-        // Doküman yoksa veya admin değilse yetkisiz erişimdir.
         router.replace('/');
       }
     }
@@ -68,7 +64,6 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Kullanıcı admin değilse içeriği gösterme
   if (!user || userData?.role !== 'admin') {
     return (
        <div className="flex h-screen w-full flex-col items-center justify-center bg-slate-50 p-6 text-center">
@@ -86,9 +81,8 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     { href: '/yonetici', label: 'Dashboard', icon: Home },
     { href: '/yonetici/inbox', label: 'Inbox', icon: Inbox },
     { href: '/yonetici/kullanicilar', label: 'Veliler', icon: Users },
+    { href: '/yonetici/ogrenciler', label: 'Öğrenciler', icon: Baby },
     { href: '/yonetici/satislar', label: 'Satışlar', icon: TrendingUp },
-    { href: '/yonetici/kurslar', label: 'Kurslar', icon: BookOpen },
-    { href: '/yonetici/ayarlar', label: 'Ayarlar', icon: Settings },
   ];
 
   return (
