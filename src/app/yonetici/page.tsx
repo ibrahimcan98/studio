@@ -56,24 +56,36 @@ export default function AdminDashboard() {
     const totalPaidLessons = lessons.filter(l => l.packageCode !== 'FREE_TRIAL').length;
     const totalFreeTrials = lessons.filter(l => l.packageCode === 'FREE_TRIAL').length;
     
-    // Dönüşüm Oranı Hesaplama (Trial yapan velilerin kactanesi paid paket almış?)
+    // Dönüşüm Oranı Hesaplama
     const trialUserIds = new Set(lessons.filter(l => l.packageCode === 'FREE_TRIAL').map(l => l.bookedBy));
     const paidUserIds = new Set(lessons.filter(l => l.packageCode !== 'FREE_TRIAL').map(l => l.bookedBy));
     const convertedUsers = Array.from(trialUserIds).filter(id => paidUserIds.has(id)).length;
     const conversionRate = trialUserIds.size > 0 ? ((convertedUsers / trialUserIds.size) * 100).toFixed(1) : 0;
 
-    // Ülke Dağılımı (Telefon koduna göre)
+    // Ülke Dağılımı (Telefon koduna göre genişletilmiş liste)
     const countries: any = {};
     parents.forEach(p => {
-        const phone = p.phoneNumber || "";
+        const phone = (p.phoneNumber || "").replace(/\s/g, "");
         let country = "Diğer";
+        
         if (phone.startsWith("+90")) country = "Türkiye";
+        else if (phone.startsWith("+49")) country = "Almanya";
         else if (phone.startsWith("+44")) country = "İngiltere";
         else if (phone.startsWith("+41")) country = "İsviçre";
-        else if (phone.startsWith("+49")) country = "Almanya";
-        else if (phone.startsWith("+353")) country = "İrlanda";
+        else if (phone.startsWith("+33")) country = "Fransa";
         else if (phone.startsWith("+31")) country = "Hollanda";
+        else if (phone.startsWith("+32")) country = "Belçika";
+        else if (phone.startsWith("+43")) country = "Avusturya";
         else if (phone.startsWith("+1")) country = "ABD/Kanada";
+        else if (phone.startsWith("+353")) country = "İrlanda";
+        else if (phone.startsWith("+46")) country = "İsveç";
+        else if (phone.startsWith("+45")) country = "Danimarka";
+        else if (phone.startsWith("+47")) country = "Norveç";
+        else if (phone.startsWith("+61")) country = "Avustralya";
+        else if (phone.startsWith("+994")) country = "Azerbaycan";
+        else if (phone.startsWith("+971")) country = "B.A.E";
+        else if (phone.startsWith("+966")) country = "Suudi Arabistan";
+        else if (phone.startsWith("+39")) country = "İtalya";
         
         countries[country] = (countries[country] || 0) + 1;
     });
@@ -81,7 +93,7 @@ export default function AdminDashboard() {
     // Operasyonel Akış (Son Aktiviteler)
     const recentActivities = [...lessons]
         .sort((a, b) => (b.startTime?.seconds || 0) - (a.startTime?.seconds || 0))
-        .slice(0, 5);
+        .slice(0, 10);
 
     return { 
         activeStudents: children.length, 
@@ -145,40 +157,49 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-1 border-none shadow-md">
-          <CardHeader>
+        <Card className="lg:col-span-1 border-none shadow-md overflow-hidden">
+          <CardHeader className="bg-white border-b pb-4">
             <CardTitle className="text-lg font-bold flex items-center gap-2">
                 <Globe2 className="h-5 w-5 text-primary" /> Ülke Dağılımı (Veliler)
             </CardTitle>
-            <CardDescription>Telefon koduna göre analiz.</CardDescription>
+            <CardDescription>Telefon alan kodlarına göre analiz.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {Object.entries(metrics?.countries || {}).sort((a: any, b: any) => b[1] - a[1]).map(([name, count]: any) => (
-                <div key={name} className="flex items-center justify-between">
+          <CardContent className="p-0">
+            <div className="max-h-[400px] overflow-y-auto">
+              {Object.entries(metrics?.countries || {})
+                .sort((a: any, b: any) => b[1] - a[1])
+                .map(([name, count]: any, index) => (
+                <div key={name} className={cn(
+                    "flex items-center justify-between p-4 border-b last:border-0 hover:bg-slate-50 transition-colors",
+                    index % 2 === 0 ? "bg-white" : "bg-slate-50/30"
+                )}>
                   <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-primary/40" />
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
+                        {index + 1}
+                    </div>
                     <span className="text-sm font-semibold text-slate-700">{name}</span>
                   </div>
-                  <span className="text-sm font-black text-slate-900">{count}</span>
+                  <Badge variant="secondary" className="font-black text-slate-900 bg-slate-100">
+                    {count}
+                  </Badge>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2 border-none shadow-md">
-           <CardHeader className="flex flex-row items-center justify-between">
+        <Card className="lg:col-span-2 border-none shadow-md overflow-hidden">
+           <CardHeader className="flex flex-row items-center justify-between bg-white border-b pb-4">
             <div>
               <CardTitle className="text-lg font-bold">Operasyonel Akış</CardTitle>
               <CardDescription>Son planlanan dersler ve aktiviteler.</CardDescription>
             </div>
             <Activity className="h-5 w-5 text-slate-300" />
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="p-0">
+            <div className="max-h-[400px] overflow-y-auto">
                 {metrics?.recentActivities.map((lesson: any) => (
-                    <div key={lesson.id} className="flex items-start gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white transition-colors">
+                    <div key={lesson.id} className="flex items-start gap-4 p-4 border-b last:border-0 hover:bg-slate-50 transition-colors">
                         <div className={cn(
                             "p-2 rounded-full",
                             lesson.packageCode === 'FREE_TRIAL' ? "bg-blue-100 text-blue-600" : "bg-emerald-100 text-emerald-600"
@@ -196,13 +217,13 @@ export default function AdminDashboard() {
                         <div className="text-right">
                             <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1 justify-end uppercase">
                                 <Clock className="w-3 h-3" /> 
-                                {lesson.startTime?.toDate().toLocaleDateString('tr-TR')}
+                                {lesson.startTime?.toDate().toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                             </p>
                         </div>
                     </div>
                 ))}
                 {metrics?.recentActivities.length === 0 && (
-                    <p className="text-xs text-slate-400 italic text-center py-10">Henüz aktivite bulunmuyor.</p>
+                    <p className="text-xs text-slate-400 italic text-center py-20">Henüz aktivite bulunmuyor.</p>
                 )}
             </div>
           </CardContent>
