@@ -277,6 +277,7 @@ export default function UsersPage() {
                         <div className="flex flex-col min-w-0">
                             <span className="font-bold text-slate-700 truncate">{parent.firstName} {parent.lastName}</span>
                             <span className="text-[10px] text-slate-400 font-medium lowercase truncate">{parent.email}</span>
+                            <span className="text-[9px] text-slate-300 font-mono select-all">ID: {parent.id}</span>
                         </div>
                       </div>
                     </TableCell>
@@ -356,6 +357,7 @@ export default function UsersPage() {
                                     <div className="flex items-center gap-4 text-slate-400 text-sm font-medium">
                                         <span className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> {selectedParent.email}</span>
                                         <span className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" /> {selectedParent.phoneNumber}</span>
+                                        <span className="text-[10px] font-mono opacity-50 bg-white/10 px-2 py-0.5 rounded ml-2 select-all">UID: {selectedParent.id}</span>
                                     </div>
                                 </div>
                             </div>
