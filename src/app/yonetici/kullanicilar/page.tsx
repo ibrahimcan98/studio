@@ -32,7 +32,8 @@ import {
     X,
     CheckCircle2,
     Mail,
-    Phone
+    Phone,
+    FileText
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -50,7 +51,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
+} from "@/Dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,6 +59,7 @@ import { format, differenceInDays, isBefore, differenceInYears } from 'date-fns'
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { ProgressPanel } from '@/components/shared/progress-panel';
 
 interface ParentData {
     id: string;
@@ -108,6 +110,10 @@ export default function UsersPage() {
   const [isTagsOpen, setIsTagsOpen] = useState(false);
   const [newTagInput, setNewTagInput] = useState('');
   const [isSavingTags, setIsSavingTags] = useState(false);
+
+  // Child Progress States
+  const [selectedChildForProgress, setSelectedChildForProgress] = useState<any | null>(null);
+  const [isChildProgressOpen, setIsChildProgressOpen] = useState(false);
 
   const parentsQuery = useMemoFirebase(() => {
     if (!db) return null;
@@ -430,7 +436,7 @@ export default function UsersPage() {
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="flex gap-8 items-center">
+                                                <div className="flex gap-4 items-center">
                                                     <div className="text-right">
                                                         <p className="text-[10px] font-black text-slate-400 uppercase">Kalan Ders</p>
                                                         <p className="font-bold text-slate-800">{child.remainingLessons || 0}</p>
@@ -439,6 +445,13 @@ export default function UsersPage() {
                                                         <p className="text-[10px] font-black text-slate-400 uppercase">Seviye</p>
                                                         <Badge className="bg-primary/10 text-primary border-none text-[10px] font-black">{child.level?.toUpperCase() || 'YOK'}</Badge>
                                                     </div>
+                                                    <Button variant="outline" size="sm" className="h-8 text-xs font-bold" onClick={() => {
+                                                        setSelectedChildForProgress(child);
+                                                        setIsChildProgressOpen(true);
+                                                    }}>
+                                                        <FileText className="w-3 h-3 mr-1" />
+                                                        Detaylı İlerleme
+                                                    </Button>
                                                 </div>
                                             </Card>
                                         ))}
@@ -554,6 +567,29 @@ export default function UsersPage() {
                     Kaydet
                 </Button>
             </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* CHILD PROGRESS DIALOG */}
+      <Dialog open={isChildProgressOpen} onOpenChange={setIsChildProgressOpen}>
+        <DialogContent className="max-w-5xl h-[90vh] p-0 overflow-hidden rounded-[32px] border-none shadow-2xl">
+            <DialogHeader className="p-6 border-b bg-slate-900 text-white">
+                <DialogTitle className="text-2xl font-black flex items-center gap-3">
+                    <Baby className="w-6 h-6 text-primary" />
+                    {selectedChildForProgress?.firstName} - İlerleme Detayları
+                </DialogTitle>
+                <DialogDescription className="text-slate-400 font-medium">
+                    Çocuğun tüm akademik gelişimi, CEFR seviyesi ve öğretmen değerlendirmeleri.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto p-8 bg-slate-50/50">
+                {selectedChildForProgress && (
+                    <ProgressPanel 
+                        child={selectedChildForProgress} 
+                        isEditable={true} 
+                    />
+                )}
+            </div>
         </DialogContent>
       </Dialog>
     </div>
