@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useFirestore, doc, useDoc, useMemoFirebase } from '@/firebase';
@@ -40,12 +41,22 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
   const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
 
   useEffect(() => {
-    if (!authLoading && !userDataLoading && isMounted) {
-      if (!user) {
-        router.replace('/login');
-      } else if (!userData || userData.role !== 'admin') {
-        router.replace('/');
-      }
+    // Component mount olana kadar veya auth yüklenene kadar bekle
+    if (!isMounted || authLoading) return;
+
+    // Oturum kapalıysa girişe yönlendir
+    if (!user) {
+      router.replace('/login');
+      return;
+    }
+
+    // Kullanıcı varsa ama profil verisi henüz yüklenmemişse bekle
+    // userDataLoading true iken veya veri henüz gelmemişken yönlendirme yapma
+    if (userDataLoading || !userData) return;
+
+    // Veri yüklendiğinde admin değilse ana sayfaya yönlendir
+    if (userData.role !== 'admin') {
+      router.replace('/');
     }
   }, [user, authLoading, userData, userDataLoading, router, isMounted]);
 
@@ -55,7 +66,8 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     router.push('/login');
   };
 
-  if (!isMounted || authLoading || (user && userDataLoading)) {
+  // Yükleme ekranı: isMounted false iken, auth yüklenirken veya user varken userData yüklenirken göster
+  if (!isMounted || authLoading || (user && (userDataLoading || !userData))) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-white">
         <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
@@ -64,11 +76,13 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // Yetki kontrolü (Yönlendirme gerçekleşene kadar güvenlik amaçlı)
   if (!user || userData?.role !== 'admin') {
     return (
        <div className="flex h-screen w-full flex-col items-center justify-center bg-slate-50 p-6 text-center">
           <div className="bg-red-100 p-4 rounded-full mb-6"><ShieldAlert className="h-10 w-10 text-red-600" /></div>
           <h2 className="text-2xl font-bold mb-2">Yönetici Yetkisi Gereklidir</h2>
+          <p className="text-muted-foreground max-w-sm mx-auto">Bu sayfaya erişmek için admin yetkisine sahip olmanız gerekmektedir.</p>
           <div className="flex gap-4 mt-8">
              <Button onClick={() => router.push('/')} variant="outline">Ana Sayfaya Dön</Button>
              <Button onClick={handleLogout} className="bg-slate-900">Farklı Hesapla Giriş Yap</Button>
@@ -82,7 +96,6 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     { href: '/yonetici/inbox', label: 'Inbox', icon: Inbox },
     { href: '/yonetici/kullanicilar', label: 'Veliler', icon: Users },
     { href: '/yonetici/ogrenciler', label: 'Öğrenciler', icon: Baby },
-    { href: '/yonetici/satislar', label: 'Satışlar', icon: TrendingUp },
   ];
 
   return (
