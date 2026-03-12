@@ -1,6 +1,6 @@
 'use client';
 
-import { useFirestore, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collectionGroup, getDocs, query, doc, getDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import {
@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, Baby, User, Calendar, BookOpen } from 'lucide-react';
+import { Loader2, Baby, User, Calendar, BookOpen, GraduationCap, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO, differenceInYears } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -39,11 +39,13 @@ export default function AdminStudentsPage() {
       if (!db) return;
       setIsLoading(true);
       try {
+        // Tüm çocukları ana koleksiyon bağımsız olarak çek (Collection Group)
         const childrenQuery = query(collectionGroup(db, 'children'));
         const querySnapshot = await getDocs(childrenQuery);
         
         const studentData = await Promise.all(querySnapshot.docs.map(async (childDoc) => {
             const data = childDoc.data();
+            // Parent ID'yi doküman yolundan çek (users/userId/children/childId)
             const userId = childDoc.ref.parent.parent?.id;
             
             let parentInfo = { name: 'Bilinmiyor', email: '-' };
@@ -66,7 +68,8 @@ export default function AdminStudentsPage() {
             };
         }));
 
-        setStudents(studentData);
+        // Alfabetik sırala
+        setStudents(studentData.sort((a, b) => (a.firstName || "").localeCompare(b.firstName || "")));
       } catch (error) {
         console.error("Error fetching students:", error);
       } finally {
@@ -91,17 +94,17 @@ export default function AdminStudentsPage() {
       <div className="flex justify-between items-center">
         <div>
             <h1 className="text-3xl font-bold tracking-tight">Öğrenci Yönetimi</h1>
-            <p className="text-muted-foreground mt-1">Sistemdeki tüm kayıtlı öğrencileri ve gelişim durumlarını inceleyin.</p>
+            <p className="text-muted-foreground mt-1">Platformdaki tüm kayıtlı çocukların gelişim ve paket durumları.</p>
         </div>
       </div>
 
       <Card className="border-none shadow-md overflow-hidden">
         <CardHeader className="bg-white border-b">
           <CardTitle className="text-lg flex items-center gap-2 text-slate-800">
-            <Baby className="w-5 h-5 text-primary" /> Kayıtlı Öğrenciler
+            <Baby className="w-5 h-5 text-primary" /> Kayıtlı Öğrenciler ({students.length})
           </CardTitle>
           <CardDescription>
-            Tüm kullanıcıların altındaki çocuk profilleri listelenmektedir.
+            Velilerin oluşturduğu tüm çocuk profilleri ve akademik seviyeleri.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -117,67 +120,78 @@ export default function AdminStudentsPage() {
                   <TableHead className="font-bold text-slate-500">Yaş / Ülke</TableHead>
                   <TableHead className="font-bold text-slate-500">Veli Bilgisi</TableHead>
                   <TableHead className="font-bold text-slate-500">Paket Durumu</TableHead>
-                  <TableHead className="font-bold text-slate-500">Gelişim</TableHead>
-                  <TableHead className="font-bold text-slate-500">Rozetler</TableHead>
+                  <TableHead className="font-bold text-slate-500">Akademik Seviye</TableHead>
+                  <TableHead className="font-bold text-slate-500 text-right">Rozet</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {students.length > 0 ? (
                   students.map((student) => (
-                    <TableRow key={student.id} className="hover:bg-slate-50/50 transition-colors">
+                    <TableRow key={student.id} className="hover:bg-slate-50/50 transition-colors border-slate-100">
                       <TableCell>
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                                {student.firstName?.charAt(0)}
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-xs">
+                                {student.firstName?.substring(0,2).toUpperCase()}
                             </div>
                             <span className="font-bold text-slate-700">{student.firstName}</span>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
-                            <span className="text-sm font-medium">{getAge(student.dateOfBirth)} Yaş</span>
-                            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{student.countryOfResidence || 'Bilinmiyor'}</span>
+                            <span className="text-sm font-semibold">{getAge(student.dateOfBirth)} Yaş</span>
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                <MapPin className="w-2.5 h-3 text-slate-300" />
+                                {student.countryOfResidence?.split(',')[0] || 'Belirtilmedi'}
+                            </span>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
-                            <span className="text-sm font-semibold text-slate-600 flex items-center gap-1"><User className="w-3 h-3" /> {student.parentName}</span>
-                            <span className="text-[10px] text-muted-foreground">{student.parentEmail}</span>
+                            <span className="text-sm font-semibold text-slate-600 flex items-center gap-1">
+                                <User className="w-3 h-3 text-slate-400" /> {student.parentName}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-medium lowercase">{student.parentEmail}</span>
                         </div>
                       </TableCell>
                       <TableCell>
                         {student.assignedPackage ? (
                             <div className="flex flex-col gap-1">
-                                <Badge variant="secondary" className="w-fit text-[10px] bg-blue-50 text-blue-700 border-blue-100">{student.assignedPackageName}</Badge>
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{student.remainingLessons} DERS KALDI</span>
+                                <Badge variant="secondary" className="w-fit text-[10px] bg-blue-50 text-blue-700 border-blue-100 font-bold">
+                                    {student.assignedPackageName || student.assignedPackage}
+                                </Badge>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                                    {student.remainingLessons} DERS KALDI
+                                </span>
                             </div>
                         ) : (
-                            <span className="text-xs text-slate-400 italic">Atanmamış</span>
+                            <Badge variant="outline" className="text-[9px] text-slate-300 border-slate-200">Paket Atanmamış</Badge>
                         )}
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
-                            <span className="text-[10px] font-black text-slate-400 uppercase">CEFR</span>
+                            <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-1">
+                                <GraduationCap className="w-3 h-3" /> CEFR
+                            </span>
                             <div className="flex gap-1">
                                 {student.cefrProfile ? (
-                                    <Badge className="text-[9px] h-4 px-1.5 bg-emerald-100 text-emerald-700 border-none">{student.cefrProfile.speaking?.toUpperCase()}</Badge>
-                                ) : <span className="text-[10px] text-slate-300">-</span>}
+                                    <Badge className="text-[9px] h-4 px-1.5 bg-emerald-500 text-white border-none font-black">
+                                        {student.cefrProfile.speaking?.toUpperCase()}
+                                    </Badge>
+                                ) : <span className="text-[10px] text-slate-300 font-medium italic">Değerlendirilmedi</span>}
                             </div>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                            <Badge className="bg-amber-100 text-amber-700 border-none font-bold text-[10px]">
-                                {(student.badges || []).length} Rozet
-                            </Badge>
-                        </div>
+                      <TableCell className="text-right">
+                        <Badge className="bg-amber-100 text-amber-700 border-amber-200 font-black text-[10px]">
+                            {(student.badges || []).length} ROZET
+                        </Badge>
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-32 text-center text-muted-foreground italic">
-                      Henüz öğrenci kaydı bulunmuyor.
+                    <TableCell colSpan={6} className="h-32 text-center text-muted-foreground italic text-sm">
+                      Sistemde henüz öğrenci kaydı bulunmuyor.
                     </TableCell>
                   </TableRow>
                 )}

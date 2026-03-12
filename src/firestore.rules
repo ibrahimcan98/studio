@@ -7,6 +7,14 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'admin@hotmail.com' ||
+        request.auth.uid == 'HjYBaEgRUsQ4DUIvBlFfrx7ND6p1' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+
     // 1. DESTEK SİSTEMİ - TAMAMEN AÇIK (KULLANICI TALEBİ)
     match /conversations/{id} {
       allow read, write: if true;
@@ -20,18 +28,24 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if isSignedIn() && request.auth.uid == userId;
       
-      allow list, get: if isSignedIn() && (
-        request.auth.token.email == 'admin@hotmail.com' || 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'teacher']
+      // Velilerin öğretmen profillerini görebilmesi için
+      allow get: if isSignedIn() && (
+        resource.data.role == 'teacher' || 
+        get(/databases/$(database)/documents/users/$(userId)).data.role == 'teacher'
       );
+      
+      // Admin her şeyi görebilir
+      allow list, get: if isAdmin();
 
       match /children/{childId} {
         allow read, write: if isSignedIn() && request.auth.uid == userId;
-        allow read: if isSignedIn() && (
-          request.auth.token.email == 'admin@hotmail.com' ||
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'teacher']
-        );
+        allow read: if isAdmin();
       }
+    }
+
+    // Collection Group kuralı (Admin için tüm çocukları listeleme yetkisi)
+    match /{path=**}/children/{childId} {
+      allow read: if isAdmin();
     }
 
     // 3. DERS SLOTLARI
@@ -39,22 +53,27 @@ service cloud.firestore {
         allow read: if true;
         allow create: if isSignedIn();
         allow update, delete: if isSignedIn();
+        
+        match /chats/{chatId} {
+          allow read, write: if isSignedIn();
+        }
     }
     
     // 4. GENEL VERİLER
     match /courses/{courseId} {
       allow read: if true;
-      allow write: if isSignedIn() && request.auth.token.email == 'admin@hotmail.com';
+      allow write: if isAdmin();
     }
 
     match /reviews/{reviewId} {
       allow read: if true;
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || request.auth.token.email == 'admin@hotmail.com');
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
+    // 5. GLOBAL ADMIN ERİŞİMİ
     match /{document=**} {
-      allow read, write: if isSignedIn() && request.auth.token.email == 'admin@hotmail.com';
+      allow read, write: if isAdmin();
     }
   }
 }
