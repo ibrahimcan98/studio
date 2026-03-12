@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -42,27 +43,61 @@ export default function AdminDashboard() {
 
   // Veri Sorguları
   const parentsQuery = useMemoFirebase(() => db ? query(collection(db, 'users'), where('role', '==', 'parent')) : null, [db]);
-  const lessonsQuery = useMemoFirebase(() => db ? query(collection(db, 'lesson-slots'), where('status', '==', 'booked')) : null, [db]);
+  const slotsQuery = useMemoFirebase(() => db ? query(collection(db, 'lesson-slots'), where('status', '==', 'booked')) : null, [db]);
   const childrenQuery = useMemoFirebase(() => db ? query(collectionGroup(db, 'children')) : null, [db]);
 
   const { data: parents, isLoading: parentsLoading } = useCollection(parentsQuery);
-  const { data: lessons, isLoading: lessonsLoading } = useCollection(lessonsQuery);
+  const { data: slots, isLoading: slotsLoading } = useCollection(slotsQuery);
   const { data: children, isLoading: childrenLoading } = useCollection(childrenQuery);
 
   // Growth Metrikleri Hesaplama
   const metrics = useMemo(() => {
-    if (!parents || !lessons || !children) return null;
+    if (!parents || !slots || !children) return null;
 
-    const totalPaidLessons = lessons.filter(l => l.packageCode !== 'FREE_TRIAL').length;
-    const totalFreeTrials = lessons.filter(l => l.packageCode === 'FREE_TRIAL').length;
+    // 1. Gruplama Mantığı: 5 dakikalık slotları "Ders Oturumu" haline getir
+    const sessions: { [key: string]: any[] } = {};
+    slots.forEach(slot => {
+        const date = slot.startTime?.toDate().toDateString();
+        // Aynı çocuk, aynı öğretmen, aynı gün ve aynı paket koduna göre grupla
+        const key = `${slot.childId}_${slot.teacherId}_${date}_${slot.packageCode}`;
+        if (!sessions[key]) sessions[key] = [];
+        sessions[key].push(slot);
+    });
+
+    const groupedLessons: any[] = [];
+    Object.values(sessions).forEach(sessionSlots => {
+        // Slotları zaman sırasına diz
+        sessionSlots.sort((a, b) => a.startTime.seconds - b.startTime.seconds);
+
+        let currentLesson: any = null;
+        sessionSlots.forEach(slot => {
+            // Eğer yeni bir ders başlangıcıysa veya mevcut dersin bitişinden (5dk) daha sonraysa yeni grup aç
+            if (!currentLesson || (slot.startTime.seconds - currentLesson.lastSlotSeconds > 300)) {
+                currentLesson = { 
+                    ...slot, 
+                    slotCount: 1, 
+                    lastSlotSeconds: slot.startTime.seconds 
+                };
+                groupedLessons.push(currentLesson);
+            } else {
+                // Mevcut gruba dahil et
+                currentLesson.slotCount += 1;
+                currentLesson.lastSlotSeconds = slot.startTime.seconds;
+            }
+        });
+    });
+
+    // Filtreleme ve Metrikler
+    const totalPaidLessons = groupedLessons.filter(l => l.packageCode !== 'FREE_TRIAL').length;
+    const totalFreeTrials = groupedLessons.filter(l => l.packageCode === 'FREE_TRIAL').length;
     
-    // Dönüşüm Oranı Hesaplama
-    const trialUserIds = new Set(lessons.filter(l => l.packageCode === 'FREE_TRIAL').map(l => l.bookedBy));
-    const paidUserIds = new Set(lessons.filter(l => l.packageCode !== 'FREE_TRIAL').map(l => l.bookedBy));
+    // Dönüşüm Oranı Hesaplama (Oturum bazlı)
+    const trialUserIds = new Set(groupedLessons.filter(l => l.packageCode === 'FREE_TRIAL').map(l => l.bookedBy));
+    const paidUserIds = new Set(groupedLessons.filter(l => l.packageCode !== 'FREE_TRIAL').map(l => l.bookedBy));
     const convertedUsers = Array.from(trialUserIds).filter(id => paidUserIds.has(id)).length;
     const conversionRate = trialUserIds.size > 0 ? ((convertedUsers / trialUserIds.size) * 100).toFixed(1) : 0;
 
-    // Ülke Dağılımı (Telefon koduna göre genişletilmiş liste)
+    // Ülke Dağılımı
     const countries: any = {};
     parents.forEach(p => {
         const phone = (p.phoneNumber || "").replace(/\s/g, "");
@@ -90,10 +125,10 @@ export default function AdminDashboard() {
         countries[country] = (countries[country] || 0) + 1;
     });
 
-    // Operasyonel Akış (Son Aktiviteler)
-    const recentActivities = [...lessons]
+    // Operasyonel Akış (Gruplanmış derslere göre son 15 aktivite)
+    const recentActivities = [...groupedLessons]
         .sort((a, b) => (b.startTime?.seconds || 0) - (a.startTime?.seconds || 0))
-        .slice(0, 10);
+        .slice(0, 15);
 
     return { 
         activeStudents: children.length, 
@@ -103,9 +138,9 @@ export default function AdminDashboard() {
         countries,
         recentActivities 
     };
-  }, [parents, lessons, children]);
+  }, [parents, slots, children]);
 
-  if (parentsLoading || lessonsLoading || childrenLoading) {
+  if (parentsLoading || slotsLoading || childrenLoading) {
     return (
         <div className="flex h-96 items-center justify-center">
             <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
@@ -211,7 +246,7 @@ export default function AdminDashboard() {
                                 {lesson.packageCode === 'FREE_TRIAL' ? "Yeni Deneme Dersi" : "Paket Dersi Planlandı"}
                             </p>
                             <p className="text-[11px] text-slate-500">
-                                ID: {lesson.id.substring(0,8)} • Paket: {lesson.packageCode}
+                                ID: {lesson.id.substring(0,8)} • Paket: {lesson.packageCode} • {lesson.slotCount * 5} Dakika
                             </p>
                         </div>
                         <div className="text-right">
