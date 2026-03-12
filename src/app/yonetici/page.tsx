@@ -246,7 +246,7 @@ export default function AdminDashboard() {
                                 {lesson.packageCode === 'FREE_TRIAL' ? "Yeni Deneme Dersi" : "Paket Dersi Planlandı"}
                             </p>
                             <p className="text-[11px] text-slate-500">
-                                ID: {lesson.id.substring(0,8)} • Paket: {lesson.packageCode} • {lesson.slotCount * 5} Dakika
+                                ID: {lesson.id.substring(0,8)} • Paket: {lesson.packageCode} • {lesson.slotCount * 5 - 5} Dakika
                             </p>
                         </div>
                         <div className="text-right">
