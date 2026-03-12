@@ -22,14 +22,15 @@ import {
 import { 
     Loader2, 
     CreditCard, 
-    Calendar, 
+    Calendar as CalendarIcon, 
     ArrowUpRight, 
     User, 
     Package, 
     TrendingUp,
     Euro,
     ChevronDown,
-    Filter
+    Filter,
+    CalendarDays
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -40,17 +41,28 @@ import {
     SelectTrigger, 
     SelectValue 
 } from '@/components/ui/select';
-import { format, startOfMonth, startOfQuarter, startOfYear, isAfter } from 'date-fns';
+import { 
+    Popover, 
+    PopoverContent, 
+    PopoverTrigger 
+} from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format, startOfMonth, startOfQuarter, startOfYear, isAfter, isBefore, endOfDay, startOfDay } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { DateRange } from 'react-day-picker';
 
 export default function SalesPage() {
   const db = useFirestore();
-  const [filter, setFilter] = useState<'monthly' | 'quarterly' | 'yearly'>('monthly');
+  const [filter, setFilter] = useState<'monthly' | 'quarterly' | 'yearly' | 'custom'>('monthly');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfMonth(new Date()),
+    to: new Date(),
+  });
 
   const transactionsQuery = useMemoFirebase(() => {
     if (!db) return null;
-    return query(collection(db, 'transactions'), orderBy('createdAt', 'desc'), limit(500));
+    return query(collection(db, 'transactions'), orderBy('createdAt', 'desc'), limit(1000));
   }, [db]);
 
   const { data: transactions, isLoading } = useCollection(transactionsQuery);
@@ -59,14 +71,25 @@ export default function SalesPage() {
     if (!transactions) return [];
     
     const now = new Date();
-    let startDate: Date;
+    
+    if (filter === 'custom') {
+        if (!dateRange?.from) return transactions;
+        const fromDate = startOfDay(dateRange.from);
+        const toDate = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
+        
+        return transactions.filter(t => {
+            const date = t.createdAt.toDate();
+            return isAfter(date, fromDate) && isBefore(date, toDate);
+        });
+    }
 
+    let startDate: Date;
     if (filter === 'monthly') startDate = startOfMonth(now);
     else if (filter === 'quarterly') startDate = startOfQuarter(now);
     else startDate = startOfYear(now);
 
     return transactions.filter(t => isAfter(t.createdAt.toDate(), startDate));
-  }, [transactions, filter]);
+  }, [transactions, filter, dateRange]);
 
   const stats = useMemo(() => {
     const total = filteredTransactions.reduce((acc, curr) => acc + (curr.amountEur || 0), 0);
@@ -87,26 +110,68 @@ export default function SalesPage() {
 
   return (
     <div className="space-y-8 font-sans">
-      <div className="flex justify-between items-end">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
             <h1 className="text-3xl font-black tracking-tight text-slate-900">Satış Paneli</h1>
             <p className="text-muted-foreground mt-1">Platformdaki tüm Euro bazlı tahsilatlar ve paket alımları.</p>
         </div>
-        <div className="flex items-center gap-3 bg-white p-1.5 rounded-2xl shadow-sm border">
-            <div className="flex items-center gap-2 px-3 border-r pr-4 mr-1">
-                <Filter className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Zaman Aralığı</span>
+        <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-3 bg-white p-1.5 rounded-2xl shadow-sm border">
+                <div className="flex items-center gap-2 px-3 border-r pr-4 mr-1">
+                    <Filter className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Zaman Aralığı</span>
+                </div>
+                <Select value={filter} onValueChange={(v: any) => setFilter(v)}>
+                    <SelectTrigger className="w-[140px] h-9 rounded-xl border-none font-bold text-xs focus:ring-0">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-none shadow-2xl">
+                        <SelectItem value="monthly" className="text-xs font-bold py-2.5">Bu Ay</SelectItem>
+                        <SelectItem value="quarterly" className="text-xs font-bold py-2.5">Bu Çeyrek</SelectItem>
+                        <SelectItem value="yearly" className="text-xs font-bold py-2.5">Bu Yıl</SelectItem>
+                        <SelectItem value="custom" className="text-xs font-bold py-2.5">Özel Aralık</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
-            <Select value={filter} onValueChange={(v: any) => setFilter(v)}>
-                <SelectTrigger className="w-[140px] h-9 rounded-xl border-none font-bold text-xs focus:ring-0">
-                    <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-none shadow-2xl">
-                    <SelectItem value="monthly" className="text-xs font-bold py-2.5">Bu Ay</SelectItem>
-                    <SelectItem value="quarterly" className="text-xs font-bold py-2.5">Bu Çeyrek</SelectItem>
-                    <SelectItem value="yearly" className="text-xs font-bold py-2.5">Bu Yıl</SelectItem>
-                </SelectContent>
-            </Select>
+
+            {filter === 'custom' && (
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                            variant="outline"
+                            className={cn(
+                                "h-12 justify-start text-left font-bold text-xs rounded-2xl border-none shadow-sm bg-white px-4",
+                                !dateRange && "text-muted-foreground"
+                            )}
+                        >
+                            <CalendarDays className="mr-2 h-4 w-4 text-primary" />
+                            {dateRange?.from ? (
+                                dateRange.to ? (
+                                    <>
+                                        {format(dateRange.from, "dd MMM", { locale: tr })} -{" "}
+                                        {format(dateRange.to, "dd MMM yyyy", { locale: tr })}
+                                    </>
+                                ) : (
+                                    format(dateRange.from, "dd MMM yyyy", { locale: tr })
+                                )
+                            ) : (
+                                <span>Tarih Seçin</span>
+                            )}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="end">
+                        <Calendar
+                            initialFocus
+                            mode="range"
+                            defaultMonth={dateRange?.from}
+                            selected={dateRange}
+                            onSelect={setDateRange}
+                            numberOfMonths={2}
+                            locale={tr}
+                        />
+                    </PopoverContent>
+                </Popover>
+            )}
         </div>
       </div>
 
@@ -146,7 +211,7 @@ export default function SalesPage() {
       <Card className="border-none shadow-xl overflow-hidden rounded-[24px]">
         <CardHeader className="bg-white border-b pb-6">
           <CardTitle className="text-lg flex items-center gap-2 text-slate-800">
-            <ArrowUpRight className="w-5 h-5 text-primary" /> Son Tahsilatlar ({filteredTransactions.length})
+            <ArrowUpRight className="w-5 h-5 text-primary" /> Tahsilat Detayları ({filteredTransactions.length})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -196,7 +261,7 @@ export default function SalesPage() {
                     </TableCell>
                     <TableCell>
                         <div className="flex items-center gap-1.5 text-slate-500 text-sm">
-                            <Calendar className="w-3.5 h-3.5 text-slate-300" />
+                            <CalendarIcon className="w-3.5 h-3.5 text-slate-300" />
                             {format(t.createdAt.toDate(), 'dd MMM yyyy, HH:mm', { locale: tr })}
                         </div>
                     </TableCell>
