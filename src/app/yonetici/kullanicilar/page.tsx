@@ -1,8 +1,10 @@
+
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where, getDocs, collectionGroup, doc, updateDoc } from 'firebase/firestore';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -75,6 +77,7 @@ interface ParentData {
     manualTags: string[];
     lastPurchaseDate?: Date;
     countryName: string;
+    tags?: string[];
 }
 
 const tagStyles: { [key: string]: string } = {
@@ -98,9 +101,12 @@ const SUGGESTED_TAGS = [
     'positive', 'problem', 'discountlover', 'zam öncesi'
 ];
 
-export default function UsersPage() {
+function UsersPageContent() {
   const db = useFirestore();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const userIdParam = searchParams.get('userId');
+
   const [allChildren, setAllChildren] = useState<any[]>([]);
   const [allSlots, setAllSlots] = useState<any[]>([]);
   const [loadingExtras, setLoadingExtras] = useState(true);
@@ -210,6 +216,17 @@ export default function UsersPage() {
     });
   }, [parents, allChildren, allSlots, loadingExtras]);
 
+  // Deep Link Handling: Auto-open detail if userId is provided
+  useEffect(() => {
+    if (userIdParam && processedParents.length > 0 && !isDetailOpen) {
+        const parent = processedParents.find(p => p.id === userIdParam);
+        if (parent) {
+            setSelectedParent(parent);
+            setIsDetailOpen(true);
+        }
+    }
+  }, [userIdParam, processedParents, isDetailOpen]);
+
   const handleUpdateTags = async () => {
     if (!selectedParent || !db) return;
     setIsSavingTags(true);
@@ -281,7 +298,7 @@ export default function UsersPage() {
                         <div className="flex flex-col min-w-0">
                             <span className="font-bold text-slate-700 truncate">{parent.firstName} {parent.lastName}</span>
                             <span className="text-[10px] text-slate-400 font-medium lowercase truncate">{parent.email}</span>
-                            <span className="text-[9px] text-slate-300 font-mono select-all uppercase">ID: {parent.shortId || parent.id.substring(0, 8).toUpperCase()}</span>
+                            <span className="text-[9px] font-mono text-slate-300 select-all uppercase">ID: {parent.shortId || parent.id.substring(0, 8).toUpperCase()}</span>
                         </div>
                       </div>
                     </TableCell>
@@ -593,5 +610,13 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function UsersPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center h-64"><Loader2 className="animate-spin text-primary" /></div>}>
+      <UsersPageContent />
+    </Suspense>
   );
 }

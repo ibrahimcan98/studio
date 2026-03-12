@@ -10,6 +10,7 @@ import { Loader2, User, MapPin, Clock, ExternalLink, Activity, Monitor, Baby, He
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 // Helper to map paths to friendly Turkish names
 const pathMap: { [key: string]: string } = {
@@ -155,9 +156,18 @@ export default function LiveTrackingPage() {
                             </Badge>
                         )}
                     </div>
-                    <button className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {user.role === 'parent' ? (
+                      <Link 
+                        href={`/yonetici/kullanicilar?userId=${user.id}`}
+                        className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
                         Detaya Git <ExternalLink className="w-2.5 h-2.5" />
-                    </button>
+                      </Link>
+                    ) : (
+                      <span className="text-[10px] font-bold text-slate-300 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-not-allowed">
+                        Detay Yok <Clock className="w-2.5 h-2.5" />
+                      </span>
+                    )}
                   </div>
                 </CardContent>
               </Card>
