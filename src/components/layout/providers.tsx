@@ -6,6 +6,7 @@ import { CartProvider } from '@/context/cart-context';
 import Script from 'next/script';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
+import { UserTracker } from '@/components/shared/user-tracker';
 
 // A component to safely load Intercom and identify users
 function IntercomScriptLoader() {
@@ -52,6 +53,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <FirebaseClientProvider>
       <CartProvider>
+        <UserTracker />
         {children}
         <IntercomScriptLoader />
       </CartProvider>

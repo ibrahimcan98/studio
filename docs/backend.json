@@ -26,7 +26,9 @@
         "hobbies": { "type": "array", "items": { "type": "string" } },
         "introVideoUrl": { "type": "string", "format": "uri" },
         "googleMeetLink": { "type": "string", "format": "uri" },
-        "isProfileComplete": { "type": "boolean" }
+        "isProfileComplete": { "type": "boolean" },
+        "lastActiveAt": { "type": "string", "format": "date-time", "description": "Last time the user navigated to a page." },
+        "currentPath": { "type": "string", "description": "The URL path the user is currently on." }
       },
       "required": ["id", "firstName", "lastName", "email", "role"]
     },
