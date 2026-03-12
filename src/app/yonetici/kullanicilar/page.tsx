@@ -17,7 +17,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from '@/table';
 import { 
     Loader2, 
     User, 
@@ -422,7 +422,10 @@ export default function UsersPage() {
                                                     <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-xl">👶</div>
                                                     <div>
                                                         <p className="font-bold text-slate-800 text-lg">{child.firstName}</p>
-                                                        <p className="text-xs text-slate-500 font-medium">{child.dateOfBirth ? `${differenceInYears(new Date(), new Date(child.dateOfBirth))} Yaş` : '-'}</p>
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="text-xs text-slate-500 font-medium">{child.dateOfBirth ? `${differenceInYears(new Date(), new Date(child.dateOfBirth))} Yaş` : '-'}</p>
+                                                            <span className="text-[9px] font-mono text-slate-300 bg-slate-50 px-1 rounded select-all">ID: {child.id.substring(0, 8).toUpperCase()}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div className="flex gap-8 items-center">

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -305,7 +304,7 @@ export function ProgressPanel({ child, lessonId, isEditable = false }: { child: 
                             <AvatarFallback className="bg-blue-200 text-blue-700 font-bold">{child.firstName?.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <p className="font-bold text-xl text-gray-800">{child.firstName}</p>
-                        <p className="text-sm text-gray-600">ID: {child.id.substring(0, 6).toUpperCase()}</p>
+                        <p className="text-sm text-gray-600">ID: {child.id.substring(0, 8).toUpperCase()}</p>
                          <div className="text-sm mt-2 text-gray-500 flex flex-col items-center">
                             <span>{age} yaş</span>
                             <span>{child.countryOfResidence?.split(',')[0]}</span>

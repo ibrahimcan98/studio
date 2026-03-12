@@ -17,7 +17,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from '@/table';
 import { Loader2, Baby, User, Calendar, BookOpen, GraduationCap, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO, differenceInYears } from 'date-fns';
@@ -133,7 +133,10 @@ export default function AdminStudentsPage() {
                             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-xs">
                                 {student.firstName?.substring(0,2).toUpperCase()}
                             </div>
-                            <span className="font-bold text-slate-700">{student.firstName}</span>
+                            <div className="flex flex-col">
+                                <span className="font-bold text-slate-700">{student.firstName}</span>
+                                <span className="text-[9px] font-mono text-slate-300 select-all">ID: {student.id.substring(0, 8).toUpperCase()}</span>
+                            </div>
                         </div>
                       </TableCell>
                       <TableCell>
