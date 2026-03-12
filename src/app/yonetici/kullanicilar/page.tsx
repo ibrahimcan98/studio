@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
@@ -29,8 +28,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { format, differenceInDays, isBefore, subMonths } from 'date-fns';
+import { format, differenceInDays, isBefore } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 interface ParentData extends any {
     id: string;
@@ -139,8 +139,6 @@ export default function UsersPage() {
             ...parent,
             countryName: getCountryFromPhone(parent.phoneNumber),
             computedTags: Array.from(tags),
-            // For purchase date, we'd normally look at a transactions table, 
-            // here we simulate using the latest booked slot that isn't a trial
             lastPurchaseDate: parentSlots
                 .filter(s => s.packageCode !== 'FREE_TRIAL')
                 .sort((a,b) => b.startTime.seconds - a.startTime.seconds)[0]?.startTime?.toDate()
