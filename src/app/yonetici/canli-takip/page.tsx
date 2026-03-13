@@ -4,7 +4,7 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Activity, Monitor, Clock } from 'lucide-react';
+import { Loader2, Activity, Monitor, Clock, User } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
@@ -47,7 +47,7 @@ export default function LiveTrackingPage() {
     return (
       <div className="flex flex-col justify-center items-center h-96 gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Kullanıcılar İzleniyor...</p>
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Sistem İzleniyor...</p>
       </div>
     );
   }
@@ -71,16 +71,18 @@ export default function LiveTrackingPage() {
         {liveUsers?.map((user) => (
           <Card 
             key={user.id} 
-            className="border-none shadow-md ring-1 ring-slate-100 overflow-hidden relative"
+            className="border-none shadow-md ring-1 ring-slate-100 overflow-hidden relative bg-white"
           >
             <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500" />
             <CardHeader className="pb-3 flex flex-row items-center gap-4 space-y-0">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 font-black text-sm uppercase">
-                {user.firstName?.[0] || '?'}{user.lastName?.[0] || ''}
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
+                <User className="w-6 h-6" />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-bold text-slate-800 truncate">{user.firstName} {user.lastName}</h3>
-                <p className="text-[10px] text-slate-400 font-medium truncate uppercase">{user.role === 'teacher' ? 'Öğretmen' : 'Veli'}</p>
+                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">
+                  {user.role === 'teacher' ? '👩‍🏫 Öğretmen' : '👨‍👩- Veli'}
+                </p>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -91,14 +93,14 @@ export default function LiveTrackingPage() {
                 </div>
                 <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-1">
                     <Clock className="w-3 h-3" />
-                    <span>{user.lastActiveAt ? formatDistanceToNow(user.lastActiveAt.toDate(), { addSuffix: true, locale: tr }) : 'Az önce'}</span>
+                    <span>Son hareket: {user.lastActiveAt ? formatDistanceToNow(user.lastActiveAt.toDate(), { addSuffix: true, locale: tr }) : 'Az önce'}</span>
                 </div>
               </div>
             </CardContent>
           </Card>
         ))}
         {liveUsers?.length === 0 && (
-          <div className="col-span-full py-20 text-center border-2 border-dashed rounded-3xl text-slate-400 font-bold uppercase text-xs tracking-widest">Aktif kullanıcı bulunmuyor.</div>
+          <div className="col-span-full py-20 text-center border-2 border-dashed rounded-3xl text-slate-400 font-bold uppercase text-xs tracking-widest">Şu an aktif kullanıcı bulunmuyor.</div>
         )}
       </div>
     </div>

@@ -7,7 +7,7 @@ import { getAuth } from 'firebase/auth';
 
 /**
  * Kullanıcının aktif sayfasını, son hareket zamanını ve online durumunu takip eden bileşen.
- * Yetki hatalarını ve oturum kapanma durumlarını sessiz yönetir.
+ * Yetki hatalarını ve oturum kapanma durumlarını sessizce yönetir.
  */
 export function UserTracker() {
   const pathname = usePathname();
@@ -15,14 +15,15 @@ export function UserTracker() {
   const db = useFirestore();
 
   useEffect(() => {
+    // Sadece giriş yapmış gerçek kullanıcıları takip et
     if (!user || user.isAnonymous || !db) return;
 
     const userRef = doc(db, 'users', user.uid);
 
     const trackActivity = async (isOnlineStatus: boolean) => {
-      // Oturum kapanmışsa veya kullanıcı yoksa işlem yapma
+      // Oturum kapanmışsa Firestore'a erişmeye çalışma
       const auth = getAuth();
-      if (!auth.currentUser && isOnlineStatus) return;
+      if (!auth.currentUser) return;
 
       try {
         await updateDoc(userRef, {
@@ -31,7 +32,7 @@ export function UserTracker() {
           isOnline: isOnlineStatus
         });
       } catch (error) {
-        // Tracker hataları kullanıcı deneyimini bozmamalıdır
+        // Tracker hataları kullanıcı deneyimini bozmamalı, sessizce geç
       }
     };
 
@@ -39,9 +40,9 @@ export function UserTracker() {
 
     const handleUnload = () => {
       // Tarayıcı kapanırken durumu false yapmaya çalış
-      // updateDoc yerine doğrudan çağrı, emitter'ı tetiklememesi için sessizce yapılır
       const auth = getAuth();
       if (auth.currentUser) {
+        // updateDoc doğrudan çağrılır, emitter tetiklenmez
         updateDoc(userRef, { isOnline: false }).catch(() => {});
       }
     };
@@ -49,7 +50,11 @@ export function UserTracker() {
     window.addEventListener('beforeunload', handleUnload);
     return () => {
       window.removeEventListener('beforeunload', handleUnload);
-      handleUnload();
+      // Temizlik anında hala oturum varsa offline yap
+      const auth = getAuth();
+      if (auth.currentUser) {
+        updateDoc(userRef, { isOnline: false }).catch(() => {});
+      }
     };
   }, [pathname, user, db]);
 
