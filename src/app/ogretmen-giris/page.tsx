@@ -18,9 +18,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { TeacherIllustration } from '@/components/illustrations/teacher-illustration';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-
-const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisii.com', 'tubakodak@turkcocukakademisii.com', 'test@test.com'];
+import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 
 export default function OgretmenGirisPage() {
   const [email, setEmail] = useState('');
@@ -32,113 +30,79 @@ export default function OgretmenGirisPage() {
   const { toast } = useToast();
   const { user, loading: userLoading } = useUser();
 
-  useEffect(() => {
-    if (!userLoading && user && user.email && allowedTeacherEmails.includes(user.email)) {
-      router.replace('/ogretmen-portali/takvim');
-    }
-  }, [user, userLoading, router]);
+  const ensureTeacherProfile = async (firebaseUser: User) => {
+    if (!db || !firebaseUser.email) return false;
 
-  const ensureTeacherProfile = async (user: User) => {
-    if (!db || !user.email) return;
-
-    const userDocRef = doc(db, 'users', user.uid);
+    const userDocRef = doc(db, 'users', firebaseUser.uid);
     const userDoc = await getDoc(userDocRef);
 
-    let profileData: { [key: string]: any } = {};
-
-    switch (user.email) {
-        case 'ibrahimcan@turkcocukakademisii.com':
-            profileData = { firstName: 'İbrahim', lastName: 'Can' };
-            break;
-        case 'tubakodak@turkcocukakademisii.com':
-            profileData = { 
-              firstName: 'Tuba', 
-              lastName: 'Kodak',
-              introVideoUrl: 'https://www.kapwing.com/e/69381bf8c74b018ff07301e3'
-            };
-            break;
-        case 'test@test.com':
-            profileData = { firstName: 'Tuba', lastName: 'Kodak' };
-            break;
+    // Eğer kullanıcı zaten Firestore'da varsa, rolünü kontrol et
+    if (userDoc.exists()) {
+      const data = userDoc.data();
+      if (data.role === 'teacher') return true;
+      
+      // Eğer rolü farklıysa ama admin panelinden bir taslak oluşturulmuş olabilir (ID e-posta slug olabilir)
+      // Bu durumda UID ile dokümanı eşlememiz gerekir.
+      // Basitlik için: Eğer email eşleşiyorsa ama UID farklıysa, yetkiyi UID'ye taşı
+      const slugId = firebaseUser.email.replace(/[^a-zA-Z0-9]/g, '_');
+      const slugRef = doc(db, 'users', slugId);
+      const slugDoc = await getDoc(slugRef);
+      
+      if (slugDoc.exists() && slugDoc.data().role === 'teacher') {
+          // Taslağı UID'ye taşı
+          await setDoc(userDocRef, { 
+              ...slugDoc.data(), 
+              id: firebaseUser.uid,
+              updatedAt: serverTimestamp() 
+          });
+          await deleteDoc(slugRef);
+          return true;
+      }
+      
+      return false;
     }
 
+    // Kullanıcı Firestore'da yoksa, e-posta taslağı kontrolü yap
+    const slugId = firebaseUser.email.replace(/[^a-zA-Z0-9]/g, '_');
+    const slugRef = doc(db, 'users', slugId);
+    const slugDoc = await getDoc(slugRef);
 
-    if (!userDoc.exists()) {
-      await setDoc(userDocRef, {
-        id: user.uid,
-        shortId: user.uid.substring(0, 8).toUpperCase(),
-        email: user.email,
-        role: 'teacher',
-        createdAt: serverTimestamp(),
-        ...profileData
-      });
-    } else {
-      const currentData = userDoc.data();
-      const updates: { [key: string]: any } = {
-        shortId: user.uid.substring(0, 8).toUpperCase()
-      };
-      if (currentData?.role !== 'teacher') {
-        updates.role = 'teacher';
-      }
-      if (profileData.firstName && currentData?.firstName !== profileData.firstName) {
-        updates.firstName = profileData.firstName;
-      }
-       if (profileData.lastName && currentData?.lastName !== profileData.lastName) {
-        updates.lastName = profileData.lastName;
-      }
-      if (profileData.introVideoUrl && currentData?.introVideoUrl !== profileData.introVideoUrl) {
-        updates.introVideoUrl = profileData.introVideoUrl;
-      }
-
-      await setDoc(userDocRef, updates, { merge: true });
+    if (slugDoc.exists() && slugDoc.data().role === 'teacher') {
+        await setDoc(userDocRef, { 
+            ...slugDoc.data(), 
+            id: firebaseUser.uid,
+            updatedAt: serverTimestamp() 
+        });
+        // Opsiyonel: Taslağı silebiliriz (temizlik için)
+        // await deleteDoc(slugRef);
+        return true;
     }
+
+    return false;
   };
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!auth) return;
-
-    if (!allowedTeacherEmails.includes(email)) {
-      toast({
-        variant: 'destructive',
-        title: 'Giriş Reddedildi',
-        description:
-          'Bu e-posta adresi ile öğretmen portalına giriş yapma yetkiniz yok.',
-      });
-      return;
-    }
+    if (!auth || !db) return;
 
     setIsSubmitting(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      await ensureTeacherProfile(userCredential.user);
-      toast({
-        title: 'Başarılı!',
-        description: 'Öğretmen portalına yönlendiriliyorsunuz...',
-      });
-      router.push('/ogretmen-portali/takvim');
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const isAuthorized = await ensureTeacherProfile(userCredential.user);
+      
+      if (isAuthorized) {
+        toast({ title: 'Başarılı!', description: 'Öğretmen portalına yönlendiriliyorsunuz...' });
+        router.push('/ogretmen-portali/takvim');
+      } else {
+        await auth.signOut();
+        toast({ variant: 'destructive', title: 'Yetki Hatası', description: 'Bu hesap öğretmen portalı için yetkilendirilmemiş.' });
+      }
     } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Hata',
-        description: 'E-posta veya şifre hatalı.',
-      });
+      toast({ variant: 'destructive', title: 'Hata', description: 'E-posta veya şifre hatalı.' });
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  if (userLoading || (user && user.email && allowedTeacherEmails.includes(user.email))) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="relative flex min-h-[calc(100vh-80px)] flex-col items-center justify-center bg-gradient-to-br from-purple-50 via-blue-50 to-white p-4 overflow-hidden">
@@ -148,46 +112,22 @@ export default function OgretmenGirisPage() {
             <div className="flex justify-center md:justify-end">
               <Card className="w-full max-w-md shadow-2xl bg-white/80 backdrop-blur-lg border-white/50">
                 <CardHeader className="text-center space-y-4">
-                  <CardTitle className="text-3xl font-bold">
-                    Öğretmen Girişi
-                  </CardTitle>
-                  <CardDescription>
-                    Portala erişmek için lütfen giriş yapın.
-                  </CardDescription>
+                  <CardTitle className="text-3xl font-bold">Öğretmen Girişi</CardTitle>
+                  <CardDescription>Portala erişmek için lütfen giriş yapın.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <form onSubmit={handleLogin} className="space-y-6">
                       <div className="space-y-2">
                         <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          required
-                          autoComplete="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          disabled={isSubmitting}
-                        />
+                        <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={isSubmitting} />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="password">Şifre</Label>
-                        <Input
-                          id="password"
-                          type="password"
-                          required
-                          autoComplete="current-password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          disabled={isSubmitting}
-                        />
+                        <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={isSubmitting} />
                       </div>
-                      <Button
-                        type="submit"
-                        className="w-full font-bold text-lg py-6"
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
+                      <Button type="submit" className="w-full font-bold text-lg py-6" disabled={isSubmitting}>
+                        {isSubmitting ? <Loader2 className="animate-spin mr-2"/> : 'Giriş Yap'}
                       </Button>
                     </form>
                   </div>

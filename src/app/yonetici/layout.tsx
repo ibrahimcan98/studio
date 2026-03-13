@@ -13,7 +13,8 @@ import {
   Inbox,
   Baby,
   CreditCard,
-  Activity
+  Activity,
+  Presentation
 } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
@@ -83,9 +84,9 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
 
   const navItems = [
     { href: '/yonetici', label: 'Dashboard', icon: Home },
-    { href: '/yonetici/canli-takip', label: 'Canlı Takip', icon: Activity },
     { href: '/yonetici/inbox', label: 'Inbox', icon: Inbox },
     { href: '/yonetici/satislar', label: 'Satışlar', icon: CreditCard },
+    { href: '/yonetici/ogretmenler', label: 'Öğretmenler', icon: Presentation },
     { href: '/yonetici/kullanicilar', label: 'Veliler', icon: Users },
     { href: '/yonetici/ogrenciler', label: 'Öğrenciler', icon: Baby },
   ];

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { Loader2, LogOut, Calendar, Users, Briefcase, User } from 'lucide-react';
@@ -10,24 +10,28 @@ import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-
-const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisii.com', 'teacher@turkcocukakademisi.com', 'tubakodak@turkcocukakademisii.com', 'test@test.com'];
+import { doc } from 'firebase/firestore';
 
 function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useUser();
+  const { user, loading: authLoading } = useUser();
+  const db = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
 
-  useEffect(() => {
-    // Wait until loading is finished
-    if (loading) return;
+  const userDocRef = useMemoFirebase(() => {
+    if (!user || !db) return null;
+    return doc(db, 'users', user.uid);
+  }, [user, db]);
 
-    // If there is no user, or the user is not an allowed teacher, redirect
-    const isAuthorizedTeacher = user && user.email && allowedTeacherEmails.includes(user.email);
-    if (!isAuthorizedTeacher) {
+  const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
+
+  useEffect(() => {
+    if (authLoading || userDataLoading) return;
+
+    if (!user || userData?.role !== 'teacher') {
       router.replace('/ogretmen-giris');
     }
-  }, [user, loading, router]);
+  }, [user, authLoading, userData, userDataLoading, router]);
 
   const handleLogout = async () => {
     const auth = getAuth();
@@ -35,8 +39,7 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
     router.push('/ogretmen-giris');
   };
   
-  // While loading, or if user is not yet determined to be a teacher, show loading screen
-  if (loading || !user || !(user.email && allowedTeacherEmails.includes(user.email))) {
+  if (authLoading || userDataLoading || (user && userData?.role !== 'teacher')) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -45,29 +48,12 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
   }
 
   const navItems = [
-    {
-      href: '/ogretmen-portali/takvim',
-      label: 'Takvim',
-      icon: Calendar
-    },
-    {
-      href: '/ogretmen-portali/derslerim',
-      label: 'Derslerim',
-      icon: Briefcase,
-    },
-    {
-      href: '/ogretmen-portali/ogrencilerim',
-      label: 'Öğrencilerim',
-      icon: Users
-    },
-    {
-      href: '/ogretmen-portali/profil',
-      label: 'Profilim',
-      icon: User
-    }
+    { href: '/ogretmen-portali/takvim', label: 'Takvim', icon: Calendar },
+    { href: '/ogretmen-portali/derslerim', label: 'Derslerim', icon: Briefcase },
+    { href: '/ogretmen-portali/ogrencilerim', label: 'Öğrencilerim', icon: Users },
+    { href: '/ogretmen-portali/profil', label: 'Profilim', icon: User }
   ];
   
-  // If we reach here, user is an authorized teacher
   return (
     <div className="min-h-screen bg-muted/40">
         <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -77,7 +63,7 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
                 </Link>
                 <div className="flex items-center gap-4">
                     <span className="text-sm font-medium text-muted-foreground hidden sm:inline">
-                        {user?.displayName || user?.email}
+                        {userData?.firstName} {userData?.lastName}
                     </span>
                     <Button variant="outline" size="sm" onClick={handleLogout}>
                         <LogOut className="mr-2 h-4 w-4" />
@@ -110,12 +96,6 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function Layout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function Layout({ children }: { children: React.ReactNode }) {
   return <TeacherPortalLayout>{children}</TeacherPortalLayout>
 }
-
-    
