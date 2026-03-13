@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
@@ -29,7 +30,6 @@ export function AIAssistant() {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const chatCardRef = useRef<HTMLDivElement>(null); // Dışarı tıklamayı algılamak için ref
     const pathname = usePathname();
     const db = useFirestore();
     const { user } = useUser();
@@ -55,25 +55,6 @@ export function AIAssistant() {
             }
         }
     }, [pathname]);
-
-    // Dışarı tıklandığında kapanma mantığı
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (isOpen && chatCardRef.current && !chatCardRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        };
-
-        if (isOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        } else {
-            document.removeEventListener('mousedown', handleClickOutside);
-        }
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [isOpen]);
 
     const messagesQuery = useMemoFirebase(() => {
         if (!db || !currentConversationId || mode !== 'live') return null;
@@ -251,7 +232,6 @@ export function AIAssistant() {
                         className="fixed bottom-6 right-6 sm:bottom-24 sm:right-6 z-[100] w-[calc(100%-3rem)] max-w-sm"
                     >
                         <Card 
-                            ref={chatCardRef}
                             className="flex flex-col h-[70vh] max-h-[700px] shadow-2xl rounded-2xl overflow-hidden border-none bg-white"
                         >
                             <CardHeader className="flex flex-row items-center justify-between bg-primary p-4 text-white">
