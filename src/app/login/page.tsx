@@ -14,11 +14,10 @@ import { useAuth, useFirestore, useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
-const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisii.com', 'teacher@turkcocukakademisi.com', 'tubakodak@turkcocukakademisii.com'];
 const adminEmail = 'admin@hotmail.com';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [email, setInputEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const auth = useAuth();
@@ -29,7 +28,6 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!loading && user && !user.isAnonymous) {
-        // Admin e-posta kontrolü - Firestore'dan bağımsız doğrudan yönlendirme
         if (user.email?.toLowerCase() === adminEmail.toLowerCase()) {
             router.replace('/yonetici');
             return;
@@ -65,15 +63,6 @@ export default function LoginPage() {
     e.preventDefault();
     if (!auth || !db) return;
 
-    if (allowedTeacherEmails.includes(email)) {
-        toast({
-            variant: 'destructive',
-            title: 'Giriş Reddedildi',
-            description: 'Öğretmen girişi için lütfen öğretmen portalını kullanın.',
-        });
-        return;
-    }
-
     setIsSubmitting(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -88,21 +77,20 @@ export default function LoginPage() {
       const userDocRef = doc(db, 'users', loggedUser.uid);
       const userDoc = await getDoc(userDocRef);
       
-      let targetPath = '/ebeveyn-portali';
       if (userDoc.exists()) {
           const userData = userDoc.data();
            if (userData.role === 'teacher') {
-                await auth.signOut();
-                toast({ variant: 'destructive', title: 'Giriş Reddedildi', description: 'Öğretmen girişi için lütfen öğretmen portalını kullanın.' });
-                setIsSubmitting(false);
+                toast({ title: 'Öğretmen Girişi', description: 'Öğretmen portalına yönlendiriliyorsunuz.' });
+                router.push('/ogretmen-portali/takvim');
                 return;
            } else if (userData.role === 'admin') {
-                targetPath = '/yonetici';
+                router.push('/yonetici');
+                return;
            }
       }
 
       toast({ title: 'Başarılı!', description: 'Giriş yaptınız. Yönlendiriliyorsunuz...' });
-      router.push(targetPath);
+      router.push('/ebeveyn-portali');
     } catch (error) {
        toast({ variant: 'destructive', title: 'Hata', description: 'E-posta veya şifre hatalı.' });
        setIsSubmitting(false);
@@ -139,7 +127,7 @@ export default function LoginPage() {
                           required
                           autoComplete="email"
                           value={email}
-                          onChange={(e) => setEmail(e.target.value)}
+                          onChange={(e) => setInputEmail(e.target.value)}
                           disabled={loading || isSubmitting}
                         />
                       </div>

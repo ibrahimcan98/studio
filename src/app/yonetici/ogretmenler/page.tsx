@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -47,7 +46,6 @@ import {
   User, 
   Mail, 
   Video, 
-  Link as LinkIcon, 
   Trash2, 
   Presentation,
   CheckCircle2,
@@ -101,10 +99,9 @@ export default function AdminTeachersPage() {
     setIsSubmitting(true);
 
     try {
-      // Create a document with a random ID or based on email slug
-      // Note: This doesn't create a Firebase Auth user. 
-      // The teacher must still sign up with this email.
-      const teacherId = formData.email.replace(/[^a-zA-Z0-9]/g, '_');
+      // Taslak doküman kimliği e-posta slug'ı olarak belirlenir.
+      // Öğretmen bu e-posta ile kayıt olduğunda sistem onu tanır.
+      const teacherId = formData.email.toLowerCase().replace(/[^a-zA-Z0-9]/g, '_');
       const teacherRef = doc(db, 'users', teacherId);
       
       await setDoc(teacherRef, {
@@ -120,7 +117,10 @@ export default function AdminTeachersPage() {
         isProfileComplete: true,
       });
 
-      toast({ title: 'Başarılı', description: 'Yeni öğretmen yetkilendirildi. Giriş yapabilir.' });
+      toast({ 
+        title: 'Öğretmen Yetkilendirildi', 
+        description: `${formData.email} adresi sisteme "Öğretmen" olarak tanımlandı.` 
+      });
       setIsAddOpen(false);
       resetForm();
     } catch (error) {
@@ -153,20 +153,24 @@ export default function AdminTeachersPage() {
       resetForm();
     } catch (error) {
       console.error(error);
-      toast({ variant: 'destructive', title: 'Hata', description: 'Profil güncellenirken bir sorun oluştu.' });
+      toast({ variant: 'destructive', title: 'Hata', description: 'Profil güncellenirken bir hata oluştu.' });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDeleteTeacher = async (id: string) => {
-    if (!db || !confirm('Bu öğretmeni silmek istediğinizden emin misiniz?')) return;
+    if (!db || !confirm('BU İŞLEM GERİ ALINAMAZ!\n\nSeçili öğretmenin yetkisini kaldırmak ve TÜM bilgilerini (biyografi, ders linkleri vb.) veritabanından kalıcı olarak silmek istediğinizden emin misiniz?')) return;
 
     try {
       await deleteDoc(doc(db, 'users', id));
-      toast({ title: 'Silindi', description: 'Öğretmen sistemden kaldırıldı.' });
+      toast({ 
+        title: 'Yetki Kaldırıldı', 
+        description: 'Öğretmen ve tüm verileri backend sisteminden kalıcı olarak silindi.',
+        className: 'bg-red-500 text-white font-bold'
+      });
     } catch (error) {
-      toast({ variant: 'destructive', title: 'Hata', description: 'Öğretmen silinemedi.' });
+      toast({ variant: 'destructive', title: 'Hata', description: 'Öğretmen verileri silinemedi.' });
     }
   };
 
@@ -185,26 +189,26 @@ export default function AdminTeachersPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 font-sans">
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-slate-900">Öğretmen Yönetimi</h1>
-          <p className="text-muted-foreground mt-1">Platformdaki öğretmenleri yönetin ve profillerini düzenleyin.</p>
+          <p className="text-muted-foreground mt-1">Platformdaki öğretmenleri yetkilendirin, düzenleyin veya tüm verilerini silin.</p>
         </div>
         <Dialog open={isAddOpen} onOpenChange={(o) => { setIsAddOpen(o); if(!o) resetForm(); }}>
           <DialogTrigger asChild>
             <Button className="rounded-xl h-12 px-6 font-bold shadow-lg shadow-primary/20">
-              <Plus className="w-5 h-5 mr-2" /> Yeni Öğretmen Ekle
+              <Plus className="w-5 h-5 mr-2" /> Yeni Öğretmen Yetkilendir
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl rounded-[24px]">
             <DialogHeader>
               <DialogTitle className="text-2xl font-black">Öğretmen Yetkilendir</DialogTitle>
-              <DialogDescription>Yeni bir öğretmen için hesap taslağı oluşturun. Bu e-posta ile giriş yaptıklarında öğretmen portalına erişebilecekler.</DialogDescription>
+              <DialogDescription>Yeni bir öğretmen için veritabanında "teacher" rolüyle bir taslak oluşturun.</DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-2 gap-4 py-4">
               <div className="space-y-2 col-span-2">
-                <Label>E-posta Adresi</Label>
+                <Label>E-posta Adresi (Giriş için gereklidir)</Label>
                 <Input value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="ornek@turkcocukakademisii.com" />
               </div>
               <div className="space-y-2">
@@ -221,10 +225,10 @@ export default function AdminTeachersPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddOpen(false)}>İptal</Button>
-              <Button onClick={handleAddTeacher} disabled={isSubmitting || !formData.email || !formData.firstName}>
+              <Button variant="outline" className="rounded-xl" onClick={() => setIsAddOpen(false)}>İptal</Button>
+              <Button className="rounded-xl font-bold" onClick={handleAddTeacher} disabled={isSubmitting || !formData.email || !formData.firstName}>
                 {isSubmitting ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
-                Öğretmeni Kaydet
+                Yetkiyi Tanımla
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -234,7 +238,7 @@ export default function AdminTeachersPage() {
       <Card className="border-none shadow-xl overflow-hidden rounded-[24px]">
         <CardHeader className="bg-white border-b pb-6">
           <CardTitle className="text-lg flex items-center gap-2 text-slate-800">
-            <Presentation className="w-5 h-5 text-primary" /> Kayıtlı Öğretmenler ({teachers?.length || 0})
+            <Presentation className="w-5 h-5 text-primary" /> Aktif Öğretmen Listesi ({teachers?.length || 0})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -249,8 +253,8 @@ export default function AdminTeachersPage() {
                 <TableRow className="hover:bg-transparent border-slate-100">
                   <TableHead className="font-bold text-slate-500 py-5 pl-8">Öğretmen Bilgisi</TableHead>
                   <TableHead className="font-bold text-slate-500">Google Meet</TableHead>
-                  <TableHead className="font-bold text-slate-500">Tanıtım Videosu</TableHead>
                   <TableHead className="font-bold text-slate-500">Profil Durumu</TableHead>
+                  <TableHead className="font-bold text-slate-500">Rol</TableHead>
                   <TableHead className="w-[80px] text-right pr-8"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -259,7 +263,7 @@ export default function AdminTeachersPage() {
                   <TableRow key={teacher.id} className="hover:bg-slate-50/30 transition-colors border-slate-100">
                     <TableCell className="py-5 pl-8">
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10">
+                        <Avatar className="h-10 w-10 ring-2 ring-primary/10">
                           <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
                             {teacher.firstName?.[0]}{teacher.lastName?.[0]}
                           </AvatarFallback>
@@ -267,6 +271,7 @@ export default function AdminTeachersPage() {
                         <div className="flex flex-col min-w-0">
                           <span className="font-bold text-slate-700 truncate">{teacher.firstName} {teacher.lastName}</span>
                           <span className="text-[10px] text-slate-400 font-medium lowercase truncate">{teacher.email}</span>
+                          <span className="text-[9px] font-mono text-slate-300 uppercase select-all">ID: {teacher.id.substring(0,8)}</span>
                         </div>
                       </div>
                     </TableCell>
@@ -276,24 +281,18 @@ export default function AdminTeachersPage() {
                           <ExternalLink className="w-3.5 h-3.5" /> Linke Git
                         </a>
                       ) : (
-                        <span className="text-[10px] font-bold text-slate-300 uppercase">YOK</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {teacher.introVideoUrl ? (
-                        <Badge variant="secondary" className="bg-purple-50 text-purple-700 border-purple-100 font-bold text-[10px]">
-                          <Video className="w-3 h-3 mr-1" /> Mevcut
-                        </Badge>
-                      ) : (
-                        <span className="text-[10px] font-bold text-slate-300 uppercase">YOK</span>
+                        <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">YOK</span>
                       )}
                     </TableCell>
                     <TableCell>
                       {teacher.bio ? (
-                        <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100 font-bold text-[10px] uppercase">Dolu</Badge>
+                        <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100 font-black text-[9px] uppercase tracking-widest">AKTİF</Badge>
                       ) : (
-                        <Badge variant="outline" className="text-orange-500 border-orange-200 font-bold text-[10px] uppercase">Eksik</Badge>
+                        <Badge variant="outline" className="text-orange-500 border-orange-200 font-black text-[9px] uppercase tracking-widest">TASLAK</Badge>
                       )}
+                    </TableCell>
+                    <TableCell>
+                        <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 font-black text-[9px] uppercase tracking-widest">TEACHER</Badge>
                     </TableCell>
                     <TableCell className="text-right pr-8">
                       <DropdownMenu>
@@ -302,19 +301,26 @@ export default function AdminTeachersPage() {
                             <MoreHorizontal className="h-4 w-4 text-slate-400" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="rounded-xl border-none shadow-2xl p-2 w-48">
-                          <DropdownMenuLabel className="text-[10px] font-black text-slate-400 uppercase mb-1">İşlemler</DropdownMenuLabel>
+                        <DropdownMenuContent align="end" className="rounded-xl border-none shadow-2xl p-2 w-56">
+                          <DropdownMenuLabel className="text-[10px] font-black text-slate-400 uppercase mb-1">Yönetim</DropdownMenuLabel>
                           <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer" onClick={() => openEdit(teacher)}>
                             Profili Düzenle
                           </DropdownMenuItem>
                           <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 text-red-500 focus:text-red-500 cursor-pointer" onClick={() => handleDeleteTeacher(teacher.id)}>
-                            Yetkiyi Kaldır
+                            <Trash2 className="w-3.5 h-3.5 mr-2" /> Yetkiyi ve Verileri Kaldır
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
+                {(!teachers || teachers.length === 0) && !isLoading && (
+                    <TableRow>
+                        <TableCell colSpan={5} className="py-20 text-center text-slate-400 font-bold italic text-sm">
+                            Henüz yetkilendirilmiş bir öğretmen bulunmuyor.
+                        </TableCell>
+                    </TableRow>
+                )}
               </TableBody>
             </Table>
           )}
@@ -326,7 +332,7 @@ export default function AdminTeachersPage() {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto rounded-[32px] border-none shadow-2xl p-8">
           <DialogHeader>
             <DialogTitle className="text-2xl font-black">Öğretmen Profilini Düzenle</DialogTitle>
-            <DialogDescription>Bu değişiklikler öğretmenin portalında ve veli önizlemelerinde anında görünecektir.</DialogDescription>
+            <DialogDescription>Admin olarak yaptığınız bu değişiklikler öğretmenin portalında anında senkronize olur.</DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-6 py-6">
             <div className="space-y-2">
@@ -350,12 +356,12 @@ export default function AdminTeachersPage() {
               <Input value={formData.googleMeetLink} onChange={e => setFormData({...formData, googleMeetLink: e.target.value})} />
             </div>
             <div className="space-y-2">
-              <Label>Tanıtım Videosu (Kapwing/YouTube)</Label>
+              <Label>Tanıtım Videosu URL'si</Label>
               <Input value={formData.introVideoUrl} onChange={e => setFormData({...formData, introVideoUrl: e.target.value})} />
             </div>
           </div>
           <DialogFooter className="gap-3">
-            <Button variant="outline" className="rounded-xl h-12 font-bold border-2" onClick={() => setIsEditOpen(false)}>Vazgeç</Button>
+            <Button variant="outline" className="rounded-xl border-2 font-bold h-12 px-6" onClick={() => setIsEditOpen(false)}>Vazgeç</Button>
             <Button className="rounded-xl h-12 px-8 font-bold" onClick={handleEditTeacher} disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
               Değişiklikleri Kaydet

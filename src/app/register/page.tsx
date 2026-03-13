@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -9,7 +8,7 @@ import {
   updateProfile,
   sendEmailVerification,
 } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -26,9 +25,7 @@ import { useAuth, useFirestore, useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
-const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisii.com', 'teacher@turkcocukakademisi.com', 'tubakodak@turkcocukakademisii.com'];
 const adminEmail = 'admin@hotmail.com';
-
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -53,51 +50,64 @@ export default function RegisterPage() {
     e.preventDefault();
     if (!auth || !db) return;
 
-    if (allowedTeacherEmails.includes(email)) {
-        toast({
-            variant: 'destructive',
-            title: 'Kayıt Reddedildi',
-            description: 'Bu e-posta adresi öğretmenlere ayrılmıştır.',
-        });
-        return;
-    }
-
     setIsSubmitting(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+      // Önce e-posta tabanlı bir taslak (öğretmen yetkisi) var mı kontrol et
+      const slugId = email.toLowerCase().replace(/[^a-zA-Z0-9]/g, '_');
+      const slugRef = doc(db, 'users', slugId);
+      const slugDoc = await getDoc(slugRef);
+      const isPreAuthorizedTeacher = slugDoc.exists() && slugDoc.data().role === 'teacher';
 
-      await updateProfile(user, { displayName: name });
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const newUser = userCredential.user;
+
+      await updateProfile(newUser, { displayName: name });
       
       const actionCodeSettings = {
         url: `${window.location.origin}/auth/email-onay`,
         handleCodeInApp: true,
       };
-      await sendEmailVerification(user, actionCodeSettings);
+      await sendEmailVerification(newUser, actionCodeSettings);
 
-      const userDocRef = doc(db, 'users', user.uid);
+      const userDocRef = doc(db, 'users', newUser.uid);
       
-      const role = email.toLowerCase() === adminEmail.toLowerCase() ? 'admin' : 'parent';
+      // Admin kontrolü
+      const isAdmin = email.toLowerCase() === adminEmail.toLowerCase();
+      const role = isAdmin ? 'admin' : (isPreAuthorizedTeacher ? 'teacher' : 'parent');
+      
       let targetPath = '/ebeveyn-portali';
-      if (role === 'admin') {
-        targetPath = '/yonetici';
-      }
+      if (role === 'admin') targetPath = '/yonetici';
+      else if (role === 'teacher') targetPath = '/ogretmen-portali/takvim';
 
-      await setDoc(userDocRef, {
-        id: user.uid,
-        shortId: user.uid.substring(0, 8).toUpperCase(),
+      const userData: any = {
+        id: newUser.uid,
+        shortId: newUser.uid.substring(0, 8).toUpperCase(),
         firstName: name.split(' ')[0] || '',
         lastName: name.split(' ').slice(1).join(' ') || '',
-        email: user.email?.toLowerCase(),
+        email: newUser.email?.toLowerCase(),
         phoneNumber: `${areaCode}${phoneNumber}`,
         role: role,
         lives: 5,
         livesLastUpdatedAt: serverTimestamp(),
         createdAt: serverTimestamp()
-      }, { merge: true });
+      };
+
+      // Eğer öğretmen yetkisi varsa, taslaktaki ek bilgileri (bio, video vb.) devral
+      if (isPreAuthorizedTeacher) {
+          const teacherDraft = slugDoc.data();
+          Object.assign(userData, {
+              bio: teacherDraft.bio || '',
+              hobbies: teacherDraft.hobbies || [],
+              googleMeetLink: teacherDraft.googleMeetLink || '',
+              introVideoUrl: teacherDraft.introVideoUrl || '',
+              isProfileComplete: true
+          });
+      }
+
+      await setDoc(userDocRef, userData, { merge: true });
 
       toast({
-        title: 'Kayıt Başarılı!',
+        title: role === 'teacher' ? 'Hoş Geldiniz Öğretmenim!' : 'Kayıt Başarılı!',
         description: 'Hesabınız oluşturuldu. Portala yönlendiriliyorsunuz. Lütfen e-postanızı kontrol ederek hesabınızı doğrulayın.',
         duration: 8000,
       });
@@ -123,15 +133,6 @@ export default function RegisterPage() {
       setIsSubmitting(false);
     }
   };
-
-  if (loading || (user && !user.isAnonymous)) {
-     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      </div>
-    );
-  }
-
 
   return (
      <div className="relative flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-cyan-50 via-amber-50 to-white p-4 overflow-hidden">
