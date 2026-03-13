@@ -26,19 +26,23 @@ service cloud.firestore {
 
     // 2. KULLANICI VE ÇOCUK VERİLERİ
     match /users/{userId} {
-      // Admin her şeyi yapabilir
-      allow read, write: if isAdmin();
-      
       // Kullanıcı kendi verisini okuyabilir ve yazabilir
       allow read, write: if isSignedIn() && request.auth.uid == userId;
       
-      // Takip verileri için özel izin (isOnline vb.)
+      // Admin her şeyi yapabilir
+      allow list, get: if isAdmin();
+      
+      // Velilerin öğretmenleri görmesi için (Ders Planlama Önizlemesi)
+      // Belge yoksa (resource == null) veya rolü 'teacher' ise okumaya izin ver
+      allow get: if isSignedIn() && (resource == null || resource.data.role == 'teacher');
+      
+      // Takip verileri için güncelleme izni
       allow update: if (isSignedIn() && request.auth.uid == userId) || 
                     (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isOnline', 'lastActiveAt', 'currentPath', 'onlineSince']));
 
       match /children/{childId} {
-        allow read, write: if isAdmin();
         allow read, write: if isSignedIn() && request.auth.uid == userId;
+        allow read: if isAdmin() || (isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'teacher']);
       }
     }
 
