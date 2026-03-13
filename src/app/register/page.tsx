@@ -34,6 +34,7 @@ export default function RegisterPage() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const auth = useAuth();
   const db = useFirestore();
   const router = useRouter();
@@ -41,10 +42,14 @@ export default function RegisterPage() {
   const { user, loading } = useUser();
 
   useEffect(() => {
-    if (!loading && user && !user.isAnonymous) {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!loading && user && !user.isAnonymous && isMounted) {
       router.push('/ebeveyn-portali');
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, isMounted]);
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -133,6 +138,8 @@ export default function RegisterPage() {
       setIsSubmitting(false);
     }
   };
+
+  if (!isMounted) return null;
 
   return (
      <div className="relative flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-cyan-50 via-amber-50 to-white p-4 overflow-hidden">
