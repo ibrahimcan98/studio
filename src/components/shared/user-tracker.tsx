@@ -34,7 +34,6 @@ export function UserTracker() {
 
     const handleUnload = () => {
       // Tarayıcı kapanırken online durumunu false yapmaya çalış
-      // Navigator.sendBeacon alternatifi olarak firestore'da izinler esnetildi
       updateDoc(userRef, { isOnline: false }).catch(() => {});
     };
 
