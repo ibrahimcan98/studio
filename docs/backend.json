@@ -27,8 +27,10 @@
         "introVideoUrl": { "type": "string", "format": "uri" },
         "googleMeetLink": { "type": "string", "format": "uri" },
         "isProfileComplete": { "type": "boolean" },
-        "lastActiveAt": { "type": "string", "format": "date-time", "description": "Last time the user navigated to a page." },
-        "currentPath": { "type": "string", "description": "The URL path the user is currently on." }
+        "lastActiveAt": { "type": "string", "format": "date-time" },
+        "currentPath": { "type": "string" },
+        "isOnline": { "type": "boolean" },
+        "onlineSince": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "firstName", "lastName", "email", "role"]
     },
@@ -36,7 +38,6 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Transaction",
       "type": "object",
-      "description": "Represents a financial transaction/purchase.",
       "properties": {
         "id": { "type": "string" },
         "userId": { "type": "string" },
@@ -87,23 +88,7 @@
         "definition": {
           "entityName": "User",
           "schema": { "$ref": "#/backend/entities/User" },
-          "description": "User profiles."
-        }
-      },
-      {
-        "path": "/users/{userId}/children/{childId}",
-        "definition": {
-          "entityName": "Child",
-          "schema": { "$ref": "#/backend/entities/Child" },
-          "description": "Children profiles."
-        }
-      },
-      {
-        "path": "/transactions/{transactionId}",
-        "definition": {
-          "entityName": "Transaction",
-          "schema": { "$ref": "#/backend/entities/Transaction" },
-          "description": "Financial records for admin monitoring."
+          "description": "User profiles with live tracking data."
         }
       }
     ]

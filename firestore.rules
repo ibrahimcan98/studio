@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -25,11 +26,15 @@ service cloud.firestore {
 
     // 2. KULLANICI VE ÇOCUK VERİLERİ
     match /users/{userId} {
+      // Admin her şeyi yapabilir
       allow read, write: if isAdmin();
+      
+      // Kullanıcı kendi verisini okuyabilir ve yazabilir
       allow read, write: if isSignedIn() && request.auth.uid == userId;
       
-      // Velilerin öğretmen profillerini görebilmesi için
-      allow get: if isSignedIn() && resource.data.role == 'teacher';
+      // Takip verileri için özel izin (isOnline vb.)
+      allow update: if (isSignedIn() && request.auth.uid == userId) || 
+                    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isOnline', 'lastActiveAt', 'currentPath', 'onlineSince']));
 
       match /children/{childId} {
         allow read, write: if isAdmin();
