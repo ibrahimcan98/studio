@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -49,6 +50,8 @@ export default function LoginPage() {
                         router.replace('/ebeveyn-portali');
                     }
                 } else {
+                    // Eğer doküman yoksa ama Auth girişi başarılıysa (Örn: Taslak öğretmen)
+                    // Önce ogretmen-giris sayfasına yönlendirelim ki migration tetiklensin
                     router.replace('/ebeveyn-portali');
                 }
             } catch (e) {
@@ -87,6 +90,12 @@ export default function LoginPage() {
                 router.push('/yonetici');
                 return;
            }
+      } else {
+          // Eğer bir kullanıcı Auth'ta var ama Firestore'da yoksa, bu bir "Ön-Yetkilendirilmiş" öğretmen olabilir.
+          // ogretmen-giris sayfası bunu migrate edecektir.
+          toast({ title: 'Hoş Geldiniz', description: 'Giriş yapılıyor...' });
+          router.push('/ebeveyn-portali');
+          return;
       }
 
       toast({ title: 'Başarılı!', description: 'Giriş yaptınız. Yönlendiriliyorsunuz...' });
@@ -106,7 +115,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-cyan-50 via-amber-50 to-white p-4 overflow-hidden">
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-cyan-50 via-amber-50 to-white p-4 overflow-hidden font-sans">
       <div className="container relative z-10 w-full max-w-6xl flex items-center justify-center min-h-[calc(100vh-8rem)]">
         <div className="w-full flex justify-center">
             <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-16 w-full max-w-4xl">

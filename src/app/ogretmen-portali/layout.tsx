@@ -26,10 +26,17 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
   const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
 
   useEffect(() => {
+    // Veriler hala yükleniyorsa bekleyelim
     if (authLoading || userDataLoading) return;
 
-    if (!user || userData?.role !== 'teacher') {
+    // Eğer oturum yoksa veya kullanıcı öğretmen değilse yönlendir
+    if (!user) {
       router.replace('/ogretmen-giris');
+      return;
+    }
+
+    if (userData && userData.role !== 'teacher') {
+      router.replace('/login');
     }
   }, [user, authLoading, userData, userDataLoading, router]);
 
@@ -39,10 +46,14 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
     router.push('/ogretmen-giris');
   };
   
-  if (authLoading || userDataLoading || (user && userData?.role !== 'teacher')) {
+  // Yükleme ekranı: Sadece gerçekten yükleme varsa veya yetki henüz doğrulanmadıysa göster
+  if (authLoading || userDataLoading || !user || (userData && userData.role !== 'teacher')) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+        <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-16 w-16 animate-spin text-primary" />
+            <p className="text-sm font-medium text-muted-foreground animate-pulse">Yetki kontrol ediliyor...</p>
+        </div>
       </div>
     );
   }
@@ -62,26 +73,29 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
                     <Logo />
                 </Link>
                 <div className="flex items-center gap-4">
-                    <span className="text-sm font-medium text-muted-foreground hidden sm:inline">
-                        {userData?.firstName} {userData?.lastName}
-                    </span>
-                    <Button variant="outline" size="sm" onClick={handleLogout}>
+                    <div className="flex flex-col items-end hidden sm:flex">
+                        <span className="text-sm font-bold text-slate-900 leading-none">
+                            {userData?.firstName} {userData?.lastName}
+                        </span>
+                        <span className="text-[10px] text-primary font-bold uppercase tracking-wider">Öğretmen</span>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={handleLogout} className="rounded-xl font-bold">
                         <LogOut className="mr-2 h-4 w-4" />
                         Çıkış Yap
                     </Button>
                 </div>
             </div>
-             <div className="border-b">
+             <div className="border-b bg-white">
                 <nav className="container flex items-center">
                     {navItems.map((item) => (
                         <Link
                             key={item.href}
                             href={item.href}
                             className={cn(
-                                'flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors',
+                                'flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all',
                                 pathname === item.href
-                                    ? 'text-primary border-b-2 border-primary'
-                                    : 'text-muted-foreground hover:text-primary'
+                                    ? 'text-primary border-b-2 border-primary bg-primary/5'
+                                    : 'text-muted-foreground hover:text-primary hover:bg-slate-50'
                             )}
                         >
                             <item.icon className="h-4 w-4" />

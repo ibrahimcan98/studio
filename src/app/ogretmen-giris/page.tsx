@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { TeacherIllustration } from '@/components/illustrations/teacher-illustration';
-import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 
 export default function OgretmenGirisPage() {
   const [email, setEmail] = useState('');
@@ -36,25 +36,23 @@ export default function OgretmenGirisPage() {
     const userDocRef = doc(db, 'users', firebaseUser.uid);
     const userDoc = await getDoc(userDocRef);
 
-    // Eğer kullanıcı zaten Firestore'da varsa, rolünü kontrol et
+    // 1. Durum: Kullanıcı dokümanı zaten var
     if (userDoc.exists()) {
       const data = userDoc.data();
       if (data.role === 'teacher') return true;
       
-      // Eğer rolü farklıysa ama admin panelinden bir taslak oluşturulmuş olabilir (ID e-posta slug olabilir)
-      // Bu durumda UID ile dokümanı eşlememiz gerekir.
-      // Basitlik için: Eğer email eşleşiyorsa ama UID farklıysa, yetkiyi UID'ye taşı
-      const slugId = firebaseUser.email.replace(/[^a-zA-Z0-9]/g, '_');
+      // Eğer rolü 'teacher' değilse ama admin e-posta ile bir taslak oluşturmuşsa onu taşıyalım
+      const slugId = firebaseUser.email.toLowerCase().replace(/[^a-zA-Z0-9]/g, '_');
       const slugRef = doc(db, 'users', slugId);
       const slugDoc = await getDoc(slugRef);
       
       if (slugDoc.exists() && slugDoc.data().role === 'teacher') {
-          // Taslağı UID'ye taşı
+          const teacherData = slugDoc.data();
           await setDoc(userDocRef, { 
-              ...slugDoc.data(), 
+              ...teacherData, 
               id: firebaseUser.uid,
               updatedAt: serverTimestamp() 
-          });
+          }, { merge: true });
           await deleteDoc(slugRef);
           return true;
       }
@@ -62,19 +60,21 @@ export default function OgretmenGirisPage() {
       return false;
     }
 
-    // Kullanıcı Firestore'da yoksa, e-posta taslağı kontrolü yap
-    const slugId = firebaseUser.email.replace(/[^a-zA-Z0-9]/g, '_');
+    // 2. Durum: Kullanıcı dokümanı yok (İlk kez kayıt/giriş), e-posta slug'ı kontrol et
+    const slugId = firebaseUser.email.toLowerCase().replace(/[^a-zA-Z0-9]/g, '_');
     const slugRef = doc(db, 'users', slugId);
     const slugDoc = await getDoc(slugRef);
 
     if (slugDoc.exists() && slugDoc.data().role === 'teacher') {
+        const teacherData = slugDoc.data();
         await setDoc(userDocRef, { 
-            ...slugDoc.data(), 
+            ...teacherData, 
             id: firebaseUser.uid,
-            updatedAt: serverTimestamp() 
+            createdAt: teacherData.createdAt || serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            isProfileComplete: true
         });
-        // Opsiyonel: Taslağı silebiliriz (temizlik için)
-        // await deleteDoc(slugRef);
+        await deleteDoc(slugRef);
         return true;
     }
 
@@ -96,10 +96,11 @@ export default function OgretmenGirisPage() {
       } else {
         await auth.signOut();
         toast({ variant: 'destructive', title: 'Yetki Hatası', description: 'Bu hesap öğretmen portalı için yetkilendirilmemiş.' });
+        setIsSubmitting(false);
       }
     } catch (error) {
+      console.error("Login error:", error);
       toast({ variant: 'destructive', title: 'Hata', description: 'E-posta veya şifre hatalı.' });
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -120,14 +121,15 @@ export default function OgretmenGirisPage() {
                     <form onSubmit={handleLogin} className="space-y-6">
                       <div className="space-y-2">
                         <Label htmlFor="email">Email</Label>
-                        <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={isSubmitting} />
+                        <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={isSubmitting} placeholder="ornek@turkcocukakademisii.com" />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="password">Şifre</Label>
-                        <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={isSubmitting} />
+                        <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={isSubmitting} placeholder="••••••••" />
                       </div>
                       <Button type="submit" className="w-full font-bold text-lg py-6" disabled={isSubmitting}>
-                        {isSubmitting ? <Loader2 className="animate-spin mr-2"/> : 'Giriş Yap'}
+                        {isSubmitting ? <Loader2 className="animate-spin mr-2"/> : null}
+                        {isSubmitting ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
                       </Button>
                     </form>
                   </div>
