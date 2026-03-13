@@ -25,13 +25,22 @@ const exchangeRateFlow = ai.defineFlow(
   },
   async () => {
     try {
-      const response = await fetch('https://api.frankfurter.app/latest?from=EUR');
+      // Abort controller to prevent long-hanging fetches that crash RSC navigation
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+      const response = await fetch('https://api.frankfurter.app/latest?from=EUR', {
+        signal: controller.signal,
+        next: { revalidate: 3600 } // Cache for 1 hour
+      });
+      
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
         throw new Error(`Failed to fetch exchange rates: ${response.statusText}`);
       }
       const data = await response.json();
       
-      // Ensure the API response has the expected structure
       if (data && data.rates) {
         return {
           rates: data.rates,
@@ -40,8 +49,8 @@ const exchangeRateFlow = ai.defineFlow(
         throw new Error('Invalid data structure from exchange rate API.');
       }
     } catch (error) {
-      console.error("Error fetching exchange rates:", error);
-      // In case of an error, return a default/stale set of rates to prevent a crash
+      console.warn("Error fetching exchange rates, using fallback:", error);
+      // Fallback rates to prevent "Failed to fetch" crashes during site navigation
       return {
         rates: {
           EUR: 1,

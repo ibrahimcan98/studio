@@ -57,7 +57,6 @@ export default function RegisterPage() {
 
     setIsSubmitting(true);
     try {
-      // Önce e-posta tabanlı bir taslak (öğretmen yetkisi) var mı kontrol et
       const slugId = email.toLowerCase().replace(/[^a-zA-Z0-9]/g, '_');
       const slugRef = doc(db, 'users', slugId);
       const slugDoc = await getDoc(slugRef);
@@ -76,7 +75,6 @@ export default function RegisterPage() {
 
       const userDocRef = doc(db, 'users', newUser.uid);
       
-      // Admin kontrolü
       const isAdmin = email.toLowerCase() === adminEmail.toLowerCase();
       const role = isAdmin ? 'admin' : (isPreAuthorizedTeacher ? 'teacher' : 'parent');
       
@@ -97,7 +95,6 @@ export default function RegisterPage() {
         createdAt: serverTimestamp()
       };
 
-      // Eğer öğretmen yetkisi varsa, taslaktaki ek bilgileri (bio, video vb.) devral
       if (isPreAuthorizedTeacher) {
           const teacherDraft = slugDoc.data();
           Object.assign(userData, {
@@ -139,10 +136,13 @@ export default function RegisterPage() {
     }
   };
 
-  if (!isMounted) return null;
+  // Prevent hydration flicker by returning a consistent shell
+  if (!isMounted) {
+    return <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-amber-50 to-white" />;
+  }
 
   return (
-     <div className="relative flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-cyan-50 via-amber-50 to-white p-4 overflow-hidden">
+     <div className="relative flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-cyan-50 via-amber-50 to-white p-4 overflow-hidden" suppressHydrationWarning>
       <div className="container relative z-10 w-full max-w-6xl flex items-center justify-center min-h-[calc(100vh-8rem)]">
         <div className="w-full flex justify-center">
            <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-16 w-full max-w-4xl">
@@ -170,6 +170,7 @@ export default function RegisterPage() {
                           value={name}
                           onChange={(e) => setName(e.target.value)}
                           disabled={loading || isSubmitting}
+                          suppressHydrationWarning
                         />
                       </div>
                       <div className="space-y-2">
@@ -183,6 +184,7 @@ export default function RegisterPage() {
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           disabled={loading || isSubmitting}
+                          suppressHydrationWarning
                         />
                       </div>
                        <div className="space-y-2">
@@ -198,6 +200,7 @@ export default function RegisterPage() {
                             onChange={(e) => setAreaCode(e.target.value)}
                             disabled={loading || isSubmitting}
                             className="col-span-1"
+                            suppressHydrationWarning
                             />
                             <Input
                             id="phone-signup"
@@ -209,6 +212,7 @@ export default function RegisterPage() {
                             onChange={(e) => setPhoneNumber(e.target.value)}
                             disabled={loading || isSubmitting}
                             className="col-span-2"
+                            suppressHydrationWarning
                             />
                         </div>
                       </div>
@@ -223,12 +227,14 @@ export default function RegisterPage() {
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           disabled={loading || isSubmitting}
+                          suppressHydrationWarning
                         />
                       </div>
                       <Button
                         type="submit"
                         className="w-full font-bold text-lg py-6"
                         disabled={loading || isSubmitting}
+                        suppressHydrationWarning
                       >
                         {isSubmitting ? <Loader2 className="animate-spin mr-2"/> : null}
                         {isSubmitting ? 'Kayıt Olunuyor...' : 'Ücretsiz Kayıt Ol'}

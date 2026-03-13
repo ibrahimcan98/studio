@@ -28,7 +28,6 @@ function IntercomScriptLoader() {
   useEffect(() => {
     if (!mounted || typeof window === 'undefined') return;
 
-    // Manual injection to avoid hydration errors and appendChild issues
     const ic = (window as any).Intercom;
     if (typeof ic === 'function') {
       ic('reattach_activator');
@@ -44,8 +43,13 @@ function IntercomScriptLoader() {
         s.type = 'text/javascript';
         s.async = true;
         s.src = 'https://widget.intercom.io/widget/' + INTERCOM_APP_ID;
+        // Safety check for parent element
         const x = d.getElementsByTagName('script')[0];
-        x.parentNode?.insertBefore(s, x);
+        if (x && x.parentNode) {
+          x.parentNode.insertBefore(s, x);
+        } else {
+          d.head.appendChild(s);
+        }
       };
       if (d.readyState === 'complete') {
         l();
