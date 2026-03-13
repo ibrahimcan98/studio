@@ -1,4 +1,3 @@
-
 'use client';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -192,11 +191,14 @@ export default function Header() {
             </Button>
           </nav>
           
-            <Button variant="secondary" className="font-semibold hidden lg:inline-flex" onClick={handleFreeTrialClick}>Ücretsiz Deneme</Button>
-
-            <div className="hidden lg:flex items-center gap-2">
-              <UserMenu />
-           </div>
+            {mounted && (
+              <>
+                <Button variant="secondary" className="font-semibold hidden lg:inline-flex" onClick={handleFreeTrialClick}>Ücretsiz Deneme</Button>
+                <div className="hidden lg:flex items-center gap-2">
+                  <UserMenu />
+                </div>
+              </>
+            )}
 
           <div className="lg:hidden flex items-center gap-2">
              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -236,7 +238,7 @@ export default function Header() {
                             <Button variant="secondary" className="w-full justify-center p-2 h-auto font-medium text-lg" onClick={handleFreeTrialClick}>
                                 Ücretsiz Deneme
                             </Button>
-                             {!isLoggedIn && (
+                             {mounted && !isLoggedIn && (
                                  <Button variant="outline" className="w-full justify-center p-2 h-auto font-medium text-lg" onClick={() => handleLinkClick("/login")}>
                                     Giriş Yap
                                  </Button>

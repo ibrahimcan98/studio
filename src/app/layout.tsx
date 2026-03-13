@@ -25,8 +25,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="tr">
-      <body className={`${poppins.className} antialiased`}>
+    <html lang="tr" suppressHydrationWarning>
+      <body className={`${poppins.className} antialiased`} suppressHydrationWarning>
         <Providers>
           <LayoutContent>
             {children}
