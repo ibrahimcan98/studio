@@ -30,7 +30,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (!loading && user && !user.isAnonymous) {
         // Admin e-posta kontrolü - Firestore'dan bağımsız doğrudan yönlendirme
-        if (user.email === adminEmail) {
+        if (user.email?.toLowerCase() === adminEmail.toLowerCase()) {
             router.replace('/yonetici');
             return;
         }
@@ -79,7 +79,7 @@ export default function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const loggedUser = userCredential.user;
 
-      if (loggedUser.email === adminEmail) {
+      if (loggedUser.email?.toLowerCase() === adminEmail.toLowerCase()) {
           toast({ title: 'Hoş Geldiniz Admin', description: 'Yönetici paneline yönlendiriliyorsunuz.' });
           router.push('/yonetici');
           return;

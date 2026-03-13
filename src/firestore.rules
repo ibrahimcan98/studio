@@ -10,9 +10,7 @@ service cloud.firestore {
     function isAdmin() {
       return isSignedIn() && (
         request.auth.token.email == 'admin@hotmail.com' ||
-        request.auth.uid == 'HjYBaEgRUsQ4DUIvBlFfrx7ND6p1' ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+        request.auth.uid == 'HjYBaEgRUsQ4DUIvBlFfrx7ND6p1'
       );
     }
 
@@ -29,20 +27,20 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if isSignedIn() && request.auth.uid == userId;
       
-      // Takip verileri için izin
+      // Admin tüm kullanıcıları listeleyebilir ve görebilir
+      allow list, get: if isAdmin();
+      
+      // Velilerin öğretmenleri görmesi için (Ders Planlama)
+      allow get: if isSignedIn() && resource.data.role == 'teacher';
+      
+      // Takip verileri için güncelleme izni (Çıkış anında auth null olsa bile isOnline: false izni)
       allow update: if (isSignedIn() && request.auth.uid == userId) || 
                     (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isOnline', 'lastActiveAt', 'currentPath']));
-      
-      allow list, get: if isAdmin() || (isSignedIn() && (resource.data.role == 'teacher' || get(/databases/$(database)/documents/users/$(userId)).data.role == 'teacher'));
 
       match /children/{childId} {
         allow read, write: if isSignedIn() && request.auth.uid == userId;
         allow read: if isAdmin() || (isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher');
       }
-    }
-
-    match /{path=**}/children/{childId} {
-      allow read: if isAdmin();
     }
 
     // 3. DERS SLOTLARI
@@ -56,13 +54,12 @@ service cloud.firestore {
         }
     }
     
-    // 4. İŞLEMLER
+    // 4. İŞLEMLER VE GENEL VERİLER
     match /transactions/{id} {
       allow read: if isAdmin();
       allow create: if isSignedIn();
     }
 
-    // 5. GENEL VERİLER
     match /courses/{courseId} {
       allow read: if true;
       allow write: if isAdmin();
@@ -74,7 +71,7 @@ service cloud.firestore {
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
-    // 6. GLOBAL ADMIN ERİŞİMİ
+    // 5. GLOBAL ADMIN ERİŞİMİ
     match /{document=**} {
       allow read, write: if isAdmin();
     }
