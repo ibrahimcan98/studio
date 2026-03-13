@@ -88,14 +88,14 @@ export default function Header() {
     }
     if (!isLoggedIn) {
        return (
-        <Button variant="ghost" className="font-semibold" asChild>
+        <Button variant="ghost" className="font-semibold" asChild suppressHydrationWarning>
             <Link href="/login">Giriş Yap</Link>
         </Button>
       )
     }
     return (
        <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+        <DropdownMenuTrigger asChild suppressHydrationWarning>
           <Button variant="ghost" className="relative h-10 w-10 rounded-full">
             <Avatar className="h-10 w-10">
               <AvatarImage src={user?.photoURL || ''} />
@@ -164,23 +164,23 @@ export default function Header() {
         
         <div className="flex items-center justify-end gap-2 lg:gap-4">
           <nav className="hidden lg:flex items-center gap-6 text-sm font-medium">
-              <button onClick={handlePortalClick} className="transition-colors hover:text-foreground/80 text-foreground/60">
-              Ebeveyn Portalı
-            </button>
-            {navLinks.map((link) => {
-              const Comp = link.href ? Link : 'span';
-              return (
-                <Comp
+              <button 
+                onClick={handlePortalClick} 
+                className="transition-colors hover:text-foreground/80 text-foreground/60"
+                suppressHydrationWarning
+              >
+                Ebeveyn Portalı
+              </button>
+            {navLinks.map((link) => (
+                <Link
                   key={link.label}
-                  // @ts-ignore
                   href={link.href}
-                  className={cn("transition-colors hover:text-foreground/80 text-foreground/60", !link.href && "cursor-default")}
+                  className="transition-colors hover:text-foreground/80 text-foreground/60"
                 >
                   {link.label}
-                </Comp>
-              );
-            })}
-             <Button variant="ghost" asChild className="relative">
+                </Link>
+            ))}
+             <Button variant="ghost" asChild className="relative" suppressHydrationWarning>
                 <Link href="/sepet">
                     <ShoppingCart className="h-5 w-5"/>
                     {mounted && isCartLoaded && cartItemCount > 0 && (
@@ -191,64 +191,75 @@ export default function Header() {
             </Button>
           </nav>
           
-            {mounted && (
-              <>
-                <Button variant="secondary" className="font-semibold hidden lg:inline-flex" onClick={handleFreeTrialClick}>Ücretsiz Deneme</Button>
+          {mounted ? (
+            <div className="flex items-center gap-2">
+                <Button 
+                  variant="secondary" 
+                  className="font-semibold hidden lg:inline-flex" 
+                  onClick={handleFreeTrialClick}
+                  suppressHydrationWarning
+                >
+                  Ücretsiz Deneme
+                </Button>
+                
                 <div className="hidden lg:flex items-center gap-2">
                   <UserMenu />
                 </div>
-              </>
-            )}
 
-          <div className="lg:hidden flex items-center gap-2">
-             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-                <SheetTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                        <Menu className="h-6 w-6" />
-                        <span className="sr-only">Menüyü aç</span>
-                    </Button>
-                </SheetTrigger>
-                <SheetContent side="right">
-                    <SheetHeader className="border-b pb-4">
-                        <SheetTitle className='sr-only'>Mobile Menu</SheetTitle>
-                        <SheetClose asChild>
-                          <Link href="/" className="flex items-center space-x-2">
-                            <Logo />
-                          </Link>
-                        </SheetClose>
-                    </SheetHeader>
-                    <div className="flex flex-col gap-y-6 pt-6 h-full">
-                        <nav className="flex flex-col gap-4">
-                            <button onClick={handlePortalClick} className="text-lg font-medium transition-colors hover:text-foreground/80 text-left">
-                                Ebeveyn Portalı
-                            </button>
-                            {navLinks.map((link) => (
-                                <button
-                                    key={link.label}
-                                    onClick={() => handleLinkClick(link.href)}
-                                    disabled={!link.href}
-                                    className="text-lg font-medium transition-colors hover:text-foreground/80 text-left disabled:text-foreground/60 disabled:cursor-default"
-                                >
-                                    {link.label}
-                                </button>
-                            ))}
-                             <button onClick={() => handleLinkClick('/sepet')} className="text-lg font-medium transition-colors hover:text-foreground/80 text-left">
-                                Sepet ({mounted && isCartLoaded ? cartItemCount : 0})
-                            </button>
-                            <Button variant="secondary" className="w-full justify-center p-2 h-auto font-medium text-lg" onClick={handleFreeTrialClick}>
-                                Ücretsiz Deneme
+                <div className="lg:hidden flex items-center gap-2">
+                    <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                        <SheetTrigger asChild suppressHydrationWarning>
+                            <Button variant="ghost" size="icon">
+                                <Menu className="h-6 w-6" />
+                                <span className="sr-only">Menüyü aç</span>
                             </Button>
-                             {mounted && !isLoggedIn && (
-                                 <Button variant="outline" className="w-full justify-center p-2 h-auto font-medium text-lg" onClick={() => handleLinkClick("/login")}>
-                                    Giriş Yap
-                                 </Button>
-                            )}
-                        </nav>
-                    </div>
-                </SheetContent>
-            </Sheet>
-            <UserMenu />
-           </div>
+                        </SheetTrigger>
+                        <SheetContent side="right">
+                            <SheetHeader className="border-b pb-4">
+                                <SheetTitle className='sr-only'>Mobil Menü</SheetTitle>
+                                <SheetClose asChild>
+                                  <Link href="/" className="flex items-center space-x-2">
+                                    <Logo />
+                                  </Link>
+                                </SheetClose>
+                            </SheetHeader>
+                            <div className="flex flex-col gap-y-6 pt-6 h-full">
+                                <nav className="flex flex-col gap-4">
+                                    <button onClick={handlePortalClick} className="text-lg font-medium transition-colors hover:text-foreground/80 text-left">
+                                        Ebeveyn Portalı
+                                    </button>
+                                    {navLinks.map((link) => (
+                                        <button
+                                            key={link.label}
+                                            onClick={() => handleLinkClick(link.href)}
+                                            className="text-lg font-medium transition-colors hover:text-foreground/80 text-left"
+                                        >
+                                            {link.label}
+                                        </button>
+                                    ))}
+                                     <button onClick={() => handleLinkClick('/sepet')} className="text-lg font-medium transition-colors hover:text-foreground/80 text-left">
+                                        Sepet ({isCartLoaded ? cartItemCount : 0})
+                                    </button>
+                                    <Button variant="secondary" className="w-full justify-center p-2 h-auto font-medium text-lg" onClick={handleFreeTrialClick}>
+                                        Ücretsiz Deneme
+                                    </Button>
+                                     {!isLoggedIn && (
+                                         <Button variant="outline" className="w-full justify-center p-2 h-auto font-medium text-lg" onClick={() => handleLinkClick("/login")}>
+                                            Giriş Yap
+                                         </Button>
+                                    )}
+                                </nav>
+                            </div>
+                        </SheetContent>
+                    </Sheet>
+                    <UserMenu />
+                </div>
+            </div>
+          ) : (
+            <div className="h-10 w-10 flex items-center justify-center">
+                <div className="h-6 w-6 rounded-full bg-muted animate-pulse" />
+            </div>
+          )}
         </div>
       </div>
     </header>

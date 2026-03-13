@@ -1,70 +1,73 @@
 'use client';
 
+import React, { useMemo, useEffect, useState } from 'react';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { CartProvider } from '@/context/cart-context';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { useEffect } from 'react';
+
+const INTERCOM_APP_ID = "omihlk0y";
 
 // A component to safely load Intercom and identify users
 function IntercomScriptLoader() {
   const { user, loading: userLoading } = useUser();
   const db = useFirestore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const userDocRef = useMemoFirebase(() => {
     if (!user || !db || user.isAnonymous) return null;
     return doc(db, 'users', user.uid);
   }, [user, db]);
 
-  const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
-
-  const INTERCOM_APP_ID = "omihlk0y"; 
+  const { data: userData } = useDoc(userDocRef);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (!mounted || typeof window === 'undefined') return;
 
-    // Initialize Intercom snippet correctly without Script component to avoid appendChild issues
-    const loadIntercom = () => {
-      const w = window as any;
-      const ic = w.Intercom;
-      if (typeof ic === "function") {
-        ic('reattach_activator');
-        ic('update', w.intercomSettings);
+    // Manual injection to avoid hydration errors and appendChild issues
+    const ic = (window as any).Intercom;
+    if (typeof ic === 'function') {
+      ic('reattach_activator');
+      ic('update', (window as any).intercomSettings);
+    } else {
+      const d = document;
+      const i: any = function() { i.c(arguments); };
+      i.q = [];
+      i.c = function(args: any) { i.q.push(args); };
+      (window as any).Intercom = i;
+      const l = function() {
+        const s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'https://widget.intercom.io/widget/' + INTERCOM_APP_ID;
+        const x = d.getElementsByTagName('script')[0];
+        x.parentNode?.insertBefore(s, x);
+      };
+      if (d.readyState === 'complete') {
+        l();
       } else {
-        const d = document;
-        const i: any = function() { i.c(arguments); };
-        i.q = [];
-        i.c = function(args: any) { i.q.push(args); };
-        w.Intercom = i;
-        const l = function() {
-          const s = d.createElement('script');
-          s.type = 'text/javascript';
-          s.async = true;
-          s.src = 'https://widget.intercom.io/widget/' + INTERCOM_APP_ID;
-          const x = d.getElementsByTagName('script')[0];
-          x.parentNode?.insertBefore(s, x);
-        };
-        if (d.readyState === 'complete') {
-          l();
-        } else {
-          w.addEventListener('load', l, false);
-        }
+        window.addEventListener('load', l, false);
       }
-    };
+    }
 
     (window as any).Intercom?.('boot', {
       app_id: INTERCOM_APP_ID,
-    }) || loadIntercom();
+      api_base: "https://api-iam.intercom.io",
+    });
 
     return () => {
       if ((window as any).Intercom) {
         (window as any).Intercom('shutdown');
       }
     };
-  }, []);
+  }, [mounted]);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !(window as any).Intercom || userLoading || userDataLoading) return;
+    if (!mounted || typeof window === 'undefined' || !(window as any).Intercom || userLoading) return;
 
     const intercomSettings: any = {
       api_base: "https://api-iam.intercom.io",
@@ -80,7 +83,7 @@ function IntercomScriptLoader() {
     }
 
     (window as any).Intercom('update', intercomSettings);
-  }, [user, userData, userLoading, userDataLoading]);
+  }, [user, userData, userLoading, mounted]);
 
   return null;
 }
