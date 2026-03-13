@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useFirestore, doc, useDoc, useMemoFirebase } from '@/firebase';
@@ -9,12 +8,10 @@ import {
   LogOut,
   Home,
   Users,
-  TrendingUp,
   ShieldAlert,
   Inbox,
   Baby,
-  CreditCard,
-  Activity
+  CreditCard
 } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
@@ -22,7 +19,6 @@ import { Logo } from '@/components/logo';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import {
-  Tooltip,
   TooltipProvider,
 } from '@/components/ui/tooltip';
 
@@ -85,7 +81,6 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
 
   const navItems = [
     { href: '/yonetici', label: 'Dashboard', icon: Home },
-    { href: '/yonetici/canli-takip', label: 'Canlı Takip', icon: Activity },
     { href: '/yonetici/inbox', label: 'Inbox', icon: Inbox },
     { href: '/yonetici/satislar', label: 'Satışlar', icon: CreditCard },
     { href: '/yonetici/kullanicilar', label: 'Veliler', icon: Users },
