@@ -24,6 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
 const allowedTeacherEmails = ['ibrahimcan@turkcocukakademisii.com', 'teacher@turkcocukakademisi.com', 'tubakodak@turkcocukakademisii.com'];
+const adminEmail = 'admin@hotmail.com';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -36,8 +37,13 @@ export default function LoginPage() {
   const { user, loading } = useUser();
 
   useEffect(() => {
-    // Sadece gerçek hesaplar portal yönlendirmesine girsin (Anonim kullanıcılar asistan içindir)
+    // Redirect logic for already logged in users
     if (!loading && user && !user.isAnonymous) {
+        if (user.email === adminEmail) {
+            router.replace('/yonetici');
+            return;
+        }
+        
         const checkRoleAndRedirect = async () => {
             if (!db) return;
             try {
@@ -84,15 +90,22 @@ export default function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Check user role from Firestore
+      // Immediate admin check via email
+      if (user.email === adminEmail) {
+          toast({ title: 'Hoş Geldiniz Admin', description: 'Yönetici paneline yönlendiriliyorsunuz.' });
+          router.push('/yonetici');
+          return;
+      }
+
+      // Check user role from Firestore for others
       const userDocRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
       
-      let targetPath = '/ebeveyn-portali'; // Default to parent portal
+      let targetPath = '/ebeveyn-portali';
       if (userDoc.exists()) {
           const userData = userDoc.data();
            if (userData.role === 'teacher') {
-                await auth.signOut(); // Sign out the teacher immediately
+                await auth.signOut();
                 toast({
                     variant: 'destructive',
                     title: 'Giriş Reddedildi',
@@ -120,7 +133,6 @@ export default function LoginPage() {
     }
   };
 
-  // Anonim bir kullanıcı varsa bile login formunu göster
   if (loading || (user && !user.isAnonymous)) {
      return (
       <div className="flex min-h-screen items-center justify-center">
