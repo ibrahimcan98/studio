@@ -11,11 +11,12 @@ service cloud.firestore {
       return isSignedIn() && (
         request.auth.token.email == 'admin@hotmail.com' ||
         request.auth.uid == 'HjYBaEgRUsQ4DUIvBlFfrx7ND6p1' ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
       );
     }
 
-    // 1. DESTEK SİSTEMİ - TAMAMEN AÇIK (KULLANICI TALEBİ)
+    // 1. DESTEK SİSTEMİ
     match /conversations/{id} {
       allow read, write: if true;
     }
@@ -28,11 +29,10 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if isSignedIn() && request.auth.uid == userId;
       
-      // isOnline güncellemesi için özel izin (çıkış anında auth sorunları için)
+      // İzleme verileri için esnek izin (çıkış yaparken hata almamak için)
       allow update: if (isSignedIn() && request.auth.uid == userId) || 
                     (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isOnline', 'lastActiveAt', 'currentPath']));
       
-      // Adminler öğretmenleri ve velileri listeleyebilir
       allow list, get: if isAdmin() || (isSignedIn() && (resource.data.role == 'teacher' || get(/databases/$(database)/documents/users/$(userId)).data.role == 'teacher'));
 
       match /children/{childId} {
@@ -41,7 +41,6 @@ service cloud.firestore {
       }
     }
 
-    // Collection Group kuralı (Admin için tüm çocukları listeleme yetkisi)
     match /{path=**}/children/{childId} {
       allow read: if isAdmin();
     }
@@ -57,7 +56,7 @@ service cloud.firestore {
         }
     }
     
-    // 4. İŞLEMLER (TRANSACTIONS)
+    // 4. İŞLEMLER
     match /transactions/{id} {
       allow read: if isAdmin();
       allow create: if isSignedIn();

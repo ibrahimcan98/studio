@@ -3,19 +3,10 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  signInWithEmailAndPassword,
-} from 'firebase/auth';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoginIllustration } from '@/components/illustrations/login-illustration';
@@ -37,8 +28,8 @@ export default function LoginPage() {
   const { user, loading } = useUser();
 
   useEffect(() => {
-    // Redirect logic for already logged in users
     if (!loading && user && !user.isAnonymous) {
+        // Admin e-posta kontrolü - Firestore'dan bağımsız doğrudan yönlendirme
         if (user.email === adminEmail) {
             router.replace('/yonetici');
             return;
@@ -63,14 +54,12 @@ export default function LoginPage() {
                     router.replace('/ebeveyn-portali');
                 }
             } catch (e) {
-                console.error("Error checking role:", e);
                 router.replace('/ebeveyn-portali');
             }
         };
         checkRoleAndRedirect();
     }
   }, [user, loading, router, db]);
-
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -88,17 +77,15 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+      const loggedUser = userCredential.user;
 
-      // Immediate admin check via email
-      if (user.email === adminEmail) {
+      if (loggedUser.email === adminEmail) {
           toast({ title: 'Hoş Geldiniz Admin', description: 'Yönetici paneline yönlendiriliyorsunuz.' });
           router.push('/yonetici');
           return;
       }
 
-      // Check user role from Firestore for others
-      const userDocRef = doc(db, 'users', user.uid);
+      const userDocRef = doc(db, 'users', loggedUser.uid);
       const userDoc = await getDoc(userDocRef);
       
       let targetPath = '/ebeveyn-portali';
@@ -106,11 +93,7 @@ export default function LoginPage() {
           const userData = userDoc.data();
            if (userData.role === 'teacher') {
                 await auth.signOut();
-                toast({
-                    variant: 'destructive',
-                    title: 'Giriş Reddedildi',
-                    description: 'Öğretmen girişi için lütfen öğretmen portalını kullanın.',
-                });
+                toast({ variant: 'destructive', title: 'Giriş Reddedildi', description: 'Öğretmen girişi için lütfen öğretmen portalını kullanın.' });
                 setIsSubmitting(false);
                 return;
            } else if (userData.role === 'admin') {
@@ -118,18 +101,11 @@ export default function LoginPage() {
            }
       }
 
-      toast({
-        title: 'Başarılı!',
-        description: 'Giriş yaptınız. Yönlendiriliyorsunuz...',
-      });
+      toast({ title: 'Başarılı!', description: 'Giriş yaptınız. Yönlendiriliyorsunuz...' });
       router.push(targetPath);
     } catch (error) {
-       toast({
-        variant: 'destructive',
-        title: 'Hata',
-        description: 'E-posta veya şifre hatalı.',
-      });
-      setIsSubmitting(false);
+       toast({ variant: 'destructive', title: 'Hata', description: 'E-posta veya şifre hatalı.' });
+       setIsSubmitting(false);
     }
   };
 
@@ -150,9 +126,7 @@ export default function LoginPage() {
                 <Card className="w-full max-w-md shadow-2xl bg-white/80 backdrop-blur-lg border-white/50">
                   <CardHeader className="text-center space-y-4">
                     <CardTitle className="text-3xl font-bold">Giriş Yap</CardTitle>
-                    <CardDescription>
-                      Hesabınıza giriş yaparak öğrenmeye devam edin.
-                    </CardDescription>
+                    <CardDescription>Hesabınıza giriş yaparak öğrenmeye devam edin.</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <form onSubmit={handleLogin} className="space-y-6">
@@ -172,12 +146,7 @@ export default function LoginPage() {
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <Label htmlFor="password">Şifre</Label>
-                          <Link
-                            href="/forgot-password"
-                            className="text-xs text-primary hover:underline focus:outline-none"
-                          >
-                            Şifremi Unuttum?
-                          </Link>
+                          <Link href="/forgot-password" className="text-xs text-primary hover:underline focus:outline-none">Şifremi Unuttum?</Link>
                         </div>
                         <Input
                           id="password"
@@ -190,23 +159,14 @@ export default function LoginPage() {
                           disabled={loading || isSubmitting}
                         />
                       </div>
-                      <Button
-                        type="submit"
-                        className="w-full font-bold text-lg py-6"
-                        disabled={loading || isSubmitting}
-                      >
+                      <Button type="submit" className="w-full font-bold text-lg py-6" disabled={loading || isSubmitting}>
                         {isSubmitting ? <Loader2 className="animate-spin mr-2"/> : null}
                         {isSubmitting ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
                       </Button>
                     </form>
                     <div className="mt-6 text-center text-sm">
                       Hesabın yok mu?{' '}
-                      <Link
-                        href="/register"
-                        className="font-medium text-primary hover:underline focus:outline-none"
-                      >
-                        Kayıt Ol
-                      </Link>
+                      <Link href="/register" className="font-medium text-primary hover:underline focus:outline-none">Kayıt Ol</Link>
                     </div>
                   </CardContent>
                 </Card>
