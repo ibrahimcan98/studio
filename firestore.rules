@@ -25,30 +25,28 @@ service cloud.firestore {
 
     // 2. KULLANICI VE ÇOCUK VERİLERİ
     match /users/{userId} {
+      allow read, write: if isAdmin();
       allow read, write: if isSignedIn() && request.auth.uid == userId;
-      
-      // Admin her şeyi görebilir ve listeleyebilir
-      allow list, get: if isAdmin();
       
       // Velilerin öğretmen profillerini görebilmesi için
       allow get: if isSignedIn() && resource.data.role == 'teacher';
       
-      // Tracker verileri için özel izin
-      allow update: if (isSignedIn() && request.auth.uid == userId) || 
-                    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isOnline', 'lastActiveAt', 'currentPath']));
+      // Tracker verileri için özel izin (çıkış anında yetki hatası vermemesi için)
+      allow update: if isSignedIn() && request.auth.uid == userId && 
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isOnline', 'lastActiveAt', 'currentPath']);
 
       match /children/{childId} {
+        allow read, write: if isAdmin();
         allow read, write: if isSignedIn() && request.auth.uid == userId;
-        allow read: if isAdmin() || (isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher');
       }
     }
 
-    // 3. DERS SLOTLARI VE MESAJLAR
+    // 3. DERS SLOTLARI
     match /lesson-slots/{slotId} {
         allow read: if true;
         allow create: if isSignedIn();
         allow update, delete: if isSignedIn();
-
+        
         match /chats/{chatId} {
           allow read, write: if isSignedIn();
         }

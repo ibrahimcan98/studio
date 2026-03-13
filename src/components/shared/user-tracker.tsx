@@ -42,7 +42,7 @@ export function UserTracker() {
       // Tarayıcı kapanırken durumu false yapmaya çalış
       const auth = getAuth();
       if (auth.currentUser) {
-        // updateDoc doğrudan çağrılır, emitter tetiklenmez
+        // updateDoc doğrudan çağrılır, hata fırlatılmaz
         updateDoc(userRef, { isOnline: false }).catch(() => {});
       }
     };
@@ -50,7 +50,7 @@ export function UserTracker() {
     window.addEventListener('beforeunload', handleUnload);
     return () => {
       window.removeEventListener('beforeunload', handleUnload);
-      // Temizlik anında hala oturum varsa offline yap
+      // Temizlik anında hala oturum varsa offline yapmayı dene
       const auth = getAuth();
       if (auth.currentUser) {
         updateDoc(userRef, { isOnline: false }).catch(() => {});

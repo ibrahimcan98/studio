@@ -79,9 +79,9 @@ export default function LiveTrackingPage() {
                 <User className="w-6 h-6" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-slate-800 truncate">{user.firstName} {user.lastName}</h3>
+                <h3 className="font-bold text-slate-800 truncate">Kullanıcı</h3>
                 <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">
-                  {user.role === 'teacher' ? '👩‍🏫 Öğretmen' : '👨‍👩- Veli'}
+                  {user.role === 'teacher' ? '👩‍🏫 Öğretmen' : '👨‍👩‍👧‍👦 Veli'}
                 </p>
               </div>
             </CardHeader>
