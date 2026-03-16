@@ -1,6 +1,7 @@
+
 "use client";
 import React from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Star, Quote } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
@@ -53,7 +54,7 @@ const reviews = [
 
 export default function Testimonials() {
   const plugin = React.useRef(
-    Autoplay({ delay: 5000, stopOnInteraction: true })
+    Autoplay({ delay: 5000, stopOnInteraction: false })
   );
 
   return (
@@ -67,44 +68,41 @@ export default function Testimonials() {
           </p>
         </div>
 
-        <div className="relative max-w-6xl mx-auto px-12">
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-12">
           <Carousel
             plugins={[plugin.current]}
             opts={{
               align: "start",
               loop: true,
             }}
-            onMouseEnter={plugin.current.stop}
-            onMouseLeave={plugin.current.reset}
             className="w-full"
           >
             <CarouselContent className="-ml-4">
               {reviews.map((review, index) => (
-                <CarouselItem key={index} className="pl-4 md:basis-1/2 lg:basis-1/3">
-                  <Card className="h-full border-none shadow-xl shadow-slate-200/50 bg-white rounded-[32px] overflow-hidden group hover:-translate-y-2 transition-all duration-300">
-                    <CardContent className="p-8 flex flex-col h-full">
-                      <div className="flex justify-between items-start mb-6">
-                        <div className="flex gap-0.5">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          ))}
-                        </div>
-                        <Quote className="w-8 h-8 text-slate-100 group-hover:text-primary/10 transition-colors" />
-                      </div>
+                <CarouselItem key={index} className="pl-4 basis-full">
+                  <Card className="h-full border-none shadow-2xl shadow-slate-200/50 bg-white rounded-[40px] overflow-hidden group transition-all duration-500">
+                    <CardContent className="p-8 md:p-12 flex flex-col h-full items-center text-center">
+                      <Quote className="w-12 h-12 text-primary/10 mb-6" />
                       
-                      <p className="text-slate-600 leading-relaxed text-sm font-medium mb-8 flex-grow">
+                      <div className="flex gap-1 mb-6">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                        ))}
+                      </div>
+
+                      <p className="text-slate-700 leading-relaxed text-lg md:text-xl font-medium mb-10 italic">
                         “{review.review}”
                       </p>
                       
-                      <div className="flex items-center gap-4 pt-6 border-t border-slate-50">
-                        <Avatar className="h-12 w-12 ring-4 ring-slate-50">
-                          <AvatarFallback className="bg-primary/10 text-primary font-black text-xs">
-                            {review.name.split(' ')[0][0]}
+                      <div className="flex flex-col items-center gap-4 pt-8 border-t border-slate-100 w-full max-w-xs">
+                        <Avatar className="h-16 w-16 ring-4 ring-primary/5">
+                          <AvatarFallback className="bg-primary/10 text-primary font-black text-xl uppercase">
+                            {review.name.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-black text-slate-900 text-xs uppercase tracking-wider">{review.name}</p>
-                          <p className="text-[10px] font-bold text-primary uppercase tracking-widest">{review.location}</p>
+                          <p className="font-black text-slate-900 text-sm uppercase tracking-wider">{review.name}</p>
+                          <p className="text-[11px] font-bold text-primary uppercase tracking-widest mt-1">{review.location}</p>
                         </div>
                       </div>
                     </CardContent>
@@ -112,15 +110,15 @@ export default function Testimonials() {
                 </CarouselItem>
               ))}
             </CarouselContent>
-            <div className="hidden md:block">
-              <CarouselPrevious className="-left-12 h-12 w-12 rounded-full border-2 border-slate-100 bg-white shadow-lg text-slate-400 hover:text-primary hover:border-primary transition-all" />
-              <CarouselNext className="-right-12 h-12 w-12 rounded-full border-2 border-slate-100 bg-white shadow-lg text-slate-400 hover:text-primary hover:border-primary transition-all" />
+            <div className="hidden sm:block">
+              <CarouselPrevious className="-left-16 h-12 w-12 rounded-full border-2 border-slate-100 bg-white shadow-xl text-slate-400 hover:text-primary hover:border-primary transition-all" />
+              <CarouselNext className="-right-16 h-12 w-12 rounded-full border-2 border-slate-100 bg-white shadow-xl text-slate-400 hover:text-primary hover:border-primary transition-all" />
             </div>
           </Carousel>
         </div>
         
         <div className="mt-16 text-center">
-            <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">Siz de aramıza katılın, çocuğunuzun değişimine tanık olun</p>
+            <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em] animate-pulse">Siz de aramıza katılın, çocuğunuzun değişimine tanık olun</p>
         </div>
       </div>
     </section>
