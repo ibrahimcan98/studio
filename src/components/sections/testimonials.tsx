@@ -1,5 +1,5 @@
-
 "use client";
+import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Star, Quote } from 'lucide-react';
@@ -11,6 +11,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import Autoplay from "embla-carousel-autoplay";
 
 const reviews = [
   {
@@ -51,6 +52,10 @@ const reviews = [
 ];
 
 export default function Testimonials() {
+  const plugin = React.useRef(
+    Autoplay({ delay: 5000, stopOnInteraction: true })
+  );
+
   return (
     <section id="testimonials" className="py-20 md:py-32 bg-gradient-to-b from-white to-amber-50/30 overflow-hidden">
       <div className="container px-4">
@@ -64,10 +69,13 @@ export default function Testimonials() {
 
         <div className="relative max-w-6xl mx-auto px-12">
           <Carousel
+            plugins={[plugin.current]}
             opts={{
               align: "start",
               loop: true,
             }}
+            onMouseEnter={plugin.current.stop}
+            onMouseLeave={plugin.current.reset}
             className="w-full"
           >
             <CarouselContent className="-ml-4">
