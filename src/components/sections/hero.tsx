@@ -74,12 +74,12 @@ export default function Hero() {
         return (
           <div className="space-y-6">
             <div className="flex items-center justify-center relative">
-              <h3 className="text-xl font-bold text-[#243B53]">Çocuğun adı</h3>
+              <h3 className="text-lg font-bold text-[#243B53]">Çocuğun adı</h3>
             </div>
             <div className="space-y-4">
               <Input 
                 placeholder="Ad" 
-                className="h-12 rounded-2xl border-2 border-slate-200 bg-white text-base px-6 focus:ring-primary/20"
+                className="h-12 rounded-2xl border-2 border-slate-200 bg-white text-sm px-6 focus:ring-primary/20"
                 value={formData.childName}
                 onChange={(e) => setFormData({...formData, childName: e.target.value})}
                 suppressHydrationWarning
@@ -89,7 +89,7 @@ export default function Hero() {
                   type="button"
                   variant="outline"
                   className={cn(
-                    "h-12 rounded-2xl border-2 text-base font-medium transition-all",
+                    "h-12 rounded-2xl border-2 text-sm font-medium transition-all",
                     formData.gender === 'erkek' ? "border-primary bg-primary/5 text-primary" : "border-slate-200 text-slate-600"
                   )}
                   onClick={() => setFormData({...formData, gender: 'erkek'})}
@@ -101,7 +101,7 @@ export default function Hero() {
                   type="button"
                   variant="outline"
                   className={cn(
-                    "h-12 rounded-2xl border-2 text-base font-medium transition-all",
+                    "h-12 rounded-2xl border-2 text-sm font-medium transition-all",
                     formData.gender === 'kiz' ? "border-primary bg-primary/5 text-primary" : "border-slate-200 text-slate-600"
                   )}
                   onClick={() => setFormData({...formData, gender: 'kiz'})}
@@ -112,7 +112,7 @@ export default function Hero() {
               </div>
             </div>
             <Button 
-              className="w-full h-12 text-base font-bold rounded-2xl bg-slate-200 text-slate-600 hover:bg-slate-300 transition-all mt-4"
+              className="w-full h-12 text-sm font-bold rounded-2xl bg-slate-200 text-slate-600 hover:bg-slate-300 transition-all mt-4"
               onClick={() => nextStep('name')}
               suppressHydrationWarning
             >
@@ -246,7 +246,7 @@ export default function Hero() {
               Ücretsiz tanışma dersinizi ayırtmak için hesabınızı oluşturun.
             </p>
             <Button 
-              className="w-full h-12 text-base font-black rounded-2xl shadow-xl shadow-primary/20 transition-transform active:scale-95 mt-2"
+              className="w-full h-12 text-sm font-black rounded-2xl shadow-xl shadow-primary/20 transition-transform active:scale-95 mt-2"
               onClick={handleFinalSubmit}
               disabled={isSubmitting}
               suppressHydrationWarning
@@ -269,12 +269,12 @@ export default function Hero() {
             <span className="inline-block text-primary font-black tracking-[0.2em] text-xs md:text-sm uppercase">
               ÇOCUKLAR İÇİN ÇEVRİMİÇİ TÜRKÇE DERSLER
             </span>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.1]">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 leading-[1.1]">
               Çocuğunuz Türkçeyi Uzman Öğretmenlerle, Eğlenerek ve Canlı Derslerle Öğrensin.
             </h1>
           </div>
 
-          <Card className="p-8 bg-white shadow-2xl border-none rounded-[40px] max-w-lg mx-auto lg:mx-0 relative overflow-hidden min-h-[400px] flex flex-col justify-center">
+          <Card className="p-8 bg-white shadow-2xl border-none rounded-[40px] w-full mx-auto lg:mx-0 relative overflow-hidden min-h-[400px] flex flex-col justify-center">
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-16 translate-x-16" />
             <div className="relative z-10">
               {renderStep()}
