@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { PartyPopper, ArrowRight, Loader2, ChevronLeft, Check } from 'lucide-react';
+import { PartyPopper, ArrowRight, Loader2, ChevronLeft, Check, Globe2, Calendar, GraduationCap, Sparkles } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -294,14 +294,33 @@ export default function Hero() {
                 priority
               />
             )}
-            <Card className="absolute -top-6 -left-10 transform -rotate-12 bg-accent/90 backdrop-blur-sm p-4 rounded-2xl shadow-xl border-none">
-              <p className="text-xl font-black text-accent-foreground tracking-tighter">+50 XP</p>
-            </Card>
-            <Card className="absolute -bottom-6 -right-8 transform rotate-6 bg-emerald-500/90 backdrop-blur-sm p-5 rounded-2xl shadow-xl border-none flex items-center gap-3">
-              <div className="bg-white/20 p-2 rounded-lg">
-                <PartyPopper className="text-white w-6 h-6" />
+            
+            {/* Top-Left: Countries & Students */}
+            <Card className="absolute -top-10 -left-12 transform -rotate-6 bg-accent/90 backdrop-blur-sm p-4 rounded-2xl shadow-xl border-none max-w-[180px] z-20">
+              <div className="flex items-center gap-2">
+                <Globe2 className="w-5 h-5 text-accent-foreground shrink-0" />
+                <p className="text-[10px] font-black text-accent-foreground uppercase tracking-tight leading-tight">25 Farklı Ülkeden Mutlu Öğrenciler</p>
               </div>
-              <p className="font-black text-white text-xs uppercase tracking-wider">Konu tamamlandı!</p>
+            </Card>
+
+            {/* Middle-Right: Teachers */}
+            <Card className="absolute top-1/4 -right-12 transform rotate-12 bg-blue-500/90 backdrop-blur-sm p-3 rounded-xl shadow-xl border-none flex items-center gap-2 max-w-[150px] z-20">
+              <GraduationCap className="text-white w-4 h-4 shrink-0" />
+              <p className="font-bold text-white text-[9px] uppercase tracking-wide">Uzman Öğretmen Kadrosu</p>
+            </Card>
+
+            {/* Middle-Left: Flexible Hours */}
+            <Card className="absolute bottom-1/4 -left-14 transform -rotate-12 bg-orange-500/90 backdrop-blur-sm p-3 rounded-xl shadow-xl border-none flex items-center gap-2 max-w-[150px] z-20">
+              <Calendar className="text-white w-4 h-4 shrink-0" />
+              <p className="font-bold text-white text-[9px] uppercase tracking-wide">Esnek Gün ve Saatler</p>
+            </Card>
+
+            {/* Bottom-Right: Free Trial */}
+            <Card className="absolute -bottom-8 -right-10 transform rotate-3 bg-emerald-500/90 backdrop-blur-sm p-4 rounded-2xl shadow-xl border-none flex items-center gap-3 z-20">
+              <div className="bg-white/20 p-2 rounded-lg">
+                <Sparkles className="text-white w-5 h-5" />
+              </div>
+              <p className="font-black text-white text-xs uppercase tracking-wider">Ücretsiz Deneme Dersi</p>
             </Card>
           </div>
         </div>
