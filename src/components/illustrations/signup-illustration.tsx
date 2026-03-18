@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Compass, TrendingUp, Puzzle, Link2, Heart } from 'lucide-react';
@@ -25,8 +24,8 @@ export function SignUpIllustration() {
           <div className="absolute w-[75%] h-[75%] border border-dotted border-slate-200 rounded-full animate-[spin_40s_linear_infinite_reverse] opacity-50" />
         </div>
 
-        {/* MERKEZ: TÜRK BAYRAĞI */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
+        {/* MERKEZ: TÜRK BAYRAĞI (Hafifçe Sağa Kaydırıldı) */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-[40%] -translate-y-1/2 z-30">
           <motion.div 
             whileHover={{ scale: 1.05 }}
             className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-white shadow-[0_20px_60px_rgba(239,68,68,0.4)] flex items-center justify-center p-1 border-4 border-white overflow-hidden"
@@ -43,7 +42,7 @@ export function SignUpIllustration() {
           </motion.div>
         </div>
 
-        {/* 1. ÜST: PUSULA & BAYRAK (Keşif & Kimlik) */}
+        {/* 1. ÜST: PUSULA & BAYRAK (Yörünge Üstünde) */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 flex flex-col items-center gap-2 z-20">
           <div className="w-16 h-16 bg-white rounded-[24px] shadow-xl border-2 border-blue-50 flex items-center justify-center transition-all hover:scale-110">
             <div className="relative">
@@ -59,7 +58,7 @@ export function SignUpIllustration() {
           </div>
         </div>
 
-        {/* 2. SAĞ: YÜKSELEN OK (Gelişim & Başarı) */}
+        {/* 2. SAĞ: YÜKSELEN OK (Yörünge Üstünde) */}
         <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-4 flex flex-col items-center gap-2 z-20">
           <div className="w-16 h-16 bg-white rounded-full shadow-xl border-2 border-orange-50 flex items-center justify-center transition-all hover:scale-110">
             <TrendingUp className="w-9 h-9 text-orange-500" />
@@ -70,7 +69,7 @@ export function SignUpIllustration() {
           </div>
         </div>
 
-        {/* 3. SOL: YAPBOZ PARÇASI (Bütünsel & Eğlenceli) */}
+        {/* 3. SOL: YAPBOZ PARÇASI (Yörünge Üstünde) */}
         <div className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-4 flex flex-col items-center gap-2 z-20">
           <div className="w-16 h-16 bg-white rounded-full shadow-xl border-2 border-green-50 flex items-center justify-center transition-all hover:scale-110">
             <Puzzle className="w-9 h-9 text-green-500" />
@@ -81,7 +80,7 @@ export function SignUpIllustration() {
           </div>
         </div>
 
-        {/* 4. ALT: HALKA & KALP (Bağ & Aidiyet) */}
+        {/* 4. ALT: HALKA & KALP (Yörünge Üstünde) */}
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-4 flex flex-col items-center gap-2 z-20">
           <div className="w-16 h-16 bg-white rounded-full shadow-xl border-2 border-red-50 flex items-center justify-center transition-all hover:scale-110">
             <div className="relative">
