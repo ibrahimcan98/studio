@@ -1,18 +1,78 @@
+
 'use client';
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { CheckCircle2, Lock, Cat, Palette, Home, Users, Utensils, MapPin, Sparkles } from 'lucide-react';
+import { CheckCircle2, Star, Flag, Brain, Globe, Sparkles } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
+import { cn } from "@/lib/utils";
 
-const topics = [
-  { name: "Hayvanlar", icon: <Cat className="w-6 h-6"/>, unlocked: true },
-  { name: "Renkler", icon: <Palette className="w-6 h-6"/>, unlocked: true },
-  { name: "Ev", icon: <Home className="w-6 h-6"/>, unlocked: true },
-  { name: "Aile", icon: <Users className="w-6 h-6"/>, unlocked: false },
-  { name: "Yemekler", icon: <Utensils className="w-6 h-6"/>, unlocked: false },
-  { name: "Türkiye", icon: <MapPin className="w-6 h-6"/>, unlocked: false },
+const curriculumGroups = [
+  {
+    category: "Tematik Başlangıç",
+    icon: <Star className="w-4 h-4" />,
+    colorClass: "bg-blue-500",
+    lightColorClass: "bg-blue-50",
+    textColorClass: "text-blue-700",
+    topics: [
+      { name: "Hayvanlar", unlocked: true },
+      { name: "Renkler", unlocked: true },
+      { name: "Sağlıklı Yaşam", unlocked: true }
+    ]
+  },
+  {
+    category: "Milli Değerlerimiz",
+    icon: <Flag className="w-4 h-4" />,
+    colorClass: "bg-red-500",
+    lightColorClass: "bg-red-50",
+    textColorClass: "text-red-700",
+    topics: [
+      { name: "Atatürk'ün Hayatı", unlocked: false },
+      { name: "Milli Bayramlarımız", unlocked: false }
+    ]
+  },
+  {
+    category: "Derinleşen Dil Becerisi",
+    icon: <Brain className="w-4 h-4" />,
+    colorClass: "bg-purple-500",
+    lightColorClass: "bg-purple-50",
+    textColorClass: "text-purple-700",
+    topics: [
+      { name: "Okuma ve Anlama", unlocked: false },
+      { name: "Atasözleri ve Deyimler", unlocked: false }
+    ]
+  },
+  {
+    category: "Kültür ve Coğrafya",
+    icon: <Globe className="w-4 h-4" />,
+    colorClass: "bg-emerald-500",
+    lightColorClass: "bg-emerald-50",
+    textColorClass: "text-emerald-700",
+    topics: [
+      { name: "Marmara Bölgesi", unlocked: false },
+      { name: "Türkiye'nin İklimleri", unlocked: false }
+    ]
+  }
+];
+
+const listItems = [
+  {
+    title: "Pedagojik Sarmal Yapı",
+    desc: "Basitten karmaşığa, her seviyede üzerine koyarak ilerleyen ve öğrenilenleri unutulmaz kılan bilimsel metodoloji."
+  },
+  {
+    title: "Dil ve Kimlik İnşası",
+    desc: "Türkçeyi sadece bir iletişim aracı olarak değil; tarihimiz, değerlerimiz ve coğrafyamızla bir 'kimlik bağı' olarak sunuyoruz."
+  },
+  {
+    title: "Birebir Kişiselleştirilmiş Akış",
+    desc: "Çocuğunuzun ilgi alanlarına ve öğrenme hızına göre adapte edilebilen, esnek ve etkileşimi yüksek ders modülleri."
+  },
+  {
+    title: "Akademik ve Sosyal Denge",
+    desc: "Hem okuma-anlama gibi akademik becerileri hem de sağlıklı yaşam gibi günlük hayat pratiklerini kapsayan zengin içerik."
+  }
 ];
 
 export default function MapJourney() {
@@ -28,55 +88,89 @@ export default function MapJourney() {
   };
 
   return (
-    <section id="map-journey" className="py-20 md:py-28">
+    <section id="map-journey" className="py-20 md:py-28 bg-white overflow-hidden">
       <div className="container grid lg:grid-cols-2 gap-16 items-center">
-        <div className="space-y-6">
-          <h2 className="text-3xl md:text-4xl font-bold font-headline">Renkli Harita Yolculuğu</h2>
-          <p className="text-lg text-muted-foreground">
-            Her konu eğlenceli bir macera! Çocuğunuz haritada ilerlerken Türkçe öğrenecek.
-          </p>
-          <ul className="space-y-4 text-lg">
-            <li className="flex items-center gap-3">
-              <CheckCircle2 className="w-6 h-6 text-green-500" />
-              <span>Her konuda 1 ücretsiz ders</span>
-            </li>
-            <li className="flex items-center gap-3">
-              <CheckCircle2 className="w-6 h-6 text-green-500" />
-              <span>Tamamla → +10 XP kazan</span>
-            </li>
-            <li className="flex items-center gap-3">
-              <CheckCircle2 className="w-6 h-6 text-green-500" />
-              <span>Hikâye ve şarkılar ilerledikçe açılır</span>
-            </li>
-          </ul>
-          <Button size="lg" className="font-bold" onClick={handleChildModeClick}>
-            <Sparkles className="mr-2 h-5 w-5"/>
-            Çocuk Modunu Gör
+        {/* SOL KISIM */}
+        <div className="space-y-8">
+          <div className="space-y-4">
+            <h2 className="text-3xl md:text-4xl font-bold font-headline text-slate-900 leading-tight">
+              Türkçe Öğrenmek Bir Serüvene Dönüşüyor!
+            </h2>
+            <p className="text-lg text-slate-600 font-medium leading-relaxed">
+              Türkçe öğrenimi sadece kelimelerden ibaret değil. Müfredatımız, çocuğunuzun dünyayı ve kültürünü Türkçe ile keşfetmesini sağlayan tematik bir yolculuk sunar.
+            </p>
+          </div>
+
+          <div className="space-y-6">
+            {listItems.map((item, idx) => (
+              <div key={idx} className="flex items-start gap-4">
+                <div className="mt-1 bg-green-100 p-1 rounded-full shrink-0">
+                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="font-bold text-slate-800 text-base">{item.title}</h4>
+                  <p className="text-sm text-slate-500 leading-relaxed font-medium">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <Button size="lg" className="font-black h-14 px-8 rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 transition-transform" onClick={handleChildModeClick}>
+            <Sparkles className="mr-2 h-5 w-5 fill-current"/>
+            ÇOCUK MODUNU GÖR
           </Button>
         </div>
+
+        {/* SAĞ KISIM - HARİTA */}
         <div className="flex justify-center items-center">
-          <Card className="p-6 relative bg-gray-50 rounded-2xl shadow-inner overflow-hidden w-full max-w-md">
-            <div className="absolute inset-0 opacity-20">
+          <Card className="p-8 relative bg-slate-50/50 border-slate-100 rounded-[40px] shadow-2xl overflow-hidden w-full max-w-lg border-4">
+            {/* Arka plan yol çizgisi */}
+            <div className="absolute inset-0 opacity-10">
               <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-                <path d="M50 40 C 150 120, 50 220, 150 300 S 250 380, 350 450" stroke="hsl(var(--primary))" fill="transparent" strokeWidth="4" strokeDasharray="10 10"/>
+                <path d="M100 50 C 300 150, 100 350, 300 550" stroke="hsl(var(--primary))" fill="transparent" strokeWidth="8" strokeDasharray="20 20"/>
               </svg>
             </div>
-            <div className="relative space-y-4">
-              <h3 className="font-bold text-center text-xl mb-6">Öğrenme Macerası</h3>
-              {topics.map((topic) => (
-                <Card key={topic.name} className={`flex items-center justify-between p-4 rounded-xl shadow-md transition-all hover:scale-105 ${topic.unlocked ? 'bg-white' : 'bg-muted'}`}>
-                  <div className="flex items-center gap-4">
-                    <div className={`p-2 rounded-full ${topic.unlocked ? 'bg-primary/20 text-primary' : 'bg-muted-foreground/20 text-muted-foreground'}`}>
-                      {topic.icon}
+
+            <div className="relative space-y-8">
+              <div className="text-center space-y-1 mb-8">
+                <h3 className="font-black text-slate-800 text-xl tracking-tight">Öğrenme Macerası</h3>
+                <div className="w-12 h-1.5 bg-primary mx-auto rounded-full" />
+              </div>
+
+              {curriculumGroups.map((group, groupIdx) => (
+                <div key={groupIdx} className="space-y-3">
+                  <div className="flex items-center gap-2 px-2">
+                    <div className={cn("p-1.5 rounded-lg text-white shadow-md", group.colorClass)}>
+                      {group.icon}
                     </div>
-                    <span className={`font-semibold ${!topic.unlocked && 'text-muted-foreground'}`}>{topic.name}</span>
+                    <span className={cn("font-bold text-xs uppercase tracking-widest", group.textColorClass)}>
+                      {group.category}
+                    </span>
                   </div>
-                  {topic.unlocked ? (
-                    <div className="text-green-500"><CheckCircle2 className="w-6 h-6" /></div>
-                  ) : (
-                    <div className="text-muted-foreground"><Lock className="w-6 h-6" /></div>
-                  )}
-                </Card>
+
+                  <div className="grid gap-2">
+                    {group.topics.map((topic, topicIdx) => (
+                      <Card 
+                        key={topicIdx} 
+                        className={cn(
+                          "flex items-center justify-between p-4 rounded-2xl border-none shadow-md transition-all hover:scale-[1.02] cursor-default",
+                          topic.unlocked ? "bg-white" : "bg-slate-100 opacity-70"
+                        )}
+                      >
+                        <span className={cn("text-sm font-bold", topic.unlocked ? "text-slate-700" : "text-slate-400")}>
+                          {topic.name}
+                        </span>
+                        {topic.unlocked ? (
+                          <CheckCircle2 className="w-5 h-5 text-emerald-500 fill-emerald-50" />
+                        ) : (
+                          <div className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center">
+                            <div className="w-2 h-2 rounded-full bg-slate-400" />
+                          </div>
+                        )}
+                      </Card>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </Card>
