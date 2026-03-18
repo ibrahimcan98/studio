@@ -12,28 +12,26 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-type Step = 'name' | 'level' | 'age' | 'style' | 'final';
+type Step = 'age' | 'level' | 'style' | 'final';
 
 export default function Hero() {
   const heroImage = PlaceHolderImages.find(img => img.id === 'hero-child');
   const router = useRouter();
   const { toast } = useToast();
   
-  const [step, setStep] = useState<Step>('name');
+  const [step, setStep] = useState<Step>('age');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
-    childName: '',
-    gender: '' as 'erkek' | 'kiz' | '',
     level: '',
     ageGroup: '',
     learningStyle: ''
   });
 
   const nextStep = (current: Step) => {
-    if (current === 'name') {
-      if (!formData.childName || !formData.gender) {
-        toast({ variant: "destructive", title: "Eksik Bilgi", description: "Lütfen çocuğun adını ve cinsiyetini seçin." });
+    if (current === 'age') {
+      if (!formData.ageGroup) {
+        toast({ variant: "destructive", title: "Eksik Bilgi", description: "Lütfen bir yaş grubu seçin." });
         return;
       }
       setStep('level');
@@ -41,17 +39,14 @@ export default function Hero() {
   };
 
   const prevStep = () => {
-    if (step === 'level') setStep('name');
-    else if (step === 'age') setStep('level');
-    else if (step === 'style') setStep('age');
+    if (step === 'level') setStep('age');
+    else if (step === 'style') setStep('level');
     else if (step === 'final') setStep('style');
   };
 
   const handleFinalSubmit = () => {
     setIsSubmitting(true);
     const params = new URLSearchParams({
-      name: formData.childName,
-      gender: formData.gender,
       level: formData.level,
       age: formData.ageGroup,
       style: formData.learningStyle
@@ -61,54 +56,40 @@ export default function Hero() {
 
   const renderStep = () => {
     switch (step) {
-      case 'name':
+      case 'age':
         return (
           <div className="space-y-6">
             <div className="flex items-center justify-center relative">
-              <h3 className="text-lg font-bold text-[#243B53]">Çocuğun adı</h3>
+              <h3 className="text-lg font-bold text-[#243B53]">Çocuğunuz kaç yaşında?</h3>
             </div>
-            <div className="space-y-4">
-              <Input 
-                placeholder="Ad" 
-                className="h-12 rounded-2xl border-2 border-slate-200 bg-white text-sm px-6 focus:ring-primary/20"
-                value={formData.childName}
-                onChange={(e) => setFormData(prev => ({...prev, childName: e.target.value}))}
-                suppressHydrationWarning
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <Button 
-                  type="button"
+            <div className="space-y-3">
+              {[
+                { id: '4-6', label: '4-6 Yaş (Okul öncesi)' },
+                { id: '7-10', label: '7-10 Yaş (İlkokul)' },
+                { id: '11-14', label: '11-14 Yaş (Ortaokul)' }
+              ].map((opt) => (
+                <Button
+                  key={opt.id}
                   variant="outline"
                   className={cn(
-                    "h-12 rounded-2xl border-2 text-sm font-medium transition-all",
-                    formData.gender === 'erkek' ? "border-primary bg-primary/5 text-primary" : "border-slate-200 text-slate-600"
+                    "w-full h-14 justify-start px-6 rounded-2xl border-2 text-left",
+                    formData.ageGroup === opt.id ? "border-primary bg-primary/5" : "border-slate-100"
                   )}
-                  onClick={() => setFormData(prev => ({...prev, gender: 'erkek'}))}
+                  onClick={() => { 
+                    setFormData(prev => ({...prev, ageGroup: opt.id})); 
+                    setTimeout(() => setStep('level'), 250); 
+                  }}
                   suppressHydrationWarning
                 >
-                  Erkek
+                  <div className="flex items-center gap-4 w-full">
+                    <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0", formData.ageGroup === opt.id ? "border-primary bg-primary" : "border-slate-300")}>
+                      {formData.ageGroup === opt.id && <Check className="w-3.5 h-3.5 text-white" />}
+                    </div>
+                    <span className="font-medium text-slate-700 text-sm">{opt.label}</span>
+                  </div>
                 </Button>
-                <Button 
-                  type="button"
-                  variant="outline"
-                  className={cn(
-                    "h-12 rounded-2xl border-2 text-sm font-medium transition-all",
-                    formData.gender === 'kiz' ? "border-primary bg-primary/5 text-primary" : "border-slate-200 text-slate-600"
-                  )}
-                  onClick={() => setFormData(prev => ({...prev, gender: 'kiz'}))}
-                  suppressHydrationWarning
-                >
-                  Kız
-                </Button>
-              </div>
+              ))}
             </div>
-            <Button 
-              className="w-full h-12 text-sm font-bold rounded-2xl bg-slate-200 text-slate-600 hover:bg-slate-300 transition-all mt-4"
-              onClick={() => nextStep('name')}
-              suppressHydrationWarning
-            >
-              Devam
-            </Button>
           </div>
         );
 
@@ -136,53 +117,13 @@ export default function Hero() {
                   )}
                   onClick={() => { 
                     setFormData(prev => ({...prev, level: opt.id})); 
-                    setTimeout(() => setStep('age'), 250); 
+                    setTimeout(() => setStep('style'), 250); 
                   }}
                   suppressHydrationWarning
                 >
                   <div className="flex items-center gap-4 w-full">
                     <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0", formData.level === opt.id ? "border-primary bg-primary" : "border-slate-300")}>
                       {formData.level === opt.id && <Check className="w-3.5 h-3.5 text-white" />}
-                    </div>
-                    <span className="font-medium text-slate-700 text-sm">{opt.label}</span>
-                  </div>
-                </Button>
-              ))}
-            </div>
-          </div>
-        );
-
-      case 'age':
-        return (
-          <div className="space-y-6">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" className="rounded-full bg-slate-500 text-white hover:bg-slate-600 h-8 w-8 shrink-0" onClick={prevStep} suppressHydrationWarning>
-                <ChevronLeft className="w-5 h-5" />
-              </Button>
-              <h3 className="text-lg font-bold text-[#243B53]">Çocuğunuz kaç yaşında?</h3>
-            </div>
-            <div className="space-y-3">
-              {[
-                { id: '4-6', label: '4-6 Yaş (Okul öncesi)' },
-                { id: '7-10', label: '7-10 Yaş (İlkokul)' },
-                { id: '11-14', label: '11-14 Yaş (Ortaokul)' }
-              ].map((opt) => (
-                <Button
-                  key={opt.id}
-                  variant="outline"
-                  className={cn(
-                    "w-full h-14 justify-start px-6 rounded-2xl border-2 text-left",
-                    formData.ageGroup === opt.id ? "border-primary bg-primary/5" : "border-slate-100"
-                  )}
-                  onClick={() => { 
-                    setFormData(prev => ({...prev, ageGroup: opt.id})); 
-                    setTimeout(() => setStep('style'), 250); 
-                  }}
-                  suppressHydrationWarning
-                >
-                  <div className="flex items-center gap-4 w-full">
-                    <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0", formData.ageGroup === opt.id ? "border-primary bg-primary" : "border-slate-300")}>
-                      {formData.ageGroup === opt.id && <Check className="w-3.5 h-3.5 text-white" />}
                     </div>
                     <span className="font-medium text-slate-700 text-sm">{opt.label}</span>
                   </div>
@@ -295,7 +236,6 @@ export default function Hero() {
               />
             )}
             
-            {/* Top-Left: Countries & Students */}
             <Card className="absolute -top-10 -left-12 transform -rotate-6 bg-accent/90 backdrop-blur-sm p-4 rounded-2xl shadow-xl border-none max-w-[180px] z-20">
               <div className="flex items-center gap-2">
                 <Globe2 className="w-5 h-5 text-accent-foreground shrink-0" />
@@ -303,19 +243,16 @@ export default function Hero() {
               </div>
             </Card>
 
-            {/* Middle-Right: Teachers */}
             <Card className="absolute top-1/4 -right-12 transform rotate-12 bg-blue-500/90 backdrop-blur-sm p-3 rounded-xl shadow-xl border-none flex items-center gap-2 max-w-[150px] z-20">
               <GraduationCap className="text-white w-4 h-4 shrink-0" />
               <p className="font-bold text-white text-[9px] uppercase tracking-wide">Uzman Öğretmen Kadrosu</p>
             </Card>
 
-            {/* Middle-Left: Flexible Hours */}
             <Card className="absolute bottom-1/4 -left-14 transform -rotate-12 bg-orange-500/90 backdrop-blur-sm p-3 rounded-xl shadow-xl border-none flex items-center gap-2 max-w-[150px] z-20">
               <Calendar className="text-white w-4 h-4 shrink-0" />
               <p className="font-bold text-white text-[9px] uppercase tracking-wide">Esnek Gün ve Saatler</p>
             </Card>
 
-            {/* Bottom-Right: Free Trial */}
             <Card className="absolute -bottom-8 -right-10 transform rotate-3 bg-emerald-500/90 backdrop-blur-sm p-4 rounded-2xl shadow-xl border-none flex items-center gap-3 z-20">
               <div className="bg-white/20 p-2 rounded-lg">
                 <Sparkles className="text-white w-5 h-5" />
