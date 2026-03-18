@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
-import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, Settings, Target, CreditCard, Clock, ChevronDown, MonitorPlay, FileText, CheckCircle, MessageCircle, TrendingUp, TrendingDown, Book, BrainCircuit, Globe, Smile, Meh, Frown, Languages, Milestone, Cloudy, GraduationCap, User as UserIcon, X, Lock, Infinity as InfinityIcon, Heart, Package, AlertTriangle, Calendar, History, Lightbulb } from 'lucide-react';
+import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, Settings, Target, CreditCard, Clock, ChevronDown, MonitorPlay, FileText, CheckCircle, MessageCircle, TrendingUp, TrendingDown, Book, BrainCircuit, Globe, Smile, Meh, Frown, Languages, Milestone, Cloudy, GraduationCap, User as UserIcon, X, Lock, Infinity as InfinityIcon, Heart, Package, AlertTriangle, Calendar, History, Lightbulb, Bell, Megaphone, ArrowUpRight, MessageSquare } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -346,16 +346,64 @@ export default function EbeveynPortaliPage() {
         <StatCard title="Kalan Toplam Ders" value={totalRemainingLessons} icon={BookOpen} />
         <StatCard title="Toplam Çocuk" value={childCount} icon={Users} />
         <StatCard title="Toplam Rozet" value={totalBadges} icon={Star} />
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Premium Üye</CardTitle>
-                <Crown className="h-4 w-4 text-muted-foreground" />
+        
+        {/* Bildirimler Köşesi */}
+        <Card className="col-span-1 border-primary/20 shadow-lg bg-gradient-to-br from-white to-slate-50/50 overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-primary/5">
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                    <Bell className="h-4 w-4 text-primary animate-pulse" /> 
+                    Bildirimler
+                </CardTitle>
+                <Badge variant="outline" className="text-[9px] h-5 bg-white font-bold text-primary border-primary/20">3 YENİ</Badge>
             </CardHeader>
-            <CardContent className="flex flex-col items-center justify-center py-2">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Yakında Gelecek</span>
-                <Badge variant="secondary" className="bg-slate-100 text-slate-400 border-none font-semibold">
-                    <Lock className="mr-1 h-3 w-3" /> Aktif Değil
-                </Badge>
+            <CardContent className="p-0">
+                <div className="divide-y divide-slate-100">
+                    {/* Gelecek Ders */}
+                    <div className="p-3 hover:bg-white transition-colors group">
+                        <div className="flex items-start gap-3">
+                            <div className="mt-1 bg-blue-100 p-1.5 rounded-lg group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                                <Calendar className="h-3.5 w-3.5 text-blue-600 group-hover:text-white" />
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-[11px] leading-tight text-slate-700">
+                                    <span className="font-bold">⏰ Sıradaki Ders:</span> Yarın 16:00'da Zeynep Öğretmen ile.
+                                </p>
+                                <button className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1">
+                                    Takvime Ekle <ArrowUpRight className="h-2.5 w-2.5" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* PDR Notu */}
+                    <div className="p-3 hover:bg-white transition-colors group">
+                        <div className="flex items-start gap-3">
+                            <div className="mt-1 bg-purple-100 p-1.5 rounded-lg group-hover:bg-purple-500 group-hover:text-white transition-colors">
+                                <MessageSquare className="h-3.5 w-3.5 text-purple-600 group-hover:text-white" />
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-[11px] leading-tight text-slate-700">
+                                    <span className="font-bold">💬 PDR Notu:</span> {children?.[0]?.firstName || 'İbrahim'}, son derste 'Atatürk’ün Çocukluğu' konusuna ilgi gösterdi...
+                                </p>
+                                <button className="text-[10px] font-bold text-primary hover:underline" onClick={() => router.push('/ebeveyn-portali/dersler?tab=past')}>Raporu İncele</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Duyuru */}
+                    <div className="p-3 hover:bg-white transition-colors group">
+                        <div className="flex items-start gap-3">
+                            <div className="mt-1 bg-amber-100 p-1.5 rounded-lg group-hover:bg-amber-500 group-hover:text-white transition-colors">
+                                <Megaphone className="h-3.5 w-3.5 text-amber-600 group-hover:text-white" />
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-[11px] leading-tight text-slate-700">
+                                    <span className="font-bold">📢 Yeni İçerik:</span> 'Bölgelerimiz' temalı yeni oyun haritası eklendi!
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </CardContent>
         </Card>
       </div>
