@@ -14,7 +14,8 @@ import {
   Baby,
   CreditCard,
   Activity,
-  Presentation
+  Presentation,
+  Trophy
 } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
@@ -89,6 +90,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     { href: '/yonetici/ogretmenler', label: 'Öğretmenler', icon: Presentation },
     { href: '/yonetici/kullanicilar', label: 'Veliler', icon: Users },
     { href: '/yonetici/ogrenciler', label: 'Öğrenciler', icon: Baby },
+    { href: '/yonetici/puan-merkezi', label: 'Puan Merkezi', icon: Trophy },
   ];
 
   return (

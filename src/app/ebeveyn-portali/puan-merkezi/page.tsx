@@ -23,7 +23,8 @@ import {
     Users,
     Instagram,
     Youtube,
-    Loader2
+    Loader2,
+    Trophy
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -118,119 +119,129 @@ export default function PuanMerkeziPage() {
     }
 
     return (
-        <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen font-sans">
+        <div className="flex-1 space-y-12 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen font-sans">
             {/* ÜST ALAN: CÜZDAN ÖZETİ */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 max-w-6xl mx-auto">
                 <Button variant="outline" size="icon" onClick={() => router.push('/ebeveyn-portali')} className="h-10 w-10 rounded-xl border-2"><ArrowLeft className="h-5 w-5" /></Button>
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-slate-900">Puan Merkezi</h2>
+                    <h2 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Puan Merkezi</h2>
                     <p className="text-slate-500 text-sm font-medium">Kazanın, biriktirin ve bedava derslerin tadını çıkarın.</p>
                 </div>
             </div>
 
-            <Card className="bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none shadow-2xl rounded-[32px] overflow-hidden">
-                <CardContent className="p-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 bg-white/10 rounded-2xl"><Wallet className="w-8 h-8 text-primary" /></div>
+            <Card className="bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none shadow-2xl rounded-[32px] overflow-hidden max-w-6xl mx-auto">
+                <CardContent className="p-10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                        <div className="space-y-8">
+                            <div className="flex items-center gap-6">
+                                <div className="p-4 bg-white/10 rounded-3xl"><Wallet className="w-10 h-10 text-primary" /></div>
                                 <div>
-                                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Mevcut Bakiyeniz</p>
-                                    <p className="text-4xl font-black">{balance.toFixed(2)} <span className="text-lg">EUR 💶</span></p>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Mevcut Bakiyeniz</p>
+                                    <p className="text-5xl font-black">{balance.toFixed(2)} <span className="text-xl opacity-50">EUR 💶</span></p>
                                 </div>
                             </div>
-                            <div className="space-y-3">
+                            <div className="space-y-4">
                                 <div className="flex justify-between items-end">
                                     <div>
-                                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Akademi Puanınız</p>
-                                        <p className="text-2xl font-black text-yellow-400">{points} / 500 <span className="text-sm">Puan 🌟</span></p>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Akademi Puanınız</p>
+                                        <p className="text-3xl font-black text-yellow-400">{points} / 500 <span className="text-sm opacity-50 uppercase tracking-widest ml-1">Puan 🌟</span></p>
                                     </div>
-                                    <Badge className="bg-green-500/20 text-green-400 border-none mb-1">Hediye Derse {500 - points} Kaldı</Badge>
+                                    <Badge className="bg-green-500/20 text-green-400 border-none font-black text-[10px] px-3 py-1">HEDİYE DERSE {500 - points} KALDI</Badge>
                                 </div>
-                                <Progress value={(points / 500) * 100} className="h-3 bg-white/10" />
+                                <Progress value={(points / 500) * 100} className="h-4 bg-white/10" />
+                                <p className="text-[10px] text-slate-400 font-bold italic text-center uppercase tracking-widest">"150 puan daha kazanın, 1 Bedava Ders kazanın!"</p>
                             </div>
                         </div>
-                        <div className="bg-white/5 rounded-[24px] p-6 border border-white/10">
-                            <div className="flex items-center gap-3 mb-4">
-                                <Gift className="w-5 h-5 text-primary" />
-                                <h4 className="font-bold text-sm uppercase tracking-wider">Hızlı İpucu</h4>
+                        <div className="bg-white/5 rounded-[32px] p-8 border border-white/10 space-y-4">
+                            <div className="flex items-center gap-3">
+                                <Trophy className="w-6 h-6 text-primary" />
+                                <h4 className="font-black text-sm uppercase tracking-widest">Sadakat Ödülleri</h4>
                             </div>
-                            <p className="text-slate-300 text-sm leading-relaxed">
-                                500 puana ulaştığınızda sistem otomatik olarak size <span className="text-white font-bold">1 Bedava Ders</span> tanımlar. Görevleri tamamlayarak süreci hızlandırabilirsiniz!
+                            <p className="text-slate-300 text-sm leading-relaxed font-medium">
+                                500 puana ulaştığınızda sistem otomatik olarak size <span className="text-white font-bold underline decoration-primary underline-offset-4">1 Bedava Ders</span> tanımlar. Aşağıdaki menüden görevleri yaparak süreci hızlandırabilirsiniz!
                             </p>
                         </div>
                     </div>
                 </CardContent>
             </Card>
 
-            {/* SADAKAT YOLCULUĞU */}
-            <div className="space-y-6">
-                <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight flex items-center gap-2">
-                    <Star className="w-5 h-5 text-primary" /> Sadakat Yolculuğu
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                    {[
-                        { step: 1, title: 'Hoş Geldiniz!', desc: 'İlk adımınızı attınız, mutluyuz!', reward: '10€ Bakiye', active: true, done: true },
-                        { step: 5, title: '5. Paket', desc: 'İstikrarlı bir başlangıç.', reward: '250 Puan', active: packages >= 5, done: packages >= 5 },
-                        { step: 10, title: '10. Paket', desc: 'Kocaman bir adım!', reward: '500 Puan (1 Hediye)', active: packages >= 10, done: packages >= 10 },
-                        { step: 15, title: '15. Paket', desc: 'Kültür Elçimiz.', reward: '350 Puan', active: packages >= 15, done: packages >= 15 },
-                        { step: 20, title: 'Onur Üyesi', desc: 'Sonsuz güveniniz için sürpriz!', reward: '500 Puan (1 Hediye)', active: packages >= 20, done: packages >= 20, vıp: true },
-                    ].map((item, idx) => (
-                        <Card key={idx} className={cn(
-                            "relative border-none shadow-lg rounded-[24px] overflow-hidden group transition-all",
-                            item.vıp && item.active ? "bg-gradient-to-br from-yellow-400 to-orange-500 text-white" : "bg-white",
-                            !item.active && "opacity-60 grayscale"
-                        )}>
-                            <CardHeader className="p-5 pb-2">
-                                <div className="flex justify-between items-start mb-2">
-                                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs", item.done ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400")}>
-                                        {item.done ? <CheckCircle2 className="w-5 h-5" /> : item.step}
-                                    </div>
-                                    {!item.active && <Lock className="w-4 h-4 text-slate-300" />}
-                                </div>
-                                <CardTitle className={cn("text-sm font-black uppercase", item.vıp && item.active ? "text-white" : "text-slate-800")}>{item.title}</CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-5 pt-0 space-y-3">
-                                <p className={cn("text-[10px] leading-tight font-medium", item.vıp && item.active ? "text-white/80" : "text-slate-500")}>{item.desc}</p>
-                                <Badge className={cn("w-full justify-center text-[10px] font-black py-1", item.vıp && item.active ? "bg-white text-orange-600" : "bg-primary/10 text-primary")}>
-                                    {item.reward}
-                                </Badge>
-                                <p className={cn("text-[9px] font-black uppercase tracking-tighter text-center", item.done ? "text-green-500" : "text-slate-400")}>
-                                    {item.done ? "TAMAMLANDI" : item.active ? "İLERLİYOR" : "KİLİTLİ"}
-                                </p>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            </div>
-
-            {/* GÖREV MERKEZİ */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight flex items-center gap-2">
-                            <Utensils className="w-5 h-5 text-primary" /> Evde Türkçe Keyfi
+            {/* ANA MENÜ AKIŞI */}
+            <div className="max-w-6xl mx-auto space-y-20">
+                
+                {/* 1. SADAKAT YOLCULUĞU */}
+                <section className="space-y-8">
+                    <div className="text-center space-y-2">
+                        <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight flex items-center justify-center gap-3">
+                            <Star className="w-6 h-6 text-primary fill-current" /> Sadakat Yolculuğu
                         </h3>
-                        <Badge variant="outline" className="font-bold text-[10px] border-slate-200 uppercase">AYDA 1 KEZ</Badge>
+                        <p className="text-slate-500 text-sm font-medium italic">Paket aldıkça ilerleyin, sürprizleri toplayın.</p>
                     </div>
-                    <div className="grid gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        {[
+                            { step: 1, title: 'Hoş Geldiniz!', desc: 'İlk adımınızı attınız, mutluyuz!', reward: '10€ Bakiye', active: true, done: true },
+                            { step: 5, title: '5. Paket', desc: 'İstikrarlı bir başlangıç.', reward: '250 Puan', active: packages >= 5, done: packages >= 5 },
+                            { step: 10, title: '10. Paket', desc: 'Kocaman bir adım!', reward: '500 Puan (1 Hediye)', active: packages >= 10, done: packages >= 10 },
+                            { step: 15, title: '15. Paket', desc: 'Kültür Elçimiz.', reward: '350 Puan', active: packages >= 15, done: packages >= 15 },
+                            { step: 20, title: 'Onur Üyesi', desc: 'Sonsuz güveniniz için sürpriz!', reward: '500 Puan (1 Hediye)', active: packages >= 20, done: packages >= 20, vıp: true },
+                        ].map((item, idx) => (
+                            <Card key={idx} className={cn(
+                                "relative border-none shadow-xl rounded-[28px] overflow-hidden group transition-all duration-500 hover:-translate-y-2",
+                                item.vıp && item.active ? "bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 text-white scale-105 shadow-orange-200" : "bg-white",
+                                !item.active && "opacity-60 grayscale"
+                            )}>
+                                <CardHeader className="p-6 pb-2">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm", item.done ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400")}>
+                                            {item.done ? <CheckCircle2 className="w-6 h-6" /> : item.step}
+                                        </div>
+                                        {!item.active && <Lock className="w-5 h-5 text-slate-300" />}
+                                    </div>
+                                    <CardTitle className={cn("text-xs font-black uppercase tracking-wider", item.vıp && item.active ? "text-white" : "text-slate-800")}>{item.title}</CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-6 pt-0 space-y-4">
+                                    <p className={cn("text-[10px] leading-relaxed font-semibold", item.vıp && item.active ? "text-white/90" : "text-slate-500")}>{item.desc}</p>
+                                    <Badge className={cn("w-full justify-center text-[10px] font-black py-1.5 rounded-lg", item.vıp && item.active ? "bg-white text-orange-600" : "bg-primary/10 text-primary")}>
+                                        {item.reward}
+                                    </Badge>
+                                    <p className={cn("text-[9px] font-black uppercase tracking-[0.2em] text-center mt-2", item.done ? "text-green-500" : "text-slate-400")}>
+                                        {item.done ? "TAMAMLANDI" : item.active ? "İLERLİYOR" : "KİLİTLİ"}
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                </section>
+
+                {/* 2. EVDE TÜRKÇE KEYFİ */}
+                <section className="space-y-8">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-slate-200 pb-6">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-primary/10 rounded-2xl"><Utensils className="w-6 h-6 text-primary" /></div>
+                            <div>
+                                <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Evde Türkçe Keyfi</h3>
+                                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">AYDA 1 KEZ • ETKİLEŞİM GÖREVLERİ</p>
+                            </div>
+                        </div>
+                        <Badge variant="outline" className="px-4 py-1.5 border-slate-300 font-bold text-[10px] uppercase text-slate-400">Sosyal Medya Etiketi Gerekir</Badge>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {MISSIONS_HOME.map(mission => {
                             const status = userData?.taskStatus?.[mission.id];
                             return (
-                                <Card key={mission.id} className="border-none shadow-sm hover:shadow-md transition-shadow rounded-2xl group overflow-hidden">
-                                    <div className="flex items-center p-4 gap-4">
-                                        <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">{mission.icon}</div>
+                                <Card key={mission.id} className="border-none shadow-md hover:shadow-2xl transition-all duration-300 rounded-3xl group overflow-hidden bg-white">
+                                    <div className="flex items-center p-5 gap-5">
+                                        <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all transform group-hover:rotate-6">{mission.icon}</div>
                                         <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2 mb-1">
                                                 <h4 className="font-bold text-sm text-slate-800 truncate">{mission.title}</h4>
-                                                <span className="text-xs font-black text-yellow-600">+{mission.points}🌟</span>
+                                                <Badge className="bg-yellow-400/20 text-yellow-700 text-[9px] font-black border-none">+{mission.points}🌟</Badge>
                                             </div>
-                                            <p className="text-[10px] text-slate-500 line-clamp-1 mt-0.5">{mission.desc}</p>
+                                            <p className="text-[10px] text-slate-500 line-clamp-2 leading-relaxed font-medium">{mission.desc}</p>
                                         </div>
                                         <Button 
                                             size="sm" 
                                             variant={status === 'completed' ? 'secondary' : status === 'pending' ? 'outline' : 'default'}
-                                            className="rounded-lg h-8 px-4 font-black text-[10px] uppercase tracking-wider"
+                                            className="rounded-xl h-9 px-5 font-black text-[10px] uppercase tracking-widest shrink-0"
                                             disabled={!!status}
                                             onClick={() => handleMissionAction(mission)}
                                         >
@@ -241,33 +252,37 @@ export default function PuanMerkeziPage() {
                             )
                         })}
                     </div>
-                </div>
+                </section>
 
-                <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight flex items-center gap-2">
-                            <Share2 className="w-5 h-5 text-primary" /> Sosyal Medya & Tanıtım
-                        </h3>
-                        <Badge variant="outline" className="font-bold text-[10px] border-slate-200 uppercase">AYDA 1 KEZ</Badge>
+                {/* 3. SOSYAL MEDYA & TANITIM */}
+                <section className="space-y-8">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-slate-200 pb-6">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-blue-100 rounded-2xl"><Share2 className="w-6 h-6 text-blue-600" /></div>
+                            <div>
+                                <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Sosyal Medya & Tanıtım</h3>
+                                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">DİJİTAL DÜNYADA BÜYÜYELİM</p>
+                            </div>
+                        </div>
                     </div>
-                    <div className="grid gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {MISSIONS_SOCIAL.map(mission => {
                             const status = userData?.taskStatus?.[mission.id];
                             return (
-                                <Card key={mission.id} className="border-none shadow-sm hover:shadow-md transition-shadow rounded-2xl group overflow-hidden">
-                                    <div className="flex items-center p-4 gap-4">
-                                        <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">{mission.icon}</div>
+                                <Card key={mission.id} className="border-none shadow-md hover:shadow-2xl transition-all duration-300 rounded-3xl group overflow-hidden bg-white">
+                                    <div className="flex items-center p-5 gap-5">
+                                        <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-primary group-hover:bg-blue-600 group-hover:text-white transition-all transform group-hover:rotate-6">{mission.icon}</div>
                                         <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2 mb-1">
                                                 <h4 className="font-bold text-sm text-slate-800 truncate">{mission.title}</h4>
-                                                <span className="text-xs font-black text-yellow-600">+{mission.points}🌟</span>
+                                                <Badge className="bg-yellow-400/20 text-yellow-700 text-[9px] font-black border-none">+{mission.points}🌟</Badge>
                                             </div>
-                                            <p className="text-[10px] text-slate-500 line-clamp-1 mt-0.5">{mission.desc}</p>
+                                            <p className="text-[10px] text-slate-500 line-clamp-2 leading-relaxed font-medium">{mission.desc}</p>
                                         </div>
                                         <Button 
                                             size="sm" 
                                             variant={status === 'completed' ? 'secondary' : status === 'pending' ? 'outline' : 'default'}
-                                            className="rounded-lg h-8 px-4 font-black text-[10px] uppercase tracking-wider"
+                                            className="rounded-xl h-9 px-5 font-black text-[10px] uppercase tracking-widest shrink-0"
                                             disabled={!!status}
                                             onClick={() => handleMissionAction(mission)}
                                         >
@@ -278,68 +293,82 @@ export default function PuanMerkeziPage() {
                             )
                         })}
                     </div>
+                </section>
 
-                    {/* REFERANS SİSTEMİ */}
-                    <Card className="mt-8 bg-gradient-to-br from-indigo-600 to-blue-700 text-white border-none shadow-2xl rounded-[32px] overflow-hidden relative group">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-16 translate-x-16" />
-                        <CardHeader className="p-8 pb-4">
-                            <CardTitle className="text-2xl font-black flex items-center gap-3">
-                                <Users className="w-8 h-8" /> Arkadaşını Davet Et!
-                            </CardTitle>
-                            <CardDescription className="text-white/80 font-medium leading-relaxed mt-2">
-                                Tavsiyenizle ailemize katılan her yeni arkadaş için hem size hem de arkadaşınıza özel hediyelerimiz var!
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-8 pt-0 space-y-8">
-                            <div className="bg-white/10 border border-white/20 rounded-[20px] p-6">
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60 mb-3">Davet Kodunuz</p>
-                                <div className="flex gap-2">
-                                    <div className="flex-1 bg-white text-slate-900 font-black text-xl flex items-center justify-center rounded-xl h-14 uppercase tracking-wider">
-                                        {referralCode}
+                {/* 4. ARKADAŞINI DAVET ET (VIP) */}
+                <section>
+                    <Card className="bg-gradient-to-br from-indigo-600 via-blue-700 to-indigo-900 text-white border-none shadow-[0_20px_80px_rgba(79,70,229,0.3)] rounded-[40px] overflow-hidden relative group">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-32 translate-x-32 blur-3xl" />
+                        <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/10 rounded-full translate-y-24 -translate-x-24 blur-2xl" />
+                        
+                        <div className="relative p-12">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                                <div className="space-y-8">
+                                    <div className="space-y-4">
+                                        <Badge className="bg-white/20 text-white border-none px-4 py-1 text-[10px] font-black tracking-widest uppercase">🤝 REFERANS SİSTEMİ</Badge>
+                                        <h3 className="text-4xl font-black tracking-tight leading-tight">Arkadaşını Davet Et, <br/>Birlikte Kazanın!</h3>
+                                        <p className="text-white/70 font-medium leading-relaxed max-w-sm">
+                                            Çocuğunuzun Türkçe yolculuğundaki mutluluğunu dostlarınızla paylaşmaya ne dersiniz? Hem size hem de arkadaşınıza özel büyük ödüllerimiz var.
+                                        </p>
                                     </div>
-                                    <Button size="icon" onClick={copyReferralCode} className="h-14 w-14 bg-white/20 hover:bg-white/30 rounded-xl"><Copy className="w-6 h-6" /></Button>
+                                    
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div className="bg-emerald-500/20 p-6 rounded-3xl border border-emerald-500/30 backdrop-blur-sm">
+                                            <p className="text-[10px] font-black text-emerald-300 uppercase tracking-widest mb-2">Sizin Ödülünüz</p>
+                                            <p className="text-lg font-black leading-tight">30€ Bakiye <br/><span className="text-xs opacity-60">veya 1 Hediye Ders</span></p>
+                                        </div>
+                                        <div className="bg-yellow-500/20 p-6 rounded-3xl border border-yellow-500/30 backdrop-blur-sm">
+                                            <p className="text-[10px] font-black text-yellow-300 uppercase tracking-widest mb-2">Arkadaşın Ödülü</p>
+                                            <p className="text-lg font-black leading-tight">%10 İndirim <br/><span className="text-xs opacity-60">İlk Paket Alımında</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <div className="bg-white/10 border border-white/20 rounded-[32px] p-8 backdrop-blur-md">
+                                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-4 text-center">ÖZEL DAVET KODUNUZ</p>
+                                        <div className="flex gap-3">
+                                            <div className="flex-1 bg-white text-slate-900 font-black text-2xl flex items-center justify-center rounded-2xl h-16 uppercase tracking-wider shadow-inner">
+                                                {referralCode}
+                                            </div>
+                                            <Button size="icon" onClick={copyReferralCode} className="h-16 w-16 bg-white/20 hover:bg-white/30 rounded-2xl transition-all active:scale-95 border border-white/10"><Copy className="w-6 h-6" /></Button>
+                                        </div>
+                                    </div>
+                                    <Button className="w-full h-16 bg-green-500 hover:bg-green-600 text-white font-black text-lg rounded-2xl shadow-2xl shadow-slate-900/40 transition-all hover:scale-[1.02] active:scale-95" onClick={shareReferralOnWhatsapp}>
+                                        <MessageCircle className="mr-3 w-7 h-7" /> WHATSAPP'TA PAYLAŞ
+                                    </Button>
+                                    <p className="text-[9px] text-white/40 text-center uppercase tracking-widest font-bold">Arkadaşınız ilk paketini aldığında ödülünüz otomatik tanımlanır.</p>
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-emerald-500/20 p-4 rounded-2xl border border-emerald-500/30">
-                                    <p className="text-[10px] font-black text-emerald-300 uppercase mb-1">Sizin Ödülünüz</p>
-                                    <p className="text-sm font-bold leading-tight">30€ Bakiye veya 1 Hediye Ders</p>
-                                </div>
-                                <div className="bg-yellow-500/20 p-4 rounded-2xl border border-yellow-500/30">
-                                    <p className="text-[10px] font-black text-yellow-300 uppercase mb-1">Arkadaşın Ödülü</p>
-                                    <p className="text-sm font-bold leading-tight">İlk Pakette %10 İndirim</p>
-                                </div>
-                            </div>
-                            <Button className="w-full h-14 bg-green-500 hover:bg-green-600 text-white font-black text-lg rounded-2xl shadow-xl shadow-slate-900/20" onClick={shareReferralOnWhatsapp}>
-                                <MessageCircle className="mr-3 w-6 h-6" /> WHATSAPP'TA PAYLAŞ
-                            </Button>
-                        </CardContent>
+                        </div>
                     </Card>
-                </div>
+                </section>
             </div>
 
             {/* PROOF DIALOG */}
             <Dialog open={isProofDialogOpen} onOpenChange={setIsProofDialogOpen}>
-                <DialogContent className="rounded-[32px] p-8">
-                    <DialogHeader className="items-center text-center space-y-4">
-                        <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
-                            <Camera className="w-10 h-10 text-primary" />
+                <DialogContent className="rounded-[40px] p-10 max-w-md border-none shadow-2xl">
+                    <DialogHeader className="items-center text-center space-y-6">
+                        <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center">
+                            <Camera className="w-12 h-12 text-primary" />
                         </div>
-                        <DialogTitle className="text-2xl font-black uppercase tracking-tight">Harika Bir Haber! 🎉</DialogTitle>
-                        <DialogDescription className="text-slate-500 font-medium leading-relaxed px-4">
-                            "{selectedMission?.title}" görevini tamamladığınız için teşekkürler! 
-                            <br /><br />
-                            Eğer sosyal medyada paylaştıysanız bize ekran görüntüsünü iletin; paylaşmadıysanız bizim paylaşmamız için görseli doğrudan iletin. 
-                            <br /><br />
-                            <span className="text-xs font-bold italic">(Not: Yüz görünme zorunluluğu yoktur.)</span>
-                        </DialogDescription>
+                        <div className="space-y-2">
+                            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Harika Bir Haber! 🎉</DialogTitle>
+                            <DialogDescription className="text-slate-500 font-medium leading-relaxed px-2">
+                                "{selectedMission?.title}" görevini tamamladığınız için teşekkürler! 
+                                <br /><br />
+                                Eğer sosyal medyada paylaştıysanız bize ekran görüntüsünü iletin; paylaşmadıysanız bizim paylaşmamız için görseli doğrudan iletin. 
+                                <br /><br />
+                                <span className="text-[10px] font-black text-primary uppercase italic">Not: Yüz görünme zorunluluğu yoktur.</span>
+                            </DialogDescription>
+                        </div>
                     </DialogHeader>
-                    <DialogFooter className="mt-6 flex flex-col gap-3">
-                        <Button className="w-full h-12 bg-green-500 hover:bg-green-600 font-black" onClick={handleSendProof} disabled={isSaving}>
-                            {isSaving ? <Loader2 className="animate-spin mr-2" /> : <MessageCircle className="mr-2" />}
+                    <DialogFooter className="mt-8 flex flex-col gap-3">
+                        <Button className="w-full h-14 bg-green-500 hover:bg-green-600 font-black text-base rounded-2xl shadow-xl shadow-green-100" onClick={handleSendProof} disabled={isSaving}>
+                            {isSaving ? <Loader2 className="animate-spin mr-2" /> : <MessageCircle className="mr-2 w-5 h-5" />}
                             WHATSAPP İLE KANIT GÖNDER 🟢
                         </Button>
-                        <Button variant="ghost" className="w-full h-12 text-slate-400 font-bold" onClick={() => setIsProofDialogOpen(false)}>Vazgeç</Button>
+                        <Button variant="ghost" className="w-full h-12 text-slate-400 font-bold uppercase tracking-widest text-[10px]" onClick={() => setIsProofDialogOpen(false)}>Vazgeç</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

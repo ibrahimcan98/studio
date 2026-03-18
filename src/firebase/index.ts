@@ -1,3 +1,4 @@
+
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
@@ -47,11 +48,21 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
 // Use initializeFirestore with long polling to avoid connection issues in virtual environments
-export const db = getApps().length > 0 
-  ? getFirestore(app) 
-  : initializeFirestore(app, {
+// We use a singleton pattern to ensure initializeFirestore is only called once
+let firestoreDb;
+try {
+  if (getApps().length === 0) {
+    firestoreDb = initializeFirestore(app, {
       experimentalForceLongPolling: true,
     });
+  } else {
+    firestoreDb = getFirestore(app);
+  }
+} catch (e) {
+  firestoreDb = getFirestore(app);
+}
+
+export const db = firestoreDb;
 
 export function initializeFirebase() {
   return {

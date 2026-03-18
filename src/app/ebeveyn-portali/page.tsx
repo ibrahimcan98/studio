@@ -1,10 +1,11 @@
+
 'use client';
 
 import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
-import { Loader2, Plus, ArrowRight, Star, Award, BookOpen, Users, Rocket, Settings, CreditCard, Clock, MonitorPlay, FileText, CheckCircle, MessageSquare, Calendar, History, Lightbulb, Bell, Megaphone, ArrowUpRight, X, Lock, Heart, AlertTriangle, Wallet, Gift } from 'lucide-react';
+import { Loader2, Plus, ArrowRight, Star, Award, BookOpen, Users, Rocket, Settings, CreditCard, Clock, MonitorPlay, FileText, CheckCircle, MessageSquare, Calendar, History, Lightbulb, Bell, Megaphone, ArrowUpRight, X, Lock, Heart, AlertTriangle, Wallet, Gift, GraduationCap, CheckCircle2 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -41,20 +42,21 @@ import { collection, doc, deleteDoc, updateDoc, query, where, getDocs, writeBatc
 import { useToast } from '@/hooks/use-toast';
 import { ProgressPanel } from '@/components/shared/progress-panel';
 import { cn } from '@/lib/utils';
-import { format, isAfter, isBefore } from 'date-fns';
+import { format, isAfter, isBefore, subHours } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { motion, AnimatePresence } from 'framer-motion';
 
 
 const MAX_LIVES = 5;
 
-function StatCard({ title, value, icon: Icon, unit, children }: { title: string, value: string | number, icon: React.ElementType, unit?: string, children?: React.ReactNode }) {
+function StatCard({ title, value, icon: Icon, unit, children, className }: { title: string, value: string | number, icon: React.ElementType, unit?: string, children?: React.ReactNode, className?: string }) {
   return (
-    <Card>
+    <Card className={cn("flex flex-col h-full", className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         <Icon className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 flex flex-col justify-center">
         {children ? (
           children
         ) : (
@@ -108,9 +110,9 @@ function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUp
                 <p className="font-semibold text-lg">{child.firstName}</p>
                 <div className='w-full space-y-3 pt-4'>
                     <div className='flex justify-between items-center text-sm'>
-                        <span className='text-muted-foreground'>Rozetler:</span>
+                        <span className='text-muted-foreground'>Seviye:</span>
                         <div className='flex items-center gap-1 font-bold bg-primary/10 text-primary px-2 py-1 rounded-md'>
-                            <span>{(child.badges || []).length}</span><Award className='w-4 h-4'/>
+                            <span>{child.cefrProfile?.speaking?.toUpperCase() || 'PreA1'}</span><GraduationCap className='w-4 h-4'/>
                         </div>
                     </div>
                     <div className='flex justify-between items-center text-sm'>
@@ -166,12 +168,90 @@ export default function EbeveynPortaliPage() {
     if (!slots || !children) return [];
     const list: any[] = [];
     const now = new Date();
-    const upcoming = slots.filter(s => isAfter(s.startTime.toDate(), now)).sort((a, b) => a.startTime.seconds - b.startTime.seconds)[0];
-    if (upcoming) list.push({ id: 'up', type: 'lesson', icon: <Calendar className="h-3.5 w-3.5" />, color: 'bg-blue-100', title: '⏰ Sıradaki Ders:', text: `${format(upcoming.startTime.toDate(), 'EEEE HH:mm', { locale: tr })}'da.`, path: '/ebeveyn-portali/dersler' });
-    const lastWithFeedback = slots.filter(s => s.feedback && isBefore(s.startTime.toDate(), now)).sort((a, b) => b.startTime.seconds - a.startTime.seconds)[0];
-    if (lastWithFeedback) list.push({ id: 'fb', type: 'pdr', icon: <MessageSquare className="h-3.5 w-3.5" />, color: 'bg-purple-100', title: '💬 Öğretmen Notu:', text: `"${lastWithFeedback.feedback.text.substring(0, 40)}..."`, path: '/ebeveyn-portali/dersler?tab=past' });
+    const twentyFourHoursAgo = subHours(now, 24);
+    
+    // 1. Gelecek Dersler
+    const upcomingLessons = slots
+      .filter(s => isAfter(s.startTime.toDate(), now))
+      .sort((a, b) => a.startTime.seconds - b.startTime.seconds);
+    
+    upcomingLessons.forEach((s, idx) => {
+      list.push({ 
+        id: `up-${s.id || Math.random()}`, 
+        type: 'lesson', 
+        icon: <Calendar className="h-4 w-4" />, 
+        color: 'bg-blue-100 text-blue-600', 
+        title: idx === 0 ? '⏰ Sıradaki Ders:' : '📅 Gelecek Ders:', 
+        text: `${format(s.startTime.toDate(), 'EEEE HH:mm', { locale: tr })}'da.`, 
+        fullText: `${format(s.startTime.toDate(), 'dd MMMM yyyy EEEE HH:mm', { locale: tr })} tarihinde dersiniz bulunuyor.`,
+        path: '/ebeveyn-portali/dersler' 
+      });
+    });
+
+    // 2. Yeni Tamamlanan Dersler (Son 24 saat)
+    const justFinished = slots
+      .filter(s => isBefore(s.startTime.toDate(), now) && isAfter(s.startTime.toDate(), twentyFourHoursAgo))
+      .sort((a, b) => b.startTime.seconds - a.startTime.seconds);
+
+    justFinished.forEach(s => {
+        list.push({
+            id: `done-${s.id}`,
+            type: 'completed',
+            icon: <CheckCircle2 className="h-4 w-4" />,
+            color: 'bg-emerald-100 text-emerald-600',
+            title: '✅ Ders Tamamlandı:',
+            text: `Bugünkü ders başarıyla işlendi.`,
+            fullText: `Bugünkü dersiniz başarıyla tamamlandı. Öğretmeninizin notlarını yakında görebilirsiniz.`,
+            path: '/ebeveyn-portali/dersler?tab=past'
+        });
+    });
+
+    // 3. Öğretmen Geri Bildirimleri
+    const feedbacks = slots
+      .filter(s => s.feedback && isBefore(s.startTime.toDate(), now))
+      .sort((a, b) => b.startTime.seconds - a.startTime.seconds);
+    
+    feedbacks.forEach((s, idx) => {
+      list.push({ 
+        id: `fb-${s.id || Math.random()}`, 
+        type: 'pdr', 
+        icon: <MessageSquare className="h-4 w-4" />, 
+        color: 'bg-purple-100 text-purple-600', 
+        title: '💬 Yeni Geri Bildirim:', 
+        text: `"${s.feedback.text.substring(0, 50)}..."`, 
+        fullText: s.feedback.text,
+        path: '/ebeveyn-portali/dersler?tab=past' 
+      });
+    });
+
+    // 4. Seviye Atlamaları / Değişiklikleri
+    children.forEach(child => {
+        if (child.cefrProfile?.speaking && child.cefrProfile.speaking !== 'preA1') {
+            list.push({
+                id: `level-${child.id}`,
+                type: 'level',
+                icon: <GraduationCap className="h-4 w-4" />,
+                color: 'bg-yellow-100 text-yellow-700',
+                title: '🎓 Seviye Güncellendi:',
+                text: `${child.firstName} artık ${child.cefrProfile.speaking.toUpperCase()} seviyesinde!`,
+                fullText: `${child.firstName} isimli öğrencimizin dil gelişimi takip edildi ve seviyesi ${child.cefrProfile.speaking.toUpperCase()} olarak güncellendi.`,
+                path: '/ebeveyn-portali'
+            });
+        }
+    });
+
     return list;
   }, [slots, children]);
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (notifications.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % notifications.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [notifications]);
 
   useEffect(() => {
     if (!userLoading && (!user || user.isAnonymous)) router.push('/login');
@@ -209,7 +289,7 @@ export default function EbeveynPortaliPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 auto-rows-fr">
         <StatCard title="Kalan Toplam Ders" value={totalUnassignedLessons} icon={BookOpen} unit="Ders" />
         <StatCard title="Cüzdan & Puan" value="" icon={Wallet}>
             <div className="space-y-1">
@@ -222,26 +302,82 @@ export default function EbeveynPortaliPage() {
         </StatCard>
         <StatCard title="Toplam Çocuk" value={children?.length || 0} icon={Users} />
         
-        <Card className="col-span-1 border-primary/20 shadow-lg bg-white overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-primary/5">
-                <CardTitle className="text-sm font-bold flex items-center gap-2"><Bell className="h-4 w-4 text-primary" /> Bildirimler</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-                <div className="divide-y divide-slate-100">
+        <Dialog>
+            <DialogTrigger asChild>
+                <Card className="col-span-1 border-primary/20 shadow-lg bg-white overflow-hidden flex flex-col cursor-pointer group hover:border-primary transition-colors">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-primary/5 shrink-0">
+                        <CardTitle className="text-sm font-bold flex items-center gap-2">
+                            <Bell className="h-4 w-4 text-primary animate-pulse" /> Bildirimler 
+                            {notifications.length > 0 && <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1">{notifications.length}</Badge>}
+                        </CardTitle>
+                        <ArrowUpRight className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </CardHeader>
+                    <CardContent className="p-0 flex-1 relative bg-slate-50/30 overflow-hidden">
+                        {notifications.length > 0 ? (
+                            <div className="h-full flex flex-col justify-center">
+                                <AnimatePresence mode="wait">
+                                    <motion.div
+                                        key={currentIndex}
+                                        initial={{ y: 20, opacity: 0 }}
+                                        animate={{ y: 0, opacity: 1 }}
+                                        exit={{ y: -20, opacity: 0 }}
+                                        transition={{ duration: 0.4, ease: "easeInOut" }}
+                                        className="p-4"
+                                    >
+                                        <div className="flex items-start gap-3">
+                                            <div className={cn("mt-1 p-2 rounded-lg shrink-0", notifications[currentIndex].color)}>{notifications[currentIndex].icon}</div>
+                                            <div className="space-y-1">
+                                                <p className="text-xs leading-tight text-slate-800 font-bold">{notifications[currentIndex].title}</p>
+                                                <p className="text-[11px] text-slate-600 leading-snug line-clamp-2">{notifications[currentIndex].text}</p>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                </AnimatePresence>
+                                <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
+                                    {notifications.map((_, i) => (
+                                        <div key={i} className={cn("h-1 rounded-full transition-all duration-300", i === currentIndex ? "w-4 bg-primary" : "w-1 bg-slate-200")} />
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+                                <Bell className="h-8 w-8 text-slate-200 mb-2" />
+                                <p className="text-xs text-slate-400 font-medium">Yeni bildirim yok.</p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2"><Bell className="h-5 w-5 text-primary" /> Tüm Bildirimler</DialogTitle>
+                    <DialogDescription>Aktif dersleriniz ve öğretmenlerinizden gelen notlar.</DialogDescription>
+                </DialogHeader>
+                <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-4 py-4">
                     {notifications.length > 0 ? notifications.map((notif) => (
-                        <div key={notif.id} className="p-3 hover:bg-slate-50 cursor-pointer" onClick={() => router.push(notif.path)}>
-                            <div className="flex items-start gap-3">
-                                <div className={cn("mt-1 p-1.5 rounded-lg", notif.color)}>{notif.icon}</div>
-                                <div className="space-y-0.5">
-                                    <p className="text-[11px] leading-tight text-slate-700 font-bold">{notif.title}</p>
-                                    <p className="text-[10px] text-slate-500">{notif.text}</p>
+                        <div key={notif.id} className="p-4 rounded-xl border bg-card hover:bg-accent transition-colors cursor-pointer" onClick={() => router.push(notif.path)}>
+                            <div className="flex items-start gap-4">
+                                <div className={cn("p-2 rounded-lg", notif.color)}>{notif.icon}</div>
+                                <div className="space-y-1 flex-1">
+                                    <div className="flex justify-between items-start">
+                                        <p className="text-sm font-bold leading-none">{notif.title}</p>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground leading-relaxed mt-2">{notif.fullText || notif.text}</p>
+                                    <Button variant="link" className="p-0 h-auto text-xs font-bold text-primary" onClick={() => router.push(notif.path)}>
+                                        Detayı Gör <ArrowRight className="ml-1 h-3 w-3" />
+                                    </Button>
                                 </div>
                             </div>
                         </div>
-                    )) : <div className="p-6 text-center text-[10px] text-slate-400">Yeni bildirim yok.</div>}
+                    )) : (
+                        <div className="text-center py-8">
+                            <Bell className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
+                            <p className="text-muted-foreground">Şu an gösterilecek bir bildirim bulunmuyor.</p>
+                        </div>
+                    )}
                 </div>
-            </CardContent>
-        </Card>
+            </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
