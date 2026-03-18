@@ -37,15 +37,6 @@ export default function Hero() {
         return;
       }
       setStep('level');
-    } else if (current === 'level') {
-      if (!formData.level) return;
-      setStep('age');
-    } else if (current === 'age') {
-      if (!formData.ageGroup) return;
-      setStep('style');
-    } else if (current === 'style') {
-      if (!formData.learningStyle) return;
-      setStep('final');
     }
   };
 
@@ -81,7 +72,7 @@ export default function Hero() {
                 placeholder="Ad" 
                 className="h-12 rounded-2xl border-2 border-slate-200 bg-white text-sm px-6 focus:ring-primary/20"
                 value={formData.childName}
-                onChange={(e) => setFormData({...formData, childName: e.target.value})}
+                onChange={(e) => setFormData(prev => ({...prev, childName: e.target.value}))}
                 suppressHydrationWarning
               />
               <div className="grid grid-cols-2 gap-4">
@@ -92,7 +83,7 @@ export default function Hero() {
                     "h-12 rounded-2xl border-2 text-sm font-medium transition-all",
                     formData.gender === 'erkek' ? "border-primary bg-primary/5 text-primary" : "border-slate-200 text-slate-600"
                   )}
-                  onClick={() => setFormData({...formData, gender: 'erkek'})}
+                  onClick={() => setFormData(prev => ({...prev, gender: 'erkek'}))}
                   suppressHydrationWarning
                 >
                   Erkek
@@ -104,7 +95,7 @@ export default function Hero() {
                     "h-12 rounded-2xl border-2 text-sm font-medium transition-all",
                     formData.gender === 'kiz' ? "border-primary bg-primary/5 text-primary" : "border-slate-200 text-slate-600"
                   )}
-                  onClick={() => setFormData({...formData, gender: 'kiz'})}
+                  onClick={() => setFormData(prev => ({...prev, gender: 'kiz'}))}
                   suppressHydrationWarning
                 >
                   Kız
@@ -143,7 +134,10 @@ export default function Hero() {
                     "w-full h-14 justify-start px-6 rounded-2xl border-2 text-left whitespace-normal",
                     formData.level === opt.id ? "border-primary bg-primary/5" : "border-slate-100"
                   )}
-                  onClick={() => { setFormData({...formData, level: opt.id}); setTimeout(() => nextStep('level'), 200); }}
+                  onClick={() => { 
+                    setFormData(prev => ({...prev, level: opt.id})); 
+                    setTimeout(() => setStep('age'), 250); 
+                  }}
                   suppressHydrationWarning
                 >
                   <div className="flex items-center gap-4 w-full">
@@ -180,7 +174,10 @@ export default function Hero() {
                     "w-full h-14 justify-start px-6 rounded-2xl border-2 text-left",
                     formData.ageGroup === opt.id ? "border-primary bg-primary/5" : "border-slate-100"
                   )}
-                  onClick={() => { setFormData({...formData, ageGroup: opt.id}); setTimeout(() => nextStep('age'), 200); }}
+                  onClick={() => { 
+                    setFormData(prev => ({...prev, ageGroup: opt.id})); 
+                    setTimeout(() => setStep('style'), 250); 
+                  }}
                   suppressHydrationWarning
                 >
                   <div className="flex items-center gap-4 w-full">
@@ -217,7 +214,10 @@ export default function Hero() {
                     "w-full h-14 justify-start px-6 rounded-2xl border-2 text-left whitespace-normal",
                     formData.learningStyle === opt.id ? "border-primary bg-primary/5" : "border-slate-100"
                   )}
-                  onClick={() => { setFormData({...formData, learningStyle: opt.id}); setTimeout(() => nextStep('style'), 200); }}
+                  onClick={() => { 
+                    setFormData(prev => ({...prev, learningStyle: opt.id})); 
+                    setTimeout(() => setStep('final'), 250); 
+                  }}
                   suppressHydrationWarning
                 >
                   <div className="flex items-center gap-4 w-full">
@@ -269,7 +269,7 @@ export default function Hero() {
             <span className="inline-block text-primary font-black tracking-[0.2em] text-xs md:text-sm uppercase">
               ÇOCUKLAR İÇİN ÇEVRİMİÇİ TÜRKÇE DERSLER
             </span>
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 leading-[1.1]">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900 leading-[1.1]">
               Çocuğunuz Türkçeyi Uzman Öğretmenlerle, Eğlenerek ve Canlı Derslerle Öğrensin.
             </h1>
           </div>
