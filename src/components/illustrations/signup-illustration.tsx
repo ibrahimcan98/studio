@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Compass, TrendingUp, Puzzle, Link2, Heart } from 'lucide-react';
@@ -35,11 +34,10 @@ export function SignUpIllustration() {
               <Heart className="absolute w-16 h-16 text-white/20 fill-white" />
               <div className="relative w-20 h-20 z-10 shadow-xl rounded-lg overflow-hidden border-2 border-white/30">
                 <Image 
-                  src="https://images.unsplash.com/photo-1590508740136-df096ee60691?q=80&w=200&h=200&auto=format&fit=crop" 
+                  src="/turkbayragi.png" 
                   alt="Türk Bayrağı"
                   fill
                   className="object-cover"
-                  data-ai-hint="turkish flag"
                 />
               </div>
             </div>
@@ -51,7 +49,9 @@ export function SignUpIllustration() {
           <div className="w-16 h-16 bg-white rounded-[24px] shadow-xl border-2 border-blue-50 flex items-center justify-center transition-all hover:scale-110 hover:-rotate-6">
             <div className="relative">
               <Compass className="w-9 h-9 text-blue-500" />
-              <div className="absolute -top-2 -right-2 text-sm shadow-sm rounded-full bg-white px-0.5">🇹🇷</div>
+              <div className="absolute -top-2 -right-2 text-sm shadow-sm rounded-full bg-white px-0.5 overflow-hidden w-6 h-4 border border-slate-100">
+                <Image src="/turkbayragi.png" alt="Bayrak" fill className="object-cover" />
+              </div>
             </div>
           </div>
           <div className="text-center bg-white/95 backdrop-blur-md px-4 py-1.5 rounded-2xl shadow-lg border border-blue-100 min-w-[150px]">
