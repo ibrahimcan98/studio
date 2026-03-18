@@ -74,24 +74,26 @@ export default function Hero() {
         return (
           <div className="space-y-6">
             <div className="flex items-center justify-center relative">
-              <h3 className="text-2xl font-bold text-[#243B53]">Çocuğun adı</h3>
+              <h3 className="text-xl font-bold text-[#243B53]">Çocuğun adı</h3>
             </div>
             <div className="space-y-4">
               <Input 
                 placeholder="Ad" 
-                className="h-14 rounded-2xl border-2 border-slate-200 bg-white text-lg px-6 focus:ring-primary/20"
+                className="h-12 rounded-2xl border-2 border-slate-200 bg-white text-base px-6 focus:ring-primary/20"
                 value={formData.childName}
                 onChange={(e) => setFormData({...formData, childName: e.target.value})}
+                suppressHydrationWarning
               />
               <div className="grid grid-cols-2 gap-4">
                 <Button 
                   type="button"
                   variant="outline"
                   className={cn(
-                    "h-14 rounded-2xl border-2 text-lg font-medium transition-all",
+                    "h-12 rounded-2xl border-2 text-base font-medium transition-all",
                     formData.gender === 'erkek' ? "border-primary bg-primary/5 text-primary" : "border-slate-200 text-slate-600"
                   )}
                   onClick={() => setFormData({...formData, gender: 'erkek'})}
+                  suppressHydrationWarning
                 >
                   Erkek
                 </Button>
@@ -99,18 +101,20 @@ export default function Hero() {
                   type="button"
                   variant="outline"
                   className={cn(
-                    "h-14 rounded-2xl border-2 text-lg font-medium transition-all",
+                    "h-12 rounded-2xl border-2 text-base font-medium transition-all",
                     formData.gender === 'kiz' ? "border-primary bg-primary/5 text-primary" : "border-slate-200 text-slate-600"
                   )}
                   onClick={() => setFormData({...formData, gender: 'kiz'})}
+                  suppressHydrationWarning
                 >
                   Kız
                 </Button>
               </div>
             </div>
             <Button 
-              className="w-full h-14 text-lg font-bold rounded-2xl bg-slate-200 text-slate-600 hover:bg-slate-300 transition-all mt-4"
+              className="w-full h-12 text-base font-bold rounded-2xl bg-slate-200 text-slate-600 hover:bg-slate-300 transition-all mt-4"
               onClick={() => nextStep('name')}
+              suppressHydrationWarning
             >
               Devam
             </Button>
@@ -121,10 +125,10 @@ export default function Hero() {
         return (
           <div className="space-y-6">
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" className="rounded-full bg-slate-500 text-white hover:bg-slate-600 h-10 w-10 shrink-0" onClick={prevStep}>
-                <ChevronLeft className="w-6 h-6" />
+              <Button variant="ghost" size="icon" className="rounded-full bg-slate-500 text-white hover:bg-slate-600 h-8 w-8 shrink-0" onClick={prevStep} suppressHydrationWarning>
+                <ChevronLeft className="w-5 h-5" />
               </Button>
-              <h3 className="text-xl font-bold text-[#243B53]">Türkçe seviyesi nedir?</h3>
+              <h3 className="text-lg font-bold text-[#243B53]">Türkçe seviyesi nedir?</h3>
             </div>
             <div className="space-y-3">
               {[
@@ -136,16 +140,17 @@ export default function Hero() {
                   key={opt.id}
                   variant="outline"
                   className={cn(
-                    "w-full h-16 justify-start px-6 rounded-2xl border-2 text-left whitespace-normal",
+                    "w-full h-14 justify-start px-6 rounded-2xl border-2 text-left whitespace-normal",
                     formData.level === opt.id ? "border-primary bg-primary/5" : "border-slate-100"
                   )}
                   onClick={() => { setFormData({...formData, level: opt.id}); setTimeout(() => nextStep('level'), 200); }}
+                  suppressHydrationWarning
                 >
                   <div className="flex items-center gap-4 w-full">
-                    <div className={cn("w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0", formData.level === opt.id ? "border-primary bg-primary" : "border-slate-300")}>
-                      {formData.level === opt.id && <Check className="w-4 h-4 text-white" />}
+                    <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0", formData.level === opt.id ? "border-primary bg-primary" : "border-slate-300")}>
+                      {formData.level === opt.id && <Check className="w-3.5 h-3.5 text-white" />}
                     </div>
-                    <span className="font-medium text-slate-700">{opt.label}</span>
+                    <span className="font-medium text-slate-700 text-sm">{opt.label}</span>
                   </div>
                 </Button>
               ))}
@@ -157,10 +162,10 @@ export default function Hero() {
         return (
           <div className="space-y-6">
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" className="rounded-full bg-slate-500 text-white hover:bg-slate-600 h-10 w-10 shrink-0" onClick={prevStep}>
-                <ChevronLeft className="w-6 h-6" />
+              <Button variant="ghost" size="icon" className="rounded-full bg-slate-500 text-white hover:bg-slate-600 h-8 w-8 shrink-0" onClick={prevStep} suppressHydrationWarning>
+                <ChevronLeft className="w-5 h-5" />
               </Button>
-              <h3 className="text-xl font-bold text-[#243B53]">Çocuğunuz kaç yaşında?</h3>
+              <h3 className="text-lg font-bold text-[#243B53]">Çocuğunuz kaç yaşında?</h3>
             </div>
             <div className="space-y-3">
               {[
@@ -172,16 +177,17 @@ export default function Hero() {
                   key={opt.id}
                   variant="outline"
                   className={cn(
-                    "w-full h-16 justify-start px-6 rounded-2xl border-2 text-left",
+                    "w-full h-14 justify-start px-6 rounded-2xl border-2 text-left",
                     formData.ageGroup === opt.id ? "border-primary bg-primary/5" : "border-slate-100"
                   )}
                   onClick={() => { setFormData({...formData, ageGroup: opt.id}); setTimeout(() => nextStep('age'), 200); }}
+                  suppressHydrationWarning
                 >
                   <div className="flex items-center gap-4 w-full">
-                    <div className={cn("w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0", formData.ageGroup === opt.id ? "border-primary bg-primary" : "border-slate-300")}>
-                      {formData.ageGroup === opt.id && <Check className="w-4 h-4 text-white" />}
+                    <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0", formData.ageGroup === opt.id ? "border-primary bg-primary" : "border-slate-300")}>
+                      {formData.ageGroup === opt.id && <Check className="w-3.5 h-3.5 text-white" />}
                     </div>
-                    <span className="font-medium text-slate-700">{opt.label}</span>
+                    <span className="font-medium text-slate-700 text-sm">{opt.label}</span>
                   </div>
                 </Button>
               ))}
@@ -193,10 +199,10 @@ export default function Hero() {
         return (
           <div className="space-y-6">
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" className="rounded-full bg-slate-500 text-white hover:bg-slate-600 h-10 w-10 shrink-0" onClick={prevStep}>
-                <ChevronLeft className="w-6 h-6" />
+              <Button variant="ghost" size="icon" className="rounded-full bg-slate-500 text-white hover:bg-slate-600 h-8 w-8 shrink-0" onClick={prevStep} suppressHydrationWarning>
+                <ChevronLeft className="w-5 h-5" />
               </Button>
-              <h3 className="text-xl font-bold text-[#243B53]">Öğrenme tarzı nasıldır?</h3>
+              <h3 className="text-lg font-bold text-[#243B53]">Öğrenme tarzı nasıldır?</h3>
             </div>
             <div className="space-y-3">
               {[
@@ -208,16 +214,17 @@ export default function Hero() {
                   key={opt.id}
                   variant="outline"
                   className={cn(
-                    "w-full h-16 justify-start px-6 rounded-2xl border-2 text-left whitespace-normal",
+                    "w-full h-14 justify-start px-6 rounded-2xl border-2 text-left whitespace-normal",
                     formData.learningStyle === opt.id ? "border-primary bg-primary/5" : "border-slate-100"
                   )}
                   onClick={() => { setFormData({...formData, learningStyle: opt.id}); setTimeout(() => nextStep('style'), 200); }}
+                  suppressHydrationWarning
                 >
                   <div className="flex items-center gap-4 w-full">
-                    <div className={cn("w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0", formData.learningStyle === opt.id ? "border-primary bg-primary" : "border-slate-300")}>
-                      {formData.learningStyle === opt.id && <Check className="w-4 h-4 text-white" />}
+                    <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0", formData.learningStyle === opt.id ? "border-primary bg-primary" : "border-slate-300")}>
+                      {formData.learningStyle === opt.id && <Check className="w-3.5 h-3.5 text-white" />}
                     </div>
-                    <span className="font-medium text-slate-700">{opt.label}</span>
+                    <span className="font-medium text-slate-700 text-sm">{opt.label}</span>
                   </div>
                 </Button>
               ))}
@@ -228,24 +235,25 @@ export default function Hero() {
       case 'final':
         return (
           <div className="space-y-6 text-center">
-            <div className="flex justify-center mb-4">
-              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
-                <PartyPopper className="w-10 h-10 text-green-600" />
+            <div className="flex justify-center mb-2">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                <PartyPopper className="w-8 h-8 text-green-600" />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-[#243B53]">Harika!</h3>
-            <p className="text-slate-600 leading-relaxed">
+            <h3 className="text-xl font-bold text-[#243B53]">Harika!</h3>
+            <p className="text-slate-600 text-sm leading-relaxed px-4">
               Çocuğunuzun dünyasına uygun eğlenceli bir öğrenme serüveni başlamak üzere. 
-              Ücretsiz tanışma dersinizi ayırtmak ve eğitim yolculuğumuza ilk adımı atmak için hesabınızı oluşturun.
+              Ücretsiz tanışma dersinizi ayırtmak için hesabınızı oluşturun.
             </p>
             <Button 
-              className="w-full h-14 text-lg font-black rounded-2xl shadow-xl shadow-primary/20 transition-transform active:scale-95 mt-4"
+              className="w-full h-12 text-base font-black rounded-2xl shadow-xl shadow-primary/20 transition-transform active:scale-95 mt-2"
               onClick={handleFinalSubmit}
               disabled={isSubmitting}
+              suppressHydrationWarning
             >
               {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : "HESABIMI OLUŞTUR"}
             </Button>
-            <Button variant="ghost" className="text-slate-400 text-sm" onClick={prevStep}>
+            <Button variant="ghost" className="text-slate-400 text-xs" onClick={prevStep} suppressHydrationWarning>
               Geri Dön
             </Button>
           </div>
@@ -266,7 +274,7 @@ export default function Hero() {
             </h1>
           </div>
 
-          <Card className="p-8 bg-white shadow-2xl border-none rounded-[40px] max-w-md mx-auto lg:mx-0 relative overflow-hidden min-h-[450px] flex flex-col justify-center">
+          <Card className="p-8 bg-white shadow-2xl border-none rounded-[40px] max-w-lg mx-auto lg:mx-0 relative overflow-hidden min-h-[400px] flex flex-col justify-center">
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-16 translate-x-16" />
             <div className="relative z-10">
               {renderStep()}
@@ -287,13 +295,13 @@ export default function Hero() {
               />
             )}
             <Card className="absolute -top-6 -left-10 transform -rotate-12 bg-accent/90 backdrop-blur-sm p-4 rounded-2xl shadow-xl border-none">
-              <p className="text-2xl font-black text-accent-foreground tracking-tighter">+50 XP</p>
+              <p className="text-xl font-black text-accent-foreground tracking-tighter">+50 XP</p>
             </Card>
             <Card className="absolute -bottom-6 -right-8 transform rotate-6 bg-emerald-500/90 backdrop-blur-sm p-5 rounded-2xl shadow-xl border-none flex items-center gap-3">
               <div className="bg-white/20 p-2 rounded-lg">
                 <PartyPopper className="text-white w-6 h-6" />
               </div>
-              <p className="font-black text-white text-sm uppercase tracking-wider">Konu tamamlandı!</p>
+              <p className="font-black text-white text-xs uppercase tracking-wider">Konu tamamlandı!</p>
             </Card>
           </div>
         </div>
