@@ -35,7 +35,6 @@ export default function Hero() {
 
     setIsSubmitting(true);
     // Simüle edilen işlem: Bilgileri alıp kayıt sayfasına yönlendiriyoruz
-    // Gerçek bir senaryoda burada bir lead kaydı yapılabilir
     setTimeout(() => {
       setIsSubmitting(false);
       router.push(`/register?name=${encodeURIComponent(formData.name)}&contact=${encodeURIComponent(formData.contact)}`);
@@ -91,9 +90,6 @@ export default function Hero() {
                   <>ÜCRETSİZ DENEME DERSİ AL <ArrowRight className="ml-2 w-5 h-5" /></>
                 )}
               </Button>
-              <p className="text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest">
-                Kredi kartı gerekmez • Anında Aktivasyon
-              </p>
             </form>
           </Card>
         </div>
