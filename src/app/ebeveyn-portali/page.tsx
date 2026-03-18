@@ -1,11 +1,10 @@
-
 'use client';
 
 import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
-import { Loader2, Plus, ArrowRight, Star, Award, BookOpen, Users, Rocket, Settings, CreditCard, Clock, MonitorPlay, FileText, CheckCircle, MessageSquare, Calendar, History, Lightbulb, Bell, Megaphone, ArrowUpRight, X, Lock, Heart, AlertTriangle, Wallet } from 'lucide-react';
+import { Loader2, Plus, ArrowRight, Star, Award, BookOpen, Users, Rocket, Settings, CreditCard, Clock, MonitorPlay, FileText, CheckCircle, MessageSquare, Calendar, History, Lightbulb, Bell, Megaphone, ArrowUpRight, X, Lock, Heart, AlertTriangle, Wallet, Gift } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
