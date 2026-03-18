@@ -53,9 +53,6 @@ export default function Hero() {
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.1]">
               Çocuğunuz Türkçeyi Uzman Öğretmenlerle, Eğlenerek ve Canlı Derslerle Öğrensin.
             </h1>
-            <p className="max-w-xl mx-auto lg:mx-0 text-lg text-slate-500 font-medium">
-              Duolingo tarzı oyunlu harita, uzman öğretmenlerle 1-1 canlı dersler ve detaylı ebeveyn paneli.
-            </p>
           </div>
 
           {/* Hızlı Kayıt Formu */}
