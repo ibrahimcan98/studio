@@ -13,69 +13,21 @@
         "email": { "type": "string", "format": "email" },
         "phoneNumber": { "type": "string" },
         "role": { "type": "string", "enum": ["parent", "teacher", "admin"] },
+        "walletBalanceEur": { "type": "number", "description": "Current balance in EUR." },
+        "academyPoints": { "type": "number", "description": "Current loyalty points." },
+        "totalPackagesPurchased": { "type": "number", "description": "Total number of packages bought." },
+        "referralCode": { "type": "string", "description": "Unique referral code for the user." },
         "isPremium": { "type": "boolean" },
-        "premiumStartDate": { "type": "string", "format": "date-time" },
-        "premiumEndDate": { "type": "string", "format": "date-time" },
         "lives": { "type": "number" },
-        "livesLastUpdatedAt": { "type": "string", "format": "date-time" },
-        "enrolledPackages": { "type": "array", "items": { "type": "string" } },
         "remainingLessons": { "type": "number" },
         "freeTrialsUsed": { "type": "number" },
-        "timezone": { "type": "string" },
-        "bio": { "type": "string" },
-        "hobbies": { "type": "array", "items": { "type": "string" } },
-        "introVideoUrl": { "type": "string", "format": "uri" },
-        "googleMeetLink": { "type": "string", "format": "uri" },
-        "isProfileComplete": { "type": "boolean" },
-        "lastActiveAt": { "type": "string", "format": "date-time" },
-        "currentPath": { "type": "string" },
-        "isOnline": { "type": "boolean" },
-        "onlineSince": { "type": "string", "format": "date-time" }
+        "taskStatus": { 
+            "type": "object", 
+            "description": "Status of missions (e.g., { 'mission-1': 'pending' })." 
+        },
+        "isProfileComplete": { "type": "boolean" }
       },
       "required": ["id", "firstName", "lastName", "email", "role"]
-    },
-    "Transaction": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Transaction",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "userName": { "type": "string" },
-        "userEmail": { "type": "string" },
-        "amountEur": { "type": "number" },
-        "items": { 
-          "type": "array", 
-          "items": {
-            "type": "object",
-            "properties": {
-              "name": { "type": "string" },
-              "quantity": { "type": "number" },
-              "priceEur": { "type": "number" }
-            }
-          }
-        },
-        "type": { "type": "string", "enum": ["package", "premium"] },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["userId", "amountEur", "type", "createdAt"]
-    },
-    "Child": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Child",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "firstName": { "type": "string" },
-        "dateOfBirth": { "type": "string", "format": "date" },
-        "countryOfResidence": { "type": "string" },
-        "level": { "type": "string" },
-        "remainingLessons": { "type": "number" },
-        "assignedPackage": { "type": "string" },
-        "completedTopics": { "type": "array", "items": { "type": "string" } }
-      },
-      "required": ["id", "userId", "firstName"]
     }
   },
   "auth": {
@@ -88,7 +40,7 @@
         "definition": {
           "entityName": "User",
           "schema": { "$ref": "#/backend/entities/User" },
-          "description": "User profiles with live tracking data."
+          "description": "User profiles with wallet and point tracking."
         }
       }
     ]

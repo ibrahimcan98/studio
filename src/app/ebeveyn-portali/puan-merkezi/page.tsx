@@ -1,0 +1,348 @@
+
+'use client';
+
+import { useState, useMemo, useEffect } from 'react';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { 
+    Wallet, 
+    Star, 
+    ChevronRight, 
+    Lock, 
+    CheckCircle2, 
+    ArrowLeft, 
+    Share2, 
+    Copy, 
+    MessageCircle, 
+    Gift, 
+    Camera, 
+    BookOpen, 
+    Utensils, 
+    Music, 
+    PartyPopper,
+    Users,
+    Instagram,
+    Youtube,
+    Loader2
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
+const MISSIONS_HOME = [
+    { id: 'book-reading', title: 'Kitap Okuma Saati', points: 40, icon: <BookOpen className="w-5 h-5" />, desc: 'Çocuğunuzla Türkçe kitap okurken bir fotoğraf veya video paylaşın ve bizi etiketleyin!' },
+    { id: 'game-time', title: 'Oyun Saati', points: 40, icon: <PartyPopper className="w-5 h-5" />, desc: 'Birlikte Türkçe bir oyun oynadığınız o eğlenceli anı paylaşın!' },
+    { id: 'elders-call', title: 'Büyüklerle Gönül Köprüsü', points: 60, icon: <Users className="w-5 h-5" />, desc: 'Türkiye’deki aile üyeleriyle yapılan görüntülü aramadan bir kare paylaşın!' },
+    { id: 'kitchen-fun', title: 'Mutfakta Bir Kare', points: 50, icon: <Utensils className="w-5 h-5" />, desc: 'Geleneksel bir lezzet hazırlarken mutfaktaki eğlencenizi paylaşın!' },
+    { id: 'presentation', title: 'Mini Sunum Saati', points: 100, icon: <Music className="w-5 h-5" />, desc: 'Çocuğunuzun ilgi duyduğu bir konuyu Türkçe anlattığı kısa bir videoyu paylaşın!' },
+    { id: 'lesson-note', title: 'Dersten Küçük Bir Not', points: 50, icon: <BookOpen className="w-5 h-5" />, desc: 'Derste öğrendiği kelimeleri not aldığı kağıdı veya ödevinden bir kare paylaşın!' },
+    { id: 'talking-turkish', title: '"Türkçe Konuşuyorum!"', points: 60, icon: <MessageCircle className="w-5 h-5" />, desc: 'Çocuğunuzun günlük hayatta kendini Türkçe ifade ettiği doğal bir anı paylaşın!' },
+    { id: 'creative-workshop', title: 'Yaratıcı Türkçe Atölyesi', points: 40, icon: <Camera className="w-5 h-5" />, desc: 'Türkçe yazdığı, çizdiği veya hazırladığı herhangi bir materyali paylaşın!' },
+    { id: 'daily-song', title: 'Günün Şarkısı veya Tekerlemesi', points: 40, icon: <Music className="w-5 h-5" />, desc: 'Yeni öğrendiği bir Türkçe tekerlemeyi veya şarkıyı söylediği anı paylaşın!' },
+    { id: 'culture-joy', title: 'Kültür ve Bayram Neşesi', points: 60, icon: <Gift className="w-5 h-5" />, desc: 'Bayramlarda veya kültürel hazırlık yaparken çekilmiş bir kare paylaşın!' },
+];
+
+const MISSIONS_SOCIAL = [
+    { id: 'follow-us', title: 'Takip Et & Kazan', points: 30, icon: <Instagram className="w-5 h-5" />, desc: 'Instagram ve YouTube kanallarımıza abone olun, ekran görüntüsü iletin!' },
+    { id: 'lesson-moment', title: 'Dersten Bir Kare', points: 50, icon: <Camera className="w-5 h-5" />, desc: 'Çocuğunuzun ders esnasındaki heyecanını yansıtan bir fotoğraf paylaşın!' },
+    { id: 'tell-story', title: 'Hikayeni Anlat', points: 100, icon: <Share2 className="w-5 h-5" />, desc: 'Dersten kısa bir videoyu veya en sevdiğiniz anı Story\'de paylaşın!' },
+    { id: 'feedback', title: 'Deneyimini Paylaş', points: 70, icon: <MessageCircle className="w-5 h-5" />, desc: 'Eğitim sürecimiz hakkındaki değerli görüşlerinizi WhatsApp üzerinden paylaşın!' },
+];
+
+export default function PuanMerkeziPage() {
+    const { user } = useUser();
+    const db = useFirestore();
+    const router = useRouter();
+    const { toast } = useToast();
+    const [selectedMission, setSelectedMission] = useState<any>(null);
+    const [isProofDialogOpen, setIsProofDialogOpen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
+    const userDocRef = useMemoFirebase(() => (user && db) ? doc(db, 'users', user.uid) : null, [user, db]);
+    const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
+
+    const balance = userData?.walletBalanceEur || 0;
+    const points = userData?.academyPoints || 0;
+    const packages = userData?.totalPackagesPurchased || 0;
+    const referralCode = userData?.referralCode || `TCA-${userData?.firstName?.toUpperCase()}-2026`;
+
+    const handleMissionAction = (mission: any) => {
+        setSelectedMission(mission);
+        setIsProofDialogOpen(true);
+    };
+
+    const handleSendProof = async () => {
+        if (!user || !userDocRef || !selectedMission) return;
+        setIsSaving(true);
+
+        const message = `Merhaba! "${selectedMission.title}" görevini tamamladım. Kanıtım ektedir. (ID: ${user.uid})`;
+        window.open(`https://wa.me/905058029734?text=${encodeURIComponent(message)}`, '_blank');
+
+        try {
+            await updateDoc(userDocRef, {
+                [`taskStatus.${selectedMission.id}`]: 'pending'
+            });
+            toast({ title: 'Kanıt Gönderildi!', description: 'Onaylandıktan sonra puanınız eklenecektir.' });
+            setIsProofDialogOpen(false);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const copyReferralCode = () => {
+        navigator.clipboard.writeText(referralCode);
+        toast({ title: 'Kod Kopyalandı!', description: 'Davet kodunuz panoya kaydedildi.' });
+    };
+
+    const shareReferralOnWhatsapp = () => {
+        const message = `Selam! Çocuğum TCA (Turkish Culture Academy) ile harika Türkçe dersleri alıyor. Sen de denemek istersen bu kodla %10 indirimli kayıt olabilirsin: ${referralCode} Link: https://turkcocukakademisi.com`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+    };
+
+    if (userDataLoading) {
+        return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
+    }
+
+    return (
+        <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen font-sans">
+            {/* ÜST ALAN: CÜZDAN ÖZETİ */}
+            <div className="flex items-center gap-4">
+                <Button variant="outline" size="icon" onClick={() => router.push('/ebeveyn-portali')} className="h-10 w-10 rounded-xl border-2"><ArrowLeft className="h-5 w-5" /></Button>
+                <div>
+                    <h2 className="text-3xl font-bold tracking-tight text-slate-900">Puan Merkezi</h2>
+                    <p className="text-slate-500 text-sm font-medium">Kazanın, biriktirin ve bedava derslerin tadını çıkarın.</p>
+                </div>
+            </div>
+
+            <Card className="bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none shadow-2xl rounded-[32px] overflow-hidden">
+                <CardContent className="p-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-white/10 rounded-2xl"><Wallet className="w-8 h-8 text-primary" /></div>
+                                <div>
+                                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Mevcut Bakiyeniz</p>
+                                    <p className="text-4xl font-black">{balance.toFixed(2)} <span className="text-lg">EUR 💶</span></p>
+                                </div>
+                            </div>
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-end">
+                                    <div>
+                                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Akademi Puanınız</p>
+                                        <p className="text-2xl font-black text-yellow-400">{points} / 500 <span className="text-sm">Puan 🌟</span></p>
+                                    </div>
+                                    <Badge className="bg-green-500/20 text-green-400 border-none mb-1">Hediye Derse {500 - points} Kaldı</Badge>
+                                </div>
+                                <Progress value={(points / 500) * 100} className="h-3 bg-white/10" />
+                            </div>
+                        </div>
+                        <div className="bg-white/5 rounded-[24px] p-6 border border-white/10">
+                            <div className="flex items-center gap-3 mb-4">
+                                <Gift className="w-5 h-5 text-primary" />
+                                <h4 className="font-bold text-sm uppercase tracking-wider">Hızlı İpucu</h4>
+                            </div>
+                            <p className="text-slate-300 text-sm leading-relaxed">
+                                500 puana ulaştığınızda sistem otomatik olarak size <span className="text-white font-bold">1 Bedava Ders</span> tanımlar. Görevleri tamamlayarak süreci hızlandırabilirsiniz!
+                            </p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* SADAKAT YOLCULUĞU */}
+            <div className="space-y-6">
+                <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight flex items-center gap-2">
+                    <Star className="w-5 h-5 text-primary" /> Sadakat Yolculuğu
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    {[
+                        { step: 1, title: 'Hoş Geldiniz!', desc: 'İlk adımınızı attınız, mutluyuz!', reward: '10€ Bakiye', active: true, done: true },
+                        { step: 5, title: '5. Paket', desc: 'İstikrarlı bir başlangıç.', reward: '250 Puan', active: packages >= 5, done: packages >= 5 },
+                        { step: 10, title: '10. Paket', desc: 'Kocaman bir adım!', reward: '500 Puan (1 Hediye)', active: packages >= 10, done: packages >= 10 },
+                        { step: 15, title: '15. Paket', desc: 'Kültür Elçimiz.', reward: '350 Puan', active: packages >= 15, done: packages >= 15 },
+                        { step: 20, title: 'Onur Üyesi', desc: 'Sonsuz güveniniz için sürpriz!', reward: '500 Puan (1 Hediye)', active: packages >= 20, done: packages >= 20, vıp: true },
+                    ].map((item, idx) => (
+                        <Card key={idx} className={cn(
+                            "relative border-none shadow-lg rounded-[24px] overflow-hidden group transition-all",
+                            item.vıp && item.active ? "bg-gradient-to-br from-yellow-400 to-orange-500 text-white" : "bg-white",
+                            !item.active && "opacity-60 grayscale"
+                        )}>
+                            <CardHeader className="p-5 pb-2">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs", item.done ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400")}>
+                                        {item.done ? <CheckCircle2 className="w-5 h-5" /> : item.step}
+                                    </div>
+                                    {!item.active && <Lock className="w-4 h-4 text-slate-300" />}
+                                </div>
+                                <CardTitle className={cn("text-sm font-black uppercase", item.vıp && item.active ? "text-white" : "text-slate-800")}>{item.title}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-5 pt-0 space-y-3">
+                                <p className={cn("text-[10px] leading-tight font-medium", item.vıp && item.active ? "text-white/80" : "text-slate-500")}>{item.desc}</p>
+                                <Badge className={cn("w-full justify-center text-[10px] font-black py-1", item.vıp && item.active ? "bg-white text-orange-600" : "bg-primary/10 text-primary")}>
+                                    {item.reward}
+                                </Badge>
+                                <p className={cn("text-[9px] font-black uppercase tracking-tighter text-center", item.done ? "text-green-500" : "text-slate-400")}>
+                                    {item.done ? "TAMAMLANDI" : item.active ? "İLERLİYOR" : "KİLİTLİ"}
+                                </p>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            </div>
+
+            {/* GÖREV MERKEZİ */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight flex items-center gap-2">
+                            <Utensils className="w-5 h-5 text-primary" /> Evde Türkçe Keyfi
+                        </h3>
+                        <Badge variant="outline" className="font-bold text-[10px] border-slate-200 uppercase">AYDA 1 KEZ</Badge>
+                    </div>
+                    <div className="grid gap-3">
+                        {MISSIONS_HOME.map(mission => {
+                            const status = userData?.taskStatus?.[mission.id];
+                            return (
+                                <Card key={mission.id} className="border-none shadow-sm hover:shadow-md transition-shadow rounded-2xl group overflow-hidden">
+                                    <div className="flex items-center p-4 gap-4">
+                                        <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">{mission.icon}</div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <h4 className="font-bold text-sm text-slate-800 truncate">{mission.title}</h4>
+                                                <span className="text-xs font-black text-yellow-600">+{mission.points}🌟</span>
+                                            </div>
+                                            <p className="text-[10px] text-slate-500 line-clamp-1 mt-0.5">{mission.desc}</p>
+                                        </div>
+                                        <Button 
+                                            size="sm" 
+                                            variant={status === 'completed' ? 'secondary' : status === 'pending' ? 'outline' : 'default'}
+                                            className="rounded-lg h-8 px-4 font-black text-[10px] uppercase tracking-wider"
+                                            disabled={!!status}
+                                            onClick={() => handleMissionAction(mission)}
+                                        >
+                                            {status === 'completed' ? '✅ Tamamlandı' : status === 'pending' ? '⏳ Onayda' : 'Yaptım!'}
+                                        </Button>
+                                    </div>
+                                </Card>
+                            )
+                        })}
+                    </div>
+                </div>
+
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight flex items-center gap-2">
+                            <Share2 className="w-5 h-5 text-primary" /> Sosyal Medya & Tanıtım
+                        </h3>
+                        <Badge variant="outline" className="font-bold text-[10px] border-slate-200 uppercase">AYDA 1 KEZ</Badge>
+                    </div>
+                    <div className="grid gap-3">
+                        {MISSIONS_SOCIAL.map(mission => {
+                            const status = userData?.taskStatus?.[mission.id];
+                            return (
+                                <Card key={mission.id} className="border-none shadow-sm hover:shadow-md transition-shadow rounded-2xl group overflow-hidden">
+                                    <div className="flex items-center p-4 gap-4">
+                                        <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">{mission.icon}</div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <h4 className="font-bold text-sm text-slate-800 truncate">{mission.title}</h4>
+                                                <span className="text-xs font-black text-yellow-600">+{mission.points}🌟</span>
+                                            </div>
+                                            <p className="text-[10px] text-slate-500 line-clamp-1 mt-0.5">{mission.desc}</p>
+                                        </div>
+                                        <Button 
+                                            size="sm" 
+                                            variant={status === 'completed' ? 'secondary' : status === 'pending' ? 'outline' : 'default'}
+                                            className="rounded-lg h-8 px-4 font-black text-[10px] uppercase tracking-wider"
+                                            disabled={!!status}
+                                            onClick={() => handleMissionAction(mission)}
+                                        >
+                                            {status === 'completed' ? '✅ Tamamlandı' : status === 'pending' ? '⏳ Onayda' : 'Yaptım!'}
+                                        </Button>
+                                    </div>
+                                </Card>
+                            )
+                        })}
+                    </div>
+
+                    {/* REFERANS SİSTEMİ */}
+                    <Card className="mt-8 bg-gradient-to-br from-indigo-600 to-blue-700 text-white border-none shadow-2xl rounded-[32px] overflow-hidden relative group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-16 translate-x-16" />
+                        <CardHeader className="p-8 pb-4">
+                            <CardTitle className="text-2xl font-black flex items-center gap-3">
+                                <Users className="w-8 h-8" /> Arkadaşını Davet Et!
+                            </CardTitle>
+                            <CardDescription className="text-white/80 font-medium leading-relaxed mt-2">
+                                Tavsiyenizle ailemize katılan her yeni arkadaş için hem size hem de arkadaşınıza özel hediyelerimiz var!
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-8 pt-0 space-y-8">
+                            <div className="bg-white/10 border border-white/20 rounded-[20px] p-6">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60 mb-3">Davet Kodunuz</p>
+                                <div className="flex gap-2">
+                                    <div className="flex-1 bg-white text-slate-900 font-black text-xl flex items-center justify-center rounded-xl h-14 uppercase tracking-wider">
+                                        {referralCode}
+                                    </div>
+                                    <Button size="icon" onClick={copyReferralCode} className="h-14 w-14 bg-white/20 hover:bg-white/30 rounded-xl"><Copy className="w-6 h-6" /></Button>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-emerald-500/20 p-4 rounded-2xl border border-emerald-500/30">
+                                    <p className="text-[10px] font-black text-emerald-300 uppercase mb-1">Sizin Ödülünüz</p>
+                                    <p className="text-sm font-bold leading-tight">30€ Bakiye veya 1 Hediye Ders</p>
+                                </div>
+                                <div className="bg-yellow-500/20 p-4 rounded-2xl border border-yellow-500/30">
+                                    <p className="text-[10px] font-black text-yellow-300 uppercase mb-1">Arkadaşın Ödülü</p>
+                                    <p className="text-sm font-bold leading-tight">İlk Pakette %10 İndirim</p>
+                                </div>
+                            </div>
+                            <Button className="w-full h-14 bg-green-500 hover:bg-green-600 text-white font-black text-lg rounded-2xl shadow-xl shadow-slate-900/20" onClick={shareReferralOnWhatsapp}>
+                                <MessageCircle className="mr-3 w-6 h-6" /> WHATSAPP'TA PAYLAŞ
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+
+            {/* PROOF DIALOG */}
+            <Dialog open={isProofDialogOpen} onOpenChange={setIsProofDialogOpen}>
+                <DialogContent className="rounded-[32px] p-8">
+                    <DialogHeader className="items-center text-center space-y-4">
+                        <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
+                            <Camera className="w-10 h-10 text-primary" />
+                        </div>
+                        <DialogTitle className="text-2xl font-black uppercase tracking-tight">Harika Bir Haber! 🎉</DialogTitle>
+                        <DialogDescription className="text-slate-500 font-medium leading-relaxed px-4">
+                            "{selectedMission?.title}" görevini tamamladığınız için teşekkürler! 
+                            <br /><br />
+                            Eğer sosyal medyada paylaştıysanız bize ekran görüntüsünü iletin; paylaşmadıysanız bizim paylaşmamız için görseli doğrudan iletin. 
+                            <br /><br />
+                            <span className="text-xs font-bold italic">(Not: Yüz görünme zorunluluğu yoktur.)</span>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="mt-6 flex flex-col gap-3">
+                        <Button className="w-full h-12 bg-green-500 hover:bg-green-600 font-black" onClick={handleSendProof} disabled={isSaving}>
+                            {isSaving ? <Loader2 className="animate-spin mr-2" /> : <MessageCircle className="mr-2" />}
+                            WHATSAPP İLE KANIT GÖNDER 🟢
+                        </Button>
+                        <Button variant="ghost" className="w-full h-12 text-slate-400 font-bold" onClick={() => setIsProofDialogOpen(false)}>Vazgeç</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
+    );
+}
