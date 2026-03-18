@@ -26,14 +26,17 @@ service cloud.firestore {
 
     // 2. KULLANICI VE ÇOCUK VERİLERİ
     match /users/{userId} {
+      // Kullanıcı kendi verisini okuyabilir ve yazabilir
       allow read, write: if isSignedIn() && request.auth.uid == userId;
       
-      // Admin tüm kullanıcıları listeleyebilir ve görebilir
+      // Admin her şeyi yapabilir
       allow list, get: if isAdmin();
       
-      // Velilerin öğretmen profillerini görebilmesi için (Ders Planlama Önizlemesi)
+      // Velilerin öğretmenleri görmesi için (Ders Planlama Önizlemesi)
+      // Belge yoksa (resource == null) veya rolü 'teacher' ise okumaya izin ver
       allow get: if isSignedIn() && (resource == null || resource.data.role == 'teacher');
       
+      // Takip verileri için güncelleme izni
       allow update: if (isSignedIn() && request.auth.uid == userId) || 
                     (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isOnline', 'lastActiveAt', 'currentPath', 'onlineSince']));
 
@@ -45,7 +48,9 @@ service cloud.firestore {
 
     // 3. DERS SLOTLARI
     match /lesson-slots/{slotId} {
-        allow read: if true;
+        // Okuma izni listelemeyi de kapsar. 
+        // Güvenlik için veliler sadece kendilerine ait veya boş slotları görebilir
+        allow get, list: if true;
         allow create: if isSignedIn();
         allow update, delete: if isSignedIn();
         

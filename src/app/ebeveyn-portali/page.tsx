@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
-import { Loader2, Plus, ArrowRight, Zap, Star, Award, BookOpen, Users, Crown, Rocket, Settings, Target, CreditCard, Clock, ChevronDown, MonitorPlay, FileText, CheckCircle, MessageCircle, TrendingUp, TrendingDown, Book, BrainCircuit, Globe, Smile, Meh, Frown, Languages, Milestone, Cloudy, GraduationCap, User as UserIcon, X, Lock, Infinity as InfinityIcon, Heart, Package, AlertTriangle, Calendar, History, Lightbulb, Bell, Megaphone, ArrowUpRight, MessageSquare } from 'lucide-react';
+import { Loader2, Plus, ArrowRight, Star, Award, BookOpen, Users, Crown, Rocket, Settings, Target, CreditCard, Clock, ChevronDown, MonitorPlay, FileText, CheckCircle, MessageCircle, TrendingUp, TrendingDown, Book, BrainCircuit, Globe, Smile, Meh, Frown, Languages, Milestone, Cloudy, GraduationCap, User as UserIcon, X, Lock, Infinity as InfinityIcon, Heart, Package, AlertTriangle, Calendar, History, Lightbulb, Bell, Megaphone, ArrowUpRight, MessageSquare } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -38,11 +38,13 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip"
-import { collection, doc, deleteDoc, updateDoc, getDoc, query, where, getDocs, writeBatch, increment, arrayUnion } from 'firebase/firestore';
+import { collection, doc, deleteDoc, updateDoc, getDoc, query, where, getDocs, writeBatch, increment, arrayUnion, orderBy, limit } from 'firebase/firestore';
 import { SetPinDialog } from '@/components/child-mode/set-pin-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { ProgressPanel } from '@/components/shared/progress-panel';
 import { cn } from '@/lib/utils';
+import { format, isAfter, isBefore, subDays } from 'date-fns';
+import { tr } from 'date-fns/locale';
 
 
 const MAX_LIVES = 5;
@@ -66,15 +68,6 @@ function StatCard({ title, value, icon: Icon, unit, children }: { title: string,
       </CardContent>
     </Card>
   )
-}
-
-function PremiumBadge() {
-  return (
-    <Badge className="bg-primary text-primary-foreground hover:bg-primary/90">
-      <Crown className="mr-1 h-3 w-3" />
-      Aktif
-    </Badge>
-  );
 }
 
 function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUpdated }: { child: any, isPremium: boolean, currentLives: number, onDelete: (id: string, assignedPackage: string | null, remainingLessons: number) => void, userId: string, onChildUpdated: () => void }) {
@@ -232,8 +225,92 @@ export default function EbeveynPortaliPage() {
   
   const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
   
+  const childrenRef = useMemoFirebase(() => {
+    if (!db || !user?.uid) return null;
+    return collection(db, 'users', user.uid, 'children');
+  }, [db, user?.uid]);
+
+  const { data: children, isLoading: childrenLoading, refetch: refetchChildren } = useCollection(childrenRef);
+
+  // Bildirimler için dersleri çek
+  const slotsQuery = useMemoFirebase(() => {
+    if (!db || !user?.uid) return null;
+    // Güvenlik hatasını önlemek için sadece veliye ait slotları çekiyoruz
+    return query(
+        collection(db, 'lesson-slots'), 
+        where('bookedBy', '==', user.uid)
+    );
+  }, [db, user?.uid]);
+
+  const { data: slots, isLoading: slotsLoading } = useCollection(slotsQuery);
+
+  // Dinamik Bildirimler
+  const notifications = useMemo(() => {
+    if (!slots || !children) return [];
+    const list: any[] = [];
+    const now = new Date();
+
+    // 1. Sıradaki Ders
+    const upcoming = slots
+        .filter(s => isAfter(s.startTime.toDate(), now))
+        .sort((a, b) => a.startTime.seconds - b.startTime.seconds)[0];
+    
+    if (upcoming) {
+        list.push({
+            id: 'upcoming',
+            type: 'lesson',
+            icon: <Calendar className="h-3.5 w-3.5 text-blue-600" />,
+            color: 'bg-blue-100',
+            hoverColor: 'group-hover:bg-blue-500',
+            title: '⏰ Sıradaki Ders:',
+            text: `${format(upcoming.startTime.toDate(), 'EEEE HH:mm', { locale: tr })}'da dersiniz var.`,
+            action: 'Takvime Git',
+            path: '/ebeveyn-portali/dersler'
+        });
+    }
+
+    // 2. Geri Bildirim Bildirimi
+    const lastWithFeedback = slots
+        .filter(s => s.feedback && isBefore(s.startTime.toDate(), now))
+        .sort((a, b) => b.startTime.seconds - a.startTime.seconds)[0];
+
+    if (lastWithFeedback) {
+        list.push({
+            id: 'feedback',
+            type: 'pdr',
+            icon: <MessageSquare className="h-3.5 w-3.5 text-purple-600" />,
+            color: 'bg-purple-100',
+            hoverColor: 'group-hover:bg-purple-500',
+            title: '💬 Öğretmen Notu:',
+            text: `"${lastWithFeedback.feedback.text.substring(0, 60)}..."`,
+            action: 'Raporu İncele',
+            path: '/ebeveyn-portali/dersler?tab=past'
+        });
+    }
+
+    // 3. Seviye/Genel Bilgi (Opsiyonel)
+    if (children.length > 0) {
+        const firstChild = children[0];
+        if (firstChild.level) {
+            list.push({
+                id: 'level',
+                type: 'update',
+                icon: <Megaphone className="h-3.5 w-3.5 text-amber-600" />,
+                color: 'bg-amber-100',
+                hoverColor: 'group-hover:bg-amber-500',
+                title: '📢 Seviye Bilgisi:',
+                text: `${firstChild.firstName} şu an ${firstChild.level.toUpperCase()} seviyesinde ilerliyor.`,
+                action: 'Gelişimi Gör',
+                path: '#'
+            });
+        }
+    }
+
+    return list;
+  }, [slots, children]);
+
+  
   useEffect(() => {
-    // Redirect if no user or anonymous user
     if (!userLoading && (!user || user.isAnonymous)) {
       router.push('/login');
     }
@@ -244,12 +321,6 @@ export default function EbeveynPortaliPage() {
   const currentLives = userData?.lives ?? 5;
   const hasUsedFreeTrial = (userData?.freeTrialsUsed || 0) > 0;
   
-  const childrenRef = useMemoFirebase(() => {
-    if (!db || !user?.uid) return null;
-    return collection(db, 'users', user.uid, 'children');
-  }, [db, user?.uid]);
-
-  const { data: children, isLoading: childrenLoading, refetch: refetchChildren } = useCollection(childrenRef);
 
  const handleDeleteChild = async (childId: string, assignedPackage: string | null, remainingLessons: number) => {
     if (!db || !user?.uid || !userDocRef) return;
@@ -293,7 +364,7 @@ export default function EbeveynPortaliPage() {
         errorEmitter.emit(
             'permission-error',
             new FirestorePermissionError({
-                path: childDocRef.path, // We assume the batch fails on deleting the child
+                path: childDocRef.path,
                 operation: 'delete'
             })
         );
@@ -301,7 +372,7 @@ export default function EbeveynPortaliPage() {
 };
 
   
-  if (userLoading || childrenLoading || userDataLoading) {
+  if (userLoading || childrenLoading || userDataLoading || slotsLoading) {
     return (
       <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -316,7 +387,6 @@ export default function EbeveynPortaliPage() {
   const childCount = children ? children.length : 0;
   const totalBadges = children ? children.reduce((acc, child) => acc + ((child.badges || []).length || 0), 0) : 0;
   
-  // Calculate total lessons from both the user's unassigned pool and assigned to children
   const assignedLessons = children ? children.reduce((acc, child) => acc + (child.remainingLessons || 0), 0) : 0;
   const unassignedLessons = userData?.remainingLessons || 0;
   const totalRemainingLessons = assignedLessons + unassignedLessons;
@@ -354,55 +424,37 @@ export default function EbeveynPortaliPage() {
                     <Bell className="h-4 w-4 text-primary animate-pulse" /> 
                     Bildirimler
                 </CardTitle>
-                <Badge variant="outline" className="text-[9px] h-5 bg-white font-bold text-primary border-primary/20">3 YENİ</Badge>
+                {notifications.length > 0 && (
+                    <Badge variant="outline" className="text-[9px] h-5 bg-white font-bold text-primary border-primary/20">{notifications.length} YENİ</Badge>
+                )}
             </CardHeader>
             <CardContent className="p-0">
                 <div className="divide-y divide-slate-100">
-                    {/* Gelecek Ders */}
-                    <div className="p-3 hover:bg-white transition-colors group">
-                        <div className="flex items-start gap-3">
-                            <div className="mt-1 bg-blue-100 p-1.5 rounded-lg group-hover:bg-blue-500 group-hover:text-white transition-colors">
-                                <Calendar className="h-3.5 w-3.5 text-blue-600 group-hover:text-white" />
-                            </div>
-                            <div className="space-y-1">
-                                <p className="text-[11px] leading-tight text-slate-700">
-                                    <span className="font-bold">⏰ Sıradaki Ders:</span> Yarın 16:00'da Zeynep Öğretmen ile.
-                                </p>
-                                <button className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1">
-                                    Takvime Ekle <ArrowUpRight className="h-2.5 w-2.5" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* PDR Notu */}
-                    <div className="p-3 hover:bg-white transition-colors group">
-                        <div className="flex items-start gap-3">
-                            <div className="mt-1 bg-purple-100 p-1.5 rounded-lg group-hover:bg-purple-500 group-hover:text-white transition-colors">
-                                <MessageSquare className="h-3.5 w-3.5 text-purple-600 group-hover:text-white" />
-                            </div>
-                            <div className="space-y-1">
-                                <p className="text-[11px] leading-tight text-slate-700">
-                                    <span className="font-bold">💬 PDR Notu:</span> {children?.[0]?.firstName || 'İbrahim'}, son derste 'Atatürk’ün Çocukluğu' konusuna ilgi gösterdi...
-                                </p>
-                                <button className="text-[10px] font-bold text-primary hover:underline" onClick={() => router.push('/ebeveyn-portali/dersler?tab=past')}>Raporu İncele</button>
+                    {notifications.length > 0 ? notifications.map((notif) => (
+                        <div key={notif.id} className="p-3 hover:bg-white transition-colors group">
+                            <div className="flex items-start gap-3">
+                                <div className={cn("mt-1 p-1.5 rounded-lg transition-colors", notif.color, notif.hoverColor, "group-hover:text-white")}>
+                                    {notif.icon}
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[11px] leading-tight text-slate-700">
+                                        <span className="font-bold">{notif.title}</span> {notif.text}
+                                    </p>
+                                    <button 
+                                        className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1"
+                                        onClick={() => notif.path !== '#' && router.push(notif.path)}
+                                    >
+                                        {notif.action} <ArrowUpRight className="h-2.5 w-2.5" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-
-                    {/* Duyuru */}
-                    <div className="p-3 hover:bg-white transition-colors group">
-                        <div className="flex items-start gap-3">
-                            <div className="mt-1 bg-amber-100 p-1.5 rounded-lg group-hover:bg-amber-500 group-hover:text-white transition-colors">
-                                <Megaphone className="h-3.5 w-3.5 text-amber-600 group-hover:text-white" />
-                            </div>
-                            <div className="space-y-1">
-                                <p className="text-[11px] leading-tight text-slate-700">
-                                    <span className="font-bold">📢 Yeni İçerik:</span> 'Bölgelerimiz' temalı yeni oyun haritası eklendi!
-                                </p>
-                            </div>
+                    )) : (
+                        <div className="p-10 text-center text-muted-foreground space-y-2">
+                            <CheckCircle className="w-8 h-8 mx-auto opacity-20" />
+                            <p className="text-[10px] font-medium">Yeni bir bildiriminiz bulunmuyor.</p>
                         </div>
-                    </div>
+                    )}
                 </div>
             </CardContent>
         </Card>
