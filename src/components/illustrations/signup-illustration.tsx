@@ -24,11 +24,11 @@ export function SignUpIllustration() {
           <div className="absolute w-[75%] h-[75%] border border-dotted border-slate-200 rounded-full animate-[spin_40s_linear_infinite_reverse] opacity-50" />
         </div>
 
-        {/* MERKEZ: TÜRK BAYRAĞI (Hafifçe Sağa Kaydırıldı) */}
+        {/* MERKEZ: TÜRK BAYRAĞI (Boyutu küçültüldü ve sağa kaydırıldı) */}
         <div className="absolute top-1/2 left-1/2 -translate-x-[40%] -translate-y-1/2 z-30">
           <motion.div 
             whileHover={{ scale: 1.05 }}
-            className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-white shadow-[0_20px_60px_rgba(239,68,68,0.4)] flex items-center justify-center p-1 border-4 border-white overflow-hidden"
+            className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-white shadow-[0_20px_60px_rgba(239,68,68,0.4)] flex items-center justify-center p-1 border-4 border-white overflow-hidden"
           >
             <div className="relative w-full h-full rounded-full overflow-hidden bg-red-600">
                <Image 
