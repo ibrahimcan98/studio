@@ -1,11 +1,40 @@
-
 'use client';
 
 import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
-import { Loader2, Plus, ArrowRight, Star, Award, BookOpen, Users, Rocket, Settings, CreditCard, Clock, MonitorPlay, FileText, CheckCircle, MessageSquare, Calendar, History, Lightbulb, Bell, Megaphone, ArrowUpRight, X, Lock, Heart, AlertTriangle, Wallet, Gift, GraduationCap, CheckCircle2 } from 'lucide-react';
+import { 
+  Loader2, 
+  Plus, 
+  ArrowRight, 
+  Star, 
+  Award, 
+  BookOpen, 
+  Users, 
+  Rocket, 
+  Settings, 
+  CreditCard, 
+  Clock, 
+  MonitorPlay, 
+  FileText, 
+  CheckCircle, 
+  MessageSquare, 
+  Calendar, 
+  History, 
+  Lightbulb, 
+  Bell, 
+  Megaphone, 
+  ArrowUpRight, 
+  X, 
+  Lock, 
+  Heart, 
+  AlertTriangle, 
+  Wallet, 
+  Gift, 
+  GraduationCap,
+  CheckCircle2
+} from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -42,9 +71,9 @@ import { collection, doc, deleteDoc, updateDoc, query, where, getDocs, writeBatc
 import { useToast } from '@/hooks/use-toast';
 import { ProgressPanel } from '@/components/shared/progress-panel';
 import { cn } from '@/lib/utils';
-import { format, isAfter, isBefore, subHours } from 'date-fns';
+import { format, isAfter, isBefore, isToday, isTomorrow, subHours } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { motion, AnimatePresence } from 'framer-motion';
+import { COURSES } from '@/data/courses';
 
 
 const MAX_LIVES = 5;
@@ -71,68 +100,107 @@ function StatCard({ title, value, icon: Icon, unit, children, className }: { tit
 
 function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUpdated }: { child: any, isPremium: boolean, currentLives: number, onDelete: (id: string, assignedPackage: string | null, remainingLessons: number) => void, userId: string, onChildUpdated: () => void }) {
     const isProfileIncomplete = child.isProfileComplete === false;
+    const router = useRouter();
 
-    const IncompleteProfileWrapper = ({ children }: { children: React.ReactNode }) => {
-        if (!isProfileIncomplete) return <>{children}</>;
-        return (
-            <AddChildForm userId={userId} onChildAdded={onChildUpdated} child={child} childId={child.id}>
-                 {children}
-            </AddChildForm>
-        );
-    };
+    const currentCourse = COURSES.find(c => c.id === child.assignedPackage);
+    const recommendedCourseId = child.recommendedCourseId;
+    const recommendedCourse = COURSES.find(c => c.id === recommendedCourseId);
 
-    return (
-        <IncompleteProfileWrapper>
-            <Card className={cn("relative flex flex-col items-center text-center p-6 space-y-4 hover:shadow-lg transition-shadow group rounded-2xl cursor-pointer", isProfileIncomplete && "border-destructive border-2")}>
-                {isProfileIncomplete && (
-                    <div className="absolute top-2 right-2 text-destructive"><AlertTriangle className="w-5 h-5"/></div>
-                )}
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="absolute top-2 left-2 h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive" onClick={e => e.stopPropagation()}>
-                            <X className="w-4 h-4"/>
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
-                            <AlertDialogDescription>"{child.firstName}" isimli çocuğu silmek istediğinizden emin misiniz?</AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>İptal</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onDelete(child.id, child.assignedPackage, child.remainingLessons)} className="bg-destructive hover:bg-destructive/90">Sil</AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-                <Avatar className="h-20 w-20 text-3xl">
-                    <AvatarFallback className="bg-primary/20 text-primary font-bold">{child.firstName?.charAt(0)}</AvatarFallback>
+    const content = (
+        <Card className={cn("relative flex flex-col items-center p-8 hover:shadow-lg transition-shadow group rounded-3xl border-slate-200 h-full bg-white", isProfileIncomplete && "border-destructive border-2")}>
+            {isProfileIncomplete && (
+                <div className="absolute top-4 right-4 text-destructive"><AlertTriangle className="w-5 h-5"/></div>
+            )}
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="absolute top-2 left-2 h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive" onClick={e => e.stopPropagation()}>
+                        <X className="w-5 h-5"/>
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
+                        <AlertDialogDescription>"{child.firstName}" isimli çocuğu silmek istediğinizden emin misiniz?</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>İptal</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => onDelete(child.id, child.assignedPackage, child.remainingLessons)} className="bg-destructive hover:bg-destructive/90">Sil</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            
+            <div className="flex flex-col items-center gap-4">
+                <Avatar className="h-[90px] w-[90px] border-0">
+                    <AvatarFallback className="bg-[#E0F2F1] text-[#00897B] font-black text-4xl uppercase tracking-tighter">{child.firstName?.charAt(0) || 'C'}</AvatarFallback>
                 </Avatar>
-                <p className="font-semibold text-lg">{child.firstName}</p>
-                <div className='w-full space-y-3 pt-4'>
-                    <div className='flex justify-between items-center text-sm'>
-                        <span className='text-muted-foreground'>Seviye:</span>
-                        <div className='flex items-center gap-1 font-bold bg-primary/10 text-primary px-2 py-1 rounded-md'>
-                            <span>{child.cefrProfile?.speaking?.toUpperCase() || 'PreA1'}</span><GraduationCap className='w-4 h-4'/>
-                        </div>
+                <div className="text-center">
+                    <h3 className="font-bold text-xl text-slate-800">{child.firstName || 'Cocuk'}</h3>
+                    <Badge variant="outline" className="mt-1 bg-primary/5 text-primary border-primary/20 text-[10px] font-black">
+                        {child.cefrProfile?.speaking?.toUpperCase() || 'PRE-A1'} SEVİYESİ
+                    </Badge>
+                </div>
+            </div>
+
+            <div className='w-full space-y-4 pt-6'>
+                <div className='flex justify-between items-center'>
+                    <span className='text-slate-500 font-medium text-[15px]'>Rozetler:</span>
+                    <div className='flex items-center gap-1.5 font-bold bg-[#E0F2F1] text-[#00897B] px-3 py-1 rounded-full text-[14px] min-w-[50px] justify-center'>
+                        <span>{(child.badges || []).length}</span><Award className='w-4 h-4'/>
                     </div>
-                    <div className='flex justify-between items-center text-sm'>
-                        <span className='text-muted-foreground'>Kalan Can:</span>
-                        <div className='flex items-center gap-1 font-bold bg-red-100 text-red-600 px-2 py-1 rounded-md'>
-                            {isPremium ? <Lock className='w-4 h-4' /> : <span>{currentLives}/{MAX_LIVES}</span>}
-                            <Heart className='w-4 h-4 fill-current'/>
-                        </div>
+                </div>
+                
+                <div className='flex justify-between items-center'>
+                    <span className='text-slate-500 font-medium text-[15px]'>Kalan Can:</span>
+                    <div className='flex items-center gap-1.5 font-bold bg-[#FFEBEE] text-[#E53935] px-3 py-1 rounded-full text-[14px] min-w-[50px] justify-center'>
+                        <span>{isPremium ? MAX_LIVES : currentLives}/{MAX_LIVES}</span>
+                        <Heart className={cn('w-4 h-4', isPremium ? 'fill-[#E53935]' : 'fill-[#E53935]')}/>
                     </div>
-                    <div className='flex justify-between items-center text-sm'>
-                        <span className='text-muted-foreground'>Kalan Ders:</span>
-                        <div className='flex items-center gap-1 font-bold bg-blue-100 text-blue-600 px-2 py-1 rounded-md'>
-                            <span>{child.remainingLessons || 0}</span><BookOpen className='w-4 h-4'/>
-                        </div>
+                </div>
+
+                <div className='flex justify-between items-center'>
+                    <span className='text-slate-500 font-medium text-[15px]'>Kalan Ders:</span>
+                    <div className='flex items-center gap-1.5 font-bold bg-[#E8EAF6] text-[#3F51B5] px-3 py-1 rounded-full text-[14px] min-w-[50px] justify-center'>
+                        <span>{child.remainingLessons || 0}</span><BookOpen className='w-4 h-4'/>
                     </div>
-                    {!isProfileIncomplete && (
+                </div>
+
+                <div className='flex justify-between items-center'>
+                    <span className='text-slate-500 font-medium text-[15px]'>Paket:</span>
+                    {currentCourse ? (
+                        <span className="font-bold text-white bg-[#4CAF50] px-3 py-1 rounded-full text-[13px]">
+                            {currentCourse.title.split('(')[0].trim()}
+                        </span>
+                    ) : (
+                        <span className="font-bold text-white bg-[#4CAF50] px-3 py-1 rounded-full text-[13px]">
+                            Başlangıç Kursu
+                        </span>
+                    )}
+                </div>
+
+                {recommendedCourse && (
+                    <div className="pt-2">
+                        <p className="text-[14px] font-medium text-slate-500 flex items-center gap-1.5 mb-2">
+                            <Lightbulb className="w-4 h-4 text-slate-400" /> Öğretmen Önerisi:
+                        </p>
+                        <button 
+                            className="w-full flex items-center justify-between border border-[#4CAF50] bg-[#F1F8F1] text-[#2E7D32] rounded-xl px-4 py-3 hover:bg-[#E8F5E9] transition-colors"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/kurslar?id=${recommendedCourse.id}`);
+                            }}
+                        >
+                            <span className="font-semibold text-[15px]">{recommendedCourse.title}</span>
+                            <ArrowRight className="w-4 h-4" />
+                        </button>
+                    </div>
+                )}
+                
+                {!isProfileIncomplete && (
+                    <div className="pt-2">
                         <Dialog>
                             <DialogTrigger asChild>
-                                <Button variant="outline" className="w-full mt-4" onClick={(e) => e.stopPropagation()}>
-                                    <FileText className="mr-2 h-4 w-4" />İlerleme Paneli
+                                <Button variant="outline" className="w-full h-12 text-slate-700 font-semibold text-[15px] rounded-xl gap-2 border-slate-200 bg-white hover:bg-slate-50" onClick={(e) => e.stopPropagation()}>
+                                    <FileText className="h-5 w-5" /> İlerleme Paneli
                                 </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-5xl h-[90vh]">
@@ -142,11 +210,21 @@ function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUp
                                 <ProgressPanel child={child} isEditable={false} />
                             </DialogContent>
                         </Dialog>
-                    )}
-                </div>
-            </Card>
-        </IncompleteProfileWrapper>
+                    </div>
+                )}
+            </div>
+        </Card>
     );
+
+    if (isProfileIncomplete) {
+        return (
+            <AddChildForm userId={userId} onChildAdded={onChildUpdated} child={child} childId={child.id}>
+                {content}
+            </AddChildForm>
+        );
+    }
+
+    return content;
 }
 
 export default function EbeveynPortaliPage() {
@@ -168,90 +246,85 @@ export default function EbeveynPortaliPage() {
     if (!slots || !children) return [];
     const list: any[] = [];
     const now = new Date();
-    const twentyFourHoursAgo = subHours(now, 24);
     
-    // 1. Gelecek Dersler
-    const upcomingLessons = slots
+    // 1. Sıradaki Ders (Gelecek)
+    const nextLesson = slots
       .filter(s => isAfter(s.startTime.toDate(), now))
-      .sort((a, b) => a.startTime.seconds - b.startTime.seconds);
+      .sort((a, b) => a.startTime.seconds - b.startTime.seconds)[0];
     
-    upcomingLessons.forEach((s, idx) => {
+    if (nextLesson) {
+      const date = nextLesson.startTime.toDate();
+      let datePrefix = '';
+      if (isToday(date)) datePrefix = 'Bugün ';
+      else if (isTomorrow(date)) datePrefix = 'Yarın ';
+      else datePrefix = format(date, 'dd MMM ', { locale: tr });
+
       list.push({ 
-        id: `up-${s.id || Math.random()}`, 
+        id: `next-${nextLesson.id || Math.random()}`, 
         type: 'lesson', 
         icon: <Calendar className="h-4 w-4" />, 
         color: 'bg-blue-100 text-blue-600', 
-        title: idx === 0 ? '⏰ Sıradaki Ders:' : '📅 Gelecek Ders:', 
-        text: `${format(s.startTime.toDate(), 'EEEE HH:mm', { locale: tr })}'da.`, 
-        fullText: `${format(s.startTime.toDate(), 'dd MMMM yyyy EEEE HH:mm', { locale: tr })} tarihinde dersiniz bulunuyor.`,
+        title: '⏰ Sıradaki Ders:', 
+        text: `${datePrefix}${format(date, 'HH:mm')}`, 
+        fullText: `${format(date, 'dd MMMM yyyy EEEE HH:mm', { locale: tr })} tarihinde dersiniz bulunuyor.`,
         path: '/ebeveyn-portali/dersler' 
       });
-    });
+    }
 
-    // 2. Yeni Tamamlanan Dersler (Son 24 saat)
-    const justFinished = slots
-      .filter(s => isBefore(s.startTime.toDate(), now) && isAfter(s.startTime.toDate(), twentyFourHoursAgo))
-      .sort((a, b) => b.startTime.seconds - a.startTime.seconds);
-
-    justFinished.forEach(s => {
+    // 2. Yeni Tamamlanan Ders (Geçmiş 48 saat)
+    const lastCompleted = slots
+      .filter(s => isBefore(s.startTime.toDate(), now) && isAfter(s.startTime.toDate(), subHours(now, 48)))
+      .sort((a, b) => b.startTime.seconds - a.startTime.seconds)[0];
+    
+    if (lastCompleted) {
         list.push({
-            id: `done-${s.id}`,
-            type: 'completed',
+            id: `done-${lastCompleted.id}`,
+            type: 'done',
             icon: <CheckCircle2 className="h-4 w-4" />,
             color: 'bg-emerald-100 text-emerald-600',
             title: '✅ Ders Tamamlandı:',
-            text: `Bugünkü ders başarıyla işlendi.`,
-            fullText: `Bugünkü dersiniz başarıyla tamamlandı. Öğretmeninizin notlarını yakında görebilirsiniz.`,
+            text: `${format(lastCompleted.startTime.toDate(), 'dd MMMM', { locale: tr })} dersi başarıyla işlendi.`,
+            fullText: 'Çocuğunuzun bugünkü performansı sisteme kaydedildi.',
             path: '/ebeveyn-portali/dersler?tab=past'
         });
-    });
+    }
 
-    // 3. Öğretmen Geri Bildirimleri
-    const feedbacks = slots
-      .filter(s => s.feedback && isBefore(s.startTime.toDate(), now))
-      .sort((a, b) => b.startTime.seconds - a.startTime.seconds);
-    
-    feedbacks.forEach((s, idx) => {
-      list.push({ 
-        id: `fb-${s.id || Math.random()}`, 
-        type: 'pdr', 
-        icon: <MessageSquare className="h-4 w-4" />, 
-        color: 'bg-purple-100 text-purple-600', 
-        title: '💬 Yeni Geri Bildirim:', 
-        text: `"${s.feedback.text.substring(0, 50)}..."`, 
-        fullText: s.feedback.text,
-        path: '/ebeveyn-portali/dersler?tab=past' 
-      });
-    });
-
-    // 4. Seviye Atlamaları / Değişiklikleri
+    // 3. Seviye Bilgisi (Her çocuk için)
     children.forEach(child => {
-        if (child.cefrProfile?.speaking && child.cefrProfile.speaking !== 'preA1') {
+        if (child.cefrProfile?.speaking) {
             list.push({
                 id: `level-${child.id}`,
                 type: 'level',
                 icon: <GraduationCap className="h-4 w-4" />,
-                color: 'bg-yellow-100 text-yellow-700',
-                title: '🎓 Seviye Güncellendi:',
-                text: `${child.firstName} artık ${child.cefrProfile.speaking.toUpperCase()} seviyesinde!`,
-                fullText: `${child.firstName} isimli öğrencimizin dil gelişimi takip edildi ve seviyesi ${child.cefrProfile.speaking.toUpperCase()} olarak güncellendi.`,
+                color: 'bg-amber-100 text-amber-600',
+                title: `🎓 ${child.firstName} Seviyesi:`,
+                text: `Güncel seviye: ${child.cefrProfile.speaking.toUpperCase()}`,
+                fullText: `${child.firstName} akademik olarak ${child.cefrProfile.speaking.toUpperCase()} seviyesinde ilerliyor.`,
                 path: '/ebeveyn-portali'
             });
         }
     });
 
+    // 4. Son Geri Bildirim
+    const lastFeedback = slots
+      .filter(s => s.feedback && isBefore(s.startTime.toDate(), now))
+      .sort((a, b) => b.startTime.seconds - a.startTime.seconds)[0];
+    
+    if (lastFeedback) {
+      list.push({ 
+        id: `fb-${lastFeedback.id || Math.random()}`, 
+        type: 'pdr', 
+        icon: <MessageSquare className="h-4 w-4" />, 
+        color: 'bg-purple-100 text-purple-600', 
+        title: '💬 Yeni Geri Bildirim:', 
+        text: `"${lastFeedback.feedback.text.substring(0, 45)}..."`, 
+        fullText: lastFeedback.feedback.text,
+        path: '/ebeveyn-portali/dersler?tab=past' 
+      });
+    }
+
     return list;
   }, [slots, children]);
-
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  useEffect(() => {
-    if (notifications.length <= 1) return;
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % notifications.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [notifications]);
 
   useEffect(() => {
     if (!userLoading && (!user || user.isAnonymous)) router.push('/login');
@@ -296,7 +369,7 @@ export default function EbeveynPortaliPage() {
                 <p className="text-xl font-black text-slate-900">{balance.toFixed(2)}€</p>
                 <div className="flex items-center justify-between text-[10px] font-bold uppercase text-yellow-600">
                     <span>{points} Puan</span>
-                    <Link href="/ebeveyn-portali/puan-merkezi" className="text-primary hover:underline">Magaza &gt;</Link>
+                    <Link href="/ebeveyn-portali/puan-merkezi" className="text-primary hover:underline">Mağaza &gt;</Link>
                 </div>
             </div>
         </StatCard>
@@ -314,30 +387,18 @@ export default function EbeveynPortaliPage() {
                     </CardHeader>
                     <CardContent className="p-0 flex-1 relative bg-slate-50/30 overflow-hidden">
                         {notifications.length > 0 ? (
-                            <div className="h-full flex flex-col justify-center">
-                                <AnimatePresence mode="wait">
-                                    <motion.div
-                                        key={currentIndex}
-                                        initial={{ y: 20, opacity: 0 }}
-                                        animate={{ y: 0, opacity: 1 }}
-                                        exit={{ y: -20, opacity: 0 }}
-                                        transition={{ duration: 0.4, ease: "easeInOut" }}
-                                        className="p-4"
-                                    >
+                            <div className="h-full divide-y divide-slate-100 overflow-y-auto">
+                                {notifications.map((notif) => (
+                                    <div key={notif.id} className="p-3 hover:bg-white transition-colors">
                                         <div className="flex items-start gap-3">
-                                            <div className={cn("mt-1 p-2 rounded-lg shrink-0", notifications[currentIndex].color)}>{notifications[currentIndex].icon}</div>
-                                            <div className="space-y-1">
-                                                <p className="text-xs leading-tight text-slate-800 font-bold">{notifications[currentIndex].title}</p>
-                                                <p className="text-[11px] text-slate-600 leading-snug line-clamp-2">{notifications[currentIndex].text}</p>
+                                            <div className={cn("mt-1 p-1.5 rounded-lg shrink-0", notif.color)}>{notif.icon}</div>
+                                            <div className="space-y-0.5">
+                                                <p className="text-[11px] leading-tight text-slate-800 font-bold">{notif.title}</p>
+                                                <p className="text-[10px] text-slate-600 leading-snug line-clamp-1">{notif.text}</p>
                                             </div>
                                         </div>
-                                    </motion.div>
-                                </AnimatePresence>
-                                <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
-                                    {notifications.map((_, i) => (
-                                        <div key={i} className={cn("h-1 rounded-full transition-all duration-300", i === currentIndex ? "w-4 bg-primary" : "w-1 bg-slate-200")} />
-                                    ))}
-                                </div>
+                                    </div>
+                                ))}
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center h-full p-6 text-center">
@@ -350,8 +411,8 @@ export default function EbeveynPortaliPage() {
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2"><Bell className="h-5 w-5 text-primary" /> Tüm Bildirimler</DialogTitle>
-                    <DialogDescription>Aktif dersleriniz ve öğretmenlerinizden gelen notlar.</DialogDescription>
+                    <DialogTitle className="flex items-center gap-2"><Bell className="h-5 w-5 text-primary" /> Bildirim Detayları</DialogTitle>
+                    <DialogDescription>Aktif bildirimleriniz ve öğretmen notlarınız.</DialogDescription>
                 </DialogHeader>
                 <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-4 py-4">
                     {notifications.length > 0 ? notifications.map((notif) => (
@@ -363,7 +424,7 @@ export default function EbeveynPortaliPage() {
                                         <p className="text-sm font-bold leading-none">{notif.title}</p>
                                     </div>
                                     <p className="text-sm text-muted-foreground leading-relaxed mt-2">{notif.fullText || notif.text}</p>
-                                    <Button variant="link" className="p-0 h-auto text-xs font-bold text-primary" onClick={() => router.push(notif.path)}>
+                                    <Button variant="link" className="p-0 h-auto text-xs font-bold text-primary" onClick={(e) => { e.stopPropagation(); router.push(notif.path); }}>
                                         Detayı Gör <ArrowRight className="ml-1 h-3 w-3" />
                                     </Button>
                                 </div>

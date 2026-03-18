@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, increment } from 'firebase/firestore';
 import { 
     Wallet, 
     Star, 
@@ -24,7 +23,8 @@ import {
     Instagram,
     Youtube,
     Loader2,
-    Trophy
+    Trophy,
+    ArrowUpRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -77,7 +77,7 @@ export default function PuanMerkeziPage() {
     const balance = userData?.walletBalanceEur || 0;
     const points = userData?.academyPoints || 0;
     const packages = userData?.totalPackagesPurchased || 0;
-    const referralCode = userData?.referralCode || `TCA-${userData?.firstName?.toUpperCase()}-2026`;
+    const referralCode = userData?.referralCode || `TCA-${userData?.firstName?.toUpperCase() || 'VELI'}-2026`;
 
     const handleMissionAction = (mission: any) => {
         setSelectedMission(mission);
@@ -146,9 +146,9 @@ export default function PuanMerkeziPage() {
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Akademi Puanınız</p>
                                         <p className="text-3xl font-black text-yellow-400">{points} / 500 <span className="text-sm opacity-50 uppercase tracking-widest ml-1">Puan 🌟</span></p>
                                     </div>
-                                    <Badge className="bg-green-500/20 text-green-400 border-none font-black text-[10px] px-3 py-1">HEDİYE DERSE {500 - points} KALDI</Badge>
+                                    <Badge className="bg-green-500/20 text-green-400 border-none font-black text-[10px] px-3 py-1">HEDİYE DERSE {Math.max(0, 500 - points)} KALDI</Badge>
                                 </div>
-                                <Progress value={(points / 500) * 100} className="h-4 bg-white/10" />
+                                <Progress value={Math.min(100, (points / 500) * 100)} className="h-4 bg-white/10" />
                                 <p className="text-[10px] text-slate-400 font-bold italic text-center uppercase tracking-widest">"150 puan daha kazanın, 1 Bedava Ders kazanın!"</p>
                             </div>
                         </div>
