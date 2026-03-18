@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Compass, TrendingUp, Puzzle, Link2, Heart } from 'lucide-react';
@@ -21,78 +22,75 @@ export function SignUpIllustration() {
         {/* Hareketli Yörüngeler */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-[100%] h-[100%] border-2 border-dashed border-slate-200 rounded-full animate-[spin_60s_linear_infinite]" />
-          <div className="absolute w-[72%] h-[72%] border border-dotted border-slate-200 rounded-full animate-[spin_40s_linear_infinite_reverse]" />
+          <div className="absolute w-[75%] h-[72%] border border-dotted border-slate-200 rounded-full animate-[spin_40s_linear_infinite_reverse]" />
         </div>
 
-        {/* Merkez: Kırmızı Kalpli Türk Bayrağı */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
+        {/* Merkez: Türk Bayrağı (Z-30 en üstte) */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
           <motion.div 
             whileHover={{ scale: 1.05 }}
-            className="w-32 h-32 rounded-full bg-white shadow-[0_20px_50px_rgba(239,68,68,0.3)] flex items-center justify-center p-4 border-4 border-red-50"
+            className="w-32 h-32 rounded-full bg-white shadow-[0_20px_50px_rgba(239,68,68,0.3)] flex items-center justify-center p-1 border-4 border-white overflow-hidden"
           >
-            <div className="relative w-full h-full bg-red-600 rounded-full flex items-center justify-center overflow-hidden">
-              <Heart className="absolute w-16 h-16 text-white/20 fill-white" />
-              <div className="relative w-20 h-20 z-10 shadow-xl rounded-lg overflow-hidden border-2 border-white/30">
-                <Image 
+            <div className="relative w-full h-full rounded-full overflow-hidden">
+               <Image 
                   src="/turkbayragi.png" 
                   alt="Türk Bayrağı"
                   fill
-                  className="object-cover"
+                  className="object-cover scale-125"
                 />
-              </div>
             </div>
           </motion.div>
         </div>
 
         {/* 1. Üst: Pusula & Bayrak (Keşif & Kimlik) */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-8 flex flex-col items-center gap-3">
-          <div className="w-16 h-16 bg-white rounded-[24px] shadow-xl border-2 border-blue-50 flex items-center justify-center transition-all hover:scale-110 hover:-rotate-6">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-8 flex flex-col items-center gap-2 z-20">
+          <div className="w-14 h-14 bg-white rounded-[20px] shadow-xl border-2 border-blue-50 flex items-center justify-center transition-all hover:scale-110 hover:-rotate-6">
             <div className="relative">
-              <Compass className="w-9 h-9 text-blue-500" />
-              <div className="absolute -top-2 -right-2 text-sm shadow-sm rounded-full bg-white px-0.5 overflow-hidden w-6 h-4 border border-slate-100">
-                <Image src="/turkbayragi.png" alt="Bayrak" fill className="object-cover" />
+              <Compass className="w-8 h-8 text-blue-500" />
+              <div className="absolute -top-3 -right-3 text-sm shadow-sm rounded-full bg-white px-0.5 overflow-hidden w-6 h-4 border border-slate-100 flex items-center justify-center">
+                <Image src="/turkbayragi.png" alt="Bayrak" width={16} height={10} className="object-cover" />
               </div>
             </div>
           </div>
-          <div className="text-center bg-white/95 backdrop-blur-md px-4 py-1.5 rounded-2xl shadow-lg border border-blue-100 min-w-[150px]">
+          <div className="text-center bg-white/95 backdrop-blur-md px-4 py-1.5 rounded-2xl shadow-lg border border-blue-100 min-w-[140px]">
             <p className="text-[10px] font-black text-slate-800 uppercase tracking-tighter">Köklerini Keşfet</p>
-            <p className="text-[9px] font-bold text-primary uppercase">Kimliğini Bul</p>
+            <p className="text-[9px] font-bold text-primary uppercase tracking-wider">Kimliğini Bul</p>
           </div>
         </div>
 
-        {/* 2. Sağ: Merdiven & Yükselen Ok (Gelişim & Başarı) */}
-        <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-12 flex flex-row items-center gap-4">
-          <div className="text-right bg-white/95 backdrop-blur-md px-4 py-1.5 rounded-2xl shadow-lg border border-orange-100 min-w-[150px]">
+        {/* 2. Sağ: Yükselen Ok (Gelişim & Başarı) */}
+        <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-10 flex flex-row items-center z-10">
+          <div className="text-right bg-white/95 backdrop-blur-md pl-4 pr-10 py-1.5 rounded-2xl shadow-lg border border-orange-100 min-w-[160px] -mr-6">
             <p className="text-[10px] font-black text-slate-800 uppercase tracking-tighter">Gelişimi Takip Et</p>
-            <p className="text-[9px] font-bold text-primary uppercase">Yüksel</p>
+            <p className="text-[9px] font-bold text-primary uppercase tracking-wider">Yüksel</p>
           </div>
-          <div className="w-16 h-16 bg-white rounded-[24px] shadow-xl border-2 border-orange-50 flex items-center justify-center transition-all hover:scale-110 hover:rotate-6">
-            <TrendingUp className="w-9 h-9 text-orange-500" />
+          <div className="w-14 h-14 bg-white rounded-[20px] shadow-xl border-2 border-orange-50 flex items-center justify-center transition-all hover:scale-110 hover:rotate-6 shrink-0 relative z-20">
+            <TrendingUp className="w-8 h-8 text-orange-500" />
           </div>
         </div>
 
         {/* 3. Sol: Yapboz Parçası (Bütünsel & Eğlenceli) */}
-        <div className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-12 flex flex-row items-center gap-4">
-          <div className="w-16 h-16 bg-white rounded-[24px] shadow-xl border-2 border-green-50 flex items-center justify-center transition-all hover:scale-110 hover:-rotate-6">
-            <Puzzle className="w-9 h-9 text-green-500" />
+        <div className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-10 flex flex-row items-center z-10">
+          <div className="w-14 h-14 bg-white rounded-[20px] shadow-xl border-2 border-green-50 flex items-center justify-center transition-all hover:scale-110 hover:-rotate-6 shrink-0 relative z-20">
+            <Puzzle className="w-8 h-8 text-green-500" />
           </div>
-          <div className="text-left bg-white/95 backdrop-blur-md px-4 py-1.5 rounded-2xl shadow-lg border border-green-100 min-w-[150px]">
+          <div className="text-left bg-white/95 backdrop-blur-md pr-4 pl-10 py-1.5 rounded-2xl shadow-lg border border-green-100 min-w-[160px] -ml-6">
             <p className="text-[10px] font-black text-slate-800 uppercase tracking-tighter">Eğlenerek Tamamla</p>
-            <p className="text-[9px] font-bold text-primary uppercase">Bütünsel Eğitim</p>
+            <p className="text-[9px] font-bold text-primary uppercase tracking-wider">Bütünsel Eğitim</p>
           </div>
         </div>
 
-        {/* 4. Alt: İki Bağlı Halka & Kalp (Bağ & Aidiyet) */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-8 flex flex-col items-center gap-3">
-          <div className="w-16 h-16 bg-white rounded-[24px] shadow-xl border-2 border-red-50 flex items-center justify-center transition-all hover:scale-110 hover:rotate-6">
+        {/* 4. Alt: Halka & Kalp (Bağ & Aidiyet) */}
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-8 flex flex-col items-center gap-2 z-20">
+          <div className="w-14 h-14 bg-white rounded-[20px] shadow-xl border-2 border-red-50 flex items-center justify-center transition-all hover:scale-110 hover:rotate-6">
             <div className="relative">
-              <Link2 className="w-9 h-9 text-red-500" />
-              <Heart className="w-5 h-5 text-red-500 fill-current absolute -bottom-1 -right-1" />
+              <Link2 className="w-8 h-8 text-red-500" />
+              <Heart className="w-4 h-4 text-red-500 fill-current absolute -bottom-1 -right-1" />
             </div>
           </div>
-          <div className="text-center bg-white/95 backdrop-blur-md px-4 py-1.5 rounded-2xl shadow-lg border border-red-100 min-w-[150px]">
+          <div className="text-center bg-white/95 backdrop-blur-md px-4 py-1.5 rounded-2xl shadow-lg border border-red-100 min-w-[140px]">
             <p className="text-[10px] font-black text-slate-800 uppercase tracking-tighter">Türkiye ile Bağ Kur</p>
-            <p className="text-[9px] font-bold text-primary uppercase">Kültürel Aidiyet</p>
+            <p className="text-[9px] font-bold text-primary uppercase tracking-wider">Kültürel Aidiyet</p>
           </div>
         </div>
       </div>
