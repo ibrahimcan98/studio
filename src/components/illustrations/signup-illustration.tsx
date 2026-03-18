@@ -3,6 +3,7 @@
 
 import { Compass, TrendingUp, Puzzle, Link2, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 
 export function SignUpIllustration() {
   return (
@@ -32,7 +33,15 @@ export function SignUpIllustration() {
           >
             <div className="relative w-full h-full bg-red-600 rounded-full flex items-center justify-center overflow-hidden">
               <Heart className="absolute w-16 h-16 text-white/20 fill-white" />
-              <span className="text-5xl relative z-10">🇹🇷</span>
+              <div className="relative w-20 h-20 z-10 shadow-xl rounded-lg overflow-hidden border-2 border-white/30">
+                <Image 
+                  src="https://images.unsplash.com/photo-1590508740136-df096ee60691?q=80&w=200&h=200&auto=format&fit=crop" 
+                  alt="Türk Bayrağı"
+                  fill
+                  className="object-cover"
+                  data-ai-hint="turkish flag"
+                />
+              </div>
             </div>
           </motion.div>
         </div>
