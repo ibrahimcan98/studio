@@ -387,9 +387,9 @@ export default function EbeveynPortaliPage() {
                     </CardHeader>
                     <CardContent className="p-0 flex-1 relative bg-slate-50/30 overflow-hidden">
                         {notifications.length > 0 ? (
-                            <div className="h-full divide-y divide-slate-100 overflow-y-auto">
-                                {notifications.map((notif) => (
-                                    <div key={notif.id} className="p-3 hover:bg-white transition-colors">
+                            <div className="h-full divide-y divide-slate-100 flex flex-col">
+                                {notifications.slice(0, 2).map((notif) => (
+                                    <div key={notif.id} className="p-3 hover:bg-white transition-colors border-b last:border-0">
                                         <div className="flex items-start gap-3">
                                             <div className={cn("mt-1 p-1.5 rounded-lg shrink-0", notif.color)}>{notif.icon}</div>
                                             <div className="space-y-0.5">
@@ -399,6 +399,13 @@ export default function EbeveynPortaliPage() {
                                         </div>
                                     </div>
                                 ))}
+                                {notifications.length > 2 && (
+                                    <div className="p-2 text-center bg-slate-100/50">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                            +{notifications.length - 2} BİLDİRİM DAHA VAR • GÖRMEK İÇİN TIKLAYIN
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center h-full p-6 text-center">
