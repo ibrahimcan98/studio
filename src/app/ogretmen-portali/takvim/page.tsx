@@ -14,6 +14,7 @@ import { toZonedTime, format, formatInTimeZone } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
 import { LessonDetailsDialog } from './lesson-details-dialog';
 import { Calendar } from '@/components/ui/calendar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 type SlotDetails = {
@@ -82,7 +83,7 @@ function TimeGrid({
                 const isFullHour = minutes === 0;
                 const isQuarterHour = [15, 30, 45].includes(minutes);
 
-                let dynamicStatus = slotData?.status;
+                let dynamicStatus: 'available' | 'booked' | 'closed' | undefined = slotData?.status;
                 if (isDragging && dragSelection.has(time) && slotData?.status !== 'booked') {
                     dynamicStatus = dragMode ?? slotData?.status;
                 }
@@ -94,17 +95,17 @@ function TimeGrid({
                         onMouseDown={() => onMouseDown(time)}
                         onMouseEnter={() => onMouseEnter(time)}
                     >
-                        <div className="text-xs text-muted-foreground w-16 text-right pr-2 shrink-0">
-                            {isFullHour && <span className="font-semibold">{time}</span>}
-                            {isQuarterHour && <span className="text-gray-400">{time}</span>}
+                        <div className="text-xs text-muted-foreground w-16 text-right pr-3 shrink-0">
+                            {isFullHour && <span className="font-bold text-slate-800">{time}</span>}
+                            {isQuarterHour && !isFullHour && <span className="text-slate-400 font-medium">{time}</span>}
                         </div>
                         <div
                             className={cn(
-                                "flex-1 h-full border-l",
-                                isFullHour ? "border-t-2 border-t-gray-300" : "border-t border-t-gray-200",
-                                dynamicStatus === 'booked' ? 'bg-destructive/80 cursor-not-allowed' :
-                                    dynamicStatus === 'available' ? 'bg-primary/80 cursor-pointer' :
-                                        'hover:bg-muted cursor-pointer'
+                                "flex-1 h-full border-l transition-all duration-75",
+                                isFullHour ? "border-t-2 border-t-slate-300" : "border-t border-t-slate-100",
+                                dynamicStatus === 'booked' ? 'bg-red-500/80 cursor-not-allowed border-none' :
+                                    dynamicStatus === 'available' ? 'bg-emerald-500/80 cursor-pointer border-none shadow-sm' :
+                                        'hover:bg-slate-50 cursor-pointer'
                             )}
                             onClick={() => onSlotClick(time)}
                         />
@@ -133,6 +134,9 @@ export default function TakvimYonetimiPage() {
     
     const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
     const [isApplyingChanges, setIsApplyingChanges] = useState(false);
+
+    const [rangeStart, setRangeStart] = useState('09:00');
+    const [rangeEnd, setRangeEnd] = useState('12:00');
 
 
     const lessonSlotsQuery = useMemoFirebase(() => {
@@ -234,6 +238,35 @@ export default function TakvimYonetimiPage() {
 
         resetDragState();
     }, [isDragging, dragMode, user, selectedDate, dragSelection]);
+
+    const handleAddTimeRange = () => {
+        if (!user || !selectedDate) return;
+        const startIndex = timeSlots.indexOf(rangeStart);
+        const endIndex = timeSlots.indexOf(rangeEnd);
+        if (startIndex === -1 || endIndex === -1 || startIndex >= endIndex) {
+            toast({ variant: 'destructive', title: 'Hata', description: 'Geçersiz saat aralığı.' });
+            return;
+        }
+
+        setStagedSlots(prev => {
+            const next = new Map(prev);
+            for (let i = startIndex; i < endIndex; i++) {
+                const time = timeSlots[i];
+                if (next.get(time)?.status === 'booked') continue;
+                
+                const dateInTurkey = createDateInTurkeyTimeZone(selectedDate, time);
+                next.set(time, {
+                    id: `new-${time}`,
+                    status: 'available',
+                    teacherId: user.uid,
+                    startTime: Timestamp.fromDate(dateInTurkey)
+                });
+            }
+            return next;
+        });
+
+        toast({ title: 'Aralık Eklendi', description: `${rangeStart} - ${rangeEnd} arası müsait olarak işaretlendi.` });
+    };
 
     const handleApplyChanges = async () => {
         if (!db || !user || !selectedDate) return;
@@ -393,11 +426,34 @@ export default function TakvimYonetimiPage() {
                             className="rounded-md border"
                         />
                     </div>
-                    <div className="lg:col-span-2">
-                        <h3 className="text-lg font-semibold mb-4 text-center lg:text-left">
-                            {formatInTimeZone(selectedDate, turkeyTimeZone, 'dd MMMM yyyy, EEEE', { locale: tr })}
-                        </h3>
-                            <TimeGrid 
+                    <div className="lg:col-span-2 space-y-6">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <h3 className="text-xl font-black text-slate-800">
+                                {formatInTimeZone(selectedDate, turkeyTimeZone, 'dd MMMM yyyy, EEEE', { locale: tr })}
+                            </h3>
+                            <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-2xl border border-slate-200">
+                                <Select value={rangeStart} onValueChange={setRangeStart}>
+                                    <SelectTrigger className="w-24 h-9 rounded-xl border-none font-bold text-xs bg-white shadow-sm">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="max-h-[300px] rounded-xl">
+                                        {timeSlots.filter((_,i) => i % 6 === 0).map(t => <SelectItem key={t} value={t} className="text-xs font-bold">{t}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                <span className="text-slate-400 font-black">-</span>
+                                <Select value={rangeEnd} onValueChange={setRangeEnd}>
+                                    <SelectTrigger className="w-24 h-9 rounded-xl border-none font-bold text-xs bg-white shadow-sm">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="max-h-[300px] rounded-xl">
+                                        {timeSlots.filter((_,i) => i % 6 === 0).map(t => <SelectItem key={t} value={t} className="text-xs font-bold">{t}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                <Button size="sm" onClick={handleAddTimeRange} className="h-9 rounded-xl px-4 font-black text-[10px] uppercase tracking-widest">Aralık Ekle</Button>
+                            </div>
+                        </div>
+
+                        <TimeGrid 
                             slots={stagedSlots}
                             onMouseDown={handleMouseDown}
                             onMouseEnter={(time) => isDragging && setDragEndSlot(time)}

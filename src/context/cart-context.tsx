@@ -34,11 +34,23 @@ interface CartContextType {
     updateQuantity: (id: string, quantity: number) => void;
     clearCart: () => void;
     cartTotal: number;
-    applyCoupon: (code: string) => boolean;
+    applyStandardDiscount: (code: string, pct: number, applicableCourseId?: string | null, applicablePackage?: number | null) => void;
     discountAmount: number;
     finalTotal: number;
     appliedCoupon: string | null;
+    appliedCouponData: {
+        code: string;
+        discountPct: number;
+        applicableCourseId?: string | null;
+        applicablePackage?: number | null;
+    } | null;
     removeCoupon: () => void;
+    
+    applyReferral: (code: string, discount: number, referrerId: string) => void;
+    appliedReferralCode: string | null;
+    removeReferral: () => void;
+    referrerId: string | null;
+    
     isCartLoaded: boolean;
     // Currency related
     selectedCurrency: string;
@@ -51,8 +63,16 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: { children: ReactNode }) => {
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const [isCartLoaded, setIsCartLoaded] = useState(false);
-    const [discount, setDiscount] = useState(0); 
-    const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+    const [appliedCouponData, setAppliedCouponData] = useState<{
+        code: string;
+        discountPct: number;
+        applicableCourseId?: string | null;
+        applicablePackage?: number | null;
+    } | null>(null);
+    const appliedCoupon = appliedCouponData?.code || null;
+    const [referralDiscountPct, setReferralDiscountPct] = useState(0);
+    const [appliedReferralCode, setAppliedReferralCode] = useState<string | null>(null);
+    const [referrerId, setReferrerId] = useState<string | null>(null);
     
     const [selectedCurrency, setSelectedCurrencyState] = useState('EUR');
     const [exchangeRates, setExchangeRates] = useState<{ [key: string]: number }>({ EUR: 1 });
@@ -130,20 +150,29 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         setCartItems([]);
     }
 
-    const applyCoupon = (code: string): boolean => {
-        if (code.toUpperCase() === 'ISVICRE') {
-            setDiscount(0.20);
-            setAppliedCoupon(code.toUpperCase());
-            return true;
-        }
-        setDiscount(0);
-        setAppliedCoupon(null);
-        return false;
+    const applyStandardDiscount = (code: string, pct: number, applicableCourseId?: string | null, applicablePackage?: number | null) => {
+        setAppliedCouponData({
+            code: code.toUpperCase(),
+            discountPct: pct,
+            applicableCourseId: applicableCourseId || null,
+            applicablePackage: applicablePackage || null
+        });
     };
     
+    const applyReferral = (code: string, pct: number, refId: string) => {
+        setReferralDiscountPct(pct);
+        setAppliedReferralCode(code.toUpperCase());
+        setReferrerId(refId);
+    }
+
     const removeCoupon = () => {
-        setDiscount(0);
-        setAppliedCoupon(null);
+        setAppliedCouponData(null);
+    }
+
+    const removeReferral = () => {
+        setReferralDiscountPct(0);
+        setAppliedReferralCode(null);
+        setReferrerId(null);
     }
 
     const cartTotal = cartItems.reduce(
@@ -151,13 +180,37 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         0
     );
 
-    const discountAmount = cartTotal * discount;
+    const discountAmount = cartItems.reduce((total, item) => {
+        let itemDiscount = 0;
+        
+        // 1. Check Standard Coupon
+        if (appliedCouponData) {
+            const [courseId] = item.id.split('-');
+            const lessonsCount = parseInt(item.description.split(' ')[0]) || 0;
+            
+            const courseMatches = !appliedCouponData.applicableCourseId || appliedCouponData.applicableCourseId === courseId;
+            const packageMatches = !appliedCouponData.applicablePackage || appliedCouponData.applicablePackage === lessonsCount;
+            
+            if (courseMatches && packageMatches) {
+                itemDiscount += (item.price * item.quantity * appliedCouponData.discountPct);
+            }
+        }
+        
+        // 2. Check Referral Discount (Referral is usually global 5%)
+        if (referralDiscountPct > 0) {
+            itemDiscount += (item.price * item.quantity * referralDiscountPct);
+        }
+        
+        return total + itemDiscount;
+    }, 0);
+
     const finalTotal = cartTotal - discountAmount;
 
     return (
         <CartContext.Provider value={{ 
             cartItems, addToCart, removeFromCart, updateQuantity, clearCart, 
-            cartTotal, applyCoupon, discountAmount, finalTotal, appliedCoupon, removeCoupon, 
+            cartTotal, applyStandardDiscount, discountAmount, finalTotal, appliedCoupon, appliedCouponData, removeCoupon, 
+            applyReferral, appliedReferralCode, removeReferral, referrerId,
             isCartLoaded, selectedCurrency, setSelectedCurrency, exchangeRates 
         }}>
             {children}

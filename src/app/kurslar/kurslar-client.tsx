@@ -1,5 +1,5 @@
-
 'use client';
+import { useEffect } from 'react';
 import { COURSES, Course } from "@/data/courses";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,8 @@ import { useCart, currencyDetails } from "@/context/cart-context";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
 
 type KurslarClientPageProps = {
     exchangeRates: { [key: string]: number };
@@ -25,6 +27,29 @@ export function KurslarClientPage({
     const { toast } = useToast();
     const { addToCart, selectedCurrency, setSelectedCurrency, exchangeRates } = useCart();
     
+    const db = useFirestore();
+    const globalCouponsQuery = useMemoFirebase(() => 
+        db ? query(collection(db, 'coupons'), where('isPublicDisplay', '==', true), where('isActive', '==', true)) : null
+    , [db]);
+    const { data: globalCoupons } = useCollection(globalCouponsQuery);
+    const activeGlobalCoupon = globalCoupons?.[0]; // take the first active public coupon if exists
+    
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const courseId = params.get('id');
+            if (courseId) {
+                // Wait slightly for DOM to be fully ready
+                setTimeout(() => {
+                    const targetElement = document.getElementById(`${courseId}-detay`);
+                    if (targetElement) {
+                        targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 300);
+            }
+        }
+    }, []);
+
     // Use context rates if loaded, otherwise fallback to server initial rates
     const currentRates = Object.keys(exchangeRates).length > 1 ? exchangeRates : initialRates;
     const currencies = Object.keys(currentRates).filter(code => currencyDetails[code]);
@@ -49,29 +74,88 @@ export function KurslarClientPage({
         });
     };
 
-    const PriceDisplay = ({ price }: { price: number }) => {
-        const convertedPrice = convertPrice(price);
+    const PriceDisplay = ({ price, courseId, packageLessons }: { price: number, courseId: string, packageLessons: number }) => {
+        let discountPct = 0;
+        
+        if (activeGlobalCoupon) {
+            const courseMatches = !activeGlobalCoupon.applicableCourseId || activeGlobalCoupon.applicableCourseId === courseId;
+            const packageMatches = !activeGlobalCoupon.applicablePackage || activeGlobalCoupon.applicablePackage === packageLessons;
+            
+            if (courseMatches && packageMatches) {
+                discountPct = activeGlobalCoupon.discountPct;
+            }
+        }
+        
+        const originalConvertedPrice = convertPrice(price);
+        const finalEuros = price * (1 - discountPct);
+        const discountedConvertedPrice = convertPrice(finalEuros);
+        
         const selectedCurrencyDetails = currencyDetails[selectedCurrency];
+        
         return (
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <p className="text-3xl font-bold text-gray-900 my-4 cursor-help">
-                            {selectedCurrencyDetails?.symbol || selectedCurrency}{convertedPrice.toFixed(2)}
-                        </p>
+                        <div className="flex flex-col items-center my-4 cursor-help">
+                            {discountPct > 0 ? (
+                                <>
+                                    <span className="text-xl line-through text-red-500 font-bold opacity-60 mb-0.5">
+                                        {selectedCurrencyDetails?.symbol || selectedCurrency}{originalConvertedPrice.toFixed(2)}
+                                    </span>
+                                    <span className="text-3xl font-black text-green-600">
+                                        {selectedCurrencyDetails?.symbol || selectedCurrency}{discountedConvertedPrice.toFixed(2)}
+                                    </span>
+                                </>
+                            ) : (
+                                <p className="text-3xl font-bold text-gray-900">
+                                    {selectedCurrencyDetails?.symbol || selectedCurrency}{originalConvertedPrice.toFixed(2)}
+                                </p>
+                            )}
+                        </div>
                     </TooltipTrigger>
                     <TooltipContent>
                         <div className="space-y-1 text-xs">
                              {currencies.filter(c => c !== selectedCurrency && currencyDetails[c]).slice(0, 5).map(currency => (
                                 <div key={currency} className="flex justify-between gap-2">
                                     <span>{currencyDetails[currency]?.flag} {currency}:</span>
-                                    <span>{currencyDetails[currency]?.symbol}{(price * currentRates[currency]).toFixed(2)}</span>
+                                    <span>{currencyDetails[currency]?.symbol}{(finalEuros * currentRates[currency]).toFixed(2)}</span>
                                 </div>
                             ))}
                         </div>
                     </TooltipContent>
                 </Tooltip>
             </TooltipProvider>
+        );
+    };
+
+    const PerLessonPrice = ({ perLessonPriceInEur, courseId, packageLessons }: { perLessonPriceInEur: number, courseId: string, packageLessons: number }) => {
+        let discountPct = 0;
+        
+        if (activeGlobalCoupon) {
+            const courseMatches = !activeGlobalCoupon.applicableCourseId || activeGlobalCoupon.applicableCourseId === courseId;
+            const packageMatches = !activeGlobalCoupon.applicablePackage || activeGlobalCoupon.applicablePackage === packageLessons;
+            
+            if (courseMatches && packageMatches) {
+                discountPct = activeGlobalCoupon.discountPct;
+            }
+        }
+        
+        const originalPrice = convertPrice(perLessonPriceInEur);
+        const discountedPrice = convertPrice(perLessonPriceInEur * (1 - discountPct));
+        const symbol = currencyDetails[selectedCurrency]?.symbol || '';
+        
+        return (
+            <Badge variant="secondary" className="mb-4 bg-teal-100 text-teal-800 flex items-center gap-1.5 px-3 py-1">
+                <span className="text-xs opacity-80">ders başına</span>
+                {discountPct > 0 ? (
+                    <div className="flex items-center gap-1.5">
+                        <span className="line-through opacity-50 text-[10px]">{symbol}{originalPrice.toFixed(2)}</span>
+                        <span className="font-bold">{symbol}{discountedPrice.toFixed(2)}</span>
+                    </div>
+                ) : (
+                    <span className="font-bold">{symbol}{originalPrice.toFixed(2)}</span>
+                )}
+            </Badge>
         );
     };
 
@@ -153,20 +237,22 @@ export function KurslarClientPage({
                             <h3 className="text-3xl md:text-4xl font-bold mb-8 text-center">{baslangicKursu.title} - Paket Seçenekleri</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                 {baslangicKursu.pricing.packages.map((pkg) => {
-                                    const perLessonPrice = baslangicKursu.pricing.perLesson?.[pkg.lessons as keyof typeof baslangicKursu.pricing.perLesson];
+                                    const perLessonPrice = baslangicKursu.pricing.perLesson?.[String(pkg.lessons) as keyof typeof baslangicKursu.pricing.perLesson];
                                     if (!perLessonPrice) return null;
                                     return (
                                         <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
-                                            <Badge variant="secondary" className="mb-4 bg-teal-100 text-teal-800">
-                                                ders başına {currencyDetails[selectedCurrency]?.symbol}{(convertPrice(perLessonPrice)).toFixed(2)}
-                                            </Badge>
+                                            <PerLessonPrice 
+                                                perLessonPriceInEur={perLessonPrice} 
+                                                courseId={baslangicKursu.id} 
+                                                packageLessons={pkg.lessons} 
+                                            />
                                             <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gray-100 mb-4">
                                                 <BookOpen className="w-8 h-8 text-gray-500"/>
                                             </div>
                                             <h4 className="font-bold text-gray-800">{baslangicKursu.title}</h4>
                                             <p className="text-sm text-gray-500">({baslangicKursu.details.duration})</p>
                                             <p className="text-gray-600 mt-2">{pkg.lessons} derslik paket</p>
-                                            <PriceDisplay price={pkg.price} />
+                                            <PriceDisplay price={pkg.price} courseId={baslangicKursu!.id} packageLessons={pkg.lessons} />
                                             <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleAddToCart(baslangicKursu, pkg)}>
                                                 <ShoppingCart className="w-4 h-4 mr-2" />
                                                 Sepete Ekle
@@ -211,20 +297,22 @@ export function KurslarClientPage({
                             <h3 className="text-3xl md:text-4xl font-bold mb-8 text-center">{konusmaKursu.title} - Paket Seçenekleri</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                 {konusmaKursu.pricing.packages.map((pkg) => {
-                                    const perLessonPrice = konusmaKursu.pricing.perLesson?.[pkg.lessons as keyof typeof konusmaKursu.pricing.perLesson];
+                                    const perLessonPrice = konusmaKursu.pricing.perLesson?.[String(pkg.lessons) as keyof typeof konusmaKursu.pricing.perLesson];
                                     if (!perLessonPrice) return null;
                                     return (
                                         <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
-                                            <Badge variant="secondary" className="mb-4 bg-teal-100 text-teal-800">
-                                                ders başına {currencyDetails[selectedCurrency]?.symbol}{(convertPrice(perLessonPrice)).toFixed(2)}
-                                            </Badge>
+                                            <PerLessonPrice 
+                                                perLessonPriceInEur={perLessonPrice} 
+                                                courseId={konusmaKursu.id} 
+                                                packageLessons={pkg.lessons} 
+                                            />
                                             <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gray-100 mb-4">
                                                 <BookOpen className="w-8 h-8 text-gray-500"/>
                                             </div>
                                             <h4 className="font-bold text-gray-800">{konusmaKursu.title}</h4>
                                             <p className="text-sm text-gray-500">({konusmaKursu.details.duration})</p>
                                             <p className="text-gray-600 mt-2">{pkg.lessons} derslik paket</p>
-                                            <PriceDisplay price={pkg.price} />
+                                            <PriceDisplay price={pkg.price} courseId={konusmaKursu.id} packageLessons={pkg.lessons} />
                                             <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleAddToCart(konusmaKursu, pkg)}>
                                                 <ShoppingCart className="w-4 h-4 mr-2" />
                                                 Sepete Ekle
@@ -275,20 +363,22 @@ export function KurslarClientPage({
                             <h3 className="text-3xl md:text-4xl font-bold mb-8 text-center">{akademikKursu.title} - Paket Seçenekleri</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                 {akademikKursu.pricing.packages.map((pkg) => {
-                                    const perLessonPrice = akademikKursu.pricing.perLesson?.[pkg.lessons as keyof typeof akademikKursu.pricing.perLesson];
+                                    const perLessonPrice = akademikKursu.pricing.perLesson?.[String(pkg.lessons) as keyof typeof akademikKursu.pricing.perLesson];
                                     if (!perLessonPrice) return null;
                                     return (
                                         <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
-                                            <Badge variant="secondary" className="mb-4 bg-teal-100 text-teal-800">
-                                                 ders başına {currencyDetails[selectedCurrency]?.symbol}{(convertPrice(perLessonPrice)).toFixed(2)}
-                                            </Badge>
+                                            <PerLessonPrice 
+                                                perLessonPriceInEur={perLessonPrice} 
+                                                courseId={akademikKursu.id} 
+                                                packageLessons={pkg.lessons} 
+                                            />
                                             <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gray-100 mb-4">
                                                 <BookOpen className="w-8 h-8 text-gray-500"/>
                                             </div>
                                             <h4 className="font-bold text-gray-800">{akademikKursu.title}</h4>
                                             <p className="text-sm text-gray-500">({akademikKursu.details.duration})</p>
                                             <p className="text-gray-600 mt-2">{pkg.lessons} derslik paket</p>
-                                            <PriceDisplay price={pkg.price} />
+                                            <PriceDisplay price={pkg.price} courseId={akademikKursu!.id} packageLessons={pkg.lessons} />
                                             <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleAddToCart(akademikKursu, pkg)}>
                                                 <ShoppingCart className="w-4 h-4 mr-2" />
                                                 Sepete Ekle
@@ -333,20 +423,22 @@ export function KurslarClientPage({
                             <h3 className="text-3xl md:text-4xl font-bold mb-8 text-center">{gelisimKursu.title} - Paket Seçenekleri</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                 {gelisimKursu.pricing.packages.map((pkg) => {
-                                    const perLessonPrice = gelisimKursu.pricing.perLesson?.[pkg.lessons as keyof typeof gelisimKursu.pricing.perLesson];
+                                    const perLessonPrice = gelisimKursu.pricing.perLesson?.[String(pkg.lessons) as keyof typeof gelisimKursu.pricing.perLesson];
                                     if (!perLessonPrice) return null;
                                     return (
                                         <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
-                                            <Badge variant="secondary" className="mb-4 bg-teal-100 text-teal-800">
-                                                 ders başına {currencyDetails[selectedCurrency]?.symbol}{(convertPrice(perLessonPrice)).toFixed(2)}
-                                            </Badge>
+                                            <PerLessonPrice 
+                                                perLessonPriceInEur={perLessonPrice} 
+                                                courseId={gelisimKursu.id} 
+                                                packageLessons={pkg.lessons} 
+                                            />
                                             <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gray-100 mb-4">
                                                 <BookOpen className="w-8 h-8 text-gray-500"/>
                                             </div>
                                             <h4 className="font-bold text-gray-800">{gelisimKursu.title}</h4>
                                             <p className="text-sm text-gray-500">({gelisimKursu.details.duration})</p>
                                             <p className="text-gray-600 mt-2">{pkg.lessons} derslik paket</p>
-                                            <PriceDisplay price={pkg.price} />
+                                            <PriceDisplay price={pkg.price} courseId={gelisimKursu!.id} packageLessons={pkg.lessons} />
                                             <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleAddToCart(gelisimKursu, pkg)}>
                                                 <ShoppingCart className="w-4 h-4 mr-2" />
                                                 Sepete Ekle
@@ -389,20 +481,22 @@ export function KurslarClientPage({
                             <h3 className="text-3xl md:text-4xl font-bold mb-8 text-center">{gcseKursu.title} - Paket Seçeneği</h3>
                             <div className="flex justify-center">
                                 {gcseKursu.pricing.packages.map((pkg) => {
-                                    const perLessonPrice = gcseKursu.pricing.perLesson?.[pkg.lessons as keyof typeof gcseKursu.pricing.perLesson];
+                                    const perLessonPrice = gcseKursu.pricing.perLesson?.[String(pkg.lessons) as keyof typeof gcseKursu.pricing.perLesson];
                                     if (!perLessonPrice) return null;
                                     return (
                                         <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow w-full max-w-xs">
-                                            <Badge variant="secondary" className="mb-4 bg-teal-100 text-teal-800">
-                                                 ders başına {currencyDetails[selectedCurrency]?.symbol}{(convertPrice(perLessonPrice)).toFixed(2)}
-                                            </Badge>
+                                            <PerLessonPrice 
+                                                perLessonPriceInEur={perLessonPrice} 
+                                                courseId={gcseKursu.id} 
+                                                packageLessons={pkg.lessons} 
+                                            />
                                             <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gray-100 mb-4">
                                                 <BookOpen className="w-8 h-8 text-gray-500"/>
                                             </div>
                                             <h4 className="font-bold text-gray-800">{gcseKursu.title}</h4>
                                             <p className="text-sm text-gray-500">({gcseKursu.details.duration})</p>
                                             <p className="text-gray-600 mt-2">{pkg.lessons} derslik paket</p>
-                                            <PriceDisplay price={pkg.price} />
+                                            <PriceDisplay price={pkg.price} courseId={gcseKursu.id} packageLessons={pkg.lessons} />
                                             <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleAddToCart(gcseKursu, pkg)}>
                                                 <ShoppingCart className="w-4 h-4 mr-2" />
                                                 Sepete Ekle

@@ -2,7 +2,7 @@
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where, getDocs, collectionGroup, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, collectionGroup, doc, updateDoc, writeBatch } from 'firebase/firestore';
 import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -35,8 +35,12 @@ import {
     CheckCircle2,
     Mail,
     Phone,
-    FileText
+    FileText,
+    Search,
+    Tags,
+    Copy
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -62,6 +66,9 @@ import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { ProgressPanel } from '@/components/shared/progress-panel';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Filter } from 'lucide-react';
+import { isAfter, isSameDay } from 'date-fns';
 
 interface ParentData {
     id: string;
@@ -121,6 +128,20 @@ function UsersPageContent() {
   const [selectedChildForProgress, setSelectedChildForProgress] = useState<any | null>(null);
   const [isChildProgressOpen, setIsChildProgressOpen] = useState(false);
 
+  // Search & Filter States
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [regStartDate, setRegStartDate] = useState('');
+  const [regEndDate, setRegEndDate] = useState('');
+  const [purchaseStartDate, setPurchaseStartDate] = useState('');
+  const [purchaseEndDate, setPurchaseEndDate] = useState('');
+  
+  // Bulk Tags States
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [isBulkTagOpen, setIsBulkTagOpen] = useState(false);
+  const [bulkTagsToAdd, setBulkTagsToAdd] = useState<string[]>([]);
+  const [newBulkTagInput, setNewBulkTagInput] = useState('');
+
   const parentsQuery = useMemoFirebase(() => {
     if (!db) return null;
     return query(collection(db, 'users'), where('role', '==', 'parent'));
@@ -147,17 +168,38 @@ function UsersPageContent() {
   useEffect(() => { fetchData(); }, [db]);
 
   const getCountryFromPhone = (phone: string) => {
-    const cleanPhone = (phone || "").replace(/\s/g, "");
-    if (cleanPhone.startsWith("+90")) return "Türkiye";
-    if (cleanPhone.startsWith("+49")) return "Almanya";
-    if (cleanPhone.startsWith("+44")) return "İngiltere";
-    if (cleanPhone.startsWith("+41")) return "İsviçre";
-    if (cleanPhone.startsWith("+33")) return "Fransa";
-    if (cleanPhone.startsWith("+31")) return "Hollanda";
-    if (cleanPhone.startsWith("+32")) return "Belçika";
-    if (cleanPhone.startsWith("+43")) return "Avusturya";
-    if (cleanPhone.startsWith("+1")) return "ABD/Kanada";
-    return "Diğer";
+    let cleanPhone = (phone || "").replace(/[\s-()]/g, "");
+    if (cleanPhone.startsWith('00')) cleanPhone = '+' + cleanPhone.substring(2);
+    else if (!cleanPhone.startsWith('+')) {
+       if (cleanPhone.length === 10 && cleanPhone.startsWith('5')) cleanPhone = '+90' + cleanPhone;
+       else cleanPhone = '+' + cleanPhone;
+    }
+
+    if (cleanPhone.startsWith("+90")) return "🇹🇷 Türkiye";
+    if (cleanPhone.startsWith("+49")) return "🇩🇪 Almanya";
+    if (cleanPhone.startsWith("+44")) return "🇬🇧 B. Krallık";
+    if (cleanPhone.startsWith("+41")) return "🇨🇭 İsviçre";
+    if (cleanPhone.startsWith("+33")) return "🇫🇷 Fransa";
+    if (cleanPhone.startsWith("+31")) return "🇳🇱 Hollanda";
+    if (cleanPhone.startsWith("+32")) return "🇧🇪 Belçika";
+    if (cleanPhone.startsWith("+43")) return "🇦🇹 Avusturya";
+    if (cleanPhone.startsWith("+1")) return "🇺🇸/🇨🇦 Amerika";
+    if (cleanPhone.startsWith("+7")) return "🇷🇺/🇰🇿 Rusya/Kazakistan";
+    if (cleanPhone.startsWith("+61")) return "🇦🇺 Avustralya";
+    if (cleanPhone.startsWith("+971")) return "🇦🇪 BAE";
+    if (cleanPhone.startsWith("+974")) return "🇶🇦 Katar";
+    if (cleanPhone.startsWith("+359")) return "🇧🇬 Bulgaristan";
+    if (cleanPhone.startsWith("+30")) return "🇬🇷 Yunanistan";
+    if (cleanPhone.startsWith("+45")) return "🇩🇰 Danimarka";
+    if (cleanPhone.startsWith("+46")) return "🇸🇪 İsveç";
+    if (cleanPhone.startsWith("+47")) return "🇳🇴 Norveç";
+    if (cleanPhone.startsWith("+358")) return "🇫🇮 Finlandiya";
+    if (cleanPhone.startsWith("+39")) return "🇮🇹 İtalya";
+    if (cleanPhone.startsWith("+34")) return "🇪🇸 İspanya";
+    if (cleanPhone.startsWith("+966")) return "🇸🇦 Arabistan";
+    if (cleanPhone.startsWith("+994")) return "🇦🇿 Azerbaycan";
+
+    return "🌍 Diğer (" + cleanPhone.substring(0, 4) + "..)";
   };
 
   const processedParents = useMemo(() => {
@@ -216,6 +258,104 @@ function UsersPageContent() {
     });
   }, [parents, allChildren, allSlots, loadingExtras]);
 
+  const allAvailableTags = useMemo(() => {
+    const tags = new Set<string>();
+    Object.keys(tagStyles).forEach(t => tags.add(t));
+    processedParents.forEach(p => {
+        p.computedTags.forEach(t => tags.add(t));
+        p.manualTags.forEach(t => tags.add(t));
+    });
+    return Array.from(tags).sort();
+  }, [processedParents]);
+
+  const filteredParents = useMemo(() => {
+    if (!processedParents) return [];
+    let result = processedParents;
+    
+    if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        result = result.filter(p => 
+            p.firstName?.toLowerCase().includes(q) || 
+            p.lastName?.toLowerCase().includes(q) || 
+            p.email?.toLowerCase().includes(q) ||
+            p.phoneNumber?.includes(q) ||
+            p.id.toLowerCase().includes(q)
+        );
+    }
+    
+    if (selectedTags.length > 0) {
+        result = result.filter(p => 
+            selectedTags.every(tag => p.computedTags.includes(tag) || p.manualTags.includes(tag))
+        );
+    }
+
+    if (regStartDate) {
+        const start = new Date(regStartDate);
+        result = result.filter(p => p.createdAt && (isAfter(p.createdAt.toDate(), start) || isSameDay(p.createdAt.toDate(), start)));
+    }
+    if (regEndDate) {
+        const end = new Date(regEndDate);
+        result = result.filter(p => p.createdAt && (isBefore(p.createdAt.toDate(), end) || isSameDay(p.createdAt.toDate(), end)));
+    }
+
+    if (purchaseStartDate) {
+        const start = new Date(purchaseStartDate);
+        result = result.filter(p => p.lastPurchaseDate && (isAfter(p.lastPurchaseDate, start) || isSameDay(p.lastPurchaseDate, start)));
+    }
+    if (purchaseEndDate) {
+        const end = new Date(purchaseEndDate);
+        result = result.filter(p => p.lastPurchaseDate && (isBefore(p.lastPurchaseDate, end) || isSameDay(p.lastPurchaseDate, end)));
+    }
+    
+    return result;
+  }, [processedParents, searchQuery, selectedTags, regStartDate, regEndDate, purchaseStartDate, purchaseEndDate]);
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) setSelectedUserIds(filteredParents.map(p => p.id));
+    else setSelectedUserIds([]);
+  };
+
+  const handleBulkUpdateTags = async () => {
+    if (bulkTagsToAdd.length === 0 || selectedUserIds.length === 0 || !db) return;
+    setIsSavingTags(true);
+    
+    try {
+        const batch = writeBatch(db);
+        let count = 0;
+        selectedUserIds.forEach(id => {
+            const parent = processedParents.find(p => p.id === id);
+            if (parent) {
+                const newTags = Array.from(new Set([...(parent.manualTags || []), ...bulkTagsToAdd]));
+                const ref = doc(db, 'users', id);
+                batch.update(ref, { tags: newTags });
+                count++;
+            }
+        });
+        
+        await batch.commit();
+        toast({ title: `${count} veli güncellendi`, className: 'bg-green-500 text-white' });
+        setIsBulkTagOpen(false);
+        setSelectedUserIds([]);
+        setBulkTagsToAdd([]);
+        refetchParents();
+    } catch (e) {
+        console.error("Error updating bulk tags:", e);
+        toast({ variant: 'destructive', title: 'Hata', description: 'Toplu etiketler kaydedilemedi.' });
+    } finally {
+        setIsSavingTags(false);
+    }
+  };
+
+  const addBulkTag = (tag: string) => {
+    if (!tag || bulkTagsToAdd.includes(tag)) return;
+    setBulkTagsToAdd(prev => [...prev, tag]);
+    setNewBulkTagInput('');
+  };
+
+  const removeBulkTag = (tag: string) => {
+    setBulkTagsToAdd(prev => prev.filter(t => t !== tag));
+  };
+
   // Deep Link Handling: Auto-open detail if userId is provided
   useEffect(() => {
     if (userIdParam && processedParents.length > 0 && !isDetailOpen) {
@@ -255,18 +395,132 @@ function UsersPageContent() {
   };
 
   return (
-    <div className="space-y-8 font-sans">
-      <div className="flex justify-between items-end">
+    <div className="space-y-6 font-sans">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
             <h1 className="text-3xl font-black tracking-tight text-slate-900">Veli Yönetimi</h1>
             <p className="text-muted-foreground mt-1">Kayıtlı veliler, satın alma geçmişleri ve otomatik etiketler.</p>
         </div>
+        {selectedUserIds.length > 0 && (
+            <Button onClick={() => setIsBulkTagOpen(true)} className="h-11 rounded-xl font-bold bg-primary hover:bg-primary/90 text-white shadow-sm px-6">
+                <Tags className="w-4 h-4 mr-2" /> Toplu Etiket ({selectedUserIds.length})
+            </Button>
+        )}
+      </div>
+
+      <div className="bg-white p-4 rounded-[24px] shadow-sm border border-slate-100 space-y-4">
+        <div className="flex flex-col lg:flex-row gap-4">
+          <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+              <Input 
+                  placeholder="İsim, Şifre veya E-posta Ara..." 
+                  className="pl-10 h-11 rounded-xl border-slate-200 shadow-none font-medium bg-slate-50/50 focus:bg-white transition-colors" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+              />
+          </div>
+          
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="h-11 rounded-xl border-slate-200 font-bold gap-2 px-4 shrink-0">
+                <TagIcon className="w-4 h-4" />
+                Etiket Filtre ({selectedTags.length})
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-2 rounded-2xl shadow-2xl border-none">
+              <div className="p-2 space-y-2">
+                <div className="flex items-center justify-between pb-2 border-b">
+                    <span className="text-[10px] font-black text-slate-400 uppercase">Etiketleri Seç</span>
+                    <Button variant="ghost" size="sm" className="h-6 text-[10px] font-bold py-0" onClick={() => setSelectedTags([])}>Temizle</Button>
+                </div>
+                <div className="max-h-64 overflow-y-auto space-y-1 pt-1">
+                  {allAvailableTags.map(tag => (
+                    <div key={tag} className="flex items-center gap-2 px-2 py-1 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors" onClick={() => {
+                        setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+                    }}>
+                      <Checkbox checked={selectedTags.includes(tag)} />
+                      <Badge variant="secondary" className={cn("text-[9px] px-2 py-0.5 border-none font-bold uppercase tracking-tighter", tagStyles[tag] || 'bg-slate-100 text-slate-500')}>
+                          {tag}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="h-11 rounded-xl border-slate-200 font-bold gap-2 px-4 shrink-0">
+                <Filter className="w-4 h-4" />
+                Gelişmiş Filtreler
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-6 rounded-[24px] shadow-2xl border-none space-y-6">
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-black text-slate-900 uppercase tracking-tighter">Kayıt Tarihi Aralığı</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                            <Label className="text-[9px] text-slate-400 uppercase font-black">Başlangıç</Label>
+                            <Input type="date" value={regStartDate} onChange={e => setRegStartDate(e.target.value)} className="h-9 text-xs rounded-lg" />
+                        </div>
+                        <div className="space-y-1">
+                            <Label className="text-[9px] text-slate-400 uppercase font-black">Bitiş</Label>
+                            <Input type="date" value={regEndDate} onChange={e => setRegEndDate(e.target.value)} className="h-9 text-xs rounded-lg" />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="space-y-4 pt-4 border-t">
+                    <div className="flex items-center gap-2">
+                        <ShoppingBag className="w-4 h-4 text-emerald-500" />
+                        <span className="text-xs font-black text-slate-900 uppercase tracking-tighter">Son Satın Alma Aralığı</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                            <Label className="text-[9px] text-slate-400 uppercase font-black">Başlangıç</Label>
+                            <Input type="date" value={purchaseStartDate} onChange={e => setPurchaseStartDate(e.target.value)} className="h-9 text-xs rounded-lg" />
+                        </div>
+                        <div className="space-y-1">
+                            <Label className="text-[9px] text-slate-400 uppercase font-black">Bitiş</Label>
+                            <Input type="date" value={purchaseEndDate} onChange={e => setPurchaseEndDate(e.target.value)} className="h-9 text-xs rounded-lg" />
+                        </div>
+                    </div>
+                </div>
+
+                <Button 
+                    variant="secondary" 
+                    className="w-full rounded-xl h-10 font-bold text-xs" 
+                    onClick={() => {
+                        setRegStartDate(''); setRegEndDate('');
+                        setPurchaseStartDate(''); setPurchaseEndDate('');
+                        setSelectedTags([]);
+                    }}
+                > Tüm Filtreleri Sıfırla </Button>
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        {selectedTags.length > 0 && (
+            <div className="flex flex-wrap gap-2 pt-2 items-center">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">Aktif Filtreler:</span>
+                {selectedTags.map(tag => (
+                    <Badge key={tag} className="bg-primary/10 text-primary hover:bg-primary/20 border-none font-bold gap-1 pl-2 pr-1 py-0.5 rounded-full">
+                        {tag}
+                        <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedTags(prev => prev.filter(t => t !== tag))} />
+                    </Badge>
+                ))}
+            </div>
+        )}
       </div>
 
       <Card className="border-none shadow-xl overflow-hidden rounded-[24px]">
         <CardHeader className="bg-white border-b pb-6">
           <CardTitle className="text-lg flex items-center gap-2 text-slate-800">
-            <User className="w-5 h-5 text-primary" /> Veliler ({processedParents.length})
+            <User className="w-5 h-5 text-primary" /> Veliler ({filteredParents.length})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -279,18 +533,33 @@ function UsersPageContent() {
             <Table>
               <TableHeader className="bg-slate-50/50">
                 <TableRow className="hover:bg-transparent border-slate-100">
-                  <TableHead className="font-bold text-slate-500 py-5 pl-8">Veli Bilgisi</TableHead>
+                  <TableHead className="w-[40px] pl-6">
+                      <Checkbox 
+                          checked={selectedUserIds.length > 0 && selectedUserIds.length === filteredParents.length}
+                          onCheckedChange={handleSelectAll}
+                      />
+                  </TableHead>
+                  <TableHead className="font-bold text-slate-500 py-5">Veli Bilgisi</TableHead>
                   <TableHead className="font-bold text-slate-500">Ülke</TableHead>
                   <TableHead className="font-bold text-slate-500">Kayıt Tarihi</TableHead>
                   <TableHead className="font-bold text-slate-500">Son Satın Alım</TableHead>
                   <TableHead className="font-bold text-slate-500">Etiketler</TableHead>
-                  <TableHead className="w-[80px] text-right pr-8"></TableHead>
+                  <TableHead className="w-[80px] text-right pr-6"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {processedParents.map((parent) => (
-                  <TableRow key={parent.id} className="hover:bg-slate-50/30 transition-colors border-slate-100">
-                    <TableCell className="py-5 pl-8">
+                {filteredParents.map((parent) => (
+                  <TableRow key={parent.id} className={cn("hover:bg-slate-50/30 transition-colors border-slate-100", selectedUserIds.includes(parent.id) && "bg-slate-50")}>
+                    <TableCell className="pl-6">
+                        <Checkbox 
+                            checked={selectedUserIds.includes(parent.id)}
+                            onCheckedChange={(checked) => {
+                                if (checked) setSelectedUserIds(prev => [...prev, parent.id]);
+                                else setSelectedUserIds(prev => prev.filter(id => id !== parent.id));
+                            }}
+                        />
+                    </TableCell>
+                    <TableCell className="py-5">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-bold text-xs shrink-0">
                             {parent.firstName?.[0]}{parent.lastName?.[0]}
@@ -298,7 +567,20 @@ function UsersPageContent() {
                         <div className="flex flex-col min-w-0">
                             <span className="font-bold text-slate-700 truncate">{parent.firstName} {parent.lastName}</span>
                             <span className="text-[10px] text-slate-400 font-medium lowercase truncate">{parent.email}</span>
-                            <span className="text-[9px] font-mono text-slate-300 select-all uppercase">ID: {parent.shortId || parent.id.substring(0, 8).toUpperCase()}</span>
+                            <div className="flex items-center gap-1 group/id">
+                                <span className="text-[9px] font-mono text-slate-300 select-all uppercase">ID: {parent.shortId || parent.id.substring(0, 8).toUpperCase()}</span>
+                                <button 
+                                    onClick={(e) => { 
+                                        e.stopPropagation();
+                                        navigator.clipboard.writeText(parent.id); 
+                                        toast({ title: 'Kopyalandı', description: 'Veli ID kopyalandı.' }); 
+                                    }}
+                                    className="opacity-0 group-hover/id:opacity-100 transition-opacity text-slate-300 hover:text-primary"
+                                    title="ID Kopyala"
+                                >
+                                    <Copy className="w-2.5 h-2.5" />
+                                </button>
+                            </div>
                         </div>
                       </div>
                     </TableCell>
@@ -587,6 +869,78 @@ function UsersPageContent() {
         </DialogContent>
       </Dialog>
 
+      {/* BULK TAGS DIALOG */}
+      <Dialog open={isBulkTagOpen} onOpenChange={setIsBulkTagOpen}>
+        <DialogContent className="max-w-md rounded-[24px] p-8">
+            <DialogHeader>
+                <DialogTitle className="text-2xl font-black">Toplu Etiket Ekle</DialogTitle>
+                <DialogDescription className="font-medium">
+                    Seçili {selectedUserIds.length} veliye yeni etiketleri ekleyin.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-8 py-6">
+                <div className="space-y-4">
+                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Önerilen Etiketler</Label>
+                    <div className="flex flex-wrap gap-2">
+                        {SUGGESTED_TAGS.map(tag => (
+                            <button
+                                key={tag}
+                                onClick={() => addBulkTag(tag)}
+                                disabled={bulkTagsToAdd.includes(tag)}
+                                className={cn(
+                                    "px-3 py-1.5 rounded-full text-xs font-bold transition-all border",
+                                    bulkTagsToAdd.includes(tag) 
+                                        ? "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed" 
+                                        : "bg-white text-slate-600 border-slate-200 hover:border-primary hover:text-primary"
+                                )}
+                            >
+                                + {tag}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="space-y-4">
+                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Eklenecek Etiketler</Label>
+                    <div className="flex flex-wrap gap-2 min-h-[40px] p-4 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                        {bulkTagsToAdd.length === 0 && (
+                            <span className="text-xs text-slate-400 italic">Henüz etiket eklenmemiş.</span>
+                        )}
+                        {bulkTagsToAdd.map(tag => (
+                            <Badge key={tag} className="bg-primary text-white font-bold gap-1 pl-3 pr-1 py-1 rounded-full group">
+                                {tag}
+                                <button onClick={() => removeBulkTag(tag)} className="p-0.5 hover:bg-white/20 rounded-full transition-colors">
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            </Badge>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="space-y-3">
+                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Yeni Etiket Ekle</Label>
+                    <div className="flex gap-2">
+                        <input 
+                            placeholder="Örn: kampanya-mart" 
+                            className="flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm font-bold ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            value={newBulkTagInput}
+                            onChange={e => setNewBulkTagInput(e.target.value)}
+                            onKeyDown={e => { if(e.key === 'Enter') { e.preventDefault(); addBulkTag(newBulkTagInput); } }}
+                        />
+                        <Button className="rounded-xl h-11 px-6 font-bold" onClick={() => addBulkTag(newBulkTagInput)}>Ekle</Button>
+                    </div>
+                </div>
+            </div>
+            <DialogFooter className="gap-3">
+                <Button variant="outline" className="flex-1 h-12 rounded-xl font-bold border-2" onClick={() => setIsBulkTagOpen(false)}>Vazgeç</Button>
+                <Button className="flex-1 h-12 rounded-xl font-bold" onClick={handleBulkUpdateTags} disabled={isSavingTags}>
+                    {isSavingTags ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+                    Toplu Kaydet
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* CHILD PROGRESS DIALOG */}
       <Dialog open={isChildProgressOpen} onOpenChange={setIsChildProgressOpen}>
         <DialogContent className="max-w-5xl h-[90vh] p-0 overflow-hidden rounded-[32px] border-none shadow-2xl">
@@ -604,6 +958,7 @@ function UsersPageContent() {
                     <ProgressPanel 
                         child={selectedChildForProgress} 
                         isEditable={true} 
+                        authorRole="admin"
                     />
                 )}
             </div>

@@ -33,7 +33,8 @@ import {
   Wallet, 
   Gift, 
   GraduationCap,
-  CheckCircle2
+  CheckCircle2,
+  Package
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -165,7 +166,7 @@ function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUp
                 </div>
 
                 <div className='flex justify-between items-center'>
-                    <span className='text-slate-500 font-medium text-[15px]'>Paket:</span>
+                    <span className='text-slate-500 font-medium text-[15px]'>Kurs:</span>
                     {currentCourse ? (
                         <span className="font-bold text-white bg-[#4CAF50] px-3 py-1 rounded-full text-[13px]">
                             {currentCourse.title.split('(')[0].trim()}
@@ -196,11 +197,24 @@ function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUp
                 )}
                 
                 {!isProfileIncomplete && (
-                    <div className="pt-2">
+                    <div className="pt-3 flex items-center justify-center gap-3">
+                        {child.assignedPackage && child.remainingLessons > 0 ? (
+                            <Button asChild className="h-10 px-5 text-[13px] font-bold rounded-xl shadow-sm bg-[#4CAF50] text-white hover:bg-[#388E3C] w-auto" variant="default" onClick={(e) => e.stopPropagation()}>
+                                <Link href={`/ebeveyn-portali/ders-planla?childId=${child.id}`}>
+                                    <Calendar className="w-4 h-4 mr-1.5" /> Planla
+                                </Link>
+                            </Button>
+                        ) : (
+                            <Button asChild className="h-10 px-5 text-[13px] font-bold rounded-xl shadow-sm bg-orange-500 hover:bg-orange-600 text-white w-auto" variant="default" onClick={(e) => e.stopPropagation()}>
+                                <Link href="/ebeveyn-portali/paketlerim">
+                                    <Package className="w-4 h-4 mr-1.5" /> Ata
+                                </Link>
+                            </Button>
+                        )}
                         <Dialog>
                             <DialogTrigger asChild>
-                                <Button variant="outline" className="w-full h-12 text-slate-700 font-semibold text-[15px] rounded-xl gap-2 border-slate-200 bg-white hover:bg-slate-50" onClick={(e) => e.stopPropagation()}>
-                                    <FileText className="h-5 w-5" /> İlerleme Paneli
+                                <Button variant="outline" className="h-10 px-5 text-slate-700 font-bold text-[13px] rounded-xl gap-1.5 border-slate-200 bg-white hover:bg-slate-50 w-auto" onClick={(e) => e.stopPropagation()}>
+                                    <FileText className="h-4 w-4" /> Rapor
                                 </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-5xl h-[90vh]">
@@ -271,9 +285,9 @@ export default function EbeveynPortaliPage() {
       });
     }
 
-    // 2. Yeni Tamamlanan Ders (Geçmiş 48 saat)
+    // 2. Yeni Tamamlanan Ders (Geçmiş 24 saat)
     const lastCompleted = slots
-      .filter(s => isBefore(s.startTime.toDate(), now) && isAfter(s.startTime.toDate(), subHours(now, 48)))
+      .filter(s => isBefore(s.startTime.toDate(), now) && isAfter(s.startTime.toDate(), subHours(now, 24)))
       .sort((a, b) => b.startTime.seconds - a.startTime.seconds)[0];
     
     if (lastCompleted) {
@@ -305,9 +319,9 @@ export default function EbeveynPortaliPage() {
         }
     });
 
-    // 4. Son Geri Bildirim
+    // 4. Son Geri Bildirim (Geçmiş 24 saat)
     const lastFeedback = slots
-      .filter(s => s.feedback && isBefore(s.startTime.toDate(), now))
+      .filter(s => s.feedback && isBefore(s.startTime.toDate(), now) && isAfter(s.startTime.toDate(), subHours(now, 24)))
       .sort((a, b) => b.startTime.seconds - a.startTime.seconds)[0];
     
     if (lastFeedback) {
@@ -355,103 +369,79 @@ export default function EbeveynPortaliPage() {
 
   return (
     <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20">
-      <div className="flex items-center justify-between">
-        <div>
-            <h2 className="text-3xl font-black tracking-tight text-slate-900">Hoş geldiniz, {user.displayName?.split(' ')[0]}! 👋</h2>
-            <p className="text-muted-foreground font-medium">Türkçe serüveninizde bugün neler var?</p>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+        <div className="flex-1 w-full text-left">
+            <h2 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900">Hoş geldiniz, {user.displayName?.split(' ')[0]}! 👋</h2>
+            <p className="text-muted-foreground font-medium mt-2 text-lg">Türkçe serüveninizde bugün neler var?</p>
+        </div>
+
+        <div className="w-full lg:w-1/4 shrink-0">
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Card className="border-primary/20 shadow-sm bg-white overflow-hidden flex flex-col cursor-pointer group hover:border-primary transition-colors min-h-[100px] justify-center text-left">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 shrink-0">
+                            <div className="flex-1 w-full min-w-0 pr-2">
+                                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                    <Bell className="h-4 w-4 text-primary animate-pulse shrink-0" /> Bildirimler 
+                                    {notifications.length > 1 && <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1 shrink-0">+{notifications.length - 1}</Badge>}
+                                </CardTitle>
+                                <div className="mt-3">
+                                    {notifications.length > 0 ? (
+                                        <div className="flex items-start gap-2 max-w-full">
+                                            <div className={cn("p-1.5 rounded-lg shrink-0 mt-0.5", notifications[0].color)}>
+                                                {notifications[0].icon}
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-xs font-bold truncate text-slate-800">{notifications[0].title}</p>
+                                                <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5 whitespace-normal">{notifications[0].text}</p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-slate-500 font-medium">Yeni bildirim yok.</p>
+                                    )}
+                                </div>
+                            </div>
+                            <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary transition-colors" />
+                        </CardHeader>
+                    </Card>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2"><Bell className="h-5 w-5 text-primary" /> Bildirim Detayları</DialogTitle>
+                        <DialogDescription>Aktif bildirimleriniz ve öğretmen notlarınız.</DialogDescription>
+                    </DialogHeader>
+                    <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-4 py-4">
+                        {notifications.length > 0 ? notifications.map((notif) => (
+                            <div key={notif.id} className="p-4 rounded-xl border bg-card hover:bg-accent transition-colors cursor-pointer" onClick={() => router.push(notif.path)}>
+                                <div className="flex items-start gap-4">
+                                    <div className={cn("p-2 rounded-lg", notif.color)}>{notif.icon}</div>
+                                    <div className="space-y-1 flex-1">
+                                        <div className="flex justify-between items-start">
+                                            <p className="text-sm font-bold leading-none">{notif.title}</p>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground leading-relaxed mt-2">{notif.fullText || notif.text}</p>
+                                        <Button variant="link" className="p-0 h-auto text-xs font-bold text-primary" onClick={(e) => { e.stopPropagation(); router.push(notif.path); }}>
+                                            Detayı Gör <ArrowRight className="ml-1 h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        )) : (
+                            <div className="text-center py-8">
+                                <Bell className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
+                                <p className="text-muted-foreground">Şu an gösterilecek bir bildirim bulunmuyor.</p>
+                            </div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 auto-rows-fr">
-        <StatCard title="Kalan Toplam Ders" value={totalUnassignedLessons} icon={BookOpen} unit="Ders" />
-        <StatCard title="Cüzdan & Puan" value="" icon={Wallet}>
-            <div className="space-y-1">
-                <p className="text-xl font-black text-slate-900">{balance.toFixed(2)}€</p>
-                <div className="flex items-center justify-between text-[10px] font-bold uppercase text-yellow-600">
-                    <span>{points} Puan</span>
-                    <Link href="/ebeveyn-portali/puan-merkezi" className="text-primary hover:underline">Mağaza &gt;</Link>
-                </div>
-            </div>
-        </StatCard>
-        <StatCard title="Toplam Çocuk" value={children?.length || 0} icon={Users} />
-        
-        <Dialog>
-            <DialogTrigger asChild>
-                <Card className="col-span-1 border-primary/20 shadow-lg bg-white overflow-hidden flex flex-col cursor-pointer group hover:border-primary transition-colors">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-primary/5 shrink-0">
-                        <CardTitle className="text-sm font-bold flex items-center gap-2">
-                            <Bell className="h-4 w-4 text-primary animate-pulse" /> Bildirimler 
-                            {notifications.length > 0 && <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1">{notifications.length}</Badge>}
-                        </CardTitle>
-                        <ArrowUpRight className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors" />
-                    </CardHeader>
-                    <CardContent className="p-0 flex-1 relative bg-slate-50/30 overflow-hidden">
-                        {notifications.length > 0 ? (
-                            <div className="h-full divide-y divide-slate-100 flex flex-col">
-                                {notifications.slice(0, 2).map((notif) => (
-                                    <div key={notif.id} className="p-3 hover:bg-white transition-colors border-b last:border-0">
-                                        <div className="flex items-start gap-3">
-                                            <div className={cn("mt-1 p-1.5 rounded-lg shrink-0", notif.color)}>{notif.icon}</div>
-                                            <div className="space-y-0.5">
-                                                <p className="text-[11px] leading-tight text-slate-800 font-bold">{notif.title}</p>
-                                                <p className="text-[10px] text-slate-600 leading-snug line-clamp-1">{notif.text}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                                {notifications.length > 2 && (
-                                    <div className="p-2 text-center bg-slate-100/50">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                            +{notifications.length - 2} BİLDİRİM DAHA VAR • GÖRMEK İÇİN TIKLAYIN
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-                                <Bell className="h-8 w-8 text-slate-200 mb-2" />
-                                <p className="text-xs text-slate-400 font-medium">Yeni bildirim yok.</p>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2"><Bell className="h-5 w-5 text-primary" /> Bildirim Detayları</DialogTitle>
-                    <DialogDescription>Aktif bildirimleriniz ve öğretmen notlarınız.</DialogDescription>
-                </DialogHeader>
-                <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-4 py-4">
-                    {notifications.length > 0 ? notifications.map((notif) => (
-                        <div key={notif.id} className="p-4 rounded-xl border bg-card hover:bg-accent transition-colors cursor-pointer" onClick={() => router.push(notif.path)}>
-                            <div className="flex items-start gap-4">
-                                <div className={cn("p-2 rounded-lg", notif.color)}>{notif.icon}</div>
-                                <div className="space-y-1 flex-1">
-                                    <div className="flex justify-between items-start">
-                                        <p className="text-sm font-bold leading-none">{notif.title}</p>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground leading-relaxed mt-2">{notif.fullText || notif.text}</p>
-                                    <Button variant="link" className="p-0 h-auto text-xs font-bold text-primary" onClick={(e) => { e.stopPropagation(); router.push(notif.path); }}>
-                                        Detayı Gör <ArrowRight className="ml-1 h-3 w-3" />
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    )) : (
-                        <div className="text-center py-8">
-                            <Bell className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
-                            <p className="text-muted-foreground">Şu an gösterilecek bir bildirim bulunmuyor.</p>
-                        </div>
-                    )}
-                </div>
-            </DialogContent>
-        </Dialog>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-           <Card className="p-6 bg-gradient-to-br from-green-100 to-teal-100 border-green-200 hover:shadow-lg transition-all cursor-pointer group" onClick={() => router.push('/ebeveyn-portali/ders-planla')}>
-              <h3 className="text-xl font-black flex items-center gap-2 text-slate-800"><Rocket className="text-green-600 group-hover:scale-110 transition-transform"/> Ders Planla</h3>
-              <p className="text-xs text-slate-600 mt-2 font-medium">Yeni dersler planlayın veya mevcutları yönetin.</p>
+           <Card className="p-6 bg-gradient-to-br from-green-100 to-teal-100 border-green-200 hover:shadow-lg transition-all cursor-pointer group rounded-2xl" onClick={() => router.push('/ebeveyn-portali/paketlerim')}>
+              <h3 className="text-xl font-black flex items-center gap-2 text-slate-800"><Package className="text-green-600 group-hover:scale-110 transition-transform"/> Kurslarım</h3>
+              <p className="text-xs text-slate-600 mt-2 font-medium">Satın alma geçmişiniz ve havuzunuz.</p>
               <ArrowRight className="mt-4 text-green-600 group-hover:translate-x-2 transition-transform" />
             </Card>
 
@@ -468,8 +458,8 @@ export default function EbeveynPortaliPage() {
             </Card>
 
             <Card className="p-6 bg-gradient-to-br from-orange-100 to-amber-100 border-orange-200 hover:shadow-lg transition-all cursor-pointer group" onClick={() => router.push('/kurslar')}>
-                <h3 className="text-xl font-black flex items-center gap-2 text-slate-800"><CreditCard className="text-orange-600 group-hover:scale-110 transition-transform"/> Paket Al</h3>
-                <p className="text-xs text-slate-600 mt-2 font-medium">İhtiyacınıza uygun yeni paketler seçin.</p>
+                <h3 className="text-xl font-black flex items-center gap-2 text-slate-800"><CreditCard className="text-orange-600 group-hover:scale-110 transition-transform"/> Kurs Al</h3>
+                <p className="text-xs text-slate-600 mt-2 font-medium">İhtiyacınıza uygun yeni kurslar seçin.</p>
                 <ArrowRight className="mt-4 text-orange-600 group-hover:translate-x-2 transition-transform" />
             </Card>
         </div>

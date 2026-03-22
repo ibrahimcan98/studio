@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { addMonths } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useCart, currencyDetails } from "@/context/cart-context";
 import { 
     Dialog, 
     DialogContent, 
@@ -64,8 +65,13 @@ export default function PremiumPage() {
     const db = useFirestore();
     const router = useRouter();
     const { toast } = useToast();
+    const { exchangeRates, selectedCurrency } = useCart();
     const [isProcessing, setIsProcessing] = useState(false);
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+    const rate = exchangeRates[selectedCurrency] || 1;
+    const symbol = currencyDetails[selectedCurrency]?.symbol || selectedCurrency;
+    const localPrice = 14.00 * rate;
+    const formatPrice = (price: number) => price.toFixed(2);
 
 
     const userDocRef = useMemoFirebase(() => {
@@ -81,8 +87,8 @@ export default function PremiumPage() {
         }
     }, [isUserDataLoading, userData, router]);
 
-    const handlePurchase = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handlePurchase = async (e?: React.MouseEvent | React.FormEvent) => {
+        if (e) e.preventDefault();
 
         if (!user || !db) {
             toast({
@@ -96,54 +102,36 @@ export default function PremiumPage() {
 
         setIsProcessing(true);
 
-        const userDocRef = doc(db, 'users', user.uid);
-
         try {
-            // Simulate payment processing
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            const now = new Date();
-            const endDate = addMonths(now, 1);
-
-            // Transaction log for admin
-            const transactionRef = collection(db, "transactions");
-            await addDoc(transactionRef, {
-                userId: user.uid,
-                userName: user.displayName,
-                userEmail: user.email,
-                amountEur: 14.00,
-                type: 'premium',
-                createdAt: serverTimestamp(),
-                items: [{ name: "Aylık Premium Üyelik", quantity: 1, priceEur: 14.00 }]
-            });
-
-            await updateDoc(userDocRef, {
-                isPremium: true,
-                premiumStartDate: now.toISOString(),
-                premiumEndDate: endDate.toISOString(),
-            });
-
-            toast({
-                title: 'Tebrikler! 🎉',
-                description: 'Premium üyeliğiniz başarıyla aktif edildi.',
-                className: 'bg-green-500 text-white',
+            // Stripe Checkout Oturumuna Yönlendirme
+            const res = await fetch('/api/checkout_sessions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    items: [{ id: 'premium-monthly', name: 'Aylık Premium Üyelik', description: 'Sınırsız can ve tüm kategorilere erişim', price: localPrice, quantity: 1 }],
+                    currency: selectedCurrency.toLowerCase(),
+                    customerEmail: user.email,
+                })
             });
             
-            setIsDialogOpen(false);
-            router.push('/ebeveyn-portali');
+            const data = await res.json();
+            if (data.url) {
+                window.location.href = data.url;
+            } else {
+                toast({ variant: 'destructive', title: 'Stripe Hatası', description: data.error || 'Ödeme sayfasına yönlendirilemedi.' });
+                setIsProcessing(false);
+            }
 
         } catch (error) {
             console.error("Premium purchase error: ", error);
             toast({
                 variant: 'destructive',
                 title: 'Bir hata oluştu',
-                description: 'Premium üyelik aktif edilirken bir sorun yaşandı. Lütfen tekrar deneyin.',
+                description: 'Premium üyelik işlemi başlatılırken bir sorun yaşandı. Lütfen tekrar deneyin.',
             });
-        } finally {
-             setIsProcessing(false);
+            setIsProcessing(false);
         }
     };
-
 
     if (isUserDataLoading || userData?.isPremium) {
         return (
@@ -164,14 +152,12 @@ export default function PremiumPage() {
                 </div>
                 
                 <div className="flex justify-center mb-16">
-                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                        <DialogTrigger asChild>
-                             <Card className={cn(`flex flex-col h-full transition-all shadow-lg w-full max-w-sm cursor-pointer`, 'border-primary border-2 transform lg:-translate-y-4 bg-gradient-to-br from-yellow-300 to-orange-400 text-white' )}>
+                             <Card className={cn(`flex flex-col h-full transition-all shadow-lg w-full max-w-sm`, 'border-primary border-2 transform lg:-translate-y-4 bg-gradient-to-br from-yellow-300 to-orange-400 text-white' )}>
                                 <CardHeader className="items-center text-center">
                                     <Badge className="mb-4 bg-white text-orange-500 hover:bg-white/90">Aylık Plan</Badge>
                                     <CardTitle className="text-2xl">Premium</CardTitle>
                                     <div className="flex items-baseline gap-2 mt-4">
-                                    <span className="text-4xl font-extrabold">14 €</span>
+                                    <span className="text-3xl font-extrabold">{symbol}{formatPrice(localPrice)}</span>
                                     <span className={cn("font-semibold", "text-white/80")}>/ ay</span>
                                     </div>
                                 </CardHeader>
@@ -185,63 +171,15 @@ export default function PremiumPage() {
                                 </CardContent>
                                 <CardFooter>
                                     <Button
-                                        className={cn("w-full font-bold", 'bg-white text-orange-500 hover:bg-gray-100')}
+                                        className={cn("w-full font-bold h-12 text-md", 'bg-white text-orange-500 hover:bg-gray-100')}
                                         disabled={isProcessing}
+                                        onClick={handlePurchase}
                                     >
-                                        <Crown className="mr-2 h-5 w-5" />
-                                        Şimdi Premium Ol
+                                        {isProcessing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Crown className="mr-2 h-5 w-5" />}
+                                        {isProcessing ? 'Stripe\'a Yönlendiriliyor...' : 'Şimdi Premium Ol'}
                                     </Button>
                                 </CardFooter>
                             </Card>
-                        </DialogTrigger>
-                        <DialogContent>
-                             <DialogHeader>
-                                <DialogTitle>Ödeme Bilgileri</DialogTitle>
-                                <DialogDescription>
-                                    Premium üyelik için ödeme bilgilerinizi girin.
-                                </DialogDescription>
-                            </DialogHeader>
-                             <form onSubmit={handlePurchase}>
-                                <Alert variant="destructive" className="mb-4 bg-yellow-50 border-yellow-200 text-yellow-800 [&>svg]:text-yellow-600">
-                                  <AlertTriangle className="h-4 w-4" />
-                                  <AlertTitle>Test Modu</AlertTitle>
-                                  <AlertDescription>
-                                    Bu bir simülasyondur. Gerçek bir ödeme alınmayacaktır.
-                                  </AlertDescription>
-                                </Alert>
-                                <div className="space-y-4 py-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="card-number">Kart Numarası</Label>
-                                        <Input id="card-number" placeholder="•••• •••• •••• ••••" required disabled={isProcessing} />
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <div className="space-y-2 col-span-2">
-                                            <Label htmlFor="expiry-date">Son Kullanma Tarihi</Label>
-                                            <Input id="expiry-date" placeholder="AA / YY" required disabled={isProcessing} />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="cvc">CVC</Label>
-                                            <Input id="cvc" placeholder="•••" required disabled={isProcessing} />
-                                        </div>
-                                    </div>
-                                        <div className="space-y-2">
-                                        <Label htmlFor="card-holder">Kart Sahibi</Label>
-                                        <Input id="card-holder" placeholder="Ad Soyad" required disabled={isProcessing} />
-                                    </div>
-                                </div>
-                                <DialogFooter>
-                                    <Button type="submit" className="w-full" disabled={isProcessing}>
-                                         {isProcessing ? (
-                                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                        ) : (
-                                            <CreditCard className="mr-2" />
-                                        )}
-                                        {isProcessing ? 'İşleniyor...' : '14 € Ödemeyi Onayla ve Abone Ol'}
-                                    </Button>
-                                </DialogFooter>
-                            </form>
-                        </DialogContent>
-                    </Dialog>
                 </div>
 
 

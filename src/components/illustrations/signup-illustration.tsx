@@ -24,21 +24,21 @@ export function SignUpIllustration() {
           <div className="absolute w-[75%] h-[75%] border border-dotted border-slate-200 rounded-full animate-[spin_40s_linear_infinite_reverse] opacity-50" />
         </div>
 
-        {/* MERKEZ: TÜRK BAYRAĞI (Boyutu küçültüldü ve sağa kaydırıldı) */}
+        {/* MERKEZ: TÜRK BAYRAĞI (Kalp) */}
         <div className="absolute top-1/2 left-1/2 -translate-x-[40%] -translate-y-1/2 z-30">
           <motion.div 
             whileHover={{ scale: 1.05 }}
-            className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-white shadow-[0_20px_60px_rgba(239,68,68,0.4)] flex items-center justify-center p-1 border-4 border-white overflow-hidden"
+            className="w-24 h-24 md:w-32 md:h-32 filter drop-shadow-[0_20px_40px_rgba(239,68,68,0.5)] text-red-600"
           >
-            <div className="relative w-full h-full rounded-full overflow-hidden bg-red-600">
-               <Image 
-                  src="/turkbayragi.png" 
-                  alt="Türk Bayrağı"
-                  fill
-                  className="object-contain p-2"
-                  priority
-                />
-            </div>
+            <svg viewBox="0 0 24 24" className="w-full h-full overflow-visible">
+              <defs>
+                <clipPath id="heart-mask-signup">
+                  <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                </clipPath>
+              </defs>
+              <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" fill="currentColor" stroke="white" strokeWidth="1.5" />
+              <image href="/turkbayragi.png" x="2" y="3.5" width="20" height="15" preserveAspectRatio="xMidYMid slice" clipPath="url(#heart-mask-signup)" />
+            </svg>
           </motion.div>
         </div>
 

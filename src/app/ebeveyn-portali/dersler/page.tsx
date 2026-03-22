@@ -101,31 +101,29 @@ function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZon
 
 
     return (
-        <Card className='flex flex-col bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow'>
+        <Card className='flex flex-col h-full bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow'>
             <CardHeader className="pb-4">
-                <CardTitle className="flex justify-between items-start">
-                    <span className="text-lg font-bold">{packageDetails?.courseName || 'Ders'}</span>
-                     <Badge variant={isPast ? "outline" : "default"} className={cn(isPast ? "" : "bg-green-100 text-green-800", lesson.isLive && !isPast && "bg-red-500 text-white animate-pulse")}>
+                <CardTitle className="flex justify-between items-start gap-2">
+                    <span className="text-lg font-bold leading-tight">
+                        {formatInTimeZone(lesson.startTime, timeZone, 'dd MMMM yyyy', { locale: tr })} | {startTimeStr} - {endTimeStr}
+                    </span>
+                     <Badge variant={isPast ? "outline" : "default"} className={cn(isPast ? "" : "bg-green-100 text-green-800 shrink-0", lesson.isLive && !isPast && "bg-red-500 text-white animate-pulse")}>
                         {isPast ? 'Tamamlandı' : (lesson.isLive ? 'Canlı Yayında' : 'Yaklaşıyor')}
                     </Badge>
                 </CardTitle>
-                <CardDescription className="text-xs font-semibold">
-                    {formatInTimeZone(lesson.startTime, timeZone, 'dd MMMM yyyy, ', { locale: tr })}
-                    {startTimeStr} - {endTimeStr}
-                </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3 text-xs flex-grow pb-4">
+            <CardContent className="space-y-3 text-xs flex-grow pb-4 text-muted-foreground">
                 <div className="flex items-center gap-2">
                     <Baby className="w-3.5 h-3.5 text-primary" />
-                    <span><strong>Öğrenci:</strong> {childData?.firstName}</span>
+                    <span><strong className="text-slate-700">Öğrenci:</strong> {childData?.firstName}</span>
                 </div>
                  <div className="flex items-center gap-2">
-                    <User className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span><strong>Öğretmen:</strong> {teacher?.firstName} {teacher?.lastName}</span>
+                    <User className="w-3.5 h-3.5" />
+                    <span><strong className="text-slate-700">Öğretmen:</strong> {teacher?.firstName} {teacher?.lastName}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span><strong>Paket:</strong> {lesson.packageCode === 'FREE_TRIAL' ? 'Ücretsiz Deneme' : packageDetails?.courseName}</span>
+                    <BookOpen className="w-3.5 h-3.5" />
+                    <span><strong className="text-slate-700">Kurs:</strong> {lesson.packageCode === 'FREE_TRIAL' ? 'Ücretsiz Deneme' : packageDetails?.courseName}</span>
                 </div>
 
                 {!isPast && (
@@ -139,7 +137,7 @@ function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZon
                     </div>
                 )}
             </CardContent>
-            <CardFooter className="flex flex-col items-start gap-3 pt-4 bg-slate-50/50">
+            <CardFooter className="flex flex-col items-start gap-3 pt-4 bg-slate-50/50 mt-auto">
                  {!isPast && (
                     <Button onClick={handleJoinLesson} disabled={!canJoin} className={cn("w-full font-bold", canJoin && "bg-red-600 hover:bg-red-700")}>
                         <Video className="w-4 h-4 mr-2" />
@@ -150,6 +148,12 @@ function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZon
                     <Button variant="outline" className="w-full font-bold" onClick={onShowProgress}>
                         <MessageSquare className="w-4 h-4 mr-2" />
                         Geri Bildirimi Gör
+                    </Button>
+                )}
+                {isPast && !lesson.feedback && (
+                    <Button variant="outline" className="w-full font-bold opacity-70" disabled>
+                        <Clock className="w-4 h-4 mr-2" />
+                        Gelişim Raporu Bekleniyor
                     </Button>
                 )}
             </CardFooter>

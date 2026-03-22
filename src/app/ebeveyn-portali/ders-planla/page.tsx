@@ -11,7 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { toZonedTime, formatInTimeZone, format } from 'date-fns-tz';
-import { isSameDay, addMinutes, addDays, differenceInYears } from 'date-fns';
+import { isSameDay, addMinutes, addDays, startOfWeek, endOfWeek, eachDayOfInterval, startOfDay } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from '@/components/ui/label';
@@ -19,26 +19,20 @@ import timezones from '@/data/timezones.json';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { COURSES } from '@/data/courses';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { Separator } from '@/components/ui/separator';
 import { AddChildForm } from '@/components/parent-portal/add-child-form';
 import Link from 'next/link';
-
-const teachers = [
-    { id: 'O2mQCONyczVkAXcgAMBSPpeIfJw2', firstName: 'Tuba' },
-];
 
 const getCourseDetailsFromPackageCode = (code: string) => {
     if (code === 'FREE_TRIAL') return { courseName: 'Ücretsiz Deneme Dersi', duration: 30 };
@@ -83,7 +77,7 @@ function TeacherPreviewDialog({ teacherId, isOpen, onOpenChange }: { teacherId: 
                     <div className="space-y-6 py-4">
                         {teacherData.introVideoUrl && (
                             <div className="aspect-video w-full rounded-2xl overflow-hidden bg-slate-100 shadow-lg relative group">
-                                <iframe 
+                                <iframe
                                     src={teacherData.introVideoUrl.replace('watch?v=', 'embed/').replace('kapwing.com/e/', 'kapwing.com/w/')}
                                     className="w-full h-full border-none"
                                     allow="autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -123,7 +117,7 @@ function TeacherPreviewDialog({ teacherId, isOpen, onOpenChange }: { teacherId: 
                 ) : (
                     <div className="py-10 text-center text-slate-400 font-bold">Öğretmen bilgileri bulunamadı.</div>
                 )}
-                
+
                 <DialogFooter>
                     <Button onClick={() => onOpenChange(false)} className="rounded-xl w-full sm:w-auto font-bold text-base py-5 shadow-lg">Kapat</Button>
                 </DialogFooter>
@@ -141,6 +135,16 @@ export default function DersPlanlaPage() {
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
     const [isBooking, setIsBooking] = useState(false);
     const [selectedChildId, setSelectedChildId] = useState<string>('');
+    
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const childId = params.get('childId');
+            if (childId) {
+                setSelectedChildId(childId);
+            }
+        }
+    }, []);
     const [selectedPackage, setSelectedPackage] = useState<string>('');
     const [bookingMode, setBookingMode] = useState<'free' | 'paid'>('paid');
     const [selectedTimeZone, setSelectedTimeZone] = useState<string>('');
@@ -148,7 +152,8 @@ export default function DersPlanlaPage() {
     const [selectedSlot, setSelectedSlot] = useState<{ id: string, startTime: Timestamp, teacherId: string } | null>(null);
     const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
     const [isTeacherPreviewOpen, setIsTeacherPreviewOpen] = useState(false);
-    const [expandedHour, setExpandedHour] = useState<string | null>(null);
+    const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }));
+    const [hoveredSlot, setHoveredSlot] = useState<string | null>(null);
 
     const userDocRef = useMemoFirebase(() => (user && db) ? doc(db, 'users', user.uid) : null, [user, db]);
     const { data: userData } = useDoc(userDocRef);
@@ -156,8 +161,11 @@ export default function DersPlanlaPage() {
     const childrenRef = useMemoFirebase(() => (db && user) ? collection(db, 'users', user.uid, 'children') : null, [db, user]);
     const { data: children, isLoading: childrenLoading, refetch: refetchChildren } = useCollection(childrenRef);
 
+    const teachersRef = useMemoFirebase(() => db ? query(collection(db, 'users'), where('role', '==', 'teacher')) : null, [db]);
+    const { data: dynamicTeachers, isLoading: teachersLoading } = useCollection(teachersRef);
+
     const selectedChildData = useMemo(() => children?.find(c => c.id === selectedChildId), [children, selectedChildId]);
-    
+
     useEffect(() => {
         if (userData?.timezone) setSelectedTimeZone(userData.timezone);
         else if (typeof window !== 'undefined') setSelectedTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
@@ -166,16 +174,17 @@ export default function DersPlanlaPage() {
     useEffect(() => {
         if (selectedChildData) {
             const canTakeFreeTrial = !selectedChildData.hasUsedFreeTrial && (userData?.freeTrialsUsed || 0) < MAX_FREE_TRIALS;
-            if (canTakeFreeTrial) { 
-                setBookingMode('free'); 
-                setSelectedPackage('FREE_TRIAL'); 
+
+            if (canTakeFreeTrial) {
+                setBookingMode('free');
+                setSelectedPackage('FREE_TRIAL');
             }
-            else if (selectedChildData.assignedPackage && selectedChildData.remainingLessons > 0) { 
-                setBookingMode('paid'); 
-                setSelectedPackage(selectedChildData.assignedPackage); 
+            else if (selectedChildData.assignedPackage && selectedChildData.remainingLessons > 0) {
+                setBookingMode('paid');
+                setSelectedPackage(selectedChildData.assignedPackage);
             } else {
                 setBookingMode('paid');
-                setSelectedPackage(''); // No active package
+                setSelectedPackage(''); 
             }
         } else {
             setSelectedPackage('');
@@ -185,41 +194,63 @@ export default function DersPlanlaPage() {
     const lessonSlotsRef = useMemoFirebase(() => (db && selectedTeacherId) ? query(collection(db, 'lesson-slots'), where('teacherId', '==', selectedTeacherId)) : null, [db, selectedTeacherId]);
     const { data: allTeacherSlots, isLoading: areSlotsLoading } = useCollection(lessonSlotsRef);
 
-    const availableSlots = useMemo(() => allTeacherSlots?.filter(slot => slot.status === 'available' && slot.startTime.toDate() > new Date()) || [], [allTeacherSlots]);
-    const availableDays = useMemo(() => availableSlots.map(slot => toZonedTime(slot.startTime.seconds * 1000, selectedTimeZone)), [availableSlots, selectedTimeZone]);
-    
-    const slotsForSelectedDate = useMemo(() => {
-        if (!availableSlots || !selectedDate || !selectedTimeZone || !selectedPackage) return [];
-        const courseDetails = getCourseDetailsFromPackageCode(selectedPackage);
-        if (!courseDetails) return [];
-        const requiredConsecutiveSlots = Math.ceil((courseDetails.duration + 5) / 5);
-        
-        const daySlots = availableSlots
-            .filter(slot => isSameDay(toZonedTime(slot.startTime.seconds * 1000, selectedTimeZone), selectedDate))
-            .sort((a, b) => a.startTime.seconds - b.startTime.seconds);
-            
-        const validStarts: any[] = [];
-        for (let i = 0; i <= daySlots.length - requiredConsecutiveSlots; i++) {
-            let isConsecutive = true;
-            for (let j = 1; j < requiredConsecutiveSlots; j++) {
-                if (daySlots[i + j].startTime.seconds - daySlots[i + j - 1].startTime.seconds !== 300) { isConsecutive = false; break; }
-            }
-            if (isConsecutive) validStarts.push(daySlots[i]);
-        }
-        return validStarts;
-    }, [availableSlots, selectedDate, selectedTimeZone, selectedPackage]);
-
-    const groupedSlotsByHour = useMemo(() => {
-        const groups: { [key: string]: any[] } = {};
-        slotsForSelectedDate.forEach(slot => {
-            const hour = formatInTimeZone(slot.startTime.toDate(), selectedTimeZone, 'HH:00');
-            if (!groups[hour]) groups[hour] = [];
-            groups[hour].push(slot);
+    const weekDays = useMemo(() => {
+        return eachDayOfInterval({
+            start: currentWeekStart,
+            end: addDays(currentWeekStart, 6)
         });
-        return groups;
-    }, [slotsForSelectedDate, selectedTimeZone]);
+    }, [currentWeekStart]);
 
-    const availableHours = useMemo(() => Object.keys(groupedSlotsByHour).sort(), [groupedSlotsByHour]);
+    const slotsByDayAndTime = useMemo(() => {
+        const map: { [key: string]: any } = {};
+        allTeacherSlots?.forEach(slot => {
+            const date = toZonedTime(slot.startTime.seconds * 1000, selectedTimeZone);
+            const dayKey = format(date, 'yyyy-MM-dd');
+            const timeKey = format(date, 'HH:mm');
+            if (!map[dayKey]) map[dayKey] = {};
+            map[dayKey][timeKey] = slot;
+        });
+        return map;
+    }, [allTeacherSlots, selectedTimeZone]);
+
+    const timeSlots = useMemo(() => {
+        const slots: string[] = [];
+        for (let h = 0; h <= 23; h++) {
+            for (let m = 0; m < 60; m += 5) {
+                slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+            }
+        }
+        return slots;
+    }, []);
+
+    const handleSlotClick = (day: Date, time: string) => {
+        const dayKey = format(day, 'yyyy-MM-dd');
+        const slot = slotsByDayAndTime[dayKey]?.[time];
+        
+        if (!slot || slot.status !== 'available' || slot.startTime.toDate() < new Date()) return;
+
+        const courseDetails = getCourseDetailsFromPackageCode(selectedPackage);
+        if (!courseDetails) return;
+        const requiredSlots = Math.ceil((courseDetails.duration + 5) / 5);
+        
+        const startIndex = timeSlots.indexOf(time);
+        let isConsecutive = true;
+        for (let j = 0; j < requiredSlots; j++) {
+            const checkTime = timeSlots[startIndex + j];
+            if (!checkTime || slotsByDayAndTime[dayKey]?.[checkTime]?.status !== 'available') {
+                isConsecutive = false;
+                break;
+            }
+        }
+
+        if (isConsecutive) {
+            setSelectedDate(day);
+            setSelectedSlot(slot);
+            setIsConfirming(true);
+        } else {
+            toast({ variant: 'destructive', title: 'Uygun Değil', description: `Bu saatte ${courseDetails.duration} dakikalık ders için yeterli boşluk bulunmuyor.` });
+        }
+    };
 
     const handleBookLesson = async () => {
         if (!user || !db || !userDocRef || !selectedSlot || !selectedPackage) return;
@@ -230,7 +261,7 @@ export default function DersPlanlaPage() {
 
         const numSlots = Math.ceil((courseDetails.duration + 5) / 5);
         const startTime = selectedSlot.startTime.toDate();
-        
+
         try {
             for (let i = 0; i < numSlots; i++) {
                 const slotTime = addMinutes(startTime, i * 5);
@@ -240,7 +271,7 @@ export default function DersPlanlaPage() {
                     batch.update(snap.docs[0].ref, { status: 'booked', bookedBy: user.uid, childId: selectedChildId, packageCode: selectedPackage });
                 }
             }
-            
+
             const childDocRef = doc(db, 'users', user.uid, 'children', selectedChildId);
             if (bookingMode === 'free') {
                 batch.update(userDocRef, { freeTrialsUsed: increment(1) });
@@ -248,101 +279,120 @@ export default function DersPlanlaPage() {
             } else {
                 batch.update(childDocRef, { remainingLessons: increment(-1) });
             }
-        
+
             await batch.commit();
             toast({ title: 'Ders Planlandı!', description: 'Dersiniz başarıyla takvime eklendi.', className: 'bg-green-500 text-white font-bold' });
             router.push('/ebeveyn-portali');
-        } catch(error) {
-             toast({ variant: 'destructive', title: 'Hata', description: 'İşlem başarısız oldu.' });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Hata', description: 'İşlem başarısız oldu.' });
         } finally { setIsBooking(false); setIsConfirming(false); }
     };
 
     if (userLoading || !selectedTimeZone) return <div className="flex h-screen items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
 
-    const isPackageMissing = selectedChildId && !selectedPackage && !childrenLoading;
+    const isPackageMissing = selectedChildId && !selectedPackage;
 
     return (
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen font-sans text-slate-900">
-            <div className="flex items-center gap-5 max-w-6xl mx-auto">
-                <Button variant="outline" size="icon" onClick={() => router.push('/ebeveyn-portali')} className="h-11 w-11 rounded-xl border-2 hover:bg-slate-100"><ArrowLeft className="h-5 w-5" /></Button>
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-slate-900">Ders Planla</h2>
-                    <p className="text-slate-500 text-base font-medium mt-0.5">Öğretmenlerimizin takviminden uygun bir zaman seçin.</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 max-w-6xl mx-auto">
+                <div className="flex items-center gap-5 w-full">
+                    <Button variant="outline" size="icon" onClick={() => router.push('/ebeveyn-portali')} className="h-11 w-11 rounded-xl border-2 hover:bg-slate-100"><ArrowLeft className="h-5 w-5" /></Button>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
+                        <div>
+                            <h2 className="text-3xl font-bold tracking-tight text-slate-900">Ders Planla</h2>
+                            <p className="text-slate-500 text-sm md:text-base font-medium mt-0.5">Öğretmenlerimizin takviminden uygun bir zaman seçin.</p>
+                        </div>
+
+                        {/* Yerel Saat Dilimi (Header) */}
+                        <div className="flex items-center gap-2.5 bg-white/60 p-2 md:p-3 rounded-2xl border border-slate-200/50 shadow-sm backdrop-blur-sm">
+                            <Clock className="w-5 h-5 text-primary" />
+                            <div className="flex flex-col">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Cihaz Saat Dilimi</span>
+                                <Select value={selectedTimeZone} onValueChange={setSelectedTimeZone}>
+                                    <SelectTrigger className="w-auto h-6 bg-transparent border-none rounded-lg text-xs font-black shadow-none px-0 focus:ring-0 text-slate-700">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-xl">
+                                        {timezones.map(tz => <SelectItem key={tz.value} value={tz.value} className="text-xs font-semibold">{tz.label}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <Card className="p-8 bg-white border-none shadow-xl rounded-[32px] max-w-6xl mx-auto">
-                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                     <div className="space-y-8">
-                        <div className="space-y-3">
-                             <Label className="font-semibold text-primary uppercase tracking-wider text-[11px]">1. Öğrenci Seçimi</Label>
-                             {childrenLoading ? (
-                                 <div className="h-14 bg-slate-50 animate-pulse rounded-xl" />
-                             ) : children && children.length > 0 ? (
-                                 <Select value={selectedChildId} onValueChange={setSelectedChildId}>
-                                    <SelectTrigger className="h-14 rounded-xl border-2 border-slate-100 bg-slate-50/50 focus:ring-primary/20 text-base font-semibold px-5 text-slate-800">
+            <Card className="p-8 md:p-10 bg-white border-none shadow-xl rounded-[40px] max-w-6xl mx-auto">
+                <div className="flex flex-col space-y-12">
+                    {/* TOP SELECTORS ROW */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 pb-10 border-b border-slate-50">
+                        <div className="space-y-4">
+                            <Label className="font-bold text-primary uppercase tracking-widest text-[10px] ml-1">1. Öğrenci Seçimi</Label>
+                            {childrenLoading ? (
+                                <div className="h-14 bg-slate-50 animate-pulse rounded-2xl" />
+                            ) : children && children.length > 0 ? (
+                                <Select value={selectedChildId} onValueChange={setSelectedChildId}>
+                                    <SelectTrigger className="h-14 rounded-2xl border-2 border-slate-100 bg-slate-50/30 focus:ring-primary/20 text-base font-semibold px-6 text-slate-800 hover:bg-white transition-all shadow-sm">
                                         <SelectValue placeholder="Çocuğunuzu seçin" />
                                     </SelectTrigger>
-                                    <SelectContent className="rounded-xl">
-                                        {children?.map(child => <SelectItem key={child.id} value={child.id} className="rounded-lg font-semibold text-sm py-2.5">{child.firstName}</SelectItem>)}
+                                    <SelectContent className="rounded-2xl">
+                                        {children?.map(child => <SelectItem key={child.id} value={child.id} className="rounded-xl font-semibold text-sm py-3 mb-1 last:mb-0">{child.firstName}</SelectItem>)}
                                     </SelectContent>
-                                 </Select>
-                             ) : (
-                                 <div className="flex flex-col gap-3">
+                                </Select>
+                            ) : (
+                                <div className="flex flex-col gap-3">
                                     <p className="text-sm text-slate-500 font-medium italic">Henüz bir çocuk eklememişsiniz.</p>
                                     {user && (
                                         <AddChildForm userId={user.uid} onChildAdded={refetchChildren}>
-                                            <Button variant="outline" className="w-full h-14 rounded-xl border-dashed border-2 border-slate-200 hover:bg-primary/5 hover:text-primary hover:border-primary transition-all font-bold text-base">
+                                            <Button variant="outline" className="w-full h-14 rounded-2xl border-dashed border-2 border-slate-200 hover:bg-primary/5 hover:text-primary hover:border-primary transition-all font-bold text-base">
                                                 <Plus className="mr-2 h-5 w-5" /> Yeni Çocuk Ekle
                                             </Button>
                                         </AddChildForm>
                                     )}
-                                 </div>
-                             )}
+                                </div>
+                            )}
                         </div>
 
                         {!isPackageMissing && (
-                            <>
-                                <div className="space-y-3">
-                                    <Label className="font-semibold text-primary uppercase tracking-wider text-[11px]">2. Öğretmen Seçimi</Label>
-                                    <div className="flex gap-2.5">
-                                        <Select value={selectedTeacherId} onValueChange={(v) => { setSelectedTeacherId(v); setExpandedHour(null); }}>
-                                            <SelectTrigger className="h-14 rounded-xl border-2 border-slate-100 bg-slate-50/50 flex-1 focus:ring-primary/20 text-base font-semibold px-5 text-slate-800 disabled:opacity-50">
-                                                <SelectValue placeholder="Öğretmen seçin" />
-                                            </SelectTrigger>
-                                            <SelectContent className="rounded-xl">
-                                                {teachers.map(t => <SelectItem key={t.id} value={t.id} className="rounded-lg font-semibold text-sm py-2.5">{t.firstName}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                        {selectedTeacherId && (
-                                            <Button 
-                                                variant="outline" 
-                                                size="icon" 
-                                                className="h-14 w-14 rounded-xl border-2 border-slate-100 hover:bg-primary/10 hover:text-primary transition-all shadow-sm"
-                                                onClick={() => setIsTeacherPreviewOpen(true)}
-                                            >
-                                                <Eye className="w-6 h-6" />
-                                            </Button>
-                                        )}
-                                    </div>
+                            <div className="space-y-4">
+                                <Label className="font-bold text-primary uppercase tracking-widest text-[10px] ml-1">2. Öğretmen Seçimi</Label>
+                                <div className="flex gap-3">
+                                    <Select value={selectedTeacherId} onValueChange={(v) => setSelectedTeacherId(v)}>
+                                        <SelectTrigger className="h-14 rounded-2xl border-2 border-slate-100 bg-slate-50/30 flex-1 focus:ring-primary/20 text-base font-semibold px-6 text-slate-800 disabled:opacity-50 hover:bg-white transition-all shadow-sm" disabled={teachersLoading}>
+                                            <SelectValue placeholder={teachersLoading ? "Öğretmenler Yükleniyor..." : "Öğretmen seçin"} />
+                                        </SelectTrigger>
+                                        <SelectContent className="rounded-2xl max-h-[300px]">
+                                            {dynamicTeachers?.map(t => (
+                                                <SelectItem 
+                                                    key={t.id} 
+                                                    value={t.id} 
+                                                    disabled={t.isPassive}
+                                                    className={cn("rounded-xl font-semibold text-sm py-3 mb-1 last:mb-0", t.isPassive && "opacity-60")}
+                                                >
+                                                    {t.firstName} {t.lastName} {t.isPassive && <span className="text-slate-400 font-normal ml-1">(Tüm Saatleri Dolu)</span>}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {selectedTeacherId && (
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            className="h-14 w-14 rounded-2xl border-2 border-slate-100 hover:bg-primary/10 hover:text-primary transition-all shadow-sm bg-slate-50/30 hover:bg-white"
+                                            onClick={() => setIsTeacherPreviewOpen(true)}
+                                        >
+                                            <Eye className="w-6 h-6" />
+                                        </Button>
+                                    )}
                                 </div>
-                                
-                                <div className="space-y-3 flex flex-col">
-                                    <Label className="font-semibold text-primary uppercase tracking-wider text-[11px] mb-1">3. Tarih Seçimi</Label>
-                                    <Calendar mode="single" selected={selectedDate} onSelect={(d) => { setSelectedDate(d); setExpandedHour(null); }} locale={tr} 
-                                        className="rounded-[24px] border-2 border-slate-50 shadow-md self-center bg-slate-50/30 p-6"
-                                        modifiers={{ available: availableDays }}
-                                        modifiersClassNames={{ available: 'bg-primary/10 text-primary font-bold rounded-full scale-105' }}
-                                        disabled={(date) => date < new Date() || !availableDays.some(d => isSameDay(date, d))}
-                                    />
-                                </div>
-                            </>
+                            </div>
                         )}
                     </div>
 
-                     <div className="space-y-8 lg:border-l-2 lg:pl-12 border-slate-50 min-h-[400px]">
+                    {/* FULL WIDTH CALENDAR */}
+                    <div className="min-h-[400px]">
                         {isPackageMissing ? (
-                            <div className="flex flex-col items-center justify-center h-full text-center space-y-6 py-12">
+                            <div className="flex flex-col items-center justify-center min-h-[400px] text-center space-y-6 py-12">
                                 <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center">
                                     <AlertTriangle className="w-10 h-10 text-amber-500" />
                                 </div>
@@ -352,102 +402,165 @@ export default function DersPlanlaPage() {
                                         {selectedChildData?.firstName} için ders planlayabilmek için önce bir paket atamanız gerekmektedir.
                                     </p>
                                 </div>
-                                <div className="flex flex-col w-full gap-3">
-                                    <Button asChild className="h-12 rounded-xl font-bold text-base shadow-lg shadow-primary/10">
+                                <div className="flex flex-col sm:flex-row w-full max-w-md gap-4">
+                                    <Button asChild className="h-12 rounded-xl font-bold text-base shadow-lg shadow-primary/10 flex-1">
                                         <Link href="/ebeveyn-portali/paketlerim">
                                             Paket Ata <ArrowRight className="ml-2 h-4 w-4" />
                                         </Link>
                                     </Button>
-                                    <Button asChild variant="outline" className="h-12 rounded-xl font-bold text-base border-2">
+                                    <Button asChild variant="outline" className="h-12 rounded-xl font-bold text-base border-2 flex-1">
                                         <Link href="/kurslar">
                                             Yeni Paket Satın Al
                                         </Link>
                                     </Button>
                                 </div>
                             </div>
-                        ) : (
-                            <>
-                                <div>
-                                    <div className="flex items-center justify-between mb-6">
-                                        <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider">
-                                            {expandedHour ? (
-                                                <button onClick={() => setExpandedHour(null)} className="flex items-center gap-2 text-primary hover:underline group">
-                                                    <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                                                    Saatlere Geri Dön
-                                                </button>
-                                            ) : "4. Müsait Saatler"}
-                                        </h3>
-                                        {selectedTeacherId && (
-                                            <Badge variant="secondary" className="bg-primary text-white border-none rounded-lg px-4 py-1.5 text-xs font-bold shadow-sm">
-                                                {format(selectedDate || new Date(), 'dd MMMM', { locale: tr })}
-                                            </Badge>
-                                        )}
-                                    </div>
-                                    {areSlotsLoading ? (
-                                        <div className="flex justify-center py-12"><Loader2 className="h-10 w-10 animate-spin text-primary/30" /></div>
-                                    ) : (
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                            {!expandedHour ? (
-                                                // HOUR GRID
-                                                availableHours.map(hour => (
-                                                    <Button 
-                                                        key={hour} 
-                                                        variant="outline" 
-                                                        className="h-14 rounded-xl border-2 border-slate-100 font-bold text-lg text-slate-700 hover:bg-primary/5 hover:border-primary transition-all shadow-sm" 
-                                                        onClick={() => setExpandedHour(hour)}
-                                                    >
-                                                        {hour}
-                                                    </Button>
-                                                ))
-                                            ) : (
-                                                // MINUTE GRID (DETAILED SLOTS)
-                                                groupedSlotsByHour[expandedHour]?.map(slot => (
-                                                    <Button 
-                                                        key={slot.id} 
-                                                        variant="outline" 
-                                                        className="h-12 rounded-xl border-2 border-primary/20 bg-primary/5 font-bold text-base text-primary hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm" 
-                                                        onClick={() => { setSelectedSlot(slot); setIsConfirming(true); }}
-                                                    >
-                                                        {formatInTimeZone(slot.startTime.toDate(), selectedTimeZone, 'HH:mm')}
-                                                    </Button>
-                                                ))
-                                            )}
-                                            {availableHours.length === 0 && (
-                                                <div className="col-span-full py-16 text-center bg-slate-50 rounded-[24px] border-2 border-dashed border-slate-100">
-                                                    <CalendarIcon className="w-10 h-10 mx-auto text-slate-200 mb-3" />
-                                                    <p className="text-slate-400 text-xs font-bold uppercase tracking-wider px-8">Seçilen gün için müsait saat bulunamadı.</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="pt-8 border-t-2 border-slate-50">
-                                    <div className="bg-slate-50 rounded-[20px] p-5 flex items-center justify-between shadow-inner">
-                                        <div className="flex items-center gap-3.5">
-                                            <div className="p-2.5 bg-white rounded-xl shadow-sm"><Clock className="w-5 h-5 text-primary" /></div>
+                        ) : selectedTeacherId ? (
+                            <div className="space-y-10">
+                                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                                    <div className="flex flex-wrap items-center gap-6">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-primary/5 rounded-lg border border-primary/10">
+                                                <CalendarIcon className="w-5 h-5 text-primary" />
+                                            </div>
                                             <div>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">Yerel Saat Dilimi</p>
-                                                <p className="text-sm font-bold text-slate-700">{selectedTimeZone.split('/').pop()?.replace('_', ' ')}</p>
+                                                <h3 className="font-bold text-slate-800 text-sm uppercase tracking-widest leading-none">Haftalık Müsaitlik</h3>
+                                                <p className="text-[10px] font-bold text-slate-400 mt-1">Takvimden bir saat seçerek devam edin.</p>
                                             </div>
                                         </div>
-                                        <Select value={selectedTimeZone} onValueChange={setSelectedTimeZone}>
-                                            <SelectTrigger className="w-auto h-9 bg-white border-2 border-slate-100 rounded-lg text-xs font-bold shadow-sm px-4 focus:ring-0">Değiştir</SelectTrigger>
-                                            <SelectContent className="rounded-xl">{timezones.map(tz => <SelectItem key={tz.value} value={tz.value} className="text-xs font-semibold">{tz.label}</SelectItem>)}</SelectContent>
-                                        </Select>
+
+                                        {/* Haftalık Tarih Kısmı (Müsaitlik Yanı) */}
+                                        <div className="flex items-center gap-1.5 bg-slate-100/50 p-1 rounded-xl border border-slate-200/30">
+                                            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-white" onClick={() => setCurrentWeekStart(d => addDays(d, -7))}><ChevronLeft className="w-4 h-4" /></Button>
+                                            <span className="text-xs font-black text-slate-700 px-3 whitespace-nowrap min-w-[150px] text-center">
+                                                {format(currentWeekStart, 'd MMMM')} - {format(addDays(currentWeekStart, 6), 'd MMMM', { locale: tr })}
+                                            </span>
+                                            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-white" onClick={() => setCurrentWeekStart(d => addDays(d, 7))}><ArrowRight className="w-4 h-4 cursor-pointer" /></Button>
+                                        </div>
+                                        {areSlotsLoading && <Loader2 className="w-4 h-4 animate-spin text-primary/40" />}
+                                    </div>
+                                    <div className="flex items-center gap-6 text-[11px] font-black text-slate-400 uppercase tracking-widest px-6 py-3 bg-slate-50/50 rounded-2xl border border-slate-100">
+                                        <div className="flex items-center gap-2.5"><div className="w-3.5 h-3.5 bg-emerald-500 rounded-md"></div> Müsait</div>
+                                        <div className="flex items-center gap-2.5"><div className="w-3.5 h-3.5 bg-red-400 rounded-md"></div> Dolu</div>
+                                        <div className="flex items-center gap-2.5"><div className="w-3.5 h-3.5 bg-slate-200 rounded-md"></div> Kapalı</div>
                                     </div>
                                 </div>
-                            </>
+
+                                {/* WEEKLY GRID */}
+                                <div className="relative border border-slate-100 rounded-[32px] overflow-hidden bg-white shadow-2xl flex flex-col h-[600px] ring-1 ring-slate-200/50">
+                                    {/* Header Row */}
+                                    <div className="flex border-b border-slate-100 bg-slate-50/90 backdrop-blur sticky top-0 z-10 shadow-sm">
+                                        <div className="w-16 shrink-0 border-r border-slate-100 flex items-center justify-center bg-slate-100/30">
+                                            <Clock className="w-4 h-4 text-slate-400" />
+                                        </div>
+                                        {weekDays.map((day, i) => (
+                                            <div key={i} className={cn("flex-1 text-center py-5 border-r border-slate-100 last:border-r-0 transition-colors", isSameDay(day, new Date()) && "bg-primary/5")}>
+                                                <p className="text-[11px] font-black text-slate-400 uppercase leading-none tracking-widest">{format(day, 'EEE', { locale: tr })}</p>
+                                                <p className={cn("text-lg font-black mt-1.5", isSameDay(day, new Date()) ? "text-primary" : "text-slate-800")}>{format(day, 'd')}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Scrollable Time Grid */}
+                                    <div className="flex-1 overflow-y-auto overflow-x-hidden relative scroll-smooth scrollbar-thin scrollbar-thumb-slate-200">
+                                        <div className="flex min-h-full">
+                                            {/* Time Labels Column */}
+                                            <div className="w-16 shrink-0 border-r border-slate-100 bg-slate-50/40">
+                                                {timeSlots.map((time, i) => {
+                                                    const isFullHour = i % 12 === 0;
+                                                    const isHalfHour = i % 12 === 6;
+                                                    return (
+                                                        <div key={time} className="h-7 flex items-center justify-center">
+                                                            {(isFullHour || isHalfHour) && (
+                                                                <span className="text-[10px] font-black text-slate-400 bg-white px-1.5 py-0.5 rounded-md shadow-sm ring-1 ring-slate-100">{time}</span>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            {/* Days Columns */}
+                                            {weekDays.map((day) => {
+                                                const dayKey = format(day, 'yyyy-MM-dd');
+                                                const daySlots = slotsByDayAndTime[dayKey] || {};
+                                                return (
+                                                    <div key={dayKey} className="flex-1 border-r border-slate-100 last:border-r-0 relative group">
+                                                        {timeSlots.map((time, i) => {
+                                                            const slot = daySlots[time];
+                                                            const isFullHour = i % 12 === 0;
+                                                            
+                                                            const timeDate = slot?.startTime.toDate();
+                                                            const isPast = timeDate ? timeDate < new Date() : false;
+                                                            let bgColor = "hover:bg-slate-50/50";
+                                                            let isClickable = false;
+
+                                                            if (slot?.status === 'available') {
+                                                                if (isPast) {
+                                                                    bgColor = "bg-slate-200/40 cursor-not-allowed border-slate-300/10";
+                                                                } else {
+                                                                    bgColor = "bg-emerald-500/80 hover:bg-emerald-500 cursor-pointer shadow-[inset_0_0_0_1.5px_rgba(255,255,255,0.15)]";
+                                                                    isClickable = true;
+                                                                }
+                                                            } else if (slot?.status === 'booked') {
+                                                                bgColor = "bg-red-400/80 cursor-not-allowed shadow-[inset_0_0_0_1.5px_rgba(255,255,255,0.15)]";
+                                                            }
+
+                                                            return (
+                                                                <div
+                                                                    key={time}
+                                                                    onMouseEnter={() => setHoveredSlot(`${dayKey}-${time}`)}
+                                                                    onMouseLeave={() => hoveredSlot === `${dayKey}-${time}` && setHoveredSlot(null)}
+                                                                    onClick={() => isClickable && handleSlotClick(day, time)}
+                                                                    className={cn(
+                                                                        "h-7 transition-all relative border-b border-dashed border-slate-100",
+                                                                        isFullHour && "border-b-slate-200 border-solid",
+                                                                        bgColor
+                                                                    )}
+                                                                >
+                                                                    {hoveredSlot === `${dayKey}-${time}` && isClickable && (
+                                                                        <div className="absolute inset-0 flex items-center justify-center bg-white/25 pointer-events-none">
+                                                                            <div className="bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-xl z-20 transform scale-110 tracking-widest">{time}</div>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : !isPackageMissing && (
+                            <div className="flex flex-col items-center justify-center min-h-[400px] text-center space-y-8 py-16 bg-slate-50/50 rounded-[40px] border-4 border-dashed border-slate-100/50">
+                                <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-inner ring-8 ring-slate-100/30">
+                                    <User className="w-12 h-12 text-slate-300" />
+                                </div>
+                                <div className="space-y-4">
+                                    <p className="text-slate-400 text-sm font-black uppercase tracking-[0.2em]">Takvimi görüntülemek için<br/>Lütfen bir öğretmen seçin.</p>
+                                    <div className="flex justify-center gap-1.5">
+                                        {[1,2,3].map(i => <div key={i} className="w-2 h-2 rounded-full bg-slate-200/50" />)}
+                                    </div>
+                                </div>
+                            </div>
                         )}
                     </div>
-                 </div>
+                </div>
             </Card>
 
+            {/* Footer Area with Timezone indicator replaced by header select */}
+            <div className="max-w-6xl mx-auto pt-8">
+                <div className="bg-slate-50 rounded-[40px] p-8 flex flex-col items-center justify-center text-center space-y-4 border-2 border-dashed border-slate-100">
+                     <p className="text-slate-400 text-xs font-bold uppercase tracking-widest italic">Mutlu Dersler Dileriz! ☀️</p>
+                </div>
+            </div>
+
             {/* Modals */}
-            <TeacherPreviewDialog 
-                teacherId={selectedTeacherId} 
-                isOpen={isTeacherPreviewOpen} 
-                onOpenChange={setIsTeacherPreviewOpen} 
+            <TeacherPreviewDialog
+                teacherId={selectedTeacherId}
+                isOpen={isTeacherPreviewOpen}
+                onOpenChange={setIsTeacherPreviewOpen}
             />
 
             <AlertDialog open={isConfirming} onOpenChange={setIsConfirming}>

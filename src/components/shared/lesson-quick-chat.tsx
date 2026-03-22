@@ -4,10 +4,11 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, addDoc, serverTimestamp, query, orderBy, limit } from 'firebase/firestore';
-import { MessageSquare, Send, Loader2, User, Clock } from 'lucide-react';
+import { MessageSquare, Send, Loader2, User, Clock, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -77,10 +78,22 @@ export function LessonQuickChat({ lessonId, teacherId, parentId, userRole }: Les
     return (
         <div className="flex flex-col h-full bg-slate-50/50 rounded-xl overflow-hidden border border-slate-100">
             <div className="p-3 bg-white border-b flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-primary" />
-                    <span className="text-xs font-bold text-slate-700">Hızlı İletişim</span>
-                </div>
+                <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button type="button" className="flex items-center gap-2 cursor-help focus:outline-none hover:opacity-80 transition-opacity">
+                                <MessageSquare className="w-4 h-4 text-primary" />
+                                <span className="text-xs font-bold text-slate-700">Hızlı İletişim</span>
+                                <Info className="w-3.5 h-3.5 text-slate-400" />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-[300px] p-3">
+                            <p className="text-xs leading-relaxed font-medium">
+                                Öğretmeninizle en hızlı ve güvenli şekilde iletişim kurabilmeniz için önceden tanımlanmış mesaj şablonları sunulmaktadır. Acil durum bildirimleri için bu alanı kullanabilirsiniz.
+                            </p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
                 {isLoading && <Loader2 className="w-3 h-3 animate-spin text-slate-400" />}
             </div>
 

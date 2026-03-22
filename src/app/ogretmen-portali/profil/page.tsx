@@ -150,6 +150,18 @@ export default function TeacherProfilePage() {
                         <Input id="hobbies" {...form.register('hobbies')} placeholder="Kitap okumak, seyahat etmek, yüzmek..." disabled={isProfileLocked} />
                         <p className="text-xs text-muted-foreground mt-1">Hobilerinizi virgülle ayırarak yazın.</p>
                     </div>
+                    <div className="pt-2">
+                        <Label className="text-base font-bold text-slate-800">Kurs Başına Kazanç (€, Ders Başı)</Label>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
+                           <div className="space-y-1"><Label className="text-xs text-slate-500 font-medium">Başlangıç</Label><Input value={userData?.lessonRates?.baslangic !== undefined ? `${userData.lessonRates.baslangic} €` : '-'} disabled className="bg-slate-50 font-bold" /></div>
+                           <div className="space-y-1"><Label className="text-xs text-slate-500 font-medium">Konuşma</Label><Input value={userData?.lessonRates?.konusma !== undefined ? `${userData.lessonRates.konusma} €` : '-'} disabled className="bg-slate-50 font-bold" /></div>
+                           <div className="space-y-1"><Label className="text-xs text-slate-500 font-medium">Akademik</Label><Input value={userData?.lessonRates?.akademik !== undefined ? `${userData.lessonRates.akademik} €` : '-'} disabled className="bg-slate-50 font-bold" /></div>
+                           <div className="space-y-1"><Label className="text-xs text-slate-500 font-medium">Gelişim</Label><Input value={userData?.lessonRates?.gelisim !== undefined ? `${userData.lessonRates.gelisim} €` : '-'} disabled className="bg-slate-50 font-bold" /></div>
+                           <div className="space-y-1"><Label className="text-xs text-slate-500 font-medium">GCSE</Label><Input value={userData?.lessonRates?.gcse !== undefined ? `${userData.lessonRates.gcse} €` : '-'} disabled className="bg-slate-50 font-bold" /></div>
+                           <div className="space-y-1"><Label className="text-xs text-blue-600 font-medium">Deneme Dersi</Label><Input value={userData?.lessonRates?.FREE_TRIAL !== undefined ? `${userData.lessonRates.FREE_TRIAL} €` : '-'} disabled className="bg-blue-50/50 text-blue-800 font-bold border-blue-100" /></div>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">Bu ücretler yönetici tarafından güncellenir, değiştirilemez.</p>
+                    </div>
                      <div>
                         <Label htmlFor="googleMeetLink">Google Meet Linki</Label>
                         <Input id="googleMeetLink" {...form.register('googleMeetLink')} placeholder="https://meet.google.com/xxx-xxxx-xxx" disabled={isProfileLocked} />

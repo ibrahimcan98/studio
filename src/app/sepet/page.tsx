@@ -7,14 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trash2, ShoppingCart, ArrowLeft, CreditCard, Tag, Minus, Plus, XCircle, Loader2, Globe } from "lucide-react";
+import { Trash2, ShoppingCart, ArrowLeft, CreditCard, Tag, Minus, Plus, XCircle, Loader2, Globe, Wallet } from "lucide-react";
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCart, currencyDetails } from '@/context/cart-context';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { useUser, useFirestore } from '@/firebase';
-import { doc, updateDoc, arrayUnion, increment, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useUser, useFirestore, useMemoFirebase, useDoc, useCollection } from '@/firebase';
+import { doc, updateDoc, arrayUnion, increment, collection, addDoc, serverTimestamp, query, where, getDocs, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
 const getCourseCode = (courseId: string) => {
@@ -31,18 +31,48 @@ const getCourseCode = (courseId: string) => {
 export default function SepetPage() {
     const { 
         cartItems, updateQuantity, removeFromCart, cartTotal, 
-        applyCoupon, discountAmount, finalTotal, appliedCoupon, 
-        removeCoupon, clearCart, selectedCurrency, exchangeRates 
+        applyStandardDiscount, discountAmount, finalTotal, appliedCoupon, appliedCouponData, referrerId,
+        removeCoupon, applyReferral, appliedReferralCode, removeReferral, clearCart, selectedCurrency, exchangeRates 
     } = useCart();
     
     const [coupon, setCoupon] = useState('');
+    const [referralInput, setReferralInput] = useState('');
     const { toast } = useToast();
     const { user } = useUser();
     const db = useFirestore();
     const router = useRouter();
     const [isProcessing, setIsProcessing] = useState(false);
-    const [step, setStep] = useState<'cart' | 'payment'>('cart');
     const [mounted, setMounted] = useState(false);
+    
+    // Auto-apply public campaign coupon
+    const publicCouponsQuery = useMemoFirebase(() => db ? query(collection(db, 'coupons'), where('isPublicDisplay', '==', true), where('isActive', '==', true)) : null, [db]);
+    const { data: publicCoupons } = useCollection(publicCouponsQuery);
+
+    useEffect(() => {
+        if (publicCoupons && publicCoupons.length > 0 && !appliedCoupon && cartItems.length > 0) {
+            const publicCoupon = publicCoupons[0];
+            applyStandardDiscount(
+                publicCoupon.code, 
+                publicCoupon.discountPct, 
+                publicCoupon.applicableCourseId, 
+                publicCoupon.applicablePackage
+            );
+            toast({
+                title: 'Kampanya Uygulandı!',
+                description: `Vitrin indirimi sepetinize otomatik olarak tanımlandı.`,
+                className: 'bg-green-500 text-white'
+            });
+        }
+    }, [publicCoupons, appliedCoupon, cartItems.length, applyStandardDiscount, toast]);
+    
+    // Bakiye Logic
+    const userDocRef = useMemoFirebase(() => (db && user?.uid) ? doc(db, 'users', user.uid) : null, [db, user?.uid]);
+    const { data: userData } = useDoc(userDocRef);
+    const balanceEur = userData?.walletBalanceEur || 0;
+    const [useBalance, setUseBalance] = useState(false);
+    
+    const balanceUsedEur = useBalance ? Math.min(balanceEur, finalTotal) : 0;
+    const payableTotalEur = finalTotal - balanceUsedEur;
 
     useEffect(() => {
         setMounted(true);
@@ -55,25 +85,81 @@ export default function SepetPage() {
         return (priceEur * rate).toFixed(2);
     };
 
-    const handleApplyCoupon = () => {
+    const handleApplyNormalCoupon = async () => {
         if (!coupon) return;
-        const success = applyCoupon(coupon);
-        if (success) {
-            toast({
-                title: 'Kupon Uygulandı!',
-                description: `"${coupon.toUpperCase()}" koduyla %20 indirim kazandınız.`,
-                className: 'bg-green-500 text-white'
-            })
-        } else {
-            toast({
-                variant: 'destructive',
-                title: 'Geçersiz Kupon',
-                description: 'Girdiğiniz kupon kodu geçerli değil.',
-            })
+        if (!db) return;
+        
+        try {
+            const couponRef = doc(db, 'coupons', coupon.toUpperCase());
+            const couponSnap = await getDoc(couponRef);
+            
+            if (couponSnap.exists() && couponSnap.data().isActive) {
+                 const data = couponSnap.data();
+                 const pct = data.discountPct;
+                 applyStandardDiscount(
+                     coupon.toUpperCase(), 
+                     pct, 
+                     data.applicableCourseId, 
+                     data.applicablePackage
+                 );
+                 toast({
+                     title: 'Kupon Uygulandı!',
+                     description: `"${coupon.toUpperCase()}" koduyla %${(pct*100).toFixed(0)} indirim kazandınız.`,
+                     className: 'bg-green-500 text-white'
+                 });
+            } else {
+                 toast({
+                     variant: 'destructive',
+                     title: 'Geçersiz Kupon',
+                     description: 'Girdiğiniz indirim kodu geçerli değil veya süresi dolmuş.',
+                 });
+            }
+        } catch (error) {
+             console.error("Coupon fetch error:", error);
+             toast({ variant: 'destructive', title: 'Hata', description: 'Kupon doğrulanırken hata oluştu.' });
         }
     }
 
-    const handleProceedToPayment = () => {
+    const handleApplyReferralCode = async () => {
+        if (!referralInput) return;
+        if (!db || !user) return;
+        
+        try {
+            const usersRef = collection(db, 'users');
+            const q = query(usersRef, where('referralCode', '==', referralInput.toUpperCase()));
+            const querySnapshot = await getDocs(q);
+            
+            if (!querySnapshot.empty) {
+                const referrerDoc = querySnapshot.docs[0];
+                if (referrerDoc.id === user.uid) {
+                    toast({ variant: 'destructive', title: 'Hata', description: 'Kendi davet kodunuzu kullanamazsınız.' });
+                    return;
+                }
+                
+                // %5 indirim uygula
+                applyReferral(referralInput, 0.05, referrerDoc.id);
+                toast({
+                    title: 'Referans Kodu Uygulandı!',
+                    description: `"${referralInput.toUpperCase()}" koduyla %5 indirim kazandınız!`,
+                    className: 'bg-green-500 text-white'
+                });
+                return;
+            }
+            
+            toast({
+                variant: 'destructive',
+                title: 'Geçersiz Kod',
+                description: 'Girdiğiniz referans kodu bulunamadı.',
+            })
+        } catch (error) {
+            console.error("Referral error:", error);
+            toast({ variant: 'destructive', title: 'Hata', description: 'Kod kontrol edilirken bir hata oluştu.' });
+        }
+    }
+
+    const handleCheckout = async (e?: React.FormEvent) => {
+        e?.preventDefault();
+        
         if (!user) {
             toast({ variant: 'destructive', title: 'Giriş Gerekli', description: 'Ödeme yapmak için giriş yapmalısınız.' });
             router.push('/login?redirect=/sepet');
@@ -83,18 +169,14 @@ export default function SepetPage() {
             toast({
                 variant: 'destructive',
                 title: 'E-posta Doğrulanmadı',
-                description: 'Satın alma işlemine devam etmek için lütfen e-posta adresinizi doğrulayın. Profil ayarlarından doğrulama e-postasını tekrar gönderebilirsiniz.',
+                description: 'Satın alma işlemine devam etmek için lütfen e-posta adresinizi doğrulayın.',
                 duration: 8000
             });
             router.push('/ebeveyn-portali/ayarlar');
             return;
         }
-        setStep('payment');
-    }
-    
-    const handleCheckout = async (e?: React.FormEvent) => {
-        e?.preventDefault();
-        if (!user || !db) return;
+
+        if (!db) return;
 
         setIsProcessing(true);
         const userDocRef = doc(db, "users", user.uid);
@@ -117,15 +199,19 @@ export default function SepetPage() {
                  return Array(item.quantity).fill(`${lessons}${courseCode}`);
             });
 
-            // Transaction log for admin
             const transactionRef = collection(db, "transactions");
-            await addDoc(transactionRef, {
+            const txDoc = await addDoc(transactionRef, {
                 userId: user.uid,
                 userName: user.displayName,
                 userEmail: user.email,
-                amountEur: finalTotal,
+                amountEur: payableTotalEur,
+                balanceUsedEur: balanceUsedEur,
                 type: 'package',
                 createdAt: serverTimestamp(),
+                status: payableTotalEur <= 0 ? 'completed' : 'pending',
+                newPackages,
+                totalLessonsToAdd,
+                referrerId: referrerId || null,
                 items: cartItems.map(item => ({
                     name: item.name,
                     quantity: item.quantity,
@@ -133,20 +219,50 @@ export default function SepetPage() {
                 }))
             });
 
-            await updateDoc(userDocRef, {
-                enrolledPackages: arrayUnion(...newPackages),
-                remainingLessons: increment(totalLessonsToAdd),
-            });
-            
+            if (payableTotalEur <= 0) {
+               // Full balance coverage, skip Stripe
+               await updateDoc(userDocRef, {
+                   walletBalanceEur: increment(-balanceUsedEur),
+                   remainingLessons: increment(totalLessonsToAdd),
+                   enrolledPackages: arrayUnion(...newPackages)
+               });
+               
+               if (referrerId) {
+                   const referrerRef = doc(db, 'users', referrerId);
+                   await updateDoc(referrerRef, { walletBalanceEur: increment(30) });
+               }
+
+               clearCart();
+               toast({ title: 'Tebrikler!', description: 'Siparişiniz bakiyeniz kullanılarak tamamlandı.', className: 'bg-green-500 text-white' });
+               router.push('/ebeveyn-portali/dersler');
+               return;
+            }
+
             clearCart();
 
-            toast({
-                title: 'Ödeme Başarılı!',
-                description: 'Dersleriniz hesabınıza eklendi. Paketlerim sayfasından atama yapabilirsiniz.',
-                className: 'bg-green-500 text-white'
+            // Stripe Checkout Oturumuna Yönlendirme
+            const totalDiscountAndBalance = discountAmount + balanceUsedEur;
+            const res = await fetch('/api/checkout_sessions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    items: cartItems.map(item => ({
+                         ...item,
+                         price: (item.price * (1 - totalDiscountAndBalance/cartTotal)) * rate
+                    })),
+                    currency: selectedCurrency.toLowerCase(),
+                    customerEmail: user.email,
+                    transactionId: txDoc.id
+                })
             });
-
-            router.push('/ebeveyn-portali/paketlerim');
+            
+            const data = await res.json();
+            if (data.url) {
+                window.location.href = data.url;
+            } else {
+                toast({ variant: 'destructive', title: 'Stripe Hatası', description: data.error || 'Ödeme sayfasına yönlendirilemedi.' });
+                setIsProcessing(false);
+            }
 
         } catch (error) {
             console.error("Checkout error:", error);
@@ -167,7 +283,7 @@ export default function SepetPage() {
                     <div className="flex items-center gap-4">
                         <ShoppingCart className="w-8 h-8 text-primary" />
                         <h1 className="text-3xl md:text-4xl font-bold text-gray-800">
-                            {step === 'cart' ? 'Alışveriş Sepetim' : 'Ödeme Bilgileri'}
+                            Güvenli Ödeme Çıkışı
                         </h1>
                     </div>
                     <Badge variant="outline" className="w-fit h-8 px-3 gap-2 bg-white">
@@ -176,8 +292,7 @@ export default function SepetPage() {
                     </Badge>
                 </div>
 
-                {step === 'cart' && (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
                         <div className="lg:col-span-2">
                             <Card>
                                 <CardHeader>
@@ -187,12 +302,42 @@ export default function SepetPage() {
                                     {cartItems.length > 0 ? (
                                         cartItems.map(item => (
                                             <div key={item.id} className="flex flex-col sm:flex-row items-start gap-6 py-4">
-                                                <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                                    <Image src={item.image} alt={item.name} width={60} height={60} className="object-contain" />
-                                                </div>
+
                                                 <div className="flex-1">
                                                     <h3 className="font-semibold text-lg">{item.name}</h3>
                                                     <p className="text-sm text-muted-foreground">{item.description}</p>
+                                                    {(() => {
+                                                        const lessonsCount = parseInt(item.description.split(' ')[0]) || 0;
+                                                        if (lessonsCount > 0) {
+                                                            let itemBasePriceEur = item.price;
+                                                            let hasDiscount = false;
+                                                            
+                                                            // Calculate individual item discount
+                                                            if (appliedCouponData) {
+                                                                const [courseId] = item.id.split('-');
+                                                                const courseMatches = !appliedCouponData.applicableCourseId || appliedCouponData.applicableCourseId === courseId;
+                                                                const packageMatches = !appliedCouponData.applicablePackage || appliedCouponData.applicablePackage === lessonsCount;
+                                                                
+                                                                if (courseMatches && packageMatches) {
+                                                                    itemBasePriceEur *= (1 - appliedCouponData.discountPct);
+                                                                    hasDiscount = true;
+                                                                }
+                                                            }
+                                                            
+                                                            // Global referral 5%
+                                                            if (appliedReferralCode) {
+                                                                itemBasePriceEur *= 0.95;
+                                                                hasDiscount = true;
+                                                            }
+                                                            
+                                                            return (
+                                                                <Badge variant="outline" className={`mt-2 font-medium ${hasDiscount ? 'text-green-600 border-green-200 bg-green-50' : 'text-slate-500'}`}>
+                                                                    Ders başı: {symbol}{formatPrice(itemBasePriceEur / lessonsCount)}
+                                                                </Badge>
+                                                            );
+                                                        }
+                                                        return null;
+                                                    })()}
                                                     <div className="flex items-center gap-2 mt-3">
                                                         <Label htmlFor={`quantity-${item.id}`}>Miktar:</Label>
                                                         <div className="flex items-center gap-1 border rounded-md">
@@ -247,134 +392,100 @@ export default function SepetPage() {
                                             <span>Ara Toplam</span>
                                             <span>{symbol}{formatPrice(cartTotal)}</span>
                                         </div>
-                                        {appliedCoupon && (
-                                            <div className="flex justify-between text-green-600">
-                                                <span>İndirim (%20)</span>
+                                        {discountAmount > 0 && (
+                                            <div className="flex justify-between text-green-600 font-bold">
+                                                <span>Tamamlanan İndirim</span>
                                                 <span>-{symbol}{formatPrice(discountAmount)}</span>
                                             </div>
                                         )}
+                                        {balanceUsedEur > 0 && (
+                                            <div className="flex justify-between text-orange-600 font-bold">
+                                                <span>Bakiye Kullanımı</span>
+                                                <span>-{symbol}{formatPrice(balanceUsedEur)}</span>
+                                            </div>
+                                        )}
                                         <Separator />
-                                        <div className="flex justify-between font-bold text-lg">
-                                            <span>Toplam</span>
-                                            <span>{symbol}{formatPrice(finalTotal)}</span>
+                                        <div className="flex justify-between font-black text-xl text-primary">
+                                            <span>Ödenecek Tutar</span>
+                                            <span>{symbol}{formatPrice(payableTotalEur)}</span>
                                         </div>
                                     </div>
                                     <Separator />
-                                    {appliedCoupon ? (
-                                        <div className="flex items-center justify-between gap-2">
-                                            <Badge>
-                                                <Tag className="w-3 h-3 mr-1"/>
-                                                {appliedCoupon}
-                                            </Badge>
-                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={removeCoupon}>
-                                                <XCircle className="w-4 h-4"/>
-                                            </Button>
-                                        </div>
-                                    ): (
-                                        <div className="space-y-2">
-                                            <Label htmlFor="coupon">Kupon Kodu</Label>
-                                            <div className="flex gap-2">
-                                                <Input id="coupon" placeholder="İndirim kodu girin" value={coupon} onChange={(e) => setCoupon(e.target.value)} />
-                                                <Button variant="outline" onClick={handleApplyCoupon}>Uygula</Button>
+                                    <div className="space-y-4">
+                                        {/* İndirim Kodu Kısımı */}
+                                        {appliedCoupon ? (
+                                            <div className="flex items-center justify-between gap-2">
+                                                <Badge>
+                                                    <Tag className="w-3 h-3 mr-1"/>
+                                                    {appliedCoupon} (%20 İndirim)
+                                                </Badge>
+                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={removeCoupon}>
+                                                    <XCircle className="w-4 h-4"/>
+                                                </Button>
                                             </div>
-                                        </div>
-                                    )}
+                                        ): (
+                                            <div className="space-y-2">
+                                                <Label htmlFor="coupon">İndirim Kodu</Label>
+                                                <div className="flex gap-2">
+                                                    <Input id="coupon" placeholder="İndirim kodu girin" value={coupon} onChange={(e) => setCoupon(e.target.value)} />
+                                                    <Button variant="outline" onClick={handleApplyNormalCoupon} disabled={!coupon}>Uygula</Button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <Separator />
+
+                                        {/* Referans Kodu Kısımı */}
+                                        {appliedReferralCode ? (
+                                            <div className="flex items-center justify-between gap-2">
+                                                <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200">
+                                                    <Tag className="w-3 h-3 mr-1"/>
+                                                    {appliedReferralCode} (%5 Davet)
+                                                </Badge>
+                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={removeReferral}>
+                                                    <XCircle className="w-4 h-4"/>
+                                                </Button>
+                                            </div>
+                                        ): (
+                                            <div className="space-y-2">
+                                                <Label htmlFor="referral">Referans Kodu</Label>
+                                                <div className="flex gap-2">
+                                                    <Input id="referral" placeholder="Arkadaş kodu girin" value={referralInput} onChange={(e) => setReferralInput(e.target.value)} />
+                                                    <Button variant="outline" onClick={handleApplyReferralCode} disabled={!referralInput}>Uygula</Button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <Separator />
+
+                                        {balanceEur > 0 && (
+                                            <div className="space-y-3 bg-slate-50 p-4 rounded-xl border">
+                                                <div className="flex justify-between items-center text-sm">
+                                                    <span className="font-bold flex items-center gap-1.5"><Wallet className="w-4 h-4 text-primary"/> Cüzdan Bakiyesi</span>
+                                                    <span className="font-bold">{symbol}{formatPrice(balanceEur)}</span>
+                                                </div>
+                                                {useBalance ? (
+                                                    <Button variant="secondary" className="w-full text-xs font-bold border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => setUseBalance(false)}>
+                                                        Bakiyeyi İptal Et
+                                                    </Button>
+                                                ) : (
+                                                    <Button variant="default" className="w-full text-xs font-bold" onClick={() => setUseBalance(true)}>
+                                                        Bakiyemi Kullan
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </CardContent>
                                 <CardFooter>
-                                    <Button className="w-full text-lg h-12" disabled={cartItems.length === 0 || isProcessing} onClick={handleProceedToPayment}>
+                                    <Button className="w-full text-lg h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-bold" disabled={cartItems.length === 0 || isProcessing} onClick={handleCheckout}>
                                         {isProcessing ? <Loader2 className="animate-spin mr-2" /> : <CreditCard className="mr-2" />}
-                                        {isProcessing ? 'İşleniyor...' : 'Satın Al'}
+                                        {isProcessing ? 'Yönlendiriliyor...' : 'Stripe ile Güvenli Öde'}
                                     </Button>
                                 </CardFooter>
                             </Card>
                         </div>
                     </div>
-                )}
-
-                {step === 'payment' && (
-                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
-                        <div className="lg:col-span-2">
-                             <form onSubmit={handleCheckout}>
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>Kredi Kartı Bilgileri</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="card-number">Kart Numarası</Label>
-                                            <Input id="card-number" placeholder="•••• •••• •••• ••••" required />
-                                        </div>
-                                        <div className="grid grid-cols-3 gap-4">
-                                            <div className="space-y-2 col-span-2">
-                                                <Label htmlFor="expiry-date">Son Kullanma Tarihi</Label>
-                                                <Input id="expiry-date" placeholder="AA / YY" required />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="cvc">CVC</Label>
-                                                <Input id="cvc" placeholder="•••" required />
-                                            </div>
-                                        </div>
-                                         <div className="space-y-2">
-                                            <Label htmlFor="card-holder">Kart Sahibi</Label>
-                                            <Input id="card-holder" placeholder="Ad Soyad" required />
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                                 <div className="flex justify-between items-center mt-6">
-                                     <Button variant="link" onClick={() => setStep('cart')}>
-                                        <ArrowLeft className="mr-2" />
-                                        Sepete Dön
-                                    </Button>
-                                     <Button size="lg" type="submit" className="text-lg h-12" disabled={isProcessing}>
-                                        {isProcessing ? (
-                                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                        ) : (
-                                            <CreditCard className="mr-2" />
-                                        )}
-                                        {isProcessing ? 'İşleniyor...' : `${symbol}${formatPrice(finalTotal)} Ödemeyi Tamamla`}
-                                    </Button>
-                                </div>
-                             </form>
-                        </div>
-                         <div className="lg:col-span-1">
-                             <Card className="sticky top-28">
-                                <CardHeader>
-                                    <CardTitle>Sipariş Özeti</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                     {cartItems.map(item => (
-                                         <div key={item.id} className="flex justify-between items-center text-sm">
-                                             <div className="max-w-[60%]">
-                                                <p className="font-medium truncate">{item.name}</p>
-                                                <p className="text-xs text-muted-foreground">{item.description}</p>
-                                             </div>
-                                             <p className="shrink-0 text-muted-foreground">x{item.quantity}</p>
-                                             <p className="font-semibold shrink-0">{symbol}{formatPrice(item.price * item.quantity)}</p>
-                                         </div>
-                                     ))}
-                                     <Separator/>
-                                     <div className="space-y-2">
-                                        <div className="flex justify-between text-sm">
-                                            <span>Ara Toplam</span>
-                                            <span>{symbol}{formatPrice(cartTotal)}</span>
-                                        </div>
-                                        {appliedCoupon && (
-                                            <div className="flex justify-between text-sm text-green-600">
-                                                <span>İndirim ({appliedCoupon})</span>
-                                                <span>-{symbol}{formatPrice(discountAmount)}</span>
-                                            </div>
-                                        )}
-                                        <Separator />
-                                        <div className="flex justify-between font-bold text-lg">
-                                            <span>Toplam</span>
-                                            <span>{symbol}{formatPrice(finalTotal)}</span>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );

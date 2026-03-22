@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import {
   createUserWithEmailAndPassword,
   updateProfile,
@@ -23,7 +24,7 @@ import { Label } from '@/components/ui/label';
 import { SignUpIllustration } from '@/components/illustrations/signup-illustration';
 import { useAuth, useFirestore, useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 const adminEmail = 'admin@hotmail.com';
 
@@ -33,6 +34,7 @@ export default function RegisterPage() {
   const [areaCode, setAreaCode] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const auth = useAuth();
@@ -57,13 +59,14 @@ export default function RegisterPage() {
 
     setIsSubmitting(true);
     try {
-      const slugId = email.toLowerCase().replace(/[^a-zA-Z0-9]/g, '_');
+      const cleanEmail = email.trim();
+      const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+      const newUser = userCredential.user;
+
+      const slugId = cleanEmail.toLowerCase().replace(/[^a-zA-Z0-9]/g, '_');
       const slugRef = doc(db, 'users', slugId);
       const slugDoc = await getDoc(slugRef);
-      const isPreAuthorizedTeacher = slugDoc.exists() && slugDoc.data().role === 'teacher';
-
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const newUser = userCredential.user;
+      const isPreAuthorizedTeacher = slugDoc.exists() && slugDoc.data()?.role === 'teacher';
 
       await updateProfile(newUser, { displayName: name });
       
@@ -75,7 +78,7 @@ export default function RegisterPage() {
 
       const userDocRef = doc(db, 'users', newUser.uid);
       
-      const isAdmin = email.toLowerCase() === adminEmail.toLowerCase();
+      const isAdmin = cleanEmail.toLowerCase() === adminEmail.toLowerCase();
       const role = isAdmin ? 'admin' : (isPreAuthorizedTeacher ? 'teacher' : 'parent');
       
       let targetPath = '/ebeveyn-portali';
@@ -91,6 +94,7 @@ export default function RegisterPage() {
         phoneNumber: `${areaCode}${phoneNumber}`,
         role: role,
         lives: 5,
+        walletBalanceEur: 10,
         livesLastUpdatedAt: serverTimestamp(),
         createdAt: serverTimestamp()
       };
@@ -136,6 +140,14 @@ export default function RegisterPage() {
     }
   };
 
+  const [isExiting, setIsExiting] = useState(false);
+  const handleNavigateToLogin = () => {
+      setIsExiting(true);
+      setTimeout(() => {
+          router.push('/login');
+      }, 400);
+  };
+
   // Prevent hydration flicker by returning a consistent shell
   if (!isMounted) {
     return <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-amber-50 to-white" />;
@@ -144,12 +156,22 @@ export default function RegisterPage() {
   return (
      <div className="relative flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-cyan-50 via-amber-50 to-white p-4 overflow-hidden" suppressHydrationWarning>
       <div className="container relative z-10 w-full max-w-6xl flex items-center justify-center min-h-[calc(100vh-8rem)]">
-        <div className="w-full flex justify-center">
+        <div className="w-full flex justify-center overflow-hidden py-10">
            <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-16 w-full max-w-4xl">
-              <div className="hidden md:block">
+              <motion.div 
+                 className="hidden md:block"
+                 initial={{ x: -150, opacity: 0 }}
+                 animate={{ x: isExiting ? -150 : 0, opacity: isExiting ? 0 : 1 }}
+                 transition={{ duration: 0.5, ease: "easeInOut" }}
+              >
                 <SignUpIllustration />
-              </div>
-              <div className="flex justify-center md:justify-start">
+              </motion.div>
+              <motion.div 
+                 className="flex justify-center md:justify-start"
+                 initial={{ x: 150, opacity: 0 }}
+                 animate={{ x: isExiting ? 150 : 0, opacity: isExiting ? 0 : 1 }}
+                 transition={{ duration: 0.5, ease: "easeInOut" }}
+              >
                  <Card className="w-full max-w-md shadow-2xl bg-white/80 backdrop-blur-lg border-white/50">
                   <CardHeader className="text-center space-y-4">
                     <CardTitle className="text-3xl font-bold">Hesap Oluştur</CardTitle>
@@ -218,17 +240,28 @@ export default function RegisterPage() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="password-signup">Şifre</Label>
-                        <Input
-                          id="password-signup"
-                          type="password"
-                          required
-                          placeholder="••••••••"
-                          autoComplete="new-password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          disabled={loading || isSubmitting}
-                          suppressHydrationWarning
-                        />
+                        <div className="relative">
+                          <Input
+                            id="password-signup"
+                            type={showPassword ? "text" : "password"}
+                            required
+                            placeholder="••••••••"
+                            autoComplete="new-password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            disabled={loading || isSubmitting}
+                            className="pr-10"
+                            suppressHydrationWarning
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                            tabIndex={-1}
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
                       </div>
                       <Button
                         type="submit"
@@ -242,16 +275,17 @@ export default function RegisterPage() {
                     </form>
                     <div className="mt-6 text-center text-sm">
                       Zaten bir hesabın var mı?{' '}
-                      <Link
-                        href="/login"
+                      <button
+                        type="button"
+                        onClick={handleNavigateToLogin}
                         className="font-medium text-primary hover:underline"
                       >
                         Giriş Yap
-                      </Link>
+                      </button>
                     </div>
                   </CardContent>
                 </Card>
-              </div>
+              </motion.div>
            </div>
         </div>
       </div>

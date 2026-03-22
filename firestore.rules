@@ -32,13 +32,12 @@ service cloud.firestore {
       // Admin her şeyi yapabilir
       allow list, get: if isAdmin();
       
-      // Velilerin öğretmenleri görmesi için (Ders Planlama Önizlemesi)
-      // Belge yoksa (resource == null) veya rolü 'teacher' ise okumaya izin ver
-      allow get: if isSignedIn() && (resource == null || resource.data.role == 'teacher');
+      // Diğer kullanıcıları okuma izni (Referans sorgusu ve öğretmen listesi için)
+      allow get, list: if isSignedIn();
       
-      // Takip verileri için güncelleme izni
+      // Takip verileri ve Referans Puanları (academyPoints) için dışarıdan güncelleme izni
       allow update: if (isSignedIn() && request.auth.uid == userId) || 
-                    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isOnline', 'lastActiveAt', 'currentPath', 'onlineSince']));
+                    (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isOnline', 'lastActiveAt', 'currentPath', 'onlineSince', 'academyPoints']));
 
       match /children/{childId} {
         allow read, write: if isSignedIn() && request.auth.uid == userId;
@@ -59,8 +58,9 @@ service cloud.firestore {
     
     // 4. İŞLEMLER VE GENEL VERİLER
     match /transactions/{id} {
-      allow read: if isAdmin();
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
     }
 
     match /courses/{courseId} {
@@ -74,7 +74,18 @@ service cloud.firestore {
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
-    // 5. GLOBAL ADMIN ERİŞİMİ
+    // 5. KUPONLAR VE ÖZEL ERİŞİM
+    match /coupons/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /loyalty-requests/{id} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
     match /{document=**} {
       allow read, write: if isAdmin();
     }

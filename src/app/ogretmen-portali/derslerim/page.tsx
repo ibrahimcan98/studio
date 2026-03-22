@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, query, where, doc, writeBatch, getDoc } from 'firebase/firestore';
@@ -61,12 +61,19 @@ function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any
 
     const { data: childData, isLoading: isChildLoading } = useDoc(childDocRef);
 
+    const [currentTime, setCurrentTime] = useState(new Date());
+    useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 10000);
+        return () => clearInterval(timer);
+    }, []);
+
     if (isChildLoading) {
         return <Card className="p-4 flex items-center justify-center min-h-[200px]"><Loader2 className="animate-spin text-primary" /></Card>;
     }
 
     const packageDetails = getCourseDetailsFromPackageCode(lesson.packageCode);
-    const isPast = new Date() >= lesson.endTime;
+    const isPast = currentTime >= lesson.endTime;
+    const isJoinable = lesson.isLive || currentTime >= new Date(lesson.startTime.getTime() - 5 * 60 * 1000);
     const needsFeedback = isPast && !lesson.feedback;
 
     const startTimeStr = formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr });
@@ -113,7 +120,12 @@ function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any
             </CardContent>
              <CardFooter className="flex flex-col items-start gap-2 pt-4 bg-slate-50/50">
                 {!isPast ? (
-                    <Button onClick={() => onJoinLesson(lesson)} className='w-full font-bold'>
+                    <Button 
+                        onClick={() => onJoinLesson(lesson)} 
+                        className='w-full font-bold'
+                        disabled={!isJoinable}
+                        title={!isJoinable ? "Derse başlamak için ders saatine en fazla 5 dakika kalmış olmalıdır." : undefined}
+                    >
                          <Video className='w-4 h-4 mr-2'/>
                         {lesson.isLive ? 'Derse Gir' : 'Dersi Başlat'}
                     </Button>

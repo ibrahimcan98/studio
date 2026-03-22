@@ -70,14 +70,17 @@ export default function SalesPage() {
   const filteredTransactions = useMemo(() => {
     if (!transactions) return [];
     
+    // Sadece tamamlanmış (veya legacy, status alanı olmayan eski kayıtlar) olanları tutun, bekleyenleri filtreleyin.
+    const completedTransactions = transactions.filter((t: any) => t.status !== 'pending');
+    
     const now = new Date();
     
     if (filter === 'custom') {
-        if (!dateRange?.from) return transactions;
+        if (!dateRange?.from) return completedTransactions;
         const fromDate = startOfDay(dateRange.from);
         const toDate = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
         
-        return transactions.filter(t => {
+        return completedTransactions.filter((t: any) => {
             const date = t.createdAt.toDate();
             return isAfter(date, fromDate) && isBefore(date, toDate);
         });
@@ -88,7 +91,7 @@ export default function SalesPage() {
     else if (filter === 'quarterly') startDate = startOfQuarter(now);
     else startDate = startOfYear(now);
 
-    return transactions.filter(t => isAfter(t.createdAt.toDate(), startDate));
+    return completedTransactions.filter((t: any) => isAfter(t.createdAt.toDate(), startDate));
   }, [transactions, filter, dateRange]);
 
   const stats = useMemo(() => {

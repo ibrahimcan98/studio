@@ -4,6 +4,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
@@ -13,13 +14,14 @@ import { Label } from '@/components/ui/label';
 import { LoginIllustration } from '@/components/illustrations/login-illustration';
 import { useAuth, useFirestore, useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 const adminEmail = 'admin@hotmail.com';
 
 export default function LoginPage() {
   const [email, setInputEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const auth = useAuth();
   const db = useFirestore();
@@ -68,7 +70,7 @@ export default function LoginPage() {
 
     setIsSubmitting(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
       const loggedUser = userCredential.user;
 
       if (loggedUser.email?.toLowerCase() === adminEmail.toLowerCase()) {
@@ -100,10 +102,25 @@ export default function LoginPage() {
 
       toast({ title: 'Başarılı!', description: 'Giriş yaptınız. Yönlendiriliyorsunuz...' });
       router.push('/ebeveyn-portali');
-    } catch (error) {
-       toast({ variant: 'destructive', title: 'Hata', description: 'E-posta veya şifre hatalı.' });
+    } catch (error: any) {
+       let msg = 'Giriş yapılamadı.';
+       if (error.code === 'auth/user-not-found') msg = 'Kayıtlı kullanıcı bulunamadı.';
+       else if (error.code === 'auth/wrong-password') msg = 'Şifreniz hatalı.';
+       else if (error.code === 'auth/invalid-credential') msg = 'E-posta adresiniz veya şifreniz hatalı.';
+       else if (error.code === 'auth/too-many-requests') msg = 'Çok fazla hatalı deneme. Hesabınız geçici kilitlendi.';
+       else msg = error.message || 'E-posta veya şifre hatalı.';
+       
+       toast({ variant: 'destructive', title: 'Hata', description: msg });
        setIsSubmitting(false);
     }
+  };
+
+  const [isExiting, setIsExiting] = useState(false);
+  const handleNavigateToRegister = () => {
+      setIsExiting(true);
+      setTimeout(() => {
+          router.push('/register');
+      }, 400);
   };
 
   if (loading || (user && !user.isAnonymous)) {
@@ -117,9 +134,14 @@ export default function LoginPage() {
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-cyan-50 via-amber-50 to-white p-4 overflow-hidden font-sans">
       <div className="container relative z-10 w-full max-w-6xl flex items-center justify-center min-h-[calc(100vh-8rem)]">
-        <div className="w-full flex justify-center">
+        <div className="w-full flex justify-center py-10 overflow-hidden">
             <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-16 w-full max-w-4xl">
-              <div className="flex justify-center md:justify-end">
+              <motion.div 
+                 className="flex justify-center md:justify-end"
+                 initial={{ x: -150, opacity: 0 }}
+                 animate={{ x: isExiting ? -150 : 0, opacity: isExiting ? 0 : 1 }}
+                 transition={{ duration: 0.5, ease: "easeInOut" }}
+              >
                 <Card className="w-full max-w-md shadow-2xl bg-white/80 backdrop-blur-lg border-white/50">
                   <CardHeader className="text-center space-y-4">
                     <CardTitle className="text-3xl font-bold">Giriş Yap</CardTitle>
@@ -145,16 +167,27 @@ export default function LoginPage() {
                           <Label htmlFor="password">Şifre</Label>
                           <Link href="/forgot-password" className="text-xs text-primary hover:underline focus:outline-none">Şifremi Unuttum?</Link>
                         </div>
-                        <Input
-                          id="password"
-                          type="password"
-                          required
-                          placeholder="••••••••"
-                          autoComplete="current-password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          disabled={loading || isSubmitting}
-                        />
+                        <div className="relative">
+                          <Input
+                            id="password"
+                            type={showPassword ? "text" : "password"}
+                            required
+                            placeholder="••••••••"
+                            autoComplete="current-password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            disabled={loading || isSubmitting}
+                            className="pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                            tabIndex={-1}
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
                       </div>
                       <Button type="submit" className="w-full font-bold text-lg py-6" disabled={loading || isSubmitting}>
                         {isSubmitting ? <Loader2 className="animate-spin mr-2"/> : null}
@@ -163,14 +196,19 @@ export default function LoginPage() {
                     </form>
                     <div className="mt-6 text-center text-sm">
                       Hesabın yok mu?{' '}
-                      <Link href="/register" className="font-medium text-primary hover:underline focus:outline-none">Kayıt Ol</Link>
+                      <button type="button" onClick={handleNavigateToRegister} className="font-medium text-primary hover:underline focus:outline-none">Kayıt Ol</button>
                     </div>
                   </CardContent>
                 </Card>
-              </div>
-              <div className="hidden md:block">
+              </motion.div>
+              <motion.div 
+                 className="hidden md:block"
+                 initial={{ x: 150, opacity: 0 }}
+                 animate={{ x: isExiting ? 150 : 0, opacity: isExiting ? 0 : 1 }}
+                 transition={{ duration: 0.5, ease: "easeInOut" }}
+              >
                 <LoginIllustration />
-              </div>
+              </motion.div>
             </div>
          </div>
       </div>

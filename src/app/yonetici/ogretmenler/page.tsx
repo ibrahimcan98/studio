@@ -2,6 +2,9 @@
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { firebaseConfig } from '@/firebase/config';
 import { useState } from 'react';
 import {
   Card,
@@ -10,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 import {
   Table,
   TableBody,
@@ -67,12 +71,22 @@ export default function AdminTeachersPage() {
   // Form states
   const [formData, setFormData] = useState({
     email: '',
+    password: '',
+    isPassive: false,
     firstName: '',
     lastName: '',
     bio: '',
     hobbies: '',
     googleMeetLink: '',
     introVideoUrl: '',
+    lessonRates: {
+        baslangic: 0,
+        konusma: 0,
+        akademik: 0,
+        gelisim: 0,
+        gcse: 0,
+        FREE_TRIAL: 0
+    },
   });
 
   const teachersQuery = useMemoFirebase(() => {
@@ -85,47 +99,86 @@ export default function AdminTeachersPage() {
   const resetForm = () => {
     setFormData({
       email: '',
+      password: '',
+      isPassive: false,
       firstName: '',
       lastName: '',
       bio: '',
       hobbies: '',
       googleMeetLink: '',
       introVideoUrl: '',
+      lessonRates: {
+          baslangic: 0,
+          konusma: 0,
+          akademik: 0,
+          gelisim: 0,
+          gcse: 0,
+          FREE_TRIAL: 0
+      },
     });
   };
 
   const handleAddTeacher = async () => {
-    if (!db || !formData.email || !formData.firstName) return;
+    if (!db || !formData.firstName) {
+       toast({ variant: 'destructive', title: 'Hata', description: 'Lütfen isim alanını doldurunuz.' });
+       return;
+    }
+    if (!formData.isPassive && (!formData.email || !formData.password)) {
+       toast({ variant: 'destructive', title: 'Hata', description: 'Aktif bir öğretmen için lütfen e-posta ve şifre girin.' });
+       return;
+    }
+    
     setIsSubmitting(true);
 
     try {
-      // Taslak doküman kimliği e-posta slug'ı olarak belirlenir.
-      // Öğretmen bu e-posta ile kayıt olduğunda sistem onu tanır.
-      const teacherId = formData.email.toLowerCase().replace(/[^a-zA-Z0-9]/g, '_');
-      const teacherRef = doc(db, 'users', teacherId);
+      let teacherRef;
+      let newUid;
+
+      if (formData.isPassive) {
+        teacherRef = doc(collection(db, 'users'));
+        newUid = teacherRef.id;
+      } else {
+        let secondaryApp;
+        try {
+          secondaryApp = getApp('Secondary');
+        } catch {
+          secondaryApp = initializeApp(firebaseConfig, 'Secondary');
+        }
+        const secondaryAuth = getAuth(secondaryApp);
+        
+        const userCredential = await createUserWithEmailAndPassword(secondaryAuth, formData.email.toLowerCase(), formData.password);
+        newUid = userCredential.user.uid;
+        await signOut(secondaryAuth);
+        
+        teacherRef = doc(db, 'users', newUid);
+      }
       
       await setDoc(teacherRef, {
+        id: newUid,
         firstName: formData.firstName,
         lastName: formData.lastName,
-        email: formData.email.toLowerCase(),
+        email: formData.email ? formData.email.toLowerCase() : '',
         role: 'teacher',
+        isPassive: formData.isPassive,
         bio: formData.bio,
         hobbies: formData.hobbies.split(',').map(h => h.trim()).filter(Boolean),
         googleMeetLink: formData.googleMeetLink,
         introVideoUrl: formData.introVideoUrl,
+        lessonRates: formData.lessonRates,
         createdAt: serverTimestamp(),
         isProfileComplete: true,
       });
 
       toast({ 
         title: 'Öğretmen Yetkilendirildi', 
-        description: `${formData.email} adresi sisteme "Öğretmen" olarak tanımlandı.` 
+        description: formData.isPassive ? `${formData.firstName} sisteme Pasif (Dolu) Öğretmen olarak eklendi.` : `${formData.email} adresi sisteme Öğretmen olarak tanımlandı ve hesabı oluşturuldu.` 
       });
       setIsAddOpen(false);
       resetForm();
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast({ variant: 'destructive', title: 'Hata', description: 'Öğretmen eklenirken bir sorun oluştu.' });
+      const message = error.code === 'auth/email-already-in-use' ? 'Bu e-posta adresi zaten kullanılıyor.' : 'Öğretmen eklenirken bir sorun oluştu.';
+      toast({ variant: 'destructive', title: 'Hata', description: message });
     } finally {
       setIsSubmitting(false);
     }
@@ -144,6 +197,7 @@ export default function AdminTeachersPage() {
         hobbies: formData.hobbies.split(',').map(h => h.trim()).filter(Boolean),
         googleMeetLink: formData.googleMeetLink,
         introVideoUrl: formData.introVideoUrl,
+        lessonRates: formData.lessonRates,
         updatedAt: serverTimestamp(),
       });
 
@@ -178,12 +232,22 @@ export default function AdminTeachersPage() {
     setSelectedTeacher(teacher);
     setFormData({
       email: teacher.email || '',
+      password: '',
+      isPassive: teacher.isPassive || false,
       firstName: teacher.firstName || '',
       lastName: teacher.lastName || '',
       bio: teacher.bio || '',
       hobbies: (teacher.hobbies || []).join(', '),
       googleMeetLink: teacher.googleMeetLink || '',
       introVideoUrl: teacher.introVideoUrl || '',
+      lessonRates: teacher.lessonRates || {
+        baslangic: 0,
+        konusma: 0,
+        akademik: 0,
+        gelisim: 0,
+        gcse: 0,
+        FREE_TRIAL: 0
+      },
     });
     setIsEditOpen(true);
   };
@@ -207,10 +271,23 @@ export default function AdminTeachersPage() {
               <DialogDescription>Yeni bir öğretmen için veritabanında "teacher" rolüyle bir taslak oluşturun.</DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-2 gap-4 py-4">
+              <div className="flex items-center space-x-4 col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-100 mb-2">
+                <Switch id="passive-mode" checked={formData.isPassive} onCheckedChange={(c) => setFormData({...formData, isPassive: c})} />
+                <div className="space-y-0.5">
+                  <Label htmlFor="passive-mode" className="text-base font-bold text-slate-800 cursor-pointer">Pasif (Dolu Görünen) Öğretmen</Label>
+                  <p className="text-xs text-slate-500 font-medium">Bu öğretmen sisteme giriş yapamaz, velilere saatleri dolu olarak görünür.</p>
+                </div>
+              </div>
               <div className="space-y-2 col-span-2">
-                <Label>E-posta Adresi (Giriş için gereklidir)</Label>
+                <Label>E-posta Adresi (Gerekirse)</Label>
                 <Input value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="ornek@turkcocukakademisii.com" />
               </div>
+              {!formData.isPassive && (
+                <div className="space-y-2 col-span-2">
+                  <Label>Şifre (İleride giriş yapacağı şifre)</Label>
+                  <Input type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="En az 6 karakter" />
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>İsim</Label>
                 <Input value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} placeholder="Ad" />
@@ -222,6 +299,21 @@ export default function AdminTeachersPage() {
               <div className="space-y-2 col-span-2">
                 <Label>Google Meet Linki</Label>
                 <Input value={formData.googleMeetLink} onChange={e => setFormData({...formData, googleMeetLink: e.target.value})} placeholder="https://meet.google.com/..." />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label>Tanıtım Videosu Linki</Label>
+                <Input value={formData.introVideoUrl} onChange={e => setFormData({...formData, introVideoUrl: e.target.value})} placeholder="https://youtube.com/..." />
+              </div>
+              <div className="col-span-2 space-y-3 pt-4 border-t border-slate-100">
+                <Label className="text-base font-black text-slate-800 tracking-tight">Kurs Başına Kazanç (€, Ders Başı)</Label>
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-5">
+                   <div className="space-y-1.5"><Label className="text-xs font-bold text-slate-500">Başlangıç</Label><Input type="number" min="0" value={formData.lessonRates.baslangic || ''} onChange={e => setFormData({...formData, lessonRates: {...formData.lessonRates, baslangic: Number(e.target.value)}})} placeholder="€" className="font-bold text-slate-700 h-10" /></div>
+                   <div className="space-y-1.5"><Label className="text-xs font-bold text-slate-500">Konuşma</Label><Input type="number" min="0" value={formData.lessonRates.konusma || ''} onChange={e => setFormData({...formData, lessonRates: {...formData.lessonRates, konusma: Number(e.target.value)}})} placeholder="€" className="font-bold text-slate-700 h-10" /></div>
+                   <div className="space-y-1.5"><Label className="text-xs font-bold text-slate-500">Akademik</Label><Input type="number" min="0" value={formData.lessonRates.akademik || ''} onChange={e => setFormData({...formData, lessonRates: {...formData.lessonRates, akademik: Number(e.target.value)}})} placeholder="€" className="font-bold text-slate-700 h-10" /></div>
+                   <div className="space-y-1.5"><Label className="text-xs font-bold text-slate-500">Gelişim</Label><Input type="number" min="0" value={formData.lessonRates.gelisim || ''} onChange={e => setFormData({...formData, lessonRates: {...formData.lessonRates, gelisim: Number(e.target.value)}})} placeholder="€" className="font-bold text-slate-700 h-10" /></div>
+                   <div className="space-y-1.5"><Label className="text-xs font-bold text-slate-500">GCSE</Label><Input type="number" min="0" value={formData.lessonRates.gcse || ''} onChange={e => setFormData({...formData, lessonRates: {...formData.lessonRates, gcse: Number(e.target.value)}})} placeholder="€" className="font-bold text-slate-700 h-10" /></div>
+                   <div className="space-y-1.5"><Label className="text-xs font-bold text-blue-600">Deneme Dersi</Label><Input type="number" min="0" className="border-blue-200 font-bold text-slate-700 h-10 bg-blue-50/50" value={formData.lessonRates.FREE_TRIAL || ''} onChange={e => setFormData({...formData, lessonRates: {...formData.lessonRates, FREE_TRIAL: Number(e.target.value)}})} placeholder="€" /></div>
+                </div>
               </div>
             </div>
             <DialogFooter>
@@ -285,7 +377,9 @@ export default function AdminTeachersPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      {teacher.bio ? (
+                      {teacher.isPassive ? (
+                        <Badge className="bg-slate-100 text-slate-500 border-slate-200 font-black text-[9px] uppercase tracking-widest">PASİF (DOLU)</Badge>
+                      ) : teacher.bio ? (
                         <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100 font-black text-[9px] uppercase tracking-widest">AKTİF</Badge>
                       ) : (
                         <Badge variant="outline" className="text-orange-500 border-orange-200 font-black text-[9px] uppercase tracking-widest">TASLAK</Badge>
@@ -358,6 +452,17 @@ export default function AdminTeachersPage() {
             <div className="space-y-2">
               <Label>Tanıtım Videosu URL'si</Label>
               <Input value={formData.introVideoUrl} onChange={e => setFormData({...formData, introVideoUrl: e.target.value})} />
+            </div>
+            <div className="col-span-2 space-y-3 pt-6 border-t border-slate-100">
+              <Label className="text-base font-black text-slate-800 tracking-tight">Kurs Başına Kazanç (€, Ders Başı)</Label>
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-5">
+                 <div className="space-y-1.5"><Label className="text-xs font-bold text-slate-500">Başlangıç</Label><Input type="number" min="0" value={formData.lessonRates.baslangic || ''} onChange={e => setFormData({...formData, lessonRates: {...formData.lessonRates, baslangic: Number(e.target.value)}})} placeholder="€" className="font-bold text-slate-700 h-11" /></div>
+                 <div className="space-y-1.5"><Label className="text-xs font-bold text-slate-500">Konuşma</Label><Input type="number" min="0" value={formData.lessonRates.konusma || ''} onChange={e => setFormData({...formData, lessonRates: {...formData.lessonRates, konusma: Number(e.target.value)}})} placeholder="€" className="font-bold text-slate-700 h-11" /></div>
+                 <div className="space-y-1.5"><Label className="text-xs font-bold text-slate-500">Akademik</Label><Input type="number" min="0" value={formData.lessonRates.akademik || ''} onChange={e => setFormData({...formData, lessonRates: {...formData.lessonRates, akademik: Number(e.target.value)}})} placeholder="€" className="font-bold text-slate-700 h-11" /></div>
+                 <div className="space-y-1.5"><Label className="text-xs font-bold text-slate-500">Gelişim</Label><Input type="number" min="0" value={formData.lessonRates.gelisim || ''} onChange={e => setFormData({...formData, lessonRates: {...formData.lessonRates, gelisim: Number(e.target.value)}})} placeholder="€" className="font-bold text-slate-700 h-11" /></div>
+                 <div className="space-y-1.5"><Label className="text-xs font-bold text-slate-500">GCSE</Label><Input type="number" min="0" value={formData.lessonRates.gcse || ''} onChange={e => setFormData({...formData, lessonRates: {...formData.lessonRates, gcse: Number(e.target.value)}})} placeholder="€" className="font-bold text-slate-700 h-11" /></div>
+                 <div className="space-y-1.5"><Label className="text-xs font-bold text-blue-600">Deneme Dersi</Label><Input type="number" min="0" className="border-blue-200 font-bold text-slate-700 h-11 bg-blue-50/50" value={formData.lessonRates.FREE_TRIAL || ''} onChange={e => setFormData({...formData, lessonRates: {...formData.lessonRates, FREE_TRIAL: Number(e.target.value)}})} placeholder="€" /></div>
+              </div>
             </div>
           </div>
           <DialogFooter className="gap-3">

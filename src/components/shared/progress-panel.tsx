@@ -93,9 +93,10 @@ interface Feedback {
     id: string;
     text: string;
     createdAt: string;
+    type?: 'pdr' | 'teacher';
 }
 
-export function ProgressPanel({ child, lessonId, isEditable = false }: { child: any, lessonId?: string, isEditable?: boolean }) {
+export function ProgressPanel({ child, lessonId, isEditable = false, authorRole = 'teacher' }: { child: any, lessonId?: string, isEditable?: boolean, authorRole?: 'teacher' | 'admin' }) {
     const { toast } = useToast();
     const db = useFirestore();
     const [isSaving, setIsSaving] = useState(false);
@@ -174,7 +175,8 @@ export function ProgressPanel({ child, lessonId, isEditable = false }: { child: 
             batch.update(lessonDocRef, { 
                 feedback: {
                     text: feedbackToUpdateInLesson.text,
-                    createdAt: serverTimestamp()
+                    createdAt: serverTimestamp(),
+                    type: feedbackToUpdateInLesson.type || 'teacher'
                 }
              });
         }
@@ -223,10 +225,11 @@ export function ProgressPanel({ child, lessonId, isEditable = false }: { child: 
         };
 
         if (newFeedback.trim() !== "") {
-             const feedbackEntry = {
+             const feedbackEntry: Feedback = {
                 id: lessonId || Date.now().toString(),
                 text: newFeedback,
-                createdAt: new Date().toISOString()
+                createdAt: new Date().toISOString(),
+                type: authorRole === 'admin' ? 'pdr' : 'teacher'
             };
             updatedFeedbackHistory.push(feedbackEntry);
             updatedData.feedbackHistory = updatedFeedbackHistory;
@@ -236,7 +239,8 @@ export function ProgressPanel({ child, lessonId, isEditable = false }: { child: 
                 batch.update(lessonDocRef, {
                     feedback: {
                         text: newFeedback,
-                        createdAt: serverTimestamp()
+                        createdAt: serverTimestamp(),
+                        type: authorRole === 'admin' ? 'pdr' : 'teacher'
                     }
                 });
             }
@@ -536,9 +540,14 @@ export function ProgressPanel({ child, lessonId, isEditable = false }: { child: 
                                         <DialogTrigger asChild>
                                             <div className="p-1 h-full">
                                                 <Card className="h-full cursor-pointer hover:bg-muted" onClick={() => setEditingFeedback(fb)}>
-                                                    <CardContent className="flex flex-col gap-4 p-4">
+                                                    <CardContent className="flex flex-col gap-3 p-4">
+                                                        <div className="flex justify-between items-start mb-1">
+                                                            <Badge variant="outline" className={cn("text-[10px] uppercase font-bold tracking-widest border-none px-2 py-0.5", fb.type === 'pdr' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700')}>
+                                                                {fb.type === 'pdr' ? 'PDR Uzmanı' : 'Öğretmen'}
+                                                            </Badge>
+                                                        </div>
                                                         <p className="text-sm text-muted-foreground flex-grow line-clamp-3">"{fb.text}"</p>
-                                                        <span className="text-xs text-gray-400 self-end">{format(new Date(fb.createdAt), 'dd MMM yyyy, HH:mm', { locale: tr })}</span>
+                                                        <span className="text-xs text-gray-400 self-end mt-1">{format(new Date(fb.createdAt), 'dd MMM yyyy, HH:mm', { locale: tr })}</span>
                                                     </CardContent>
                                                 </Card>
                                             </div>
@@ -559,7 +568,12 @@ export function ProgressPanel({ child, lessonId, isEditable = false }: { child: 
                                                     />
                                                 </div>
                                             ) : (
-                                                <p className="py-4">{fb.text}</p>
+                                                <div className="py-4 space-y-4">
+                                                    <Badge variant="outline" className={cn("text-[10px] uppercase font-bold tracking-widest border-none px-2 py-0.5 inline-block", fb.type === 'pdr' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700')}>
+                                                        {fb.type === 'pdr' ? 'PDR Uzmanı Geri Bildirimi' : 'Öğretmen Geri Bildirimi'}
+                                                    </Badge>
+                                                    <p className="text-slate-800 leading-relaxed font-medium">{fb.text}</p>
+                                                </div>
                                             )}
                                              {isEditable && (
                                                 <DialogFooter>
