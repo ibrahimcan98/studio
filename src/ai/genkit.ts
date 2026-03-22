@@ -11,7 +11,7 @@ import 'dotenv/config';
 const aiConfig = {
   plugins: [
     googleAI({
-      apiKey: process.env.GEMINI_API_KEY,
+      apiKey: process.env.GEMINI_API_KEY || 'placeholder_for_build',
     }),
   ],
   model: 'googleai/gemini-2.5-flash' as const,
