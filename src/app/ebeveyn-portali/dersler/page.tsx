@@ -397,6 +397,8 @@ function DerslerimPageContent() {
     );
 }
 
+export const dynamic = 'force-dynamic';
+
 export default function DerslerimPage() {
     return (
         <Suspense fallback={<div className="flex min-h-[calc(100vh-80px)] items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>}>

@@ -6,6 +6,8 @@ import { getExchangeRates } from '@/ai/flows/exchange-rate-flow';
 import { KurslarClientPage } from './kurslar-client';
 
 
+export const dynamic = 'force-dynamic';
+
 export default async function KurslarPage() {
     
     // Fetch live exchange rates on the server

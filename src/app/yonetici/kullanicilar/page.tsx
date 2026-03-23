@@ -968,6 +968,8 @@ function UsersPageContent() {
   );
 }
 
+export const dynamic = 'force-dynamic';
+
 export default function UsersPage() {
   return (
     <Suspense fallback={<div className="flex justify-center items-center h-64"><Loader2 className="animate-spin text-primary" /></div>}>
