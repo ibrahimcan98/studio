@@ -1,6 +1,6 @@
 export const assistantData = {
-    name: "TCA Asistan",
-    avatarUrl: "/favicon.ico",
+    name: "Türk Çocuk Akademisi",
+    avatarUrl: "/logo.png",
     greeting: "Merhaba! 👋 Türk Çocuk Akademisi'ne hoş geldiniz. Size nasıl yardımcı olabilirim? Aşağıdaki konulardan birini seçebilir veya bana istediğinizi sorabilirsiniz.",
     suggestedQuestions: [
         "Ücretsiz deneme dersi nasıl alabilirim?",

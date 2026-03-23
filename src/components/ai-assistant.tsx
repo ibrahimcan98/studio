@@ -247,7 +247,7 @@ export function AIAssistant() {
                                     </Avatar>
                                     <div>
                                         <p className="font-bold text-sm">
-                                            {mode === 'ai' ? 'TCA Asistan' : mode === 'live' ? 'Canlı Destek' : 'Bize Yazın'}
+                                            {mode === 'ai' ? assistantData.name : mode === 'live' ? 'Canlı Destek' : 'Bize Yazın'}
                                         </p>
                                         <span className="text-[10px] opacity-80 uppercase font-bold tracking-wider">Çevrimiçi</span>
                                     </div>
