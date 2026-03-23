@@ -42,11 +42,11 @@ export function AIAssistant() {
 
     // Otomatik açılma mantığı
     useEffect(() => {
-        const shouldBeHidden = pathname.startsWith('/ogretmen-portali') || 
-                               pathname.startsWith('/cocuk-modu') ||
-                               pathname.startsWith('/live-lesson') ||
-                               pathname.startsWith('/yonetici');
-        
+        const shouldBeHidden = pathname.startsWith('/ogretmen-portali') ||
+            pathname.startsWith('/cocuk-modu') ||
+            pathname.startsWith('/live-lesson') ||
+            pathname.startsWith('/yonetici');
+
         if (!shouldBeHidden) {
             const hasAutoOpened = sessionStorage.getItem('tca_asistan_auto_opened');
             if (!hasAutoOpened) {
@@ -76,10 +76,10 @@ export function AIAssistant() {
     }, [rawLiveMessages]);
 
     useEffect(() => {
-        const shouldBeHidden = pathname.startsWith('/ogretmen-portali') || 
-                               pathname.startsWith('/cocuk-modu') ||
-                               pathname.startsWith('/live-lesson') ||
-                               pathname.startsWith('/yonetici');
+        const shouldBeHidden = pathname.startsWith('/ogretmen-portali') ||
+            pathname.startsWith('/cocuk-modu') ||
+            pathname.startsWith('/live-lesson') ||
+            pathname.startsWith('/yonetici');
         if (shouldBeHidden) setIsOpen(false);
     }, [pathname]);
 
@@ -121,7 +121,7 @@ export function AIAssistant() {
             }
         } else if (mode === 'live' && currentConversationId && db) {
             if (!customInput) setInput('');
-            
+
             const msgRef = doc(collection(db, 'messages'));
             setDoc(msgRef, {
                 conversationId: currentConversationId,
@@ -165,7 +165,7 @@ export function AIAssistant() {
         };
 
         await setDoc(convRef, convData);
-        
+
         const msgRef = doc(collection(db, 'messages'));
         await setDoc(msgRef, {
             conversationId: convRef.id,
@@ -186,7 +186,7 @@ export function AIAssistant() {
         const isActualUser = user && !user.isAnonymous;
         const ticketId = Math.random().toString(36).substring(7).toUpperCase();
         const convRef = doc(collection(db, 'conversations'));
-        
+
         await setDoc(convRef, {
             status: 'open',
             channel: 'whatsapp',
@@ -212,7 +212,7 @@ export function AIAssistant() {
     return (
         <>
             <div className="fixed bottom-6 right-6 z-50">
-                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 1, type: 'spring' }}>
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 1, type: 'spring' }}>
                     <Button
                         size="icon"
                         className="rounded-full w-16 h-16 bg-gradient-to-br from-primary to-accent text-white shadow-2xl border-4 border-white"
@@ -231,7 +231,7 @@ export function AIAssistant() {
                         exit={{ opacity: 0, y: 50, scale: 0.9 }}
                         className="fixed bottom-6 right-6 sm:bottom-24 sm:right-6 z-[100] w-[calc(100%-3rem)] max-w-sm"
                     >
-                        <Card 
+                        <Card
                             className="flex flex-col h-[70vh] max-h-[700px] shadow-2xl rounded-2xl overflow-hidden border-none bg-white"
                         >
                             <CardHeader className="flex flex-row items-center justify-between bg-primary p-4 text-white">
@@ -242,7 +242,7 @@ export function AIAssistant() {
                                         </Button>
                                     )}
                                     <Avatar className="h-10 w-10 border-2 border-white/20">
-                                        <AvatarImage src="/logo.png" />
+                                        <AvatarImage src={assistantData.avatarUrl} />
                                         <AvatarFallback>TCA</AvatarFallback>
                                     </Avatar>
                                     <div>
@@ -256,7 +256,7 @@ export function AIAssistant() {
                                     <X className="w-5 h-5" />
                                 </Button>
                             </CardHeader>
-                            
+
                             <CardContent className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
                                 {mode === 'ai' && messages.map((msg, i) => (
                                     <div key={i} className={cn("flex items-start gap-2", msg.role === 'user' ? 'justify-end' : 'justify-start')}>
@@ -294,7 +294,7 @@ export function AIAssistant() {
                                         </Button>
                                     </div>
                                 )}
-                                
+
                                 {['ai', 'live'].includes(mode) && (
                                     <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex w-full gap-2">
                                         <Input

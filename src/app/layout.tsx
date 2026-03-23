@@ -14,8 +14,8 @@ export const metadata: Metadata = {
   title: 'Türk Çocuk Akademisi',
   description: 'Yurt dışındaki çocuklar için oyun tabanlı, eğlenceli ve etkili Türkçe öğrenimi platformu.',
   icons: {
-    icon: '/favicon.png',
-    apple: '/favicon.png',
+    icon: '/favicon.ico',
+    apple: '/favicon.ico',
   },
 };
 
