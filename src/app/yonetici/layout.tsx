@@ -31,6 +31,8 @@ import {
   Sheet,
   SheetContent,
   SheetTrigger,
+  SheetHeader,
+  SheetTitle,
 } from "@/components/ui/sheet";
 
 function AdminPortalLayout({ children }: { children: React.ReactNode }) {
@@ -137,6 +139,9 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
                       </Button>
                     </SheetTrigger>
                     <SheetContent side="left" className="p-0 w-72">
+                      <SheetHeader className="sr-only">
+                        <SheetTitle>Yönetici Paneli Menüsü</SheetTitle>
+                      </SheetHeader>
                       <div className="flex h-20 items-center border-b px-8 mt-4"><Logo /></div>
                       <nav className="flex-1 space-y-1 p-4">
                         {navItems.map((item) => (
