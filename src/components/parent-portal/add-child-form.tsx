@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useFirestore } from '@/firebase';
-import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -174,6 +174,24 @@ export function AddChildForm({ userId, onChildAdded, child, childId, children }:
 
             // Store new child's ID for auto-selection
             localStorage.setItem('newlyAddedChildId', newChildDoc.id);
+
+            // Store in Activity Log (Frontend side for auth)
+            addDoc(collection(db, 'activity-log'), {
+                event: '👶 Yeni Öğrenci Eklendi',
+                icon: '👶',
+                details: { 'Öğrenci Adı': values.firstName },
+                createdAt: Timestamp.fromDate(new Date())
+            }).catch(console.error);
+
+            // Admin notification (Email)
+            fetch('/api/notify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    event: '👶 Yeni Öğrenci Eklendi',
+                    details: { 'Öğrenci Adı': values.firstName }
+                })
+            }).catch(console.error);
 
             toast({
                 title: 'Başarılı!',

@@ -94,8 +94,9 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
   }
 
   const navItems = [
-    { href: '/yonetici', label: 'Dashboard', icon: Home },
-    { href: '/yonetici/inbox', label: 'Inbox', icon: Inbox },
+    { href: '/yonetici', label: 'Genel Bakış', icon: Home },
+    { href: '/yonetici/canli-takip', label: 'Canlı İzle', icon: Activity },
+    { href: '/yonetici/inbox', label: 'Mesajlar', icon: Inbox },
     { href: '/yonetici/satislar', label: 'Satışlar', icon: CreditCard },
     { href: '/yonetici/ogretmenler', label: 'Öğretmenler', icon: Presentation },
     { href: '/yonetici/kullanicilar', label: 'Veliler', icon: Users },
@@ -109,7 +110,11 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-screen w-full flex-col bg-muted/40 font-sans text-slate-900">
         {/* Desktop Sidebar */}
         <aside className="fixed inset-y-0 left-0 z-10 hidden w-64 flex-col border-r bg-background sm:flex shadow-sm">
-            <div className="flex h-20 items-center border-b px-8"><Link href="/yonetici" className="flex items-center gap-2"><Logo /></Link></div>
+            <div className="flex h-20 items-center border-b px-6">
+              <Link href="/yonetici" className="flex items-center gap-2 overflow-hidden">
+                <Logo className="text-lg" />
+              </Link>
+            </div>
             <nav className="flex-1 space-y-1 p-4">
             {navItems.map((item) => (
               <Link key={item.href} href={item.href}

@@ -27,7 +27,6 @@ export async function GET(request: Request) {
         const lessonsRef = collection(db, 'lesson-slots');
         const q = query(
             lessonsRef,
-            where('status', '==', 'booked'),
             where('startTime', '>=', Timestamp.fromDate(windowStart)),
             where('startTime', '<=', Timestamp.fromDate(windowEnd))
         );
@@ -38,7 +37,8 @@ export async function GET(request: Request) {
         for (const lessonDoc of querySnapshot.docs) {
             const lesson = lessonDoc.data();
             
-            // Skip if reminder already sent
+            // Filter in memory to avoid needing a composite index
+            if (lesson.status !== 'booked') continue;
             if (lesson.whatsappReminderSent) continue;
 
             const lessonId = lessonDoc.id;
@@ -50,7 +50,6 @@ export async function GET(request: Request) {
             // Fetch Teacher Info
             const teacherDoc = await getDoc(doc(db, 'users', teacherId));
             const teacherData = teacherDoc.data();
-            const teacherPhone = teacherData?.phoneNumber;
             const teacherName = teacherData?.displayName || 'Öğretmen';
 
             // Fetch Parent Info
@@ -65,13 +64,7 @@ export async function GET(request: Request) {
 
             const formattedTime = formatInTimeZone(startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr });
 
-            // 1. Send to Teacher
-            if (teacherPhone) {
-                const teacherMsg = `Merhaba ${teacherName}, ${childName} ile olan dersiniz saat ${formattedTime}'de başlayacaktır. İyi dersler dileriz! 🎓`;
-                await sendWhatsAppMessage(teacherPhone, teacherMsg);
-            }
-
-            // 2. Send to Parent
+            // 1. Send to Parent
             if (parentPhone) {
                 const parentMsg = `Merhaba ${parentName}, ${childName}'nin Türk Çocuk Akademisi dersi saat ${formattedTime}'de başlayacaktır. Lütfen öğrencinin hazır olduğundan emin olun. İyi dersler! 📚`;
                 await sendWhatsAppMessage(parentPhone, parentMsg);

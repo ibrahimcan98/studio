@@ -136,6 +136,10 @@ export default function DersPlanlaPage() {
     const [isBooking, setIsBooking] = useState(false);
     const [selectedChildId, setSelectedChildId] = useState<string>('');
     
+    const [rescheduleId, setRescheduleId] = useState<string | null>(null);
+    const [rescheduleSlotIds, setRescheduleSlotIds] = useState<string[]>([]);
+    const [oldLessonData, setOldLessonData] = useState<any>(null);
+
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const params = new URLSearchParams(window.location.search);
@@ -143,8 +147,72 @@ export default function DersPlanlaPage() {
             if (childId) {
                 setSelectedChildId(childId);
             }
+            const resId = params.get('rescheduleId');
+            const slotIdsParam = params.get('slotIds');
+            if (resId) {
+                setRescheduleId(resId);
+                const ids = slotIdsParam ? slotIdsParam.split(',') : [resId];
+                setRescheduleSlotIds(ids);
+                fetchOldLesson(resId);
+            }
         }
     }, []);
+
+    const fetchOldLesson = async (id: string) => {
+        if (!db || !id) return;
+        try {
+            // First, try to fetch as a direct document ID which is safer
+            const directDocRef = doc(db, 'lesson-slots', id);
+            const directSnap = await getDocs(query(collection(db, 'lesson-slots'), where('__name__', '==', id)));
+            
+            let lessonData = null;
+            if (!directSnap.empty) {
+                lessonData = directSnap.docs[0].data();
+            }
+
+            if (!lessonData) {
+                // Fallback: Try to parse if it's a legacy consolidated ID
+                const parts = id.split('-');
+                if (parts.length >= 6) {
+                    const childId = parts[parts.length - 2];
+                    const teacherId = parts[parts.length - 1];
+                    
+                    if (childId && teacherId) {
+                        const q = query(
+                            collection(db, 'lesson-slots'),
+                            where('childId', '==', childId),
+                            where('teacherId', '==', teacherId),
+                            where('status', '==', 'booked')
+                        );
+                        const snap = await getDocs(q);
+                        // find matching by date...
+                        const year = parts[0];
+                        const month = parts[1];
+                        const day = parts[2];
+                        const matchingSlot = snap.docs.find(doc => {
+                            const date = doc.data().startTime.toDate();
+                            const dKey = formatInTimeZone(date, 'UTC', 'yyyy-MM-dd');
+                            return dKey.startsWith(`${year}-${month}-${day}`);
+                        });
+                        if (matchingSlot) lessonData = matchingSlot.data();
+                    }
+                }
+            }
+
+            if (lessonData) {
+                setOldLessonData({
+                    ...lessonData,
+                    startTime: lessonData.startTime.toDate ? lessonData.startTime.toDate() : new Date(lessonData.startTime),
+                    id: id
+                });
+                if (lessonData.packageCode) setSelectedPackage(lessonData.packageCode);
+                if (lessonData.childId) setSelectedChildId(lessonData.childId);
+                if (lessonData.teacherId) setSelectedTeacherId(lessonData.teacherId);
+            }
+        } catch (error) {
+            console.error("fetchOldLesson error:", error);
+        }
+    };
     const [selectedPackage, setSelectedPackage] = useState<string>('');
     const [bookingMode, setBookingMode] = useState<'free' | 'paid'>('paid');
     const [selectedTimeZone, setSelectedTimeZone] = useState<string>('');
@@ -172,6 +240,9 @@ export default function DersPlanlaPage() {
     }, [userData]);
 
     useEffect(() => {
+        // If we are in reschedule mode, we don't want to overwrite the package from the old lesson
+        if (rescheduleId && oldLessonData) return;
+
         if (selectedChildData) {
             const canTakeFreeTrial = !selectedChildData.hasUsedFreeTrial && (userData?.freeTrialsUsed || 0) < MAX_FREE_TRIALS;
 
@@ -189,7 +260,7 @@ export default function DersPlanlaPage() {
         } else {
             setSelectedPackage('');
         }
-    }, [selectedChildData, userData]);
+    }, [selectedChildData, userData, rescheduleId, oldLessonData]);
 
     const lessonSlotsRef = useMemoFirebase(() => (db && selectedTeacherId) ? query(collection(db, 'lesson-slots'), where('teacherId', '==', selectedTeacherId)) : null, [db, selectedTeacherId]);
     const { data: allTeacherSlots, isLoading: areSlotsLoading } = useCollection(lessonSlotsRef);
@@ -263,17 +334,41 @@ export default function DersPlanlaPage() {
         const startTime = selectedSlot.startTime.toDate();
 
         try {
+            // If rescheduling, free the old slots first
+            if (rescheduleId && rescheduleSlotIds.length > 0) {
+                for (const slotId of rescheduleSlotIds) {
+                    const slotRef = doc(db, 'lesson-slots', slotId);
+                    batch.update(slotRef, {
+                        status: 'available',
+                        bookedBy: null,
+                        childId: null,
+                        packageCode: null,
+                        isLive: null,
+                        liveLessonUrl: null,
+                        whatsappReminderSent: null
+                    });
+                }
+            }
+
             for (let i = 0; i < numSlots; i++) {
                 const slotTime = addMinutes(startTime, i * 5);
                 const q = query(collection(db, 'lesson-slots'), where('teacherId', '==', selectedSlot.teacherId), where('startTime', '==', Timestamp.fromDate(slotTime)));
                 const snap = await getDocs(q);
                 if (!snap.empty) {
-                    batch.update(snap.docs[0].ref, { status: 'booked', bookedBy: user.uid, childId: selectedChildId, packageCode: selectedPackage });
+                    batch.update(snap.docs[0].ref, { 
+                        status: 'booked', 
+                        bookedBy: user.uid, 
+                        childId: selectedChildId, 
+                        packageCode: selectedPackage,
+                        rescheduleCount: (oldLessonData?.rescheduleCount || 0) + (rescheduleId ? 1 : 0)
+                    });
                 }
             }
 
             const childDocRef = doc(db, 'users', user.uid, 'children', selectedChildId);
-            if (bookingMode === 'free') {
+            if (rescheduleId) {
+                // No credit change for rescheduling
+            } else if (bookingMode === 'free') {
                 batch.update(userDocRef, { freeTrialsUsed: increment(1) });
                 batch.update(childDocRef, { hasUsedFreeTrial: true });
             } else {
@@ -281,7 +376,35 @@ export default function DersPlanlaPage() {
             }
 
             await batch.commit();
-            toast({ title: 'Ders Planlandı!', description: 'Dersiniz başarıyla takvime eklendi.', className: 'bg-green-500 text-white font-bold' });
+            const childName = selectedChildData?.firstName || selectedChildId;
+            const lessonTime = startTime.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });
+
+            // Store in Activity Log (Frontend side for auth)
+            addDoc(collection(db, 'activity-log'), {
+                event: rescheduleId ? '🔄 Ders Değiştirildi' : '📅 Ders Planlandı',
+                icon: rescheduleId ? '🔄' : '📅',
+                details: {
+                    'Öğrenci': childName,
+                    'Ders Saati': lessonTime,
+                    'Ders Türü': selectedPackage || '-',
+                },
+                createdAt: Timestamp.fromDate(new Date())
+            }).catch(console.error);
+
+            // Admin notification (Email)
+            fetch('/api/notify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    event: rescheduleId ? '🔄 Ders Değiştirildi' : '📅 Ders Planlandı',
+                    details: {
+                        'Öğrenci': childName,
+                        'Ders Saati': lessonTime,
+                        'Ders Türü': selectedPackage || '-',
+                    }
+                })
+            }).catch(console.error);
+            toast({ title: rescheduleId ? 'Ders Değiştirildi!' : 'Ders Planlandı!', description: 'İşlem başarıyla tamamlandı.', className: 'bg-green-500 text-white font-bold' });
             router.push('/ebeveyn-portali');
         } catch (error) {
             toast({ variant: 'destructive', title: 'Hata', description: 'İşlem başarısız oldu.' });
@@ -290,7 +413,7 @@ export default function DersPlanlaPage() {
 
     if (userLoading || !selectedTimeZone) return <div className="flex h-screen items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
 
-    const isPackageMissing = selectedChildId && !selectedPackage;
+    const isPackageMissing = selectedChildId && !selectedPackage && !rescheduleId;
 
     return (
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen font-sans text-slate-900">
@@ -320,6 +443,45 @@ export default function DersPlanlaPage() {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Rescheduling Mode Banner */}
+            {rescheduleId && oldLessonData && (
+                <div className="max-w-6xl mx-auto">
+                    <Alert className="bg-primary/5 border-primary/20 rounded-[32px] p-6 shadow-sm">
+                        <div className="flex items-center gap-4">
+                            <div className="bg-primary/10 p-3 rounded-2xl">
+                                <Clock className="h-6 w-6 text-primary" />
+                            </div>
+                            <div className="flex-1">
+                                <AlertTitle className="text-xl font-bold text-primary mb-1">Ders Değiştirme Modu</AlertTitle>
+                                <AlertDescription className="text-slate-600 font-medium italic">
+                                    Şu an <strong>{format(oldLessonData.startTime, 'dd MMMM HH:mm', { locale: tr })}</strong> tarihindeki dersinizi değiştiriyorsunuz. 
+                                    Lütfen aşağıdan yeni bir saat seçin. Değişiklik onaylandığında eski dersiniz iptal edilecektir.
+                                </AlertDescription>
+                            </div>
+                        </div>
+                    </Alert>
+                </div>
+            )}
+
+            {/* Policy Info Box */}
+            <div className="max-w-6xl mx-auto">
+                <Card className="bg-slate-50 border-none shadow-none rounded-[32px] p-6">
+                    <div className="flex flex-col md:flex-row items-center gap-5 text-center md:text-left">
+                        <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100">
+                            <Info className="h-6 w-6 text-slate-400" />
+                        </div>
+                        <div className="space-y-1">
+                            <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider">İptal & Değişim Politikası</h4>
+                            <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                                Dersinize 24 saatten fazla varsa **ücretsiz iptal** edebilirsiniz. 
+                                8-24 saat arası sadece **1 kez değişim** hakkınız bulunur. 
+                                8 saatten az kalan derslerde değişiklik yapılamaz.
+                            </p>
+                        </div>
+                    </div>
+                </Card>
             </div>
 
             <Card className="p-8 md:p-10 bg-white border-none shadow-xl rounded-[40px] max-w-6xl mx-auto">

@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { sendAdminNotification } from '@/lib/notify';
+import { addDoc, collection, Timestamp } from 'firebase/firestore';
+import { db } from '@/firebase/server';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: '2024-06-20' as any, // Using type 'any' to avoid strict enum issues depending on installed version
+  apiVersion: '2024-06-20' as any,
 });
 
 export async function POST(req: Request) {
@@ -16,24 +19,34 @@ export async function POST(req: Request) {
       throw new Error("STRIPE_SECRET_KEY is missing from environment variables.");
     }
 
-    // Retrieve the session from Stripe securely
     const session = await stripe.checkout.sessions.retrieve(session_id);
 
     if (session.payment_status === 'paid') {
       if (session.metadata?.fulfilled === 'true') {
-        // If already fulfilled, just return success without triggering again
         return NextResponse.json({ 
             success: true, 
             fulfilled: true, 
             transactionId: session.metadata.transactionId 
         });
       } else {
-        // Mark the session as fulfilled in Stripe metadata to prevent double claims
         await stripe.checkout.sessions.update(session_id, {
           metadata: { ...session.metadata, fulfilled: 'true' }
         });
 
-        // Return the transaction ID for the client to complete execution
+        // Admin notification: new package purchased
+        const amount = session.amount_total ? `€${(session.amount_total / 100).toFixed(2)}` : '-';
+        const customerEmail = session.customer_email || '-';
+        await sendAdminNotification({
+            event: '📦 Paket Satın Alındı',
+            details: { 'Müşteri': customerEmail, 'Tutar': amount }
+        });
+        await addDoc(collection(db, 'activity-log'), {
+            event: '📦 Paket Satın Alındı',
+            icon: '📦',
+            details: { 'Müşteri': customerEmail, 'Tutar': amount },
+            createdAt: Timestamp.fromDate(new Date()),
+        });
+
         return NextResponse.json({ 
             success: true, 
             fulfilled: false, 

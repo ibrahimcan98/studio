@@ -4,8 +4,6 @@
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, limit, collectionGroup } from 'firebase/firestore';
 import { 
-  Users, 
-  GraduationCap, 
   TrendingUp, 
   Globe2, 
   Activity,
@@ -41,24 +39,22 @@ function GrowthCard({ title, value, subValue, icon: Icon, color }: any) {
 export default function AdminDashboard() {
   const db = useFirestore();
 
-  // Veri Sorguları
   const parentsQuery = useMemoFirebase(() => db ? query(collection(db, 'users'), where('role', '==', 'parent')) : null, [db]);
   const slotsQuery = useMemoFirebase(() => db ? query(collection(db, 'lesson-slots'), where('status', '==', 'booked')) : null, [db]);
   const childrenQuery = useMemoFirebase(() => db ? query(collectionGroup(db, 'children')) : null, [db]);
+  const activityLogQuery = useMemoFirebase(() => db ? query(collection(db, 'activity-log'), orderBy('createdAt', 'desc'), limit(30)) : null, [db]);
 
   const { data: parents, isLoading: parentsLoading } = useCollection(parentsQuery);
   const { data: slots, isLoading: slotsLoading } = useCollection(slotsQuery);
   const { data: children, isLoading: childrenLoading } = useCollection(childrenQuery);
+  const { data: activityLog, isLoading: activityLoading } = useCollection(activityLogQuery);
 
-  // Growth Metrikleri Hesaplama
   const metrics = useMemo(() => {
     if (!parents || !slots || !children) return null;
 
-    // 1. Gruplama Mantığı: 5 dakikalık slotları "Ders Oturumu" haline getir
     const sessions: { [key: string]: any[] } = {};
     slots.forEach(slot => {
         const date = slot.startTime?.toDate().toDateString();
-        // Aynı çocuk, aynı öğretmen, aynı gün ve aynı paket koduna göre grupla
         const key = `${slot.childId}_${slot.teacherId}_${date}_${slot.packageCode}`;
         if (!sessions[key]) sessions[key] = [];
         sessions[key].push(slot);
@@ -66,43 +62,31 @@ export default function AdminDashboard() {
 
     const groupedLessons: any[] = [];
     Object.values(sessions).forEach(sessionSlots => {
-        // Slotları zaman sırasına diz
         sessionSlots.sort((a, b) => a.startTime.seconds - b.startTime.seconds);
-
         let currentLesson: any = null;
         sessionSlots.forEach(slot => {
-            // Eğer yeni bir ders başlangıcıysa veya mevcut dersin bitişinden (5dk) daha sonraysa yeni grup aç
             if (!currentLesson || (slot.startTime.seconds - currentLesson.lastSlotSeconds > 300)) {
-                currentLesson = { 
-                    ...slot, 
-                    slotCount: 1, 
-                    lastSlotSeconds: slot.startTime.seconds 
-                };
+                currentLesson = { ...slot, slotCount: 1, lastSlotSeconds: slot.startTime.seconds };
                 groupedLessons.push(currentLesson);
             } else {
-                // Mevcut gruba dahil et
                 currentLesson.slotCount += 1;
                 currentLesson.lastSlotSeconds = slot.startTime.seconds;
             }
         });
     });
 
-    // Filtreleme ve Metrikler
     const totalPaidLessons = groupedLessons.filter(l => l.packageCode !== 'FREE_TRIAL').length;
     const totalFreeTrials = groupedLessons.filter(l => l.packageCode === 'FREE_TRIAL').length;
     
-    // Dönüşüm Oranı Hesaplama (Oturum bazlı)
     const trialUserIds = new Set(groupedLessons.filter(l => l.packageCode === 'FREE_TRIAL').map(l => l.bookedBy));
     const paidUserIds = new Set(groupedLessons.filter(l => l.packageCode !== 'FREE_TRIAL').map(l => l.bookedBy));
     const convertedUsers = Array.from(trialUserIds).filter(id => paidUserIds.has(id)).length;
     const conversionRate = trialUserIds.size > 0 ? ((convertedUsers / trialUserIds.size) * 100).toFixed(1) : 0;
 
-    // Ülke Dağılımı
     const countries: any = {};
     parents.forEach(p => {
         const phone = (p.phoneNumber || "").replace(/\s/g, "");
         let country = "Diğer";
-        
         if (phone.startsWith("+90")) country = "Türkiye";
         else if (phone.startsWith("+49")) country = "Almanya";
         else if (phone.startsWith("+44")) country = "İngiltere";
@@ -121,23 +105,10 @@ export default function AdminDashboard() {
         else if (phone.startsWith("+971")) country = "B.A.E";
         else if (phone.startsWith("+966")) country = "Suudi Arabistan";
         else if (phone.startsWith("+39")) country = "İtalya";
-        
         countries[country] = (countries[country] || 0) + 1;
     });
 
-    // Operasyonel Akış (Gruplanmış derslere göre son 15 aktivite)
-    const recentActivities = [...groupedLessons]
-        .sort((a, b) => (b.startTime?.seconds || 0) - (a.startTime?.seconds || 0))
-        .slice(0, 15);
-
-    return { 
-        activeStudents: children.length, 
-        totalPaidLessons, 
-        totalFreeTrials, 
-        conversionRate, 
-        countries,
-        recentActivities 
-    };
+    return { activeStudents: children.length, totalPaidLessons, totalFreeTrials, conversionRate, countries };
   }, [parents, slots, children]);
 
   if (parentsLoading || slotsLoading || childrenLoading) {
@@ -161,34 +132,10 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <GrowthCard 
-            title="Kayıtlı Öğrenci" 
-            value={metrics?.activeStudents || 0} 
-            subValue="+2" 
-            icon={Baby} 
-            color="bg-indigo-500" 
-        />
-        <GrowthCard 
-            title="Toplam Satış" 
-            value={metrics?.totalPaidLessons || 0} 
-            subValue="Ders" 
-            icon={DollarSign} 
-            color="bg-emerald-500" 
-        />
-        <GrowthCard 
-            title="Dönüşüm Oranı" 
-            value={`%${metrics?.conversionRate || 0}`} 
-            subValue="Trial → Paket" 
-            icon={TrendingUp} 
-            color="bg-amber-500" 
-        />
-        <GrowthCard 
-            title="Deneme Dersi" 
-            value={metrics?.totalFreeTrials || 0} 
-            subValue="Randevu" 
-            icon={CalendarCheck} 
-            color="bg-blue-500" 
-        />
+        <GrowthCard title="Kayıtlı Öğrenci" value={metrics?.activeStudents || 0} subValue="+2" icon={Baby} color="bg-indigo-500" />
+        <GrowthCard title="Toplam Satış" value={metrics?.totalPaidLessons || 0} subValue="Ders" icon={DollarSign} color="bg-emerald-500" />
+        <GrowthCard title="Dönüşüm Oranı" value={`%${metrics?.conversionRate || 0}`} subValue="Trial → Paket" icon={TrendingUp} color="bg-amber-500" />
+        <GrowthCard title="Deneme Dersi" value={metrics?.totalFreeTrials || 0} subValue="Randevu" icon={CalendarCheck} color="bg-blue-500" />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -226,40 +173,42 @@ export default function AdminDashboard() {
         <Card className="lg:col-span-2 border-none shadow-md overflow-hidden">
            <CardHeader className="flex flex-row items-center justify-between bg-white border-b pb-4">
             <div>
-              <CardTitle className="text-lg font-bold">Operasyonel Akış</CardTitle>
-              <CardDescription>Son planlanan dersler ve aktiviteler.</CardDescription>
+              <CardTitle className="text-lg font-bold">🔔 Operasyonel Akış</CardTitle>
+              <CardDescription>Gerçek zamanlı sistem olayları — ders, iptal, kayıt, satış.</CardDescription>
             </div>
             <Activity className="h-5 w-5 text-slate-300" />
           </CardHeader>
           <CardContent className="p-0">
             <div className="max-h-[400px] overflow-y-auto">
-                {metrics?.recentActivities.map((lesson: any) => (
-                    <div key={lesson.id} className="flex items-start gap-4 p-4 border-b last:border-0 hover:bg-slate-50 transition-colors">
-                        <div className={cn(
-                            "p-2 rounded-full",
-                            lesson.packageCode === 'FREE_TRIAL' ? "bg-blue-100 text-blue-600" : "bg-emerald-100 text-emerald-600"
-                        )}>
-                            {lesson.packageCode === 'FREE_TRIAL' ? <CalendarCheck className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />}
+                {activityLoading && (
+                    <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary/30 w-6 h-6" /></div>
+                )}
+                {!activityLoading && (!activityLog || activityLog.length === 0) && (
+                    <p className="text-xs text-slate-400 italic text-center py-20">Henüz aktivite bulunmuyor.</p>
+                )}
+                {activityLog?.map((log: any) => (
+                    <div key={log.id} className="flex items-start gap-4 p-4 border-b last:border-0 hover:bg-slate-50 transition-colors">
+                        <div className="text-2xl w-10 h-10 flex items-center justify-center bg-slate-50 rounded-full border flex-shrink-0">
+                            {log.icon || '🔔'}
                         </div>
-                        <div className="flex-1">
-                            <p className="text-sm font-bold text-slate-900">
-                                {lesson.packageCode === 'FREE_TRIAL' ? "Yeni Deneme Dersi" : "Paket Dersi Planlandı"}
-                            </p>
-                            <p className="text-[11px] text-slate-500">
-                                ID: {lesson.id.substring(0,8)} • Paket: {lesson.packageCode} • {lesson.slotCount * 5 - 5} Dakika
-                            </p>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-slate-900">{log.event}</p>
+                            <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1">
+                                {Object.entries(log.details || {}).map(([k, v]: any) => (
+                                    <p key={k} className="text-[11px] text-slate-500">
+                                        <span className="font-semibold text-slate-600">{k}:</span> {v}
+                                    </p>
+                                ))}
+                            </div>
                         </div>
-                        <div className="text-right">
-                            <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1 justify-end uppercase">
-                                <Clock className="w-3 h-3" /> 
-                                {lesson.startTime?.toDate().toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        <div className="text-right flex-shrink-0">
+                            <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1 justify-end uppercase whitespace-nowrap">
+                                <Clock className="w-3 h-3" />
+                                {log.createdAt?.toDate().toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                             </p>
                         </div>
                     </div>
                 ))}
-                {metrics?.recentActivities.length === 0 && (
-                    <p className="text-xs text-slate-400 italic text-center py-20">Henüz aktivite bulunmuyor.</p>
-                )}
             </div>
           </CardContent>
         </Card>

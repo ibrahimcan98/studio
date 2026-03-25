@@ -9,10 +9,8 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && (
-        request.auth.token.email == 'admin@hotmail.com' ||
-        request.auth.uid == 'HjYBaEgRUsQ4DUIvBlFfrx7ND6p1'
-      );
+      return isSignedIn() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     // 1. DESTEK SİSTEMİ
@@ -84,6 +82,11 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow create: if isSignedIn();
       allow update, delete: if isAdmin();
+    }
+
+    match /activity-log/{id} {
+      allow create: if true;
+      allow read: if isAdmin();
     }
 
     match /{document=**} {

@@ -51,8 +51,8 @@ const createDateInTurkeyTimeZone = (date: Date, time: string): Date => {
 };
 
 
-const timeSlots = Array.from({ length: (24 - 8) * 12 }, (_, i) => {
-    const totalMinutes = 8 * 60 + i * 5;
+const timeSlots = Array.from({ length: 24 * 12 }, (_, i) => {
+    const totalMinutes = i * 5;
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
@@ -76,7 +76,7 @@ function TimeGrid({
     dragMode: 'available' | 'closed' | null;
 }) {
     return (
-        <div className="relative border rounded-lg p-2 bg-background max-h-[400px] overflow-y-auto">
+        <div className="relative border rounded-lg p-2 bg-background max-h-[600px] overflow-y-auto">
             {timeSlots.map((time) => {
                 const slotData = slots.get(time);
                 const minutes = parseInt(time.split(':')[1]);
@@ -284,24 +284,36 @@ export default function TakvimYonetimiPage() {
             return;
         }
 
-        const batch = writeBatch(db);
+        const ops: { type: 'delete' | 'set', ref: any, data?: any }[] = [];
 
         slotsToDelete.forEach(slot => {
-            batch.delete(doc(db, 'lesson-slots', slot.id));
+            ops.push({ type: 'delete', ref: doc(db, 'lesson-slots', slot.id) });
         });
 
         slotsToAdd.forEach(slot => {
             const newSlotRef = doc(collection(db, 'lesson-slots'));
-            // Use the already correctly-zoned startTime from the staged slot
-            batch.set(newSlotRef, {
-                teacherId: user.uid,
-                startTime: slot.startTime,
-                status: 'available',
+            ops.push({
+                type: 'set',
+                ref: newSlotRef,
+                data: {
+                    teacherId: user.uid,
+                    startTime: slot.startTime,
+                    status: 'available',
+                }
             });
         });
 
         try {
-            await batch.commit();
+            const chunkSize = 400;
+            for (let i = 0; i < ops.length; i += chunkSize) {
+                const chunk = ops.slice(i, i + chunkSize);
+                const batch = writeBatch(db);
+                chunk.forEach(op => {
+                    if (op.type === 'delete') batch.delete(op.ref);
+                    else batch.set(op.ref, op.data);
+                });
+                await batch.commit();
+            }
             await refetch();
             toast({
                 title: 'Kaydedildi',
@@ -332,15 +344,15 @@ export default function TakvimYonetimiPage() {
             where('startTime', '>', startOfDay(new Date()))
         );
 
-        const batch = writeBatch(db);
-
         try {
             const querySnapshot = await getDocs(q);
+            const ops: { type: 'delete' | 'set', ref: any, data?: any }[] = [];
+
             querySnapshot.forEach(docSnap => {
                 const slotData = docSnap.data();
                 const slotDate = toZonedTime(slotData.startTime.toDate(), turkeyTimeZone);
                 if (getDay(slotDate) === dayOfWeekToApply) {
-                    batch.delete(docSnap.ref);
+                    ops.push({ type: 'delete', ref: docSnap.ref });
                 }
             });
 
@@ -351,15 +363,30 @@ export default function TakvimYonetimiPage() {
                 templateTimes.forEach(time => {
                     const slotDateTimeInTurkey = createDateInTurkeyTimeZone(futureDate, time);
                     const newSlotRef = doc(collection(db, 'lesson-slots'));
-                    batch.set(newSlotRef, {
-                        teacherId: user.uid,
-                        startTime: Timestamp.fromDate(slotDateTimeInTurkey),
-                        status: 'available',
+                    ops.push({ 
+                        type: 'set', 
+                        ref: newSlotRef, 
+                        data: {
+                            teacherId: user.uid,
+                            startTime: Timestamp.fromDate(slotDateTimeInTurkey),
+                            status: 'available',
+                        }
                     });
                 });
             }
 
-            await batch.commit();
+            // Execute operations in chunks of 400
+            const chunkSize = 400;
+            for (let i = 0; i < ops.length; i += chunkSize) {
+                const chunk = ops.slice(i, i + chunkSize);
+                const batch = writeBatch(db);
+                chunk.forEach(op => {
+                    if (op.type === 'delete') batch.delete(op.ref);
+                    else batch.set(op.ref, op.data);
+                });
+                await batch.commit();
+            }
+
             await refetch();
             toast({
                 title: 'Şablon Uygulandı',

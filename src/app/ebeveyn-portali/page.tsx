@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState, useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState, useMemo, Suspense } from 'react';
 import { 
   Loader2, 
   Plus, 
@@ -158,10 +158,17 @@ function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUp
                     </div>
                 </div>
 
-                <div className='flex justify-between items-center'>
+                <div className='flex justify-between items-center relative'>
                     <span className='text-slate-500 font-medium text-[15px]'>Kalan Ders:</span>
-                    <div className='flex items-center gap-1.5 font-bold bg-[#E8EAF6] text-[#3F51B5] px-3 py-1 rounded-full text-[14px] min-w-[50px] justify-center'>
+                    <div className='flex items-center gap-1.5 font-bold bg-[#E8EAF6] text-[#3F51B5] px-3 py-1 rounded-full text-[14px] min-w-[50px] justify-center relative'>
                         <span>{child.remainingLessons || 0}</span><BookOpen className='w-4 h-4'/>
+                        
+                        {child.showPlusOne && (
+                            <div className="absolute -right-8 -top-4 text-green-600 font-black animate-bounce animation-duration-1000 flex items-center gap-1 bg-green-50 px-2 py-0.5 rounded-lg border border-green-100 shadow-sm z-50">
+                                <span className="text-sm">+1</span>
+                                <Plus className="w-3 h-3" />
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -242,10 +249,19 @@ function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUp
 }
 
 export default function EbeveynPortaliPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>}>
+        <EbeveynPortaliContent />
+    </Suspense>
+  );
+}
+
+function EbeveynPortaliContent() {
   const { user, loading: userLoading } = useUser();
   const router = useRouter();
   const db = useFirestore();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
 
   const userDocRef = useMemoFirebase(() => (db && user?.uid) ? doc(db, 'users', user.uid) : null, [db, user?.uid]);
   const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
@@ -256,18 +272,48 @@ export default function EbeveynPortaliPage() {
   const slotsQuery = useMemoFirebase(() => (db && user?.uid) ? query(collection(db, 'lesson-slots'), where('bookedBy', '==', user.uid)) : null, [db, user?.uid]);
   const { data: slots, isLoading: slotsLoading } = useCollection(slotsQuery);
 
+  const [refundChildId, setRefundChildId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (searchParams.get('cancelled') === 'true') {
+        const id = searchParams.get('childId');
+        setRefundChildId(id);
+        const timer = setTimeout(() => {
+            setRefundChildId(null);
+            // Optional: clean URL
+            router.replace('/ebeveyn-portali');
+        }, 5000);
+        return () => clearTimeout(timer);
+    }
+  }, [searchParams, router]);
+
+  const childrenWithEffect = useMemo(() => {
+      if (!children) return [];
+      return children.map(c => ({
+          ...c,
+          showPlusOne: c.id === refundChildId
+      }));
+  }, [children, refundChildId]);
+
   const notifications = useMemo(() => {
-    if (!slots || !children) return [];
+    if (!slots || !childrenWithEffect) return [];
     const list: any[] = [];
     const now = new Date();
     
     // 1. Sıradaki Ders (Gelecek)
     const nextLesson = slots
-      .filter(s => isAfter(s.startTime.toDate(), now))
-      .sort((a, b) => a.startTime.seconds - b.startTime.seconds)[0];
+      .filter(s => {
+          const startTime = s.startTime.toDate ? s.startTime.toDate() : new Date(s.startTime);
+          return isAfter(startTime, now);
+      })
+      .sort((a, b) => {
+          const aTime = a.startTime.seconds || new Date(a.startTime).getTime() / 1000;
+          const bTime = b.startTime.seconds || new Date(b.startTime).getTime() / 1000;
+          return aTime - bTime;
+      })[0];
     
     if (nextLesson) {
-      const date = nextLesson.startTime.toDate();
+      const date = nextLesson.startTime.toDate ? nextLesson.startTime.toDate() : new Date(nextLesson.startTime);
       let datePrefix = '';
       if (isToday(date)) datePrefix = 'Bugün ';
       else if (isTomorrow(date)) datePrefix = 'Yarın ';
@@ -287,24 +333,32 @@ export default function EbeveynPortaliPage() {
 
     // 2. Yeni Tamamlanan Ders (Geçmiş 24 saat)
     const lastCompleted = slots
-      .filter(s => isBefore(s.startTime.toDate(), now) && isAfter(s.startTime.toDate(), subHours(now, 24)))
-      .sort((a, b) => b.startTime.seconds - a.startTime.seconds)[0];
+      .filter(s => {
+          const startTime = s.startTime.toDate ? s.startTime.toDate() : new Date(s.startTime);
+          return isBefore(startTime, now) && isAfter(startTime, subHours(now, 24));
+      })
+      .sort((a, b) => {
+          const aTime = a.startTime.seconds || new Date(a.startTime).getTime() / 1000;
+          const bTime = b.startTime.seconds || new Date(b.startTime).getTime() / 1000;
+          return bTime - aTime;
+      })[0];
     
     if (lastCompleted) {
+        const date = lastCompleted.startTime.toDate ? lastCompleted.startTime.toDate() : new Date(lastCompleted.startTime);
         list.push({
             id: `done-${lastCompleted.id}`,
             type: 'done',
             icon: <CheckCircle2 className="h-4 w-4" />,
             color: 'bg-emerald-100 text-emerald-600',
             title: '✅ Ders Tamamlandı:',
-            text: `${format(lastCompleted.startTime.toDate(), 'dd MMMM', { locale: tr })} dersi başarıyla işlendi.`,
+            text: `${format(date, 'dd MMMM', { locale: tr })} dersi başarıyla işlendi.`,
             fullText: 'Çocuğunuzun bugünkü performansı sisteme kaydedildi.',
             path: '/ebeveyn-portali/dersler?tab=past'
         });
     }
 
-    // 3. Seviye Bilgisi (Her çocuk için)
-    children.forEach(child => {
+    // 3. Seviye Bilgisi
+    childrenWithEffect.forEach(child => {
         if (child.cefrProfile?.speaking) {
             list.push({
                 id: `level-${child.id}`,
@@ -319,26 +373,8 @@ export default function EbeveynPortaliPage() {
         }
     });
 
-    // 4. Son Geri Bildirim (Geçmiş 24 saat)
-    const lastFeedback = slots
-      .filter(s => s.feedback && isBefore(s.startTime.toDate(), now) && isAfter(s.startTime.toDate(), subHours(now, 24)))
-      .sort((a, b) => b.startTime.seconds - a.startTime.seconds)[0];
-    
-    if (lastFeedback) {
-      list.push({ 
-        id: `fb-${lastFeedback.id || Math.random()}`, 
-        type: 'pdr', 
-        icon: <MessageSquare className="h-4 w-4" />, 
-        color: 'bg-purple-100 text-purple-600', 
-        title: '💬 Yeni Geri Bildirim:', 
-        text: `"${lastFeedback.feedback.text.substring(0, 45)}..."`, 
-        fullText: lastFeedback.feedback.text,
-        path: '/ebeveyn-portali/dersler?tab=past' 
-      });
-    }
-
     return list;
-  }, [slots, children]);
+  }, [slots, childrenWithEffect]);
 
   useEffect(() => {
     if (!userLoading && (!user || user.isAnonymous)) router.push('/login');
@@ -362,10 +398,6 @@ export default function EbeveynPortaliPage() {
 
   if (userLoading || childrenLoading || userDataLoading || slotsLoading) return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
   if (!user || user.isAnonymous) return null;
-
-  const totalUnassignedLessons = userData?.remainingLessons || 0;
-  const balance = userData?.walletBalanceEur || 0;
-  const points = userData?.academyPoints || 0;
 
   return (
     <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20">
@@ -472,8 +504,18 @@ export default function EbeveynPortaliPage() {
                 </AddChildForm>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {children?.map(child => <ChildCard key={child.id} child={child} isPremium={userData.isPremium} currentLives={userData.lives} onDelete={handleDeleteChild} userId={user.uid} onChildUpdated={refetchChildren} />)}
-                {children?.length === 0 && <div className="col-span-full py-20 text-center text-slate-400 font-bold italic">Henüz bir çocuk eklenmemiş.</div>}
+                {childrenWithEffect?.map(child => (
+                    <ChildCard 
+                        key={child.id} 
+                        child={child} 
+                        isPremium={userData?.isPremium} 
+                        currentLives={userData?.currentLives || 0} 
+                        onDelete={handleDeleteChild} 
+                        userId={user.uid} 
+                        onChildUpdated={refetchChildren} 
+                    />
+                ))}
+                {childrenWithEffect?.length === 0 && <div className="col-span-full py-20 text-center text-slate-400 font-bold italic">Henüz bir çocuk eklenmemiş.</div>}
             </div>
         </div>
     </div>

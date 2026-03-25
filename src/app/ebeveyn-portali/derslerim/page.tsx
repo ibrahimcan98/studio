@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, doc } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch, increment, getDocs, Timestamp, addDoc } from 'firebase/firestore';
 import { Loader2, ArrowLeft, Calendar, Clock, User, BookOpen, Baby, History, MessageSquare, Video, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -17,6 +17,18 @@ import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ProgressPanel } from '@/components/shared/progress-panel';
 import { cn } from '@/lib/utils';
+import { 
+    AlertDialog, 
+    AlertDialogAction, 
+    AlertDialogCancel, 
+    AlertDialogContent, 
+    AlertDialogDescription, 
+    AlertDialogFooter, 
+    AlertDialogHeader, 
+    AlertDialogTitle, 
+    AlertDialogTrigger 
+} from "@/components/ui/alert-dialog";
+import { useToast } from '@/hooks/use-toast';
 
 const getCourseDetailsFromPackageCode = (code?: string) => {
     if (!code) return null;
@@ -40,6 +52,160 @@ const teachers = [
     { id: 'O2mQCONyczVkAXcgAMBSPpeIfJw2', firstName: 'Tuba', lastName: 'Kodak' },
 ];
 
+function CancellationButtons({ lesson, timeZone }: { lesson: any, timeZone: string }) {
+    const db = useFirestore();
+    const router = useRouter();
+    const { toast } = useToast();
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const now = new Date();
+    // Ensure startTime is a Date object
+    const startTime = useMemo(() => {
+        if (!lesson.startTime) return new Date();
+        if (lesson.startTime instanceof Date) return lesson.startTime;
+        if (lesson.startTime.toDate) return lesson.startTime.toDate();
+        return new Date(lesson.startTime);
+    }, [lesson.startTime]);
+
+    const msDiff = startTime.getTime() - now.getTime();
+    const hoursDiff = msDiff / (1000 * 60 * 60);
+
+    const canCancel = hoursDiff >= 24;
+    const canReschedule = hoursDiff >= 8;
+    const rescheduleCount = lesson.rescheduleCount || 0;
+    const hasReschedulingRight = rescheduleCount < 1;
+
+    const handleCancel = async () => {
+        if (!db || !lesson.bookedBy) return;
+        setIsProcessing(true);
+        try {
+            const batch = writeBatch(db);
+            const courseDetails = getCourseDetailsFromPackageCode(lesson.packageCode);
+            const duration = courseDetails?.duration || 30;
+
+            const slotsQuery = query(
+                collection(db, 'lesson-slots'),
+                where('teacherId', '==', lesson.teacherId),
+                where('bookedBy', '==', lesson.bookedBy),
+                where('startTime', '>=', Timestamp.fromDate(startTime)),
+                where('startTime', '<', Timestamp.fromDate(new Date(startTime.getTime() + duration * 60000)))
+            );
+            
+            const slotsSnap = await getDocs(slotsQuery);
+            slotsSnap.docs.forEach(slotDoc => {
+                batch.update(slotDoc.ref, {
+                    status: 'available',
+                    bookedBy: null,
+                    childId: null,
+                    packageCode: null,
+                    isLive: null,
+                    liveLessonUrl: null,
+                    whatsappReminderSent: null
+                });
+            });
+
+            const childDocRef = doc(db, 'users', lesson.bookedBy, 'children', lesson.childId);
+            if (lesson.packageCode !== 'FREE_TRIAL') {
+                batch.update(childDocRef, { remainingLessons: increment(1) });
+            }
+
+            await batch.commit();
+
+            // Store in Activity Log (Frontend side for auth)
+            addDoc(collection(db, 'activity-log'), {
+                event: '❌ Ders İptal Edildi',
+                icon: '❌',
+                details: {
+                    'Öğrenci': lesson.childName || lesson.childId || '-',
+                    'Ders Saati': startTime.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
+                    'Ders Türü': lesson.packageCode || '-',
+                },
+                createdAt: Timestamp.fromDate(new Date())
+            }).catch(console.error);
+
+            // Notify Admin (Email)
+            fetch('/api/notify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    event: '❌ Ders İptal Edildi',
+                    details: {
+                        'Öğrenci': lesson.childName || lesson.childId || '-',
+                        'Ders Saati': startTime.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
+                        'Ders Türü': lesson.packageCode || '-',
+                    }
+                })
+            }).catch(console.error);
+            toast({ title: 'Ders İptal Edildi', description: 'Ders krediniz iade edildi.', className: 'bg-green-500 text-white' });
+        } catch (error) {
+            console.error('Cancellation error:', error);
+            toast({ variant: 'destructive', title: 'Hata', description: 'İptal işlemi başarısız oldu.' });
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const handleReschedule = () => {
+        router.push(`/ebeveyn-portali/ders-planla?rescheduleId=${lesson.id}`);
+    };
+
+    if (hoursDiff < 8) {
+        return (
+            <div className="w-full p-2 bg-slate-50 rounded-lg border border-dashed text-[10px] text-center font-bold text-slate-400 uppercase tracking-wider">
+                Derse 8 saatten az kaldığı için işlem yapılamaz.
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex gap-2 w-full mt-2">
+            {/* Cancellation Button always visible if >= 8h, but only active if >= 24h */}
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button 
+                        variant="outline" 
+                        disabled={!canCancel}
+                        className={cn(
+                            "flex-1 border-red-100 text-red-600 hover:bg-red-50 hover:text-red-700 font-bold h-9 text-xs",
+                            !canCancel && "opacity-50 cursor-not-allowed border-slate-100 text-slate-400"
+                        )}
+                    >
+                        İptal Et
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="rounded-3xl">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Dersinizi İptal Etmek İstiyor Musunuz?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Derse 24 saatten fazla süre olduğu için bu işlem **ücretsizdir**. 
+                            İptal ettiğinizde 1 ders hakkınız hesabınıza iade edilecektir.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="rounded-xl">Vazgeç</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={handleCancel}
+                            disabled={isProcessing}
+                            className="bg-red-600 hover:bg-red-700 rounded-xl"
+                        >
+                            {isProcessing ? <Loader2 className="animate-spin h-4 w-4" /> : 'Evet, İptal Et'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Reschedule Button always visible if >= 8h */}
+            <Button 
+                variant="outline" 
+                onClick={handleReschedule}
+                disabled={!hasReschedulingRight}
+                className="flex-1 border-primary/20 text-primary hover:bg-primary/5 font-bold h-9 text-xs"
+            >
+                {hasReschedulingRight ? 'Dersi Değiştir' : 'Değiştirme Hakkı Doldu'}
+            </Button>
+        </div>
+    );
+}
 
 function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZone: string, onShowProgress: (lesson: any) => void }) {
     const db = useFirestore();
@@ -98,17 +264,25 @@ function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZon
                 </div>
             </CardContent>
             
-            <CardFooter className="pt-2">
-                {!isPast ? (
-                    <Button 
-                        onClick={handleJoin} 
-                        disabled={!lesson.isLive} 
-                        className={cn("w-full h-11 font-bold", lesson.isLive ? "bg-red-600 hover:bg-red-700" : "")}
-                    >
-                        <Video className="w-4 h-4 mr-2" />
-                        {lesson.isLive ? 'Derse Katıl' : 'Dersin Başlaması Bekleniyor'}
-                    </Button>
-                ) : (
+            <CardFooter className="flex flex-col gap-2 pt-2">
+                {!isPast && (
+                    <div className="flex flex-col w-full gap-2">
+                        <Button 
+                            onClick={handleJoin} 
+                            disabled={!lesson.isLive} 
+                            className={cn("w-full h-11 font-bold", lesson.isLive ? "bg-red-600 hover:bg-red-700" : "")}
+                        >
+                            <Video className="w-4 h-4 mr-2" />
+                            {lesson.isLive ? 'Derse Katıl' : 'Dersin Başlaması Bekleniyor'}
+                        </Button>
+
+                        {/* Cancellation / Rescheduling Buttons */}
+                        <div className="flex gap-2 w-full">
+                           <CancellationButtons lesson={lesson} timeZone={timeZone} />
+                        </div>
+                    </div>
+                )}
+                {isPast && (
                     <Button 
                         onClick={() => onShowProgress(lesson)}
                         variant="outline"
@@ -122,7 +296,6 @@ function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZon
         </Card>
     );
 }
-
 
 export default function DerslerimPage() {
     const router = useRouter();
@@ -184,6 +357,7 @@ export default function DerslerimPage() {
                 teacherId: firstSlot.teacherId,
                 bookedBy: firstSlot.bookedBy,
                 packageCode: firstSlot.packageCode,
+                rescheduleCount: firstSlot.rescheduleCount || 0,
                 feedback: feedbackSlot ? feedbackSlot.feedback : null,
                 isLive: liveSlot ? liveSlot.isLive : false,
                 liveLessonUrl: liveSlot ? liveSlot.liveLessonUrl : null

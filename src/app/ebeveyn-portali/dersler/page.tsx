@@ -1,11 +1,10 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, doc } from 'firebase/firestore';
-import { Loader2, ArrowLeft, Calendar, Clock, User, BookOpen, Baby, History, MessageSquare, Video } from 'lucide-react';
+import { collection, query, where, doc, writeBatch, increment, getDocs, Timestamp } from 'firebase/firestore';
+import { Loader2, ArrowLeft, Calendar, Clock, User, BookOpen, Baby, History, MessageSquare, Video, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,6 +23,17 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { ProgressPanel } from '@/components/shared/progress-panel';
 import { LessonQuickChat } from '@/components/shared/lesson-quick-chat';
 
@@ -57,6 +67,124 @@ const teachers = [
     { id: 'O2mQCONyczVkAXcgAMBSPpeIfJw2', firstName: 'Tuba', lastName: 'Kodak' },
 ];
 
+function CancellationButtons({ lesson, timeZone }: { lesson: any, timeZone: string }) {
+    const db = useFirestore();
+    const router = useRouter();
+    const { toast } = useToast();
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const now = new Date();
+    const startTime = useMemo(() => {
+        if (!lesson.startTime) return new Date();
+        if (lesson.startTime instanceof Date) return lesson.startTime;
+        if (lesson.startTime.toDate) return lesson.startTime.toDate();
+        return new Date(lesson.startTime);
+    }, [lesson.startTime]);
+
+    const msDiff = startTime.getTime() - now.getTime();
+    const hoursDiff = msDiff / (1000 * 60 * 60);
+
+    const canCancel = hoursDiff >= 24;
+    const canReschedule = hoursDiff >= 8;
+    const rescheduleCount = lesson.rescheduleCount || 0;
+    const hasReschedulingRight = rescheduleCount < 1;
+
+        const handleCancel = async () => {
+            if (!db || !lesson.bookedBy || !lesson.slots || lesson.slots.length === 0) return;
+            setIsProcessing(true);
+            try {
+                const batch = writeBatch(db);
+
+                // Instead of a query that needs an index, use the slots we already have
+                lesson.slots.forEach((slot: any) => {
+                    const slotRef = doc(db, 'lesson-slots', slot.id);
+                    batch.update(slotRef, {
+                        status: 'available',
+                        bookedBy: null,
+                        childId: null,
+                        packageCode: null,
+                        isLive: null,
+                        liveLessonUrl: null,
+                        whatsappReminderSent: null
+                    });
+                });
+
+                const childDocRef = doc(db, 'users', lesson.bookedBy, 'children', lesson.childId);
+                if (lesson.packageCode !== 'FREE_TRIAL') {
+                    batch.update(childDocRef, { remainingLessons: increment(1) });
+                }
+
+                await batch.commit();
+                toast({ title: 'Ders İptal Edildi', description: 'Ders krediniz iade edildi.', className: 'bg-green-500 text-white' });
+                router.push(`/ebeveyn-portali?cancelled=true&childId=${lesson.childId}`);
+            } catch (error) {
+                console.error('Cancellation error:', error);
+                toast({ variant: 'destructive', title: 'Hata', description: 'İptal işlemi başarısız oldu.' });
+            } finally {
+                setIsProcessing(false);
+            }
+        };
+
+    const handleReschedule = () => {
+        const slotIds = lesson.slots ? lesson.slots.map((s: any) => s.id).join(',') : lesson.id;
+        router.push(`/ebeveyn-portali/ders-planla?rescheduleId=${lesson.id}&slotIds=${slotIds}`);
+    };
+
+    if (hoursDiff < 8) {
+        return (
+            <div className="w-full p-2 bg-slate-50 rounded-lg border border-dashed text-[10px] text-center font-bold text-slate-400 uppercase tracking-wider">
+                Derse 8 saatten az kaldığı için işlem yapılamaz.
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex gap-2 w-full mt-2">
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button 
+                        variant="outline" 
+                        disabled={!canCancel}
+                        className={cn(
+                            "flex-1 border-red-100 text-red-600 hover:bg-red-50 hover:text-red-700 font-bold h-9 text-xs",
+                            !canCancel && "opacity-50 cursor-not-allowed border-slate-100 text-slate-400"
+                        )}
+                    >
+                        İptal Et
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="rounded-3xl">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Dersinizi İptal Etmek İstiyor Musunuz?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Derse 24 saatten fazla süre olduğu için bu işlem **ücretsizdir**. 
+                            İptal ettiğinizde 1 ders hakkınız hesabınıza iade edilecektir.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="rounded-xl">Vazgeç</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={handleCancel}
+                            disabled={isProcessing}
+                            className="bg-red-600 hover:bg-red-700 rounded-xl"
+                        >
+                            {isProcessing ? <Loader2 className="animate-spin h-4 w-4" /> : 'Evet, İptal Et'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <Button 
+                variant="outline" 
+                onClick={handleReschedule}
+                disabled={!hasReschedulingRight}
+                className="flex-1 border-primary/20 text-primary hover:bg-primary/5 font-bold h-9 text-xs"
+            >
+                {hasReschedulingRight ? 'Dersi Değiştir' : 'Değiştirme Hakkı Doldu'}
+            </Button>
+        </div>
+    );
+}
 
 function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZone: string, onShowProgress: () => void }) {
     const db = useFirestore();
@@ -139,10 +267,13 @@ function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZon
             </CardContent>
             <CardFooter className="flex flex-col items-start gap-3 pt-4 bg-slate-50/50 mt-auto">
                  {!isPast && (
-                    <Button onClick={handleJoinLesson} disabled={!canJoin} className={cn("w-full font-bold", canJoin && "bg-red-600 hover:bg-red-700")}>
-                        <Video className="w-4 h-4 mr-2" />
-                        {canJoin ? 'Derse Katıl' : 'Ders Zamanı Gelmedi'}
-                    </Button>
+                    <div className="w-full space-y-3">
+                        <Button onClick={handleJoinLesson} disabled={!canJoin} className={cn("w-full font-bold h-11", canJoin && "bg-red-600 hover:bg-red-700")}>
+                            <Video className="w-4 h-4 mr-2" />
+                            {canJoin ? 'Derse Katıl' : 'Ders Zamanı Gelmedi'}
+                        </Button>
+                        <CancellationButtons lesson={lesson} timeZone={timeZone} />
+                    </div>
                 )}
                 {isPast && lesson.feedback && (
                     <Button variant="outline" className="w-full font-bold" onClick={onShowProgress}>
@@ -199,7 +330,7 @@ function DerslerimPageContent() {
 
 
     const bookedLessonsQuery = useMemoFirebase(() => {
-        if (!user || !db) return null;
+        if (!user || !user.uid || !db) return null;
         return query(collection(db, 'lesson-slots'), where('bookedBy', '==', user.uid));
     }, [user, db]);
 
@@ -219,7 +350,7 @@ function DerslerimPageContent() {
         const sessions: { [key: string]: any[] } = {};
 
         lessonSlots.forEach(slot => {
-            const startTime = slot.startTime.toDate();
+            const startTime = slot.startTime.toDate ? slot.startTime.toDate() : new Date(slot.startTime);
             const sessionDate = startOfDay(startTime).toISOString();
             const sessionKey = `${sessionDate}-${slot.childId}-${slot.teacherId}-${slot.packageCode}`;
 
@@ -231,7 +362,11 @@ function DerslerimPageContent() {
         
         return Object.values(sessions).flatMap(sessionSlots => {
             if (sessionSlots.length === 0) return [];
-            sessionSlots.sort((a, b) => a.startTime.seconds - b.startTime.seconds);
+            sessionSlots.sort((a, b) => {
+                const aTime = a.startTime.seconds || new Date(a.startTime).getTime() / 1000;
+                const bTime = b.startTime.seconds || new Date(b.startTime).getTime() / 1000;
+                return aTime - bTime;
+            });
 
             const lessons: any[] = [];
             let currentLesson: any = null;
@@ -240,8 +375,8 @@ function DerslerimPageContent() {
                 if (!currentLesson) {
                     currentLesson = { ...slot, slots: [slot] };
                 } else {
-                    const lastSlotTime = currentLesson.slots[currentLesson.slots.length - 1].startTime.toDate();
-                    const currentSlotTime = slot.startTime.toDate();
+                    const lastSlotTime = currentLesson.slots[currentLesson.slots.length - 1].startTime.toDate ? currentLesson.slots[currentLesson.slots.length - 1].startTime.toDate() : new Date(currentLesson.slots[currentLesson.slots.length - 1].startTime);
+                    const currentSlotTime = slot.startTime.toDate ? slot.startTime.toDate() : new Date(slot.startTime);
                     const timeDiff = (currentSlotTime.getTime() - lastSlotTime.getTime()) / (1000 * 60);
 
                     if (timeDiff <= 5) { // If slots are 5 minutes apart or less, group them
@@ -258,7 +393,7 @@ function DerslerimPageContent() {
             
             return lessons.map(lesson => {
                 const firstSlot = lesson.slots[0];
-                const startTime = firstSlot.startTime.toDate();
+                const startTime = firstSlot.startTime.toDate ? firstSlot.startTime.toDate() : new Date(firstSlot.startTime);
                 const packageDetails = getCourseDetailsFromPackageCode(firstSlot.packageCode);
                 const duration = packageDetails ? packageDetails.duration : 30;
                 const endTime = addMinutes(startTime, duration);
@@ -276,7 +411,9 @@ function DerslerimPageContent() {
                     packageCode: firstSlot.packageCode,
                     feedback: feedbackSlot ? feedbackSlot.feedback : null,
                     isLive: liveInfoSlot ? liveInfoSlot.isLive : false,
-                    liveLessonUrl: liveInfoSlot ? liveInfoSlot.liveLessonUrl : null
+                    liveLessonUrl: liveInfoSlot ? liveInfoSlot.liveLessonUrl : null,
+                    rescheduleCount: firstSlot.rescheduleCount || 0,
+                    slots: lesson.slots
                 };
             });
         });
@@ -324,36 +461,36 @@ function DerslerimPageContent() {
                     <ArrowLeft className="h-5 w-5" />
                 </Button>
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Derslerim</h2>
-                    <p className="text-muted-foreground">Yaklaşan ve geçmiş derslerinizi görüntüleyin.</p>
+                    <h2 className="text-3xl font-bold tracking-tight text-slate-900">Derslerim</h2>
+                    <p className="text-muted-foreground font-medium">Yaklaşan ve geçmiş derslerinizi görüntüleyin.</p>
                 </div>
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="upcoming">
+                    <TabsTrigger value="upcoming" className="font-bold">
                         <Calendar className="mr-2 h-4 w-4" />
                         Yaklaşan Dersler ({upcomingLessons.length})
                     </TabsTrigger>
-                    <TabsTrigger value="past">
+                    <TabsTrigger value="past" className="font-bold">
                         <History className="mr-2 h-4 w-4" />
                         Geçmiş Dersler ({pastLessons.length})
                     </TabsTrigger>
                 </TabsList>
                 <TabsContent value="upcoming" className="pt-4">
                     {upcomingLessons.length > 0 ? (
-                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
                             {upcomingLessons.map(lesson => (
                                 <LessonCard key={lesson.id} lesson={lesson} timeZone={timeZone} onShowProgress={() => handleShowProgress(lesson)} />
                             ))}
                         </div>
                     ) : (
-                        <Card className="p-12">
+                        <Card className="p-12 border-dashed border-2 bg-transparent">
                             <div className="text-center text-muted-foreground">
-                                <Calendar className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                                <p className="text-lg font-medium">Yaklaşan bir dersiniz bulunmuyor.</p>
-                                <Button className="mt-4 font-bold" onClick={() => router.push('/ebeveyn-portali/ders-planla')}>
-                                    Hemen Ders Planla
+                                <Calendar className="w-12 h-12 mx-auto mb-4 opacity-20 text-primary" />
+                                <p className="text-lg font-bold text-slate-600">Yaklaşan bir dersiniz bulunmuyor.</p>
+                                <Button className="mt-6 font-black rounded-xl px-8" onClick={() => router.push('/ebeveyn-portali/ders-planla')}>
+                                    HEMEN DERS PLANLA
                                 </Button>
                             </div>
                         </Card>
@@ -361,36 +498,40 @@ function DerslerimPageContent() {
                 </TabsContent>
                 <TabsContent value="past" className="pt-4">
                      {pastLessons.length > 0 ? (
-                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
                             {pastLessons.map(lesson => (
                                 <LessonCard key={lesson.id} lesson={lesson} timeZone={timeZone} onShowProgress={() => handleShowProgress(lesson)} />
                             ))}
                         </div>
                     ) : (
-                        <Card className="p-12">
+                        <Card className="p-12 border-dashed border-2 bg-transparent">
                              <div className="text-center text-muted-foreground">
                                 <History className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                                <p className="text-lg font-medium">Henüz tamamlanmış bir dersiniz yok.</p>
+                                <p className="text-lg font-bold text-slate-600">Henüz tamamlanmış bir dersiniz yok.</p>
                             </div>
                         </Card>
                     )}
                 </TabsContent>
             </Tabs>
              <Dialog open={isProgressPanelOpen} onOpenChange={setIsProgressPanelOpen}>
-                <DialogContent className="max-w-5xl h-[90vh]">
-                    <DialogHeader>
-                        <DialogTitle className="text-3xl font-bold font-headline">
-                             {isChildDataLoading || !selectedChildData ? 'Yükleniyor...' : `${selectedChildData.firstName} İlerleme Paneli`}
-                        </DialogTitle>
-                         <DialogDescription>
-                            {isChildDataLoading || !selectedChildData ? 'Öğrenci verileri yükleniyor...' : `Bu ders için öğretmen geri bildirimini ve öğrencinin genel gelişimini görün.`}
-                        </DialogDescription>
-                    </DialogHeader>
-                     {isChildDataLoading || !selectedChildData || !selectedLesson ? (
-                         <div className="flex h-full items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>
-                    ) : (
-                        <ProgressPanel child={selectedChildData} lessonId={selectedLesson.id} isEditable={false} />
-                    )}
+                <DialogContent className="max-w-5xl h-[90vh] rounded-3xl overflow-hidden p-0">
+                    <div className="p-6 pb-0">
+                        <DialogHeader>
+                            <DialogTitle className="text-3xl font-black font-headline text-slate-800">
+                                {isChildDataLoading || !selectedChildData ? 'Yükleniyor...' : `${selectedChildData.firstName} İlerleme Paneli`}
+                            </DialogTitle>
+                            <DialogDescription className="font-medium text-slate-500">
+                                {isChildDataLoading || !selectedChildData ? 'Öğrenci verileri yükleniyor...' : `Bu ders için öğretmen geri bildirimini ve öğrencinin genel gelişimini görün.`}
+                            </DialogDescription>
+                        </DialogHeader>
+                    </div>
+                    <div className="flex-1 overflow-y-auto min-h-0">
+                        {isChildDataLoading || !selectedChildData || !selectedLesson ? (
+                            <div className="flex h-full items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>
+                        ) : (
+                            <ProgressPanel child={selectedChildData} lessonId={selectedLesson.id} isEditable={false} />
+                        )}
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>
