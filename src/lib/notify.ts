@@ -1,6 +1,5 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'ibrahimcanonder_98@hotmail.com';
 
 export interface NotificationPayload {
@@ -32,6 +31,7 @@ export async function sendAdminNotification(payload: NotificationPayload) {
     </div>`;
 
     try {
+        const resend = new Resend(process.env.RESEND_API_KEY);
         await resend.emails.send({
             from: 'Türk Çocuk Akademisi <onboarding@resend.dev>',
             to: ADMIN_EMAIL,

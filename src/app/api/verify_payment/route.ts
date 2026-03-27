@@ -4,7 +4,7 @@ import { sendAdminNotification } from '@/lib/notify';
 import { addDoc, collection, Timestamp } from 'firebase/firestore';
 import { db } from '@/firebase/server';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
+
 
 export async function POST(req: Request) {
   try {
@@ -17,6 +17,7 @@ export async function POST(req: Request) {
       throw new Error("STRIPE_SECRET_KEY is missing from environment variables.");
     }
 
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const session = await stripe.checkout.sessions.retrieve(session_id);
 
     if (session.payment_status === 'paid') {
