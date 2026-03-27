@@ -54,9 +54,9 @@ export function KurslarClientPage({
     const currentRates = Object.keys(exchangeRates).length > 1 ? exchangeRates : initialRates;
     const currencies = Object.keys(currentRates).filter(code => currencyDetails[code]);
 
-    const convertPrice = (priceInEur: number) => {
+    const convertPrice = (priceInGbp: number) => {
         const rate = currentRates[selectedCurrency] || 1;
-        return priceInEur * rate;
+        return priceInGbp * rate;
     };
 
     const handleAddToCart = (course: any, pkg: any) => {
@@ -87,8 +87,8 @@ export function KurslarClientPage({
         }
         
         const originalConvertedPrice = convertPrice(price);
-        const finalEuros = price * (1 - discountPct);
-        const discountedConvertedPrice = convertPrice(finalEuros);
+        const finalGbp = price * (1 - discountPct);
+        const discountedConvertedPrice = convertPrice(finalGbp);
         
         const selectedCurrencyDetails = currencyDetails[selectedCurrency];
         
@@ -118,7 +118,7 @@ export function KurslarClientPage({
                              {currencies.filter(c => c !== selectedCurrency && currencyDetails[c]).slice(0, 5).map(currency => (
                                 <div key={currency} className="flex justify-between gap-2">
                                     <span>{currencyDetails[currency]?.flag} {currency}:</span>
-                                    <span>{currencyDetails[currency]?.symbol}{(finalEuros * currentRates[currency]).toFixed(2)}</span>
+                                    <span>{currencyDetails[currency]?.symbol}{(finalGbp * currentRates[currency]).toFixed(2)}</span>
                                 </div>
                             ))}
                         </div>
@@ -128,7 +128,7 @@ export function KurslarClientPage({
         );
     };
 
-    const PerLessonPrice = ({ perLessonPriceInEur, courseId, packageLessons }: { perLessonPriceInEur: number, courseId: string, packageLessons: number }) => {
+    const PerLessonPrice = ({ perLessonPriceInGbp, courseId, packageLessons }: { perLessonPriceInGbp: number, courseId: string, packageLessons: number }) => {
         let discountPct = 0;
         
         if (activeGlobalCoupon) {
@@ -140,8 +140,8 @@ export function KurslarClientPage({
             }
         }
         
-        const originalPrice = convertPrice(perLessonPriceInEur);
-        const discountedPrice = convertPrice(perLessonPriceInEur * (1 - discountPct));
+        const originalPrice = convertPrice(perLessonPriceInGbp);
+        const discountedPrice = convertPrice(perLessonPriceInGbp * (1 - discountPct));
         const symbol = currencyDetails[selectedCurrency]?.symbol || '';
         
         return (
@@ -242,7 +242,7 @@ export function KurslarClientPage({
                                     return (
                                         <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
                                             <PerLessonPrice 
-                                                perLessonPriceInEur={perLessonPrice} 
+                                                perLessonPriceInGbp={perLessonPrice} 
                                                 courseId={baslangicKursu.id} 
                                                 packageLessons={pkg.lessons} 
                                             />
@@ -302,7 +302,7 @@ export function KurslarClientPage({
                                     return (
                                         <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
                                             <PerLessonPrice 
-                                                perLessonPriceInEur={perLessonPrice} 
+                                                perLessonPriceInGbp={perLessonPrice} 
                                                 courseId={konusmaKursu.id} 
                                                 packageLessons={pkg.lessons} 
                                             />
@@ -368,7 +368,7 @@ export function KurslarClientPage({
                                     return (
                                         <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
                                             <PerLessonPrice 
-                                                perLessonPriceInEur={perLessonPrice} 
+                                                perLessonPriceInGbp={perLessonPrice} 
                                                 courseId={akademikKursu.id} 
                                                 packageLessons={pkg.lessons} 
                                             />
@@ -428,7 +428,7 @@ export function KurslarClientPage({
                                     return (
                                         <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
                                             <PerLessonPrice 
-                                                perLessonPriceInEur={perLessonPrice} 
+                                                perLessonPriceInGbp={perLessonPrice} 
                                                 courseId={gelisimKursu.id} 
                                                 packageLessons={pkg.lessons} 
                                             />
@@ -486,7 +486,7 @@ export function KurslarClientPage({
                                     return (
                                         <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow w-full max-w-xs">
                                             <PerLessonPrice 
-                                                perLessonPriceInEur={perLessonPrice} 
+                                                perLessonPriceInGbp={perLessonPrice} 
                                                 courseId={gcseKursu.id} 
                                                 packageLessons={pkg.lessons} 
                                             />

@@ -168,12 +168,12 @@ export default function TeacherProfilePage() {
                         {form.formState.errors.googleMeetLink && <p className="text-destructive text-sm mt-1">{form.formState.errors.googleMeetLink.message}</p>}
                         <p className="text-xs text-muted-foreground mt-1">Bu link tüm dersleriniz için kullanılacaktır.</p>
                     </div>
-                    <div>
+                    {/* <div>
                         <Label htmlFor="introVideoUrl">Tanıtım Videosu URL'si</Label>
                         <Input id="introVideoUrl" {...form.register('introVideoUrl')} placeholder="https://youtube.com/watch?v=..." disabled={isProfileLocked} />
                         {form.formState.errors.introVideoUrl && <p className="text-destructive text-sm mt-1">{form.formState.errors.introVideoUrl.message}</p>}
-                    </div>
-                     {introVideoUrl && (
+                    </div> */}
+                    {/* {introVideoUrl && (
                         <div>
                             <h4 className="font-semibold mb-2 text-sm">Video Önizlemesi</h4>
                              <Button asChild variant="outline" disabled={isProfileLocked}>
@@ -183,7 +183,7 @@ export default function TeacherProfilePage() {
                                 </Link>
                             </Button>
                         </div>
-                    )}
+                    )} */}
                 </CardContent>
             </Card>
         </div>

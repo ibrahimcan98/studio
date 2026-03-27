@@ -8,7 +8,7 @@ export type CartItem = {
     id: string;
     name: string;
     description: string;
-    price: number; // Base price in EUR
+    price: number; // Base price in GBP
     quantity: number;
     image: string;
 };
@@ -74,8 +74,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const [appliedReferralCode, setAppliedReferralCode] = useState<string | null>(null);
     const [referrerId, setReferrerId] = useState<string | null>(null);
     
-    const [selectedCurrency, setSelectedCurrencyState] = useState('EUR');
-    const [exchangeRates, setExchangeRates] = useState<{ [key: string]: number }>({ EUR: 1 });
+    const [selectedCurrency, setSelectedCurrencyState] = useState('GBP');
+    const [exchangeRates, setExchangeRates] = useState<{ [key: string]: number }>({ GBP: 1 });
 
     useEffect(() => {
         try {
@@ -97,7 +97,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         const fetchRates = async () => {
             try {
                 const data = await getExchangeRates();
-                setExchangeRates({ ...data.rates, EUR: 1 });
+                setExchangeRates({ ...data.rates, GBP: 1 });
             } catch (e) {
                 console.error("Failed to fetch rates in provider", e);
             }

@@ -13,8 +13,8 @@ export default async function KurslarPage() {
     // Fetch live exchange rates on the server
     const exchangeData = await getExchangeRates();
     const exchangeRates = exchangeData.rates;
-    // Add EUR to the rates object as the base currency
-    exchangeRates['EUR'] = 1;
+    // Add GBP to the rates object as the base currency
+    exchangeRates['GBP'] = 1;
 
     return (
         <div className="bg-white min-h-screen text-[#243B53]">

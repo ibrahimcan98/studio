@@ -68,11 +68,11 @@ export default function SepetPage() {
     // Bakiye Logic
     const userDocRef = useMemoFirebase(() => (db && user?.uid) ? doc(db, 'users', user.uid) : null, [db, user?.uid]);
     const { data: userData } = useDoc(userDocRef);
-    const balanceEur = userData?.walletBalanceEur || 0;
+    const balanceGbp = userData?.walletBalanceGbp ?? (userData?.walletBalanceEur || 0);
     const [useBalance, setUseBalance] = useState(false);
     
-    const balanceUsedEur = useBalance ? Math.min(balanceEur, finalTotal) : 0;
-    const payableTotalEur = finalTotal - balanceUsedEur;
+    const balanceUsedGbp = useBalance ? Math.min(balanceGbp, finalTotal) : 0;
+    const payableTotalGbp = finalTotal - balanceUsedGbp;
 
     useEffect(() => {
         setMounted(true);
@@ -81,8 +81,8 @@ export default function SepetPage() {
     const rate = exchangeRates[selectedCurrency] || 1;
     const symbol = currencyDetails[selectedCurrency]?.symbol || selectedCurrency;
 
-    const formatPrice = (priceEur: number) => {
-        return (priceEur * rate).toFixed(2);
+    const formatPrice = (priceGbp: number) => {
+        return (priceGbp * rate).toFixed(2);
     };
 
     const handleApplyNormalCoupon = async () => {
@@ -204,25 +204,25 @@ export default function SepetPage() {
                 userId: user.uid,
                 userName: user.displayName,
                 userEmail: user.email,
-                amountEur: payableTotalEur,
-                balanceUsedEur: balanceUsedEur,
+                amountGbp: payableTotalGbp,
+                balanceUsedGbp: balanceUsedGbp,
                 type: 'package',
                 createdAt: serverTimestamp(),
-                status: payableTotalEur <= 0 ? 'completed' : 'pending',
+                status: payableTotalGbp <= 0 ? 'completed' : 'pending',
                 newPackages,
                 totalLessonsToAdd,
                 referrerId: referrerId || null,
                 items: cartItems.map(item => ({
                     name: item.name,
                     quantity: item.quantity,
-                    priceEur: item.price
+                    priceGbp: item.price
                 }))
             });
 
-            if (payableTotalEur <= 0) {
+            if (payableTotalGbp <= 0) {
                // Full balance coverage, skip Stripe
                await updateDoc(userDocRef, {
-                   walletBalanceEur: increment(-balanceUsedEur),
+                   walletBalanceGbp: increment(-balanceUsedGbp),
                    remainingLessons: increment(totalLessonsToAdd),
                    enrolledPackages: arrayUnion(...newPackages)
                });
@@ -241,7 +241,7 @@ export default function SepetPage() {
             clearCart();
 
             // Stripe Checkout Oturumuna Yönlendirme
-            const totalDiscountAndBalance = discountAmount + balanceUsedEur;
+            const totalDiscountAndBalance = discountAmount + balanceUsedGbp;
             const res = await fetch('/api/checkout_sessions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -398,16 +398,16 @@ export default function SepetPage() {
                                                 <span>-{symbol}{formatPrice(discountAmount)}</span>
                                             </div>
                                         )}
-                                        {balanceUsedEur > 0 && (
+                                        {balanceUsedGbp > 0 && (
                                             <div className="flex justify-between text-orange-600 font-bold">
                                                 <span>Bakiye Kullanımı</span>
-                                                <span>-{symbol}{formatPrice(balanceUsedEur)}</span>
+                                                <span>-{symbol}{formatPrice(balanceUsedGbp)}</span>
                                             </div>
                                         )}
                                         <Separator />
                                         <div className="flex justify-between font-black text-xl text-primary">
                                             <span>Ödenecek Tutar</span>
-                                            <span>{symbol}{formatPrice(payableTotalEur)}</span>
+                                            <span>{symbol}{formatPrice(payableTotalGbp)}</span>
                                         </div>
                                     </div>
                                     <Separator />
@@ -458,11 +458,11 @@ export default function SepetPage() {
 
                                         <Separator />
 
-                                        {balanceEur > 0 && (
+                                        {balanceGbp > 0 && (
                                             <div className="space-y-3 bg-slate-50 p-4 rounded-xl border">
                                                 <div className="flex justify-between items-center text-sm">
                                                     <span className="font-bold flex items-center gap-1.5"><Wallet className="w-4 h-4 text-primary"/> Cüzdan Bakiyesi</span>
-                                                    <span className="font-bold">{symbol}{formatPrice(balanceEur)}</span>
+                                                    <span className="font-bold">{symbol}{formatPrice(balanceGbp)}</span>
                                                 </div>
                                                 {useBalance ? (
                                                     <Button variant="secondary" className="w-full text-xs font-bold border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => setUseBalance(false)}>

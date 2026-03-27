@@ -66,12 +66,12 @@ export const COURSES: Course[] = [
             longDescription: "Çocuğun Türkçeyle güvenli ve doğal bir bağ kurmasını hedefler."
         },
         pricing: {
-            perLesson: { '4': 30.99, '8': 29.85, '12': 27.55, '24': 26.41 },
+            perLesson: { '4': 27, '8': 26, '12': 24, '24': 23 },
             packages: [
-                { lessons: 4, price: 123.94 },
-                { lessons: 8, price: 238.79 },
-                { lessons: 12, price: 330.64 },
-                { lessons: 24, price: 633.72},
+                { lessons: 4, price: 108 },
+                { lessons: 8, price: 208 },
+                { lessons: 12, price: 288 },
+                { lessons: 24, price: 552 },
             ],
         },
     },
@@ -100,12 +100,12 @@ export const COURSES: Course[] = [
             longDescription: "Türkçeyi aktif iletişim aracı olarak kullanmayı hedefler."
         },
         pricing: {
-            perLesson: { '4': 47.07, '8': 44.77, '12': 41.33, '24': 39.03 },
+            perLesson: { '4': 41, '8': 39, '12': 36, '24': 34 },
             packages: [
-                { lessons: 4, price: 188.28 },
-                { lessons: 8, price: 358.19 },
-                { lessons: 12, price: 495.96 },
-                { lessons: 24, price: 936.81 },
+                { lessons: 4, price: 164 },
+                { lessons: 8, price: 312 },
+                { lessons: 12, price: 432 },
+                { lessons: 24, price: 816 },
             ],
         },
     },
@@ -184,12 +184,12 @@ export const COURSES: Course[] = [
             },
         ],
         pricing: {
-            perLesson: { '4': 72.33, '8': 68.88, '12': 62.81, '24': 58.55 },
+            perLesson: { '4': 63, '8': 60, '12': 55, '24': 51 },
             packages: [
-                { lessons: 4, price: 289.31 },
-                { lessons: 8, price: 551.06 },
-                { lessons: 12, price: 753.71 },
-                { lessons: 24, price: 1405.21 },
+                { lessons: 4, price: 252 },
+                { lessons: 8, price: 480 },
+                { lessons: 12, price: 660 },
+                { lessons: 24, price: 1224 },
             ],
         },
     },
@@ -218,12 +218,12 @@ export const COURSES: Course[] = [
             longDescription: "Türkçeyi içerik öğrenme ve düşünme dili olarak kullanmayı hedefler."
         },
         pricing: {
-             perLesson: { '4': 72.33, '8': 68.88, '12': 62.81, '24': 58.55 },
+             perLesson: { '4': 63, '8': 60, '12': 55, '24': 51 },
             packages: [
-                { lessons: 4, price: 289.31},
-                { lessons: 8, price: 551.06 },
-                { lessons: 12, price: 753.71 },
-                { lessons: 24, price: 1405.21 },
+                { lessons: 4, price: 252 },
+                { lessons: 8, price: 480 },
+                { lessons: 12, price: 660 },
+                { lessons: 24, price: 1224 },
             ],
         },
     },
@@ -257,9 +257,9 @@ export const COURSES: Course[] = [
             ],
         },
         pricing: {
-            perLesson: { '12': 68.88 },
+            perLesson: { '12': 60 },
             packages: [
-                { lessons: 12, price: 826.59 }
+                { lessons: 12, price: 720 }
             ],
         },
     },

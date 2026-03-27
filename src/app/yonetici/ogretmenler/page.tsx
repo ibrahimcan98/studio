@@ -300,10 +300,10 @@ export default function AdminTeachersPage() {
                 <Label>Google Meet Linki</Label>
                 <Input value={formData.googleMeetLink} onChange={e => setFormData({...formData, googleMeetLink: e.target.value})} placeholder="https://meet.google.com/..." />
               </div>
-              <div className="space-y-2 col-span-2">
+              {/* <div className="space-y-2 col-span-2">
                 <Label>Tanıtım Videosu Linki</Label>
                 <Input value={formData.introVideoUrl} onChange={e => setFormData({...formData, introVideoUrl: e.target.value})} placeholder="https://youtube.com/..." />
-              </div>
+              </div> */}
               <div className="col-span-2 space-y-3 pt-4 border-t border-slate-100">
                 <Label className="text-base font-black text-slate-800 tracking-tight">Kurs Başına Kazanç (€, Ders Başı)</Label>
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-5">
@@ -449,10 +449,10 @@ export default function AdminTeachersPage() {
               <Label>Google Meet Linki</Label>
               <Input value={formData.googleMeetLink} onChange={e => setFormData({...formData, googleMeetLink: e.target.value})} />
             </div>
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label>Tanıtım Videosu URL'si</Label>
               <Input value={formData.introVideoUrl} onChange={e => setFormData({...formData, introVideoUrl: e.target.value})} />
-            </div>
+            </div> */}
             <div className="col-span-2 space-y-3 pt-6 border-t border-slate-100">
               <Label className="text-base font-black text-slate-800 tracking-tight">Kurs Başına Kazanç (€, Ders Başı)</Label>
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-5">

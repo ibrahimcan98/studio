@@ -40,6 +40,9 @@ service cloud.firestore {
       match /children/{childId} {
         allow read, write: if isSignedIn() && request.auth.uid == userId;
         allow read: if isAdmin() || (isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'teacher']);
+        
+        // Öğretmenler gelişim ve geri bildirim verilerini güncelleyebilir
+        allow update: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
       }
     }
 

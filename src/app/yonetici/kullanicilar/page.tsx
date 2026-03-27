@@ -38,7 +38,9 @@ import {
     FileText,
     Search,
     Tags,
-    Copy
+    Copy,
+    Activity,
+    Plus
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -85,6 +87,8 @@ interface ParentData {
     lastPurchaseDate?: Date;
     countryName: string;
     tags?: string[];
+    lastActivityDate?: Date;
+    lastActivityType?: 'register' | 'purchase' | 'lesson';
 }
 
 const tagStyles: { [key: string]: string } = {
@@ -135,12 +139,21 @@ function UsersPageContent() {
   const [regEndDate, setRegEndDate] = useState('');
   const [purchaseStartDate, setPurchaseStartDate] = useState('');
   const [purchaseEndDate, setPurchaseEndDate] = useState('');
+  const [activityStartDate, setActivityStartDate] = useState('');
+  const [activityEndDate, setActivityEndDate] = useState('');
   
   // Bulk Tags States
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [isBulkTagOpen, setIsBulkTagOpen] = useState(false);
   const [bulkTagsToAdd, setBulkTagsToAdd] = useState<string[]>([]);
   const [newBulkTagInput, setNewBulkTagInput] = useState('');
+  
+  // Add Lessons States
+  const [isAddLessonsOpen, setIsAddLessonsOpen] = useState(false);
+  const [selectedParentForLessons, setSelectedParentForLessons] = useState<ParentData | null>(null);
+  const [selectedCourseId, setSelectedCourseId] = useState('konusma');
+  const [lessonCount, setLessonCount] = useState(4);
+  const [isAddingLessons, setIsAddingLessons] = useState(false);
 
   const parentsQuery = useMemoFirebase(() => {
     if (!db) return null;
@@ -246,14 +259,37 @@ function UsersPageContent() {
         const manualTags = parent.tags || [];
         manualTags.forEach((t: string) => tags.add(t));
 
+        const lastPurchaseDate = parentSlots
+            .filter(s => s.packageCode !== 'FREE_TRIAL')
+            .sort((a,b) => b.startTime.seconds - a.startTime.seconds)[0]?.startTime?.toDate();
+
+        const lastLessonDate = parentSlots.length > 0 
+            ? parentSlots.sort((a,b) => b.startTime.seconds - a.startTime.seconds)[0].startTime.toDate()
+            : null;
+
+        const regDate = parent.createdAt?.toDate() || null;
+        
+        let lastActivityDate = regDate;
+        let lastActivityType: 'register' | 'purchase' | 'lesson' = 'register';
+
+        if (lastLessonDate && (!lastActivityDate || isAfter(lastLessonDate, lastActivityDate))) {
+            lastActivityDate = lastLessonDate;
+            lastActivityType = 'lesson';
+        }
+        
+        if (lastPurchaseDate && (!lastActivityDate || isAfter(lastPurchaseDate, lastActivityDate))) {
+            lastActivityDate = lastPurchaseDate;
+            lastActivityType = 'purchase';
+        }
+
         return {
             ...parent,
             countryName: getCountryFromPhone(parent.phoneNumber),
             computedTags: Array.from(tags),
             manualTags: manualTags,
-            lastPurchaseDate: parentSlots
-                .filter(s => s.packageCode !== 'FREE_TRIAL')
-                .sort((a,b) => b.startTime.seconds - a.startTime.seconds)[0]?.startTime?.toDate()
+            lastPurchaseDate,
+            lastActivityDate,
+            lastActivityType
         } as ParentData;
     });
   }, [parents, allChildren, allSlots, loadingExtras]);
@@ -306,6 +342,15 @@ function UsersPageContent() {
         const end = new Date(purchaseEndDate);
         result = result.filter(p => p.lastPurchaseDate && (isBefore(p.lastPurchaseDate, end) || isSameDay(p.lastPurchaseDate, end)));
     }
+
+    if (activityStartDate) {
+        const start = new Date(activityStartDate);
+        result = result.filter(p => p.lastActivityDate && (isAfter(p.lastActivityDate, start) || isSameDay(p.lastActivityDate, start)));
+    }
+    if (activityEndDate) {
+        const end = new Date(activityEndDate);
+        result = result.filter(p => p.lastActivityDate && (isBefore(p.lastActivityDate, end) || isSameDay(p.lastActivityDate, end)));
+    }
     
     return result;
   }, [processedParents, searchQuery, selectedTags, regStartDate, regEndDate, purchaseStartDate, purchaseEndDate]);
@@ -316,33 +361,79 @@ function UsersPageContent() {
   };
 
   const handleBulkUpdateTags = async () => {
-    if (bulkTagsToAdd.length === 0 || selectedUserIds.length === 0 || !db) return;
-    setIsSavingTags(true);
-    
+    // ...existing handleBulkUpdateTags...
+  };
+
+  const handleAddLessons = async () => {
+    if (!selectedParentForLessons || !db || !lessonCount) return;
+    setIsAddingLessons(true);
     try {
+        const parentRef = doc(db, 'users', selectedParentForLessons.id);
         const batch = writeBatch(db);
-        let count = 0;
-        selectedUserIds.forEach(id => {
-            const parent = processedParents.find(p => p.id === id);
-            if (parent) {
-                const newTags = Array.from(new Set([...(parent.manualTags || []), ...bulkTagsToAdd]));
-                const ref = doc(db, 'users', id);
-                batch.update(ref, { tags: newTags });
-                count++;
-            }
-        });
         
+        // Map course to prefix
+        const prefixes: { [key: string]: string } = {
+            'baslangic': 'B',
+            'konusma': 'K',
+            'akademik': 'A',
+            'gelisim': 'G',
+            'gcse': 'GCSE'
+        };
+        const courseNames: { [key: string]: string } = {
+            'baslangic': 'Başlangıç Kursu (Pre A1)',
+            'konusma': 'Konuşma Kursu (A1)',
+            'akademik': 'Akademik Kurs (A2)',
+            'gelisim': 'Gelişim Kursu (B1)',
+            'gcse': 'GCSE Türkçe Kursu'
+        };
+        
+        const prefix = prefixes[selectedCourseId] || 'B';
+        const courseName = courseNames[selectedCourseId] || 'Hediye Kurs';
+        const packageCode = `${prefix}${lessonCount}`;
+
+        batch.update(parentRef, {
+            remainingLessons: (selectedParentForLessons.remainingLessons || 0) + lessonCount,
+            enrolledPackages: [...(selectedParentForLessons.enrolledPackages || []), packageCode]
+        });
+
+        const txRef = doc(collection(db, 'transactions'));
+        batch.set(txRef, {
+            userId: selectedParentForLessons.id,
+            status: 'completed',
+            amountGbp: 0,
+            description: '🎁 Manuel Tanımlanan Dersler / Hediye',
+            items: [{
+                name: courseName,
+                quantity: 1,
+                price: 0
+            }],
+            newPackages: [packageCode],
+            totalLessonsToAdd: lessonCount,
+            createdAt: new Date(),
+        });
+
+        const activityRef = doc(collection(db, 'activity-log'));
+        batch.set(activityRef, {
+            event: '🎁 Manuel Ders Ekleme',
+            icon: '🎁',
+            details: {
+                'Veli': `${selectedParentForLessons.firstName} ${selectedParentForLessons.lastName}`,
+                'Kurs': courseName,
+                'Ders Sayısı': lessonCount.toString(),
+                'Neden': 'Admin Manuel Tanımlama'
+            },
+            createdAt: new Date(),
+        });
+
         await batch.commit();
-        toast({ title: `${count} veli güncellendi`, className: 'bg-green-500 text-white' });
-        setIsBulkTagOpen(false);
-        setSelectedUserIds([]);
-        setBulkTagsToAdd([]);
+        toast({ title: 'Dersler Başarıyla Eklendi', className: 'bg-green-500 text-white' });
+        setIsAddLessonsOpen(false);
         refetchParents();
     } catch (e) {
-        console.error("Error updating bulk tags:", e);
-        toast({ variant: 'destructive', title: 'Hata', description: 'Toplu etiketler kaydedilemedi.' });
+        console.error("Error adding manual lessons:", e);
+        toast({ variant: 'destructive', title: 'Hata', description: 'Dersler tanımlanamadı.' });
     } finally {
-        setIsSavingTags(false);
+        setIsAddingLessons(false);
     }
   };
 
@@ -491,12 +582,30 @@ function UsersPageContent() {
                     </div>
                 </div>
 
+                <div className="space-y-4 pt-4 border-t">
+                    <div className="flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-black text-slate-900 uppercase tracking-tighter">Etkinlik Tarihi Aralığı</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                            <Label className="text-[9px] text-slate-400 uppercase font-black">Başlangıç</Label>
+                            <Input type="date" value={activityStartDate} onChange={e => setActivityStartDate(e.target.value)} className="h-9 text-xs rounded-lg" />
+                        </div>
+                        <div className="space-y-1">
+                            <Label className="text-[9px] text-slate-400 uppercase font-black">Bitiş</Label>
+                            <Input type="date" value={activityEndDate} onChange={e => setActivityEndDate(e.target.value)} className="h-9 text-xs rounded-lg" />
+                        </div>
+                    </div>
+                </div>
+
                 <Button 
                     variant="secondary" 
                     className="w-full rounded-xl h-10 font-bold text-xs" 
                     onClick={() => {
                         setRegStartDate(''); setRegEndDate('');
                         setPurchaseStartDate(''); setPurchaseEndDate('');
+                        setActivityStartDate(''); setActivityEndDate('');
                         setSelectedTags([]);
                     }}
                 > Tüm Filtreleri Sıfırla </Button>
@@ -542,7 +651,7 @@ function UsersPageContent() {
                   <TableHead className="font-bold text-slate-500 py-5">Veli Bilgisi</TableHead>
                   <TableHead className="font-bold text-slate-500">Ülke</TableHead>
                   <TableHead className="font-bold text-slate-500">Kayıt Tarihi</TableHead>
-                  <TableHead className="font-bold text-slate-500">Son Satın Alım</TableHead>
+                  <TableHead className="font-bold text-slate-500">Son Etkinlik</TableHead>
                   <TableHead className="font-bold text-slate-500">Etiketler</TableHead>
                   <TableHead className="w-[80px] text-right pr-6"></TableHead>
                 </TableRow>
@@ -597,13 +706,18 @@ function UsersPageContent() {
                         </div>
                     </TableCell>
                     <TableCell>
-                        {parent.lastPurchaseDate ? (
-                            <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-sm">
-                                <ShoppingBag className="w-3.5 h-3.5" />
-                                {format(parent.lastPurchaseDate, 'dd MMM yyyy', { locale: tr })}
+                        {parent.lastActivityDate ? (
+                            <div className={cn(
+                                "flex items-center gap-1.5 font-bold text-sm",
+                                parent.lastActivityType === 'purchase' ? 'text-emerald-600' : 
+                                parent.lastActivityType === 'lesson' ? 'text-blue-600' : 'text-slate-500'
+                            )}>
+                                {parent.lastActivityType === 'purchase' ? <ShoppingBag className="w-3.5 h-3.5" /> : 
+                                 parent.lastActivityType === 'lesson' ? <Calendar className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
+                                {format(parent.lastActivityDate, 'dd MMM yyyy', { locale: tr })}
                             </div>
                         ) : (
-                            <span className="text-[10px] font-black text-slate-300 uppercase tracking-tighter">HİÇ ALMADI</span>
+                            <span className="text-[10px] font-black text-slate-300 uppercase tracking-tighter">-</span>
                         )}
                     </TableCell>
                     <TableCell>
@@ -629,6 +743,9 @@ function UsersPageContent() {
                                 </DropdownMenuItem>
                                 <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer" onClick={() => { setSelectedParent(parent); setIsTagsOpen(true); }}>
                                     Etiketleri Düzenle
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-blue-600 focus:text-blue-600" onClick={() => { setSelectedParentForLessons(parent); setIsAddLessonsOpen(true); setSelectedCourseId('konusma'); setLessonCount(4); }}>
+                                    Ders Ekle
                                 </DropdownMenuItem>
                                 <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 text-red-500 focus:text-red-500 cursor-pointer">
                                     Kullanıcıyı Yasakla
@@ -702,6 +819,20 @@ function UsersPageContent() {
                                             {selectedParent.enrolledPackages?.length > 0 ? selectedParent.enrolledPackages.map((p: string, i: number) => (
                                                 <Badge key={i} variant="secondary" className="bg-white border-slate-200 text-slate-600 font-bold text-[10px] uppercase">{p}</Badge>
                                             )) : <span className="text-sm font-medium text-slate-400">Yok</span>}
+                                        </div>
+                                    </Card>
+                                    <Card className="bg-slate-50 border-none p-6 space-y-2">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Son Etkinlik</p>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            {selectedParent.lastActivityDate ? (
+                                                <>
+                                                    {selectedParent.lastActivityType === 'purchase' ? <ShoppingBag className="w-4 h-4 text-emerald-500" /> : 
+                                                     selectedParent.lastActivityType === 'lesson' ? <Calendar className="w-4 h-4 text-blue-500" /> : <User className="w-4 h-4 text-slate-400" />}
+                                                    <p className="text-xl font-bold text-slate-800">
+                                                        {format(selectedParent.lastActivityDate, 'dd MMMM yyyy', { locale: tr })}
+                                                    </p>
+                                                </>
+                                            ) : <span className="text-sm font-medium text-slate-400">-</span>}
                                         </div>
                                     </Card>
                                 </div>
@@ -938,6 +1069,68 @@ function UsersPageContent() {
                     Toplu Kaydet
                 </Button>
             </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ADD LESSONS DIALOG */}
+      <Dialog open={isAddLessonsOpen} onOpenChange={setIsAddLessonsOpen}>
+        <DialogContent className="max-w-md p-0 overflow-hidden rounded-[32px] border-none shadow-2xl">
+            <DialogHeader className="p-8 bg-blue-600 text-white">
+                <DialogTitle className="text-2xl font-black flex items-center gap-3">
+                    <Package className="w-6 h-6" /> Manuel Ders Ekle
+                </DialogTitle>
+                <DialogDescription className="text-blue-100 font-medium">
+                    {selectedParentForLessons?.firstName} isimli velinin hesabına manuel ders tanımlayın.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="p-8 space-y-6 bg-white">
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Kurs Seçimi</Label>
+                    <select 
+                        className="w-full h-12 rounded-xl border border-slate-200 px-4 font-bold text-slate-700 bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none"
+                        value={selectedCourseId}
+                        onChange={(e) => setSelectedCourseId(e.target.value)}
+                    >
+                        <option value="baslangic">Başlangıç Kursu (Pre-A1)</option>
+                        <option value="konusma">Konuşma Kursu (A1)</option>
+                        <option value="akademik">Akademik Kurs (A2)</option>
+                        <option value="gelisim">Gelişim Kursu (B1)</option>
+                        <option value="gcse">GCSE Türkçe Kursu</option>
+                    </select>
+                </div>
+
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Ders Sayısı</Label>
+                    <div className="flex items-center gap-4">
+                        <Input 
+                            type="number" 
+                            className="h-12 rounded-xl border-slate-200 font-bold text-lg text-center"
+                            value={lessonCount}
+                            onChange={(e) => setLessonCount(parseInt(e.target.value) || 0)}
+                        />
+                        <div className="flex gap-2">
+                            {[4, 8, 12, 24].map(n => (
+                                <Button 
+                                    key={n} 
+                                    variant={lessonCount === n ? 'default' : 'outline'} 
+                                    className="w-10 h-10 p-0 rounded-lg text-xs font-bold shrink-0"
+                                    onClick={() => setLessonCount(n)}
+                                >
+                                    {n}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="pt-4 flex gap-3">
+                    <Button variant="outline" className="flex-1 h-12 rounded-xl font-bold border-2" onClick={() => setIsAddLessonsOpen(false)}>Vazgeç</Button>
+                    <Button className="flex-1 h-12 rounded-xl font-bold bg-blue-600 hover:bg-blue-700" onClick={handleAddLessons} disabled={isAddingLessons}>
+                        {isAddingLessons ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                        Dersleri Tanımla
+                    </Button>
+                </div>
+            </div>
         </DialogContent>
       </Dialog>
 

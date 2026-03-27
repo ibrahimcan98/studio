@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: '2024-06-20' as any, // use the latest version available or default
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
 export async function POST(req: Request) {
   try {
@@ -17,12 +15,12 @@ export async function POST(req: Request) {
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: items.map((item: any) => {
-        const isZeroDecimal = ['bif', 'clp', 'djf', 'gnf', 'jpy', 'kmf', 'krw', 'mga', 'pyg', 'rwf', 'ugx', 'vnd', 'vuv', 'xaf', 'xof', 'xpf'].includes((currency || 'eur').toLowerCase());
+        const isZeroDecimal = ['bif', 'clp', 'djf', 'gnf', 'jpy', 'kmf', 'krw', 'mga', 'pyg', 'rwf', 'ugx', 'vnd', 'vuv', 'xaf', 'xof', 'xpf'].includes((currency || 'gbp').toLowerCase());
         const unit_amount = isZeroDecimal ? Math.round(item.price) : Math.round(item.price * 100);
 
         return {
           price_data: {
-            currency: currency || 'eur',
+            currency: currency || 'gbp',
             product_data: {
               name: item.name,
               description: item.description || '',

@@ -95,7 +95,7 @@ export default function SalesPage() {
   }, [transactions, filter, dateRange]);
 
   const stats = useMemo(() => {
-    const total = filteredTransactions.reduce((acc, curr) => acc + (curr.amountEur || 0), 0);
+    const total = filteredTransactions.reduce((acc, curr) => acc + (curr.amountGbp || 0), 0);
     const count = filteredTransactions.length;
     const avg = count > 0 ? total / count : 0;
 
@@ -116,7 +116,7 @@ export default function SalesPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
             <h1 className="text-3xl font-black tracking-tight text-slate-900">Satış Paneli</h1>
-            <p className="text-muted-foreground mt-1">Platformdaki tüm Euro bazlı tahsilatlar ve paket alımları.</p>
+            <p className="text-muted-foreground mt-1">Platformdaki tüm Sterlin bazlı tahsilatlar ve paket alımları.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-3 bg-white p-1.5 rounded-2xl shadow-sm border">
@@ -185,8 +185,8 @@ export default function SalesPage() {
                 <CardTitle className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Toplam Tahsilat</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="text-3xl font-black text-slate-900">€{stats.total.toFixed(2)}</div>
-                <div className="text-[10px] font-bold text-emerald-500 mt-1 uppercase">Euro Bazında Net Ciro</div>
+                <div className="text-3xl font-black text-slate-900">£{stats.total.toFixed(2)}</div>
+                <div className="text-[10px] font-bold text-emerald-500 mt-1 uppercase">Sterlin Bazında Net Ciro</div>
             </CardContent>
         </Card>
         <Card className="border-none shadow-md bg-white overflow-hidden relative">
@@ -205,7 +205,7 @@ export default function SalesPage() {
                 <CardTitle className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ortalama İşlem</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="text-3xl font-black text-slate-900">€{stats.avg.toFixed(2)}</div>
+                <div className="text-3xl font-black text-slate-900">£{stats.avg.toFixed(2)}</div>
                 <div className="text-[10px] font-bold text-amber-500 mt-1 uppercase">Sepet Ortalaması</div>
             </CardContent>
         </Card>
@@ -225,7 +225,7 @@ export default function SalesPage() {
                 <TableHead className="font-bold text-slate-500">İşlem Türü</TableHead>
                 <TableHead className="font-bold text-slate-500">İçerik</TableHead>
                 <TableHead className="font-bold text-slate-500">Tarih</TableHead>
-                <TableHead className="font-bold text-slate-900 text-right pr-8">Tutar (EUR)</TableHead>
+                <TableHead className="font-bold text-slate-900 text-right pr-8">Tutar (GBP)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -270,7 +270,7 @@ export default function SalesPage() {
                     </TableCell>
                     <TableCell className="text-right pr-8">
                         <div className="text-base font-black text-slate-900">
-                            €{t.amountEur?.toFixed(2)}
+                            £{t.amountGbp?.toFixed(2)}
                         </div>
                     </TableCell>
                   </TableRow>

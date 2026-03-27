@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, doc, writeBatch, increment, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch, increment, getDocs, Timestamp, addDoc } from 'firebase/firestore';
 import { Loader2, ArrowLeft, Calendar, Clock, User, BookOpen, Baby, History, MessageSquare, Video, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -115,6 +115,19 @@ function CancellationButtons({ lesson, timeZone }: { lesson: any, timeZone: stri
                 }
 
                 await batch.commit();
+
+                // Store in Activity Log
+                addDoc(collection(db, 'activity-log'), {
+                    event: '❌ Ders İptal Edildi',
+                    icon: '❌',
+                    details: {
+                        'Öğrenci': lesson.childName || '-',
+                        'Ders Saati': startTime.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
+                        'Ders Türü': lesson.packageCode || '-',
+                    },
+                    createdAt: Timestamp.fromDate(new Date())
+                }).catch(console.error);
+
                 toast({ title: 'Ders İptal Edildi', description: 'Ders krediniz iade edildi.', className: 'bg-green-500 text-white' });
                 router.push(`/ebeveyn-portali?cancelled=true&childId=${lesson.childId}`);
             } catch (error) {
@@ -272,7 +285,7 @@ function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZon
                             <Video className="w-4 h-4 mr-2" />
                             {canJoin ? 'Derse Katıl' : 'Ders Zamanı Gelmedi'}
                         </Button>
-                        <CancellationButtons lesson={lesson} timeZone={timeZone} />
+                        <CancellationButtons lesson={{ ...lesson, childName: childData?.firstName }} timeZone={timeZone} />
                     </div>
                 )}
                 {isPast && lesson.feedback && (

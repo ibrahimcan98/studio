@@ -2,14 +2,14 @@
 /**
  * @fileOverview A flow for fetching live currency exchange rates.
  *
- * - getExchangeRates - A function that returns current exchange rates based on EUR.
+ * - getExchangeRates - A function that returns current exchange rates based on GBP.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
 const ExchangeRateOutputSchema = z.object({
-  rates: z.record(z.string(), z.number()).describe("A dictionary of currency codes to their exchange rate against the Euro."),
+  rates: z.record(z.string(), z.number()).describe("A dictionary of currency codes to their exchange rate against the British Pound."),
 });
 export type ExchangeRateOutput = z.infer<typeof ExchangeRateOutputSchema>;
 
@@ -29,7 +29,7 @@ const exchangeRateFlow = ai.defineFlow(
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-      const response = await fetch('https://api.frankfurter.app/latest?from=EUR', {
+      const response = await fetch('https://api.frankfurter.app/latest?from=GBP', {
         signal: controller.signal,
         next: { revalidate: 3600 } // Cache for 1 hour
       });
@@ -53,17 +53,17 @@ const exchangeRateFlow = ai.defineFlow(
       // Fallback rates to prevent "Failed to fetch" crashes during site navigation
       return {
         rates: {
-          EUR: 1,
-          GBP: 0.85,
-          USD: 1.08,
-          AED: 3.96,
-          AUD: 1.63,
-          CAD: 1.48,
-          CHF: 0.97,
-          IDR: 17650,
-          MYR: 5.09,
-          NOK: 11.55,
-          TRY: 35.50,
+          GBP: 1,
+          EUR: 1.18,
+          USD: 1.27,
+          AED: 4.66,
+          AUD: 1.92,
+          CAD: 1.74,
+          CHF: 1.14,
+          IDR: 20760,
+          MYR: 5.99,
+          NOK: 13.58,
+          TRY: 41.76,
         }
       }
     }

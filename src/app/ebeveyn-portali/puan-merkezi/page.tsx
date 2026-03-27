@@ -87,7 +87,7 @@ export default function PuanMerkeziPage() {
     }, [db, user?.uid]);
     const { data: children, isLoading: childrenLoading } = useCollection(childrenRef);
 
-    const balance = userData?.walletBalanceEur || 0;
+    const balance = userData?.walletBalanceGbp ?? (userData?.walletBalanceEur || 0);
     const points = userData?.academyPoints || 0;
     const packages = userData?.totalPackagesPurchased || 0;
     const referralCode = userData?.referralCode || `TCA-${userData?.firstName?.toUpperCase() || 'VELI'}-2026`;
@@ -189,7 +189,18 @@ export default function PuanMerkeziPage() {
     }
 
     return (
-        <div className="flex-1 space-y-12 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen font-sans">
+        <div className="flex-1 space-y-12 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen font-sans relative">
+            <div className="fixed inset-0 bg-slate-100/40 backdrop-blur-sm z-[100] flex items-center justify-center pointer-events-none">
+                <div className="bg-white/80 p-12 rounded-[40px] shadow-2xl border border-slate-200/50 flex flex-col items-center gap-6 animate-in fade-in zoom-in duration-500">
+                    <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center shadow-inner">
+                        <Lock className="w-10 h-10 text-slate-400" />
+                    </div>
+                    <div className="text-center space-y-2">
+                        <h1 className="text-5xl font-black text-slate-700 drop-shadow-sm tracking-tighter">YAKINDA AKTİF</h1>
+                        <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-sm">Çok Yakında Sizlerle Olacak</p>
+                    </div>
+                </div>
+            </div>
             {/* ÜST ALAN: CÜZDAN ÖZETİ */}
             <div className="flex items-center gap-4 max-w-6xl mx-auto">
                 <Button variant="outline" size="icon" onClick={() => router.push('/ebeveyn-portali')} className="h-10 w-10 rounded-xl border-2"><ArrowLeft className="h-5 w-5" /></Button>
@@ -207,7 +218,7 @@ export default function PuanMerkeziPage() {
                                 <div className="p-4 bg-white/10 rounded-3xl"><Wallet className="w-10 h-10 text-primary" /></div>
                                 <div>
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Mevcut Bakiyeniz</p>
-                                    <p className="text-5xl font-black">{balance.toFixed(2)} <span className="text-xl opacity-50">EUR 💶</span></p>
+                                    <p className="text-5xl font-black">{balance.toFixed(2)} <span className="text-xl opacity-50">GBP 💷</span></p>
                                 </div>
                             </div>
                             <div className="space-y-4">
@@ -268,7 +279,7 @@ export default function PuanMerkeziPage() {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                         {[
-                            { step: 1, title: 'Hoş Geldiniz!', desc: 'İlk adımınızı attınız, mutluyuz!', reward: '10€ Bakiye', active: true, done: true },
+                            { step: 1, title: 'Hoş Geldiniz!', desc: 'İlk adımınızı attınız, mutluyuz!', reward: '10£ Bakiye', active: true, done: true },
                             { step: 5, title: '5. Kurs', desc: 'İstikrarlı bir başlangıç.', reward: '250 Puan', active: packages >= 5, done: packages >= 5 },
                             { step: 10, title: '10. Kurs', desc: 'Kocaman bir adım!', reward: '500 Puan (1 Hediye)', active: packages >= 10, done: packages >= 10 },
                             { step: 15, title: '15. Kurs', desc: 'Kültür Elçimiz.', reward: '350 Puan', active: packages >= 15, done: packages >= 15 },
@@ -405,7 +416,7 @@ export default function PuanMerkeziPage() {
                                     <div className="grid grid-cols-2 gap-6">
                                         <div className="bg-emerald-500/20 p-6 rounded-3xl border border-emerald-500/30 backdrop-blur-sm">
                                             <p className="text-[10px] font-black text-emerald-300 uppercase tracking-widest mb-2">Sizin Ödülünüz</p>
-                                            <p className="text-lg font-black leading-tight">30€ Bakiye <br /><span className="text-xs opacity-60">veya 1 Hediye Ders</span></p>
+                                            <p className="text-lg font-black leading-tight">30£ Bakiye <br /><span className="text-xs opacity-60">veya 1 Hediye Ders</span></p>
                                         </div>
                                         <div className="bg-yellow-500/20 p-6 rounded-3xl border border-yellow-500/30 backdrop-blur-sm">
                                             <p className="text-[10px] font-black text-yellow-300 uppercase tracking-widest mb-2">Arkadaşın Ödülü</p>

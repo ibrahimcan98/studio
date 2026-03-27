@@ -55,6 +55,7 @@ function PaketlerimPageContent() {
     const [isAssigning, setIsAssigning] = useState(false);
     const [selectedPackageToAssign, setSelectedPackageToAssign] = useState<string>('');
     const [childToAssign, setChildToAssign] = useState<string>('');
+    const [amountToAssign, setAmountToAssign] = useState<number>(0);
     const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
 
     const userDocRef = useMemoFirebase(() => {
@@ -148,21 +149,27 @@ function PaketlerimPageContent() {
     }, [searchParams, user, db, userDocRef, router, toast]);
 
     const handleAssignPackage = async () => {
-        if (!db || !user || !userDocRef || !userData || !selectedPackageToAssign || !childToAssign) return;
+        if (!db || !user || !userDocRef || !userData || !selectedPackageToAssign || !childToAssign || amountToAssign <= 0) return;
     
         const childDocRef = doc(db, 'users', user.uid, 'children', childToAssign);
         const childSnap = await getDoc(childDocRef);
     
+        const lessonsInPackage = parseInt(selectedPackageToAssign.replace(/\D/g, ''), 10);
+        const prefix = selectedPackageToAssign.replace(/[0-9]/g, '');
+
         if (childSnap.exists() && childSnap.data()?.assignedPackage) {
-            toast({
-                variant: 'destructive',
-                title: 'Atama Hatası',
-                description: 'Bu çocuğun zaten atanmış bir kursu var.',
-            });
-            return;
+            const currentPackage = childSnap.data().assignedPackage;
+            const currentPrefix = currentPackage.replace(/[0-9]/g, '');
+            if (currentPrefix !== prefix) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Atama Hatası',
+                    description: `Bu çocuğun zaten ${childSnap.data().assignedPackageName} kursu var. Farklı türde bir kurs atayamazsınız.`,
+                });
+                return;
+            }
         }
     
-        const lessonsInPackage = parseInt(selectedPackageToAssign.replace(/\D/g, ''), 10);
         if (isNaN(lessonsInPackage) || lessonsInPackage <= 0) {
             toast({ variant: 'destructive', title: 'Geçersiz Kurs', description: 'Seçilen kursun ders sayısı geçersiz.' });
             return;
@@ -177,24 +184,36 @@ function PaketlerimPageContent() {
         setIsAssigning(true);
 
         const batch = writeBatch(db);
+        const remainder = lessonsInPackage - amountToAssign;
         
+        // Update Child
         batch.update(childDocRef, {
-            assignedPackage: selectedPackageToAssign,
+            assignedPackage: `${prefix}${amountToAssign}`, // We might want to keep the origin code or just a prefix
             assignedPackageName: course.title,
-            remainingLessons: lessonsInPackage,
+            remainingLessons: increment(amountToAssign),
             finishedPackage: null,
         });
 
+        // Update Parent
+        const updatedPackages = [...(userData.enrolledPackages || [])];
+        const indexToRemove = updatedPackages.indexOf(selectedPackageToAssign);
+        if (indexToRemove !== -1) {
+            updatedPackages.splice(indexToRemove, 1);
+            if (remainder > 0) {
+                updatedPackages.push(`${prefix}${remainder}`);
+            }
+        }
+
         batch.update(userDocRef, {
-            enrolledPackages: arrayRemove(selectedPackageToAssign),
-            remainingLessons: increment(-lessonsInPackage)
+            enrolledPackages: updatedPackages,
+            remainingLessons: increment(-amountToAssign)
         });
         
         try {
             await batch.commit();
             toast({
                 title: 'Kurs Atandı!',
-                description: `${course.title} (${lessonsInPackage} ders) kursu başarıyla atandı.`,
+                description: `${course.title} kursundan ${amountToAssign} ders başarıyla atandı.`,
                 className: 'bg-green-500 text-white'
             });
         } catch (error) {
@@ -209,6 +228,7 @@ function PaketlerimPageContent() {
             setIsAssignDialogOpen(false);
             setSelectedPackageToAssign('');
             setChildToAssign('');
+            setAmountToAssign(0);
         }
     };
     
@@ -347,7 +367,9 @@ function PaketlerimPageContent() {
                                                                     <Button size="sm" onClick={() => {
                                                                         setChildToAssign(child.id);
                                                                         if (unassignedPackages.length > 0) {
-                                                                            setSelectedPackageToAssign(unassignedPackages[0]);
+                                                                            const pkg = unassignedPackages[0];
+                                                                            setSelectedPackageToAssign(pkg);
+                                                                            setAmountToAssign(parseInt(pkg.replace(/\D/g, ''), 10) || 0);
                                                                         }
                                                                         setIsAssignDialogOpen(true);
                                                                     }} className="bg-amber-500 hover:bg-amber-600 text-white font-bold w-full mt-1">
@@ -414,7 +436,7 @@ function PaketlerimPageContent() {
                                                             </div>
                                                         </td>
                                                         <td className="py-4 px-6 text-right font-black text-slate-800">
-                                                            €{tx.amountEur?.toFixed(2)}
+                                                            {tx.amountGbp !== undefined ? `£${tx.amountGbp.toFixed(2)}` : (tx.amountEur !== undefined ? `€${tx.amountEur.toFixed(2)}` : (tx.amount ? `${tx.amount} €` : '0.00 £'))}
                                                         </td>
                                                         <td className="py-4 px-6 text-right">
                                                             <Badge className="bg-emerald-100 text-emerald-700 border-none font-bold uppercase tracking-wider text-[10px]">Başarılı</Badge>
@@ -465,7 +487,14 @@ function PaketlerimPageContent() {
                                         })}
 
                                         {childrenWithoutPackages.length > 0 && (
-                                            <Button className="w-full mt-4 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold rounded-xl h-12 shadow-sm" onClick={() => setIsAssignDialogOpen(true)}>
+                                            <Button className="w-full mt-4 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold rounded-xl h-12 shadow-sm" onClick={() => {
+                                                 if (unassignedPackages.length > 0) {
+                                                     const pkg = unassignedPackages[0];
+                                                     setSelectedPackageToAssign(pkg);
+                                                     setAmountToAssign(parseInt(pkg.replace(/\D/g, ''), 10) || 0);
+                                                 }
+                                                 setIsAssignDialogOpen(true);
+                                             }}>
                                                 <Plus className='mr-2 h-5 w-5' /> Şimdi Kurs Ata
                                             </Button>
                                         )}
@@ -494,7 +523,10 @@ function PaketlerimPageContent() {
                         <div className='space-y-6 py-4'>
                             <div>
                                  <label htmlFor="package-assign-select" className='text-sm font-bold text-slate-700 uppercase tracking-widest'>Atanacak Kurs</label>
-                                 <Select value={selectedPackageToAssign} onValueChange={setSelectedPackageToAssign}>
+                                 <Select value={selectedPackageToAssign} onValueChange={(val) => {
+                                      setSelectedPackageToAssign(val);
+                                      setAmountToAssign(parseInt(val.replace(/\D/g, ''), 10) || 0);
+                                  }}>
                                     <SelectTrigger id="package-assign-select" className="mt-2 h-14 rounded-xl border-slate-200 bg-slate-50 font-semibold focus:ring-primary focus:border-primary">
                                         <SelectValue placeholder="Kurs Seçin" />
                                     </SelectTrigger>
@@ -522,12 +554,48 @@ function PaketlerimPageContent() {
                                     </SelectContent>
                                 </Select>
                             </div>
+                            
+                             {selectedPackageToAssign && (
+                                <div className='space-y-3 pt-2'>
+                                    <div className="flex justify-between items-center">
+                                        <label className='text-sm font-bold text-slate-700 uppercase tracking-widest'>Atanacak Ders Sayısı</label>
+                                        <Badge variant="outline" className="font-black text-primary border-primary/20">{amountToAssign} / {lessonsInSelectedPackage}</Badge>
+                                    </div>
+                                    <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                        <Button 
+                                            variant="outline" 
+                                            size="icon" 
+                                            type="button"
+                                            className="h-10 w-10 shrink-0 bg-white"
+                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAmountToAssign(Math.max(1, amountToAssign - 1)); }}
+                                            disabled={amountToAssign <= 1}
+                                        >
+                                            -
+                                        </Button>
+                                        <div className="flex-1 text-center font-black text-2xl text-slate-800">
+                                            {amountToAssign}
+                                        </div>
+                                        <Button 
+                                            variant="outline" 
+                                            size="icon" 
+                                            type="button"
+                                            className="h-10 w-10 shrink-0 bg-white"
+                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAmountToAssign(Math.min(lessonsInSelectedPackage, amountToAssign + 1)); }}
+                                            disabled={amountToAssign >= lessonsInSelectedPackage}
+                                        >
+                                            +
+                                        </Button>
+                                    </div>
+                                    <p className='text-[10px] text-slate-400 font-medium italic'>* Paketi çocuklarınız arasında paylaştırabilirsiniz.</p>
+                                </div>
+                             )}
+
                              {selectedPackageToAssign && (
                                 <div className="font-bold p-4 bg-emerald-50 text-emerald-800 rounded-xl flex items-center justify-between border border-emerald-100">
                                     <span>Atanacak Toplam Kredi:</span>
-                                    <Badge className="bg-emerald-500 text-white border-none py-1">{lessonsInSelectedPackage} Ders</Badge>
+                                    <Badge className="bg-emerald-500 text-white border-none py-1">{amountToAssign} Ders</Badge>
                                 </div>
-                            )}
+                             )}
                         </div>
                         <AlertDialogFooter className="pt-2">
                             <AlertDialogCancel className="h-12 rounded-xl font-bold border-slate-200 w-full sm:w-auto">İptal</AlertDialogCancel>

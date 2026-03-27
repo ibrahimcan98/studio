@@ -483,7 +483,10 @@ function EbeveynPortaliContent() {
                 <ArrowRight className="mt-4 text-blue-600 group-hover:translate-x-2 transition-transform" />
             </Card>
 
-             <Card className="p-6 bg-gradient-to-br from-purple-100 to-pink-100 border-purple-200 hover:shadow-lg transition-all cursor-pointer group" onClick={() => router.push('/ebeveyn-portali/puan-merkezi')}>
+             <Card className="p-6 bg-gradient-to-br from-purple-100 to-pink-100 border-purple-200 hover:shadow-lg transition-all cursor-not-allowed group relative overflow-hidden" onClick={() => toast({ title: 'Yakında Aktif!', description: 'Puan Merkezi yakında sizlerle olacak.' })}>
+                <div className="absolute inset-0 bg-slate-200/60 backdrop-blur-[2px] z-10 flex items-center justify-center">
+                    <span className="text-2xl font-black text-slate-700 drop-shadow-md tracking-[0.2em]">YAKINDA</span>
+                </div>
                 <h3 className="text-xl font-black flex items-center gap-2 text-slate-800"><Gift className="text-purple-600 group-hover:scale-110 transition-transform"/> Puan Merkezi</h3>
                 <p className="text-xs text-slate-600 mt-2 font-medium">Görevleri yapın, bedava ders kazanın.</p>
                 <ArrowRight className="mt-4 text-purple-600 group-hover:translate-x-2 transition-transform" />

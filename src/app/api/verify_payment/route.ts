@@ -4,9 +4,7 @@ import { sendAdminNotification } from '@/lib/notify';
 import { addDoc, collection, Timestamp } from 'firebase/firestore';
 import { db } from '@/firebase/server';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: '2024-06-20' as any,
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
 export async function POST(req: Request) {
   try {
@@ -34,7 +32,8 @@ export async function POST(req: Request) {
         });
 
         // Admin notification: new package purchased
-        const amount = session.amount_total ? `€${(session.amount_total / 100).toFixed(2)}` : '-';
+        const currencySymbol = session.currency === 'gbp' ? '£' : (session.currency === 'eur' ? '€' : (session.currency?.toUpperCase() || ''));
+        const amount = session.amount_total ? `${currencySymbol}${(session.amount_total / 100).toFixed(2)}` : '-';
         const customerEmail = session.customer_email || '-';
         await sendAdminNotification({
             event: '📦 Paket Satın Alındı',

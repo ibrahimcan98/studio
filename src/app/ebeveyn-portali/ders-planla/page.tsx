@@ -68,14 +68,14 @@ function TeacherPreviewDialog({ teacherId, isOpen, onOpenChange }: { teacherId: 
                         </Avatar>
                         {teacherData?.firstName} {teacherData?.lastName}
                     </DialogTitle>
-                    <DialogDescription className="text-base font-medium text-slate-500">Öğretmenimizin profili ve tanıtım videosu.</DialogDescription>
+                    <DialogDescription className="text-base font-medium text-slate-500">Öğretmenimizin profili.</DialogDescription>
                 </DialogHeader>
 
                 {isLoading ? (
                     <div className="h-64 flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>
                 ) : teacherData ? (
                     <div className="space-y-6 py-4">
-                        {teacherData.introVideoUrl && (
+                        {/* {teacherData.introVideoUrl && (
                             <div className="aspect-video w-full rounded-2xl overflow-hidden bg-slate-100 shadow-lg relative group">
                                 <iframe
                                     src={teacherData.introVideoUrl.replace('watch?v=', 'embed/').replace('kapwing.com/e/', 'kapwing.com/w/')}
@@ -84,7 +84,7 @@ function TeacherPreviewDialog({ teacherId, isOpen, onOpenChange }: { teacherId: 
                                     allowFullScreen
                                 />
                             </div>
-                        )}
+                        )} */}
 
                         <div className="grid gap-6 md:grid-cols-2">
                             <div className="space-y-3">

@@ -94,7 +94,7 @@ export default function RegisterPage() {
         phoneNumber: `${areaCode}${phoneNumber}`,
         role: role,
         lives: 5,
-        walletBalanceEur: 10,
+        walletBalanceGbp: 10,
         livesLastUpdatedAt: serverTimestamp(),
         createdAt: serverTimestamp()
       };

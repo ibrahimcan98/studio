@@ -278,7 +278,7 @@ function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZon
 
                         {/* Cancellation / Rescheduling Buttons */}
                         <div className="flex gap-2 w-full">
-                           <CancellationButtons lesson={lesson} timeZone={timeZone} />
+                           <CancellationButtons lesson={{ ...lesson, childName: childData?.firstName }} timeZone={timeZone} />
                         </div>
                     </div>
                 )}
