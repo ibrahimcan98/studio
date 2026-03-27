@@ -10,7 +10,11 @@ export const PricingSection = ({ course }: { course: Course }) => {
             <h3 className="text-xl md:text-2xl font-bold mb-6 text-center text-gray-800">{course.title} - Paket Seçenekleri</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {course.pricing.packages.map((pkg) => {
-                    const perLessonPrice = course.pricing.perLesson[pkg.lessons as keyof typeof course.pricing.perLesson];
+                    const lessonsKey = pkg.lessons.toString() as keyof typeof course.pricing.perLesson;
+                    const perLessonPrice = course.pricing.perLesson[lessonsKey];
+                    
+                    if (perLessonPrice === undefined) return null;
+
                     return (
                         <div key={pkg.lessons} className="border rounded-2xl p-6 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
                             <Badge variant="secondary" className="mb-4 bg-green-100 text-green-800">

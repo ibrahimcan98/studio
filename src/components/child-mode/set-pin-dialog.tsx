@@ -40,7 +40,7 @@ export function SetPinDialog({ children, childId }: { children: React.ReactNode,
   const createInputHandler = (
     currentPin: string[],
     setPinState: React.Dispatch<React.SetStateAction<string[]>>,
-    nextInputRef?: React.RefObject<HTMLInputElement>
+    nextInputRef?: HTMLInputElement | null
   ) => {
     return (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
       const { value } = e.target;
@@ -53,8 +53,8 @@ export function SetPinDialog({ children, childId }: { children: React.ReactNode,
         if (value !== '' && index < 3) {
             const inputRefs = setPinState === setPin ? pinInputRefs : confirmPinInputRefs;
             inputRefs.current[index + 1]?.focus();
-        } else if (value !== '' && index === 3 && nextInputRef?.current) {
-            nextInputRef.current.focus();
+        } else if (value !== '' && index === 3 && nextInputRef) {
+            nextInputRef.focus();
         }
       }
     };
@@ -120,7 +120,7 @@ export function SetPinDialog({ children, childId }: { children: React.ReactNode,
                 {pin.map((digit, index) => (
                 <Input
                     key={`pin-${index}`}
-                    ref={el => pinInputRefs.current[index] = el}
+                    ref={el => { pinInputRefs.current[index] = el; }}
                     id={`pin-${index}`}
                     type="password"
                     maxLength={1}
@@ -141,7 +141,7 @@ export function SetPinDialog({ children, childId }: { children: React.ReactNode,
                 {confirmPin.map((digit, index) => (
                 <Input
                     key={`confirm-pin-${index}`}
-                    ref={el => confirmPinInputRefs.current[index] = el}
+                    ref={el => { confirmPinInputRefs.current[index] = el; }}
                     id={`confirm-pin-${index}`}
                     type="password"
                     maxLength={1}
