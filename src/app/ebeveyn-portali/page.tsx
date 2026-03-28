@@ -143,20 +143,6 @@ function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUp
             </div>
 
             <div className='w-full space-y-4 pt-6'>
-                <div className='flex justify-between items-center'>
-                    <span className='text-slate-500 font-medium text-[15px]'>Rozetler:</span>
-                    <div className='flex items-center gap-1.5 font-bold bg-[#E0F2F1] text-[#00897B] px-3 py-1 rounded-full text-[14px] min-w-[50px] justify-center'>
-                        <span>{(child.badges || []).length}</span><Award className='w-4 h-4'/>
-                    </div>
-                </div>
-                
-                <div className='flex justify-between items-center'>
-                    <span className='text-slate-500 font-medium text-[15px]'>Kalan Can:</span>
-                    <div className='flex items-center gap-1.5 font-bold bg-[#FFEBEE] text-[#E53935] px-3 py-1 rounded-full text-[14px] min-w-[50px] justify-center'>
-                        <span>{isPremium ? MAX_LIVES : currentLives}/{MAX_LIVES}</span>
-                        <Heart className={cn('w-4 h-4', isPremium ? 'fill-[#E53935]' : 'fill-[#E53935]')}/>
-                    </div>
-                </div>
 
                 <div className='flex justify-between items-center relative'>
                     <span className='text-slate-500 font-medium text-[15px]'>Kalan Ders:</span>
@@ -279,6 +265,17 @@ function EbeveynPortaliContent() {
   const { data: slots, isLoading: slotsLoading } = useCollection(slotsQuery);
 
   const [refundChildId, setRefundChildId] = useState<string | null>(null);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+
+  useEffect(() => {
+    if (!childrenLoading && children && children.length === 0 && !userData?.isLegacy) {
+        const hasSeen = sessionStorage.getItem('seenWelcomeTrial');
+        if (!hasSeen) {
+            setShowWelcomeModal(true);
+            sessionStorage.setItem('seenWelcomeTrial', 'true');
+        }
+    }
+  }, [childrenLoading, children, userData?.isLegacy]);
 
   useEffect(() => {
     if (searchParams.get('cancelled') === 'true') {
@@ -539,6 +536,30 @@ function EbeveynPortaliContent() {
                 {childrenWithEffect?.length === 0 && <div className="col-span-full py-20 text-center text-slate-400 font-bold italic">Henüz bir çocuk eklenmemiş.</div>}
             </div>
         </div>
+
+        <Dialog open={showWelcomeModal} onOpenChange={setShowWelcomeModal}>
+            <DialogContent className="max-w-md rounded-[32px] p-8 text-center border-none shadow-2xl">
+                <DialogHeader className="space-y-4 items-center flex flex-col">
+                   <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
+                       <Gift className="w-10 h-10 text-primary" />
+                   </div>
+                   <DialogTitle className="text-3xl font-black text-slate-900 tracking-tight">Hoş Geldiniz!</DialogTitle>
+                   <DialogDescription className="text-base font-medium text-slate-500 max-w-[280px]">
+                      Hemen çocuğunuzun profilini oluşturun ve <strong className="text-primary italic">ücretsiz deneme dersinizi</strong> planlayın.
+                   </DialogDescription>
+                </DialogHeader>
+                <div className="mt-8 flex flex-col gap-3">
+                    <AddChildForm userId={user.uid} onChildAdded={() => { refetchChildren(); setShowWelcomeModal(false); }}>
+                        <Button className="w-full h-14 rounded-2xl text-base font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform" size="lg">
+                            <Plus className="mr-2 h-5 w-5" /> Şimdi Çocuk Ekle
+                        </Button>
+                    </AddChildForm>
+                    <Button variant="ghost" className="h-12 w-full font-bold text-slate-500 rounded-2xl hover:bg-slate-50" onClick={() => setShowWelcomeModal(false)}>
+                        Daha Sonra
+                    </Button>
+                </div>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }

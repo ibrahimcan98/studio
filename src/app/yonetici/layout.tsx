@@ -1,9 +1,10 @@
 
 'use client';
 
-import { useUser, useFirestore, doc, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, doc, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   Loader2,
   LogOut,
@@ -18,12 +19,14 @@ import {
   Trophy,
   Ticket,
   Calendar,
-  Menu
+  Menu,
+  PhoneCall
 } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import Link from 'next/link';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import {
   TooltipProvider,
@@ -65,6 +68,56 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     }
   }, [user, authLoading, userData, userDataLoading, router, isMounted]);
 
+  // UNREAD MESSAGES NOTIFICATION
+  const unreadQuery = useMemoFirebase(() => {
+    if (!db) return null;
+    return query(collection(db, 'conversations'), where('status', '==', 'open'));
+  }, [db]);
+  const { data: unreadConvs } = useCollection(unreadQuery);
+  const unreadCount = unreadConvs?.length || 0;
+  const prevUnreadCount = useRef(0);
+  const isInitialFetch = useRef(true);
+
+  useEffect(() => {
+      if (typeof unreadConvs === 'undefined') return;
+
+      if (isInitialFetch.current) {
+          isInitialFetch.current = false;
+          prevUnreadCount.current = unreadCount;
+          return;
+      }
+
+      // Play sound only when we go from 0 unread to >0 unread (1 time per emptiness)
+      if (unreadCount > 0 && prevUnreadCount.current === 0) {
+          try {
+              const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+              if (AudioContext) {
+                  const ctx = new AudioContext();
+                  const osc = ctx.createOscillator();
+                  const gainNode = ctx.createGain();
+                  
+                  osc.connect(gainNode);
+                  gainNode.connect(ctx.destination);
+                  
+                  // Soft melodic ding
+                  osc.type = 'sine';
+                  osc.frequency.setValueAtTime(880, ctx.currentTime); // A5 note
+                  osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.6);
+                  
+                  gainNode.gain.setValueAtTime(0, ctx.currentTime);
+                  gainNode.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.05);
+                  gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+                  
+                  osc.start(ctx.currentTime);
+                  osc.stop(ctx.currentTime + 0.6);
+              }
+          } catch(e) {
+              console.error("Ses çalınamadı:", e);
+          }
+      }
+      prevUnreadCount.current = unreadCount;
+  }, [unreadCount, unreadConvs]);
+
   const handleLogout = async () => {
     const auth = getAuth();
     await signOut(auth);
@@ -102,6 +155,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     { href: '/yonetici/ogretmenler', label: 'Öğretmenler', icon: Presentation },
     { href: '/yonetici/dersler', label: 'Dersler', icon: Calendar },
     { href: '/yonetici/kullanicilar', label: 'Veliler', icon: Users },
+    { href: '/yonetici/aramalar', label: 'Aramalar', icon: PhoneCall },
     { href: '/yonetici/ogrenciler', label: 'Öğrenciler', icon: Baby },
     { href: '/yonetici/indirimler', label: 'İndirimler', icon: Ticket },
     { href: '/yonetici/puan-merkezi', label: 'Puan Merkezi', icon: Trophy },
@@ -123,7 +177,13 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
                 className={cn('flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200',
                   pathname === item.href ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:text-primary hover:bg-slate-50'
                 )}>
-                <item.icon className="h-5 w-5" /><span>{item.label}</span>
+                <item.icon className="h-5 w-5 shrink-0" />
+                <span className="flex-1">{item.label}</span>
+                {item.href === '/yonetici/inbox' && unreadCount > 0 && (
+                  <Badge className="ml-auto bg-red-500 hover:bg-red-600 text-white border-none rounded-full px-1.5 min-w-[20px] h-5 py-0 flex items-center justify-center text-[10px] shadow-sm">
+                    +{unreadCount}
+                  </Badge>
+                )}
               </Link>
             ))}
           </nav>
@@ -159,7 +219,13 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
                             className={cn('flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200',
                               pathname === item.href ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:text-primary hover:bg-slate-50'
                             )}>
-                            <item.icon className="h-5 w-5" /><span>{item.label}</span>
+                            <item.icon className="h-5 w-5 shrink-0" />
+                            <span className="flex-1">{item.label}</span>
+                            {item.href === '/yonetici/inbox' && unreadCount > 0 && (
+                              <Badge className="ml-auto bg-red-500 hover:bg-red-600 text-white border-none rounded-full px-1.5 min-w-[20px] h-5 py-0 flex items-center justify-center text-[10px] shadow-sm">
+                                +{unreadCount}
+                              </Badge>
+                            )}
                           </Link>
                         ))}
                       </nav>

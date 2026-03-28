@@ -68,7 +68,11 @@ export default function SepetPage() {
     // Bakiye Logic
     const userDocRef = useMemoFirebase(() => (db && user?.uid) ? doc(db, 'users', user.uid) : null, [db, user?.uid]);
     const { data: userData } = useDoc(userDocRef);
-    const balanceGbp = userData?.walletBalanceGbp ?? (userData?.walletBalanceEur || 0);
+    
+    // SUSPENDED: Points Center & Wallet Balance is temporarily disabled
+    // const balanceGbp = userData?.walletBalanceGbp ?? (userData?.walletBalanceEur || 0);
+    const balanceGbp = 0;
+    
     const [useBalance, setUseBalance] = useState(false);
     
     const balanceUsedGbp = useBalance ? Math.min(balanceGbp, finalTotal) : 0;

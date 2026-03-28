@@ -61,8 +61,15 @@ export function PresenceManager() {
                 status: getStatusFromPath(pathname),
                 lastActiveAt: serverTimestamp(),
             });
-        } catch (error) {
-            console.error('Presence update error:', error);
+        } catch (error: any) {
+            if (error.code === 'not-found') {
+                // The user document was deleted (e.g. by an admin)
+                // We should sign them out so they aren't stuck in a zombie state
+                const auth = getAuth();
+                signOut(auth).catch(() => {});
+            } else {
+                console.error('Presence update error:', error);
+            }
         }
     }, [user, db, pathname]);
 

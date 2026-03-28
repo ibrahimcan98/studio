@@ -26,22 +26,15 @@ import {
 // Constants
 const LESSON_DURATION_MINUTES = 30;
 
-const getLessonPrice = (packageCode: string | undefined): number => {
-    if (!packageCode) return 0;
-
-    if (packageCode === 'FREE_TRIAL') return 3;
-
-    // Extract letter from codes like '4B', '12K', '8G'
-    const courseType = packageCode.replace(/[0-9]/g, '');
-
-    switch (courseType) {
-        case 'B': return 3;  // Başlangıç
-        case 'K': return 4;  // Konuşma
-        case 'G': return 6;  // Gelişim
-        case 'A': return 6;  // Akademik
-        case 'GCSE': return 8; // Example price for GCSE
-        default: return 0;
+// 5-minute buffer is excluded from duration
+const getLessonPrice = (packageCode: string | undefined, userData: any): number => {
+    // Admin must enter the wage/rate for the teacher in user profile (e.g., userData.wagePerLesson or userData.hourlyRate)
+    // If no explicit rate is set for the teacher, do not increase earnings artificially.
+    if (!userData || !userData.lessonWage) {
+        return 0; 
     }
+    // E.g. userData.lessonWage could be a flat rate, or an object based on package
+    return Number(userData.lessonWage) || 0;
 };
 
 
@@ -61,7 +54,7 @@ function StatCard({ title, value, icon: Icon, unit }: { title: string, value: st
   );
 }
 
-const StudentCard = ({ student, lessons }: { student: any, lessons: any[] }) => {
+const StudentCard = ({ student, lessons, teacherData }: { student: any, lessons: any[], teacherData: any }) => {
     const db = useFirestore();
     const childDocRef = useMemoFirebase(() => {
         if (!db || !student.userId || !student.childId) return null;
@@ -79,10 +72,19 @@ const StudentCard = ({ student, lessons }: { student: any, lessons: any[] }) => 
     }
     
     const studentLessons = lessons.filter(l => l.childId === student.childId);
-    const totalLessons = studentLessons.length;
-    const totalHours = (totalLessons * LESSON_DURATION_MINUTES) / 60;
-    const totalEarned = studentLessons.reduce((sum, lesson) => sum + getLessonPrice(lesson.packageCode), 0);
-    const lastLesson = studentLessons.sort((a,b) => b.startTime.seconds - a.startTime.seconds)[0];
+    
+    // Group contiguous 5-minute slots into 1 single lesson
+    const uniqueStudentLessons = studentLessons.filter(slot => {
+        const slotTime = slot.startTime.seconds;
+        const hasPrev = studentLessons.some(o => o.startTime.seconds === slotTime - 300); // 5 mins in seconds
+        return !hasPrev;
+    });
+
+    const totalLessons = uniqueStudentLessons.length;
+    // Each lesson has a 5 min buffer slot at the end. We subtract it.
+    const totalMinutes = (studentLessons.length - totalLessons) * 5;
+    const totalEarned = uniqueStudentLessons.reduce((sum, lesson) => sum + getLessonPrice(lesson.packageCode, teacherData), 0);
+    const lastLesson = uniqueStudentLessons.sort((a,b) => b.startTime.seconds - a.startTime.seconds)[0];
 
     return (
          <>
@@ -137,7 +139,7 @@ const StudentCard = ({ student, lessons }: { student: any, lessons: any[] }) => 
                             <div className="flex items-center gap-2">
                                 <Clock className="w-4 h-4 text-muted-foreground" />
                                 <div>
-                                    <p className="font-semibold">{totalHours.toFixed(1)} Saat</p>
+                                    <p className="font-semibold">{totalMinutes} Dakika</p>
                                     <p className="text-xs text-muted-foreground">Toplam Süre</p>
                                 </div>
                             </div>
@@ -185,6 +187,10 @@ export default function OgrencilerimPage() {
     const { user, loading: userLoading } = useUser();
     const db = useFirestore();
     
+    // Fetch Teacher Data to get actual rates (admin must input this)
+    const teacherDocRef = useMemoFirebase(() => (user && db) ? doc(db, 'users', user.uid) : null, [user, db]);
+    const { data: teacherData } = useDoc(teacherDocRef);
+    
     const lessonsQuery = useMemoFirebase(() => {
         if (!user || !db) return null;
         return query(collection(db, 'lesson-slots'), where('teacherId', '==', user.uid), where('status', '==', 'booked'));
@@ -193,7 +199,7 @@ export default function OgrencilerimPage() {
     const { data: lessons, isLoading: lessonsLoading } = useCollection(lessonsQuery);
 
     const stats = useMemo(() => {
-        if (!lessons) return { totalStudents: 0, totalLessons: 0, hoursTaught: 0, totalEarnings: 0, uniqueStudents: [] };
+        if (!lessons) return { totalStudents: 0, totalLessons: 0, minutesTaught: 0, totalEarnings: 0, uniqueStudents: [] };
         
         const uniqueStudents = lessons.reduce((acc: any[], lesson) => {
             if (!acc.some(s => s.childId === lesson.childId)) {
@@ -202,14 +208,22 @@ export default function OgrencilerimPage() {
             return acc;
         }, []);
 
-        const totalLessons = lessons.length;
-        const totalHoursTaught = (totalLessons * LESSON_DURATION_MINUTES) / 60;
-        const totalEarnings = lessons.reduce((sum, lesson) => sum + getLessonPrice(lesson.packageCode), 0);
+        // Group contiguous 5-minute slots into 1 single lesson
+        const uniqueLessons = lessons.filter(slot => {
+            const slotTime = slot.startTime.seconds;
+            const hasPrev = lessons.some(o => o.childId === slot.childId && o.startTime.seconds === slotTime - 300);
+            return !hasPrev;
+        });
+
+        const actualTotalLessons = uniqueLessons.length;
+        // Each lesson block includes a 5 min buffer at the end. Duration is: (Total Slots - Total Unique Lessons) * 5 mins
+        const totalMinutesTaught = (lessons.length - actualTotalLessons) * 5;
+        const totalEarnings = uniqueLessons.reduce((sum, lesson) => sum + getLessonPrice(lesson.packageCode, teacherData), 0);
         
         return {
             totalStudents: uniqueStudents.length,
-            totalLessons: totalLessons,
-            hoursTaught: totalHoursTaught,
+            totalLessons: actualTotalLessons,
+            minutesTaught: totalMinutesTaught,
             totalEarnings: totalEarnings,
             uniqueStudents,
         };
@@ -232,7 +246,7 @@ export default function OgrencilerimPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <StatCard title="Toplam Öğrenci" value={stats.totalStudents} icon={Users} />
                 <StatCard title="Toplam Ders Sayısı" value={stats.totalLessons} icon={BookOpen} />
-                <StatCard title="Toplam Ders Saati" value={stats.hoursTaught.toFixed(1)} icon={Clock} unit="saat" />
+                <StatCard title="Toplam Ders Süresi" value={stats.minutesTaught} icon={Clock} unit="dakika" />
                 <StatCard title="Toplam Kazanç" value={`€${stats.totalEarnings.toFixed(2)}`} icon={Euro} />
             </div>
 
@@ -247,7 +261,7 @@ export default function OgrencilerimPage() {
                     ) : stats.uniqueStudents.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {stats.uniqueStudents.map((student, index) => (
-                                <StudentCard key={`${student.childId}-${index}`} student={student} lessons={lessons || []}/>
+                                <StudentCard key={`${student.childId}-${index}`} student={student} lessons={lessons || []} teacherData={teacherData} />
                             ))}
                         </div>
                     ) : (

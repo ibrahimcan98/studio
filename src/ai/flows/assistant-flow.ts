@@ -47,12 +47,18 @@ User Question:
 
 const assistantPrompt = ai.definePrompt({
     name: 'assistantPrompt',
+    model: 'googleai/gemini-2.5-flash',
     input: { schema: AssistantInputSchema },
     output: { schema: AssistantOutputSchema },
     prompt: systemPrompt
 });
 
 export async function assistantFlow(input: AssistantInput): Promise<AssistantOutput> {
-  const { output } = await assistantPrompt(input);
-  return output!;
+  try {
+    const { output } = await assistantPrompt(input);
+    return output!;
+  } catch (error) {
+    console.error("Assistant flow error:", error);
+    throw error;
+  }
 }

@@ -2,7 +2,7 @@
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where, getDocs, collectionGroup, doc, updateDoc, writeBatch, setDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, collectionGroup, doc, updateDoc, writeBatch, setDoc, deleteDoc } from 'firebase/firestore';
 import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { getCountryFromPhone } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -90,7 +91,7 @@ interface ParentData {
     tags?: string[];
     isLegacy?: boolean;
     lastActivityDate?: Date;
-    lastActivityType?: 'register' | 'purchase' | 'lesson';
+    lastActivityType?: 'register' | 'purchase' | 'lesson' | 'login';
 }
 
 const tagStyles: { [key: string]: string } = {
@@ -186,40 +187,7 @@ function UsersPageContent() {
 
   useEffect(() => { fetchData(); }, [db]);
 
-  const getCountryFromPhone = (phone: string) => {
-    let cleanPhone = (phone || "").replace(/[\s-()]/g, "");
-    if (cleanPhone.startsWith('00')) cleanPhone = '+' + cleanPhone.substring(2);
-    else if (!cleanPhone.startsWith('+')) {
-       if (cleanPhone.length === 10 && cleanPhone.startsWith('5')) cleanPhone = '+90' + cleanPhone;
-       else cleanPhone = '+' + cleanPhone;
-    }
 
-    if (cleanPhone.startsWith("+90")) return "🇹🇷 Türkiye";
-    if (cleanPhone.startsWith("+49")) return "🇩🇪 Almanya";
-    if (cleanPhone.startsWith("+44")) return "🇬🇧 B. Krallık";
-    if (cleanPhone.startsWith("+41")) return "🇨🇭 İsviçre";
-    if (cleanPhone.startsWith("+33")) return "🇫🇷 Fransa";
-    if (cleanPhone.startsWith("+31")) return "🇳🇱 Hollanda";
-    if (cleanPhone.startsWith("+32")) return "🇧🇪 Belçika";
-    if (cleanPhone.startsWith("+43")) return "🇦🇹 Avusturya";
-    if (cleanPhone.startsWith("+1")) return "🇺🇸/🇨🇦 Amerika";
-    if (cleanPhone.startsWith("+7")) return "🇷🇺/🇰🇿 Rusya/Kazakistan";
-    if (cleanPhone.startsWith("+61")) return "🇦🇺 Avustralya";
-    if (cleanPhone.startsWith("+971")) return "🇦🇪 BAE";
-    if (cleanPhone.startsWith("+974")) return "🇶🇦 Katar";
-    if (cleanPhone.startsWith("+359")) return "🇧🇬 Bulgaristan";
-    if (cleanPhone.startsWith("+30")) return "🇬🇷 Yunanistan";
-    if (cleanPhone.startsWith("+45")) return "🇩🇰 Danimarka";
-    if (cleanPhone.startsWith("+46")) return "🇸🇪 İsveç";
-    if (cleanPhone.startsWith("+47")) return "🇳🇴 Norveç";
-    if (cleanPhone.startsWith("+358")) return "🇫🇮 Finlandiya";
-    if (cleanPhone.startsWith("+39")) return "🇮🇹 İtalya";
-    if (cleanPhone.startsWith("+34")) return "🇪🇸 İspanya";
-    if (cleanPhone.startsWith("+966")) return "🇸🇦 Arabistan";
-    if (cleanPhone.startsWith("+994")) return "🇦🇿 Azerbaycan";
-
-    return "🌍 Diğer (" + cleanPhone.substring(0, 4) + "..)";
-  };
 
   const processedParents = useMemo(() => {
     if (!parents || loadingExtras) return [];
@@ -277,7 +245,15 @@ function UsersPageContent() {
         const regDate = parent.createdAt?.toDate() || null;
         
         let lastActivityDate = regDate;
-        let lastActivityType: 'register' | 'purchase' | 'lesson' = 'register';
+        let lastActivityType: 'register' | 'purchase' | 'lesson' | 'login' = 'register';
+
+        if (parent.lastActiveAt) {
+            const activeDate = parent.lastActiveAt.toDate();
+            if (!lastActivityDate || isAfter(activeDate, lastActivityDate)) {
+                lastActivityDate = activeDate;
+                lastActivityType = 'login';
+            }
+        }
 
         if (lastLessonDate && (!lastActivityDate || isAfter(lastLessonDate, lastActivityDate))) {
             lastActivityDate = lastLessonDate;
@@ -468,6 +444,25 @@ function UsersPageContent() {
     } catch (e) {
         console.error("Error toggling legacy status:", e);
         toast({ variant: 'destructive', title: 'Hata', description: 'İşlem başarısız oldu.' });
+    }
+  };
+
+  const handleDeleteParent = async (parent: ParentData) => {
+    if (!db) return;
+    if (!window.confirm(`${parent.firstName} ${parent.lastName} isimli veliyi kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`)) return;
+
+    try {
+        const parentRef = doc(db, 'users', parent.id);
+        await deleteDoc(parentRef);
+        toast({ 
+            title: 'Veli Silindi', 
+            description: `${parent.firstName} ${parent.lastName} sistemden başarıyla silindi.`,
+            className: 'bg-red-600 text-white border-red-700' 
+        });
+        refetchParents();
+    } catch (e) {
+        console.error("Error deleting parent:", e);
+        toast({ variant: 'destructive', title: 'Hata', description: 'Silme işlemi başarısız oldu.' });
     }
   };
 
@@ -755,10 +750,12 @@ function UsersPageContent() {
                             <div className={cn(
                                 "flex items-center gap-1.5 font-bold text-sm",
                                 parent.lastActivityType === 'purchase' ? 'text-emerald-600' : 
-                                parent.lastActivityType === 'lesson' ? 'text-blue-600' : 'text-slate-500'
+                                parent.lastActivityType === 'lesson' ? 'text-blue-600' : 
+                                parent.lastActivityType === 'login' ? 'text-purple-600' : 'text-slate-500'
                             )}>
                                 {parent.lastActivityType === 'purchase' ? <ShoppingBag className="w-3.5 h-3.5" /> : 
-                                 parent.lastActivityType === 'lesson' ? <Calendar className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
+                                 parent.lastActivityType === 'lesson' ? <Calendar className="w-3.5 h-3.5" /> : 
+                                 parent.lastActivityType === 'login' ? <Activity className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
                                 {format(parent.lastActivityDate, 'dd MMM yyyy', { locale: tr })}
                             </div>
                         ) : (
@@ -801,8 +798,11 @@ function UsersPageContent() {
                                 >
                                     {parent.isLegacy ? 'Eski Üye Durumunu Kaldır' : 'Eski Üye Olarak İşaretle'}
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 text-red-500 focus:text-red-500 cursor-pointer">
-                                    Kullanıcıyı Yasakla
+                                <DropdownMenuItem 
+                                    className="rounded-lg font-bold text-xs py-2.5 text-red-500 focus:text-red-500 focus:bg-red-50 cursor-pointer"
+                                    onClick={() => handleDeleteParent(parent)}
+                                >
+                                    Veliyi Sil
                                 </DropdownMenuItem>
                              </DropdownMenuContent>
                         </DropdownMenu>

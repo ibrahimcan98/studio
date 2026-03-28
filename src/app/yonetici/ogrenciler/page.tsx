@@ -141,6 +141,8 @@ export default function AdminStudentsPage() {
             result = result.filter(s => s.assignedPackage && (s.remainingLessons ?? 0) > 0);
         } else if (packageFilter === 'none') {
             result = result.filter(s => !s.assignedPackage || (s.remainingLessons ?? 0) <= 0);
+        } else if (packageFilter === 'expiring') {
+            result = result.filter(s => s.assignedPackage && (s.remainingLessons ?? 0) > 0 && (s.remainingLessons ?? 0) <= 3);
         }
     }
 
@@ -218,6 +220,7 @@ export default function AdminStudentsPage() {
                   <SelectContent className="rounded-xl border-none shadow-2xl">
                       <SelectItem value="all" className="font-bold">Tüm Paketler</SelectItem>
                       <SelectItem value="active" className="font-bold">Aktif Paketli</SelectItem>
+                      <SelectItem value="expiring" className="font-bold">Bitmek Üzere (≤3)</SelectItem>
                       <SelectItem value="none" className="font-bold">Paketsiz / Biten</SelectItem>
                   </SelectContent>
               </Select>

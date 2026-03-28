@@ -11,10 +11,10 @@ import 'dotenv/config';
 const aiConfig = {
   plugins: [
     googleAI({
-      apiKey: process.env.GEMINI_API_KEY || 'placeholder_for_build',
+      apiKey: 'AIzaSyDLgZezZUlU9NfsCfGzV1W_sdTrIviuOok',
     }),
   ],
-  model: 'googleai/gemini-1.5-flash' as const,
+  model: 'googleai/gemini-2.5-flash' as const,
 };
 
 // Singleton pattern for Genkit in development

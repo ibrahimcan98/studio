@@ -11,7 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { toZonedTime, formatInTimeZone, format } from 'date-fns-tz';
-import { isSameDay, addMinutes, addDays, startOfWeek, endOfWeek, eachDayOfInterval, startOfDay } from 'date-fns';
+import { isSameDay, addMinutes, addDays, addHours, startOfWeek, endOfWeek, eachDayOfInterval, startOfDay } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from '@/components/ui/label';
@@ -322,7 +322,7 @@ export default function DersPlanlaPage() {
         const dayKey = format(day, 'yyyy-MM-dd');
         const slot = slotsByDayAndTime[dayKey]?.[time];
         
-        if (!slot || slot.status !== 'available' || slot.startTime.toDate() < new Date()) return;
+        if (!slot || slot.status !== 'available' || slot.startTime.toDate() < addHours(new Date(), 12)) return;
 
         const courseDetails = getCourseDetailsFromPackageCode(selectedPackage);
         if (!courseDetails) return;
@@ -676,7 +676,7 @@ export default function DersPlanlaPage() {
                                                             const isFullHour = i % 12 === 0;
                                                             
                                                             const timeDate = slot?.startTime.toDate();
-                                                            const isPast = timeDate ? timeDate < new Date() : false;
+                                                            const isPast = timeDate ? timeDate < addHours(new Date(), 12) : false;
                                                             let bgColor = "hover:bg-slate-50/50";
                                                             let isClickable = false;
 

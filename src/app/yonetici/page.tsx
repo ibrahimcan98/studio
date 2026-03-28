@@ -15,8 +15,14 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { useMemo } from 'react';
+import { cn, getCountryFromPhone } from '@/lib/utils';
+import { useMemo, useState } from 'react';
+import { addMonths, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { tr } from 'date-fns/locale';
+import { Button } from '@/components/ui/button';
+import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { writeBatch, doc } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 function GrowthCard({ title, value, subValue, icon: Icon, color }: any) {
   return (
@@ -38,6 +44,9 @@ function GrowthCard({ title, value, subValue, icon: Icon, color }: any) {
 
 export default function AdminDashboard() {
   const db = useFirestore();
+  const { toast } = useToast();
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isClearing, setIsClearing] = useState(false);
 
   const parentsQuery = useMemoFirebase(() => db ? query(collection(db, 'users'), where('role', '==', 'parent')) : null, [db]);
   const slotsQuery = useMemoFirebase(() => db ? query(collection(db, 'lesson-slots'), where('status', '==', 'booked')) : null, [db]);
@@ -52,8 +61,17 @@ export default function AdminDashboard() {
   const metrics = useMemo(() => {
     if (!parents || !slots || !children) return null;
 
+    const monthStart = startOfMonth(selectedDate);
+    const monthEnd = endOfMonth(selectedDate);
+
+    // Filter slots for the selected month
+    const monthSlots = slots.filter(slot => {
+        const slotTime = slot.startTime?.toDate ? slot.startTime.toDate() : new Date(slot.startTime);
+        return isWithinInterval(slotTime, { start: monthStart, end: monthEnd });
+    });
+
     const sessions: { [key: string]: any[] } = {};
-    slots.forEach(slot => {
+    monthSlots.forEach(slot => {
         const date = slot.startTime?.toDate().toDateString();
         const key = `${slot.childId}_${slot.teacherId}_${date}_${slot.packageCode}`;
         if (!sessions[key]) sessions[key] = [];
@@ -78,6 +96,13 @@ export default function AdminDashboard() {
     const totalPaidLessons = groupedLessons.filter(l => l.packageCode !== 'FREE_TRIAL').length;
     const totalFreeTrials = groupedLessons.filter(l => l.packageCode === 'FREE_TRIAL').length;
     
+    // Total active students newly registered in this month
+    const newStudents = children.filter(c => {
+        if (!c.createdAt) return false;
+        const cTime = c.createdAt.toDate ? c.createdAt.toDate() : new Date(c.createdAt);
+        return isWithinInterval(cTime, { start: monthStart, end: monthEnd });
+    }).length;
+
     const trialUserIds = new Set(groupedLessons.filter(l => l.packageCode === 'FREE_TRIAL').map(l => l.bookedBy));
     const paidUserIds = new Set(groupedLessons.filter(l => l.packageCode !== 'FREE_TRIAL').map(l => l.bookedBy));
     const convertedUsers = Array.from(trialUserIds).filter(id => paidUserIds.has(id)).length;
@@ -85,31 +110,36 @@ export default function AdminDashboard() {
 
     const countries: any = {};
     parents.forEach(p => {
-        const phone = (p.phoneNumber || "").replace(/\s/g, "");
-        let country = "Diğer";
-        if (phone.startsWith("+90")) country = "Türkiye";
-        else if (phone.startsWith("+49")) country = "Almanya";
-        else if (phone.startsWith("+44")) country = "İngiltere";
-        else if (phone.startsWith("+41")) country = "İsviçre";
-        else if (phone.startsWith("+33")) country = "Fransa";
-        else if (phone.startsWith("+31")) country = "Hollanda";
-        else if (phone.startsWith("+32")) country = "Belçika";
-        else if (phone.startsWith("+43")) country = "Avusturya";
-        else if (phone.startsWith("+1")) country = "ABD/Kanada";
-        else if (phone.startsWith("+353")) country = "İrlanda";
-        else if (phone.startsWith("+46")) country = "İsveç";
-        else if (phone.startsWith("+45")) country = "Danimarka";
-        else if (phone.startsWith("+47")) country = "Norveç";
-        else if (phone.startsWith("+61")) country = "Avustralya";
-        else if (phone.startsWith("+994")) country = "Azerbaycan";
-        else if (phone.startsWith("+971")) country = "B.A.E";
-        else if (phone.startsWith("+966")) country = "Suudi Arabistan";
-        else if (phone.startsWith("+39")) country = "İtalya";
-        countries[country] = (countries[country] || 0) + 1;
+        // We evaluate country distribution globally, or for parents registered this month?
+        // Let's keep it for parents registered this month if we want monthly stats.
+        const pTime = p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt?.seconds * 1000 || 0);
+        if (isWithinInterval(pTime, { start: monthStart, end: monthEnd })) {
+            const country = getCountryFromPhone(p.phoneNumber);
+            countries[country] = (countries[country] || 0) + 1;
+        }
     });
 
-    return { activeStudents: children.length, totalPaidLessons, totalFreeTrials, conversionRate, countries };
-  }, [parents, slots, children]);
+    return { activeStudents: newStudents, totalPaidLessons, totalFreeTrials, conversionRate, countries };
+  }, [parents, slots, children, selectedDate]);
+
+  const handleClearLogs = async () => {
+    if (!db || !activityLog || activityLog.length === 0) return;
+    setIsClearing(true);
+    try {
+        const batch = writeBatch(db);
+        activityLog.forEach((log: any) => {
+            const ref = doc(db, 'activity-log', log.id);
+            batch.delete(ref);
+        });
+        await batch.commit();
+        toast({ title: 'Akış temizlendi!', duration: 3000, className: 'bg-green-500 text-white' });
+    } catch (e) {
+        console.error("Error clearing logs", e);
+        toast({ variant: 'destructive', title: 'Hata oluştu' });
+    } finally {
+        setIsClearing(false);
+    }
+  };
 
   if (parentsLoading || slotsLoading || childrenLoading) {
     return (
@@ -126,16 +156,24 @@ export default function AdminDashboard() {
           <h1 className="text-4xl font-black text-slate-900 tracking-tight">Merkezi Kontrol</h1>
           <p className="text-slate-500 font-medium mt-1">Growth, Operasyon ve Satış Verileri</p>
         </div>
-        <Badge variant="outline" className="bg-white px-4 py-1 border-slate-200 text-slate-600 font-bold uppercase tracking-widest text-[10px]">
-            {new Date().toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}
-        </Badge>
+        <div className="flex items-center gap-2 bg-white rounded-lg border p-1 shadow-sm">
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500" onClick={() => setSelectedDate(subMonths(selectedDate, 1))}>
+                <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <span className="w-32 text-center text-xs font-bold uppercase tracking-widest text-slate-700">
+                {selectedDate.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}
+            </span>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500" onClick={() => setSelectedDate(addMonths(selectedDate, 1))}>
+                <ChevronRight className="w-4 h-4" />
+            </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <GrowthCard title="Kayıtlı Öğrenci" value={metrics?.activeStudents || 0} subValue="+2" icon={Baby} color="bg-indigo-500" />
-        <GrowthCard title="Toplam Satış" value={metrics?.totalPaidLessons || 0} subValue="Ders" icon={DollarSign} color="bg-emerald-500" />
+        <GrowthCard title="Yeni Öğrenci" value={metrics?.activeStudents || 0} subValue="Bu ay eklenen" icon={Baby} color="bg-indigo-500" />
+        <GrowthCard title="Gerçekleşen Satış" value={metrics?.totalPaidLessons || 0} subValue="Ders İşlendi" icon={DollarSign} color="bg-emerald-500" />
         <GrowthCard title="Dönüşüm Oranı" value={`%${metrics?.conversionRate || 0}`} subValue="Trial → Paket" icon={TrendingUp} color="bg-amber-500" />
-        <GrowthCard title="Deneme Dersi" value={metrics?.totalFreeTrials || 0} subValue="Randevu" icon={CalendarCheck} color="bg-blue-500" />
+        <GrowthCard title="Gerçekleşen Deneme" value={metrics?.totalFreeTrials || 0} subValue="Ders İşlendi" icon={CalendarCheck} color="bg-blue-500" />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -170,15 +208,21 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2 border-none shadow-md overflow-hidden">
+        <Card className="lg:col-span-2 border-none shadow-md overflow-hidden flex flex-col">
            <CardHeader className="flex flex-row items-center justify-between bg-white border-b pb-4">
             <div>
               <CardTitle className="text-lg font-bold">🔔 Operasyonel Akış</CardTitle>
               <CardDescription>Gerçek zamanlı sistem olayları — ders, iptal, kayıt, satış.</CardDescription>
             </div>
-            <Activity className="h-5 w-5 text-slate-300" />
+            <div className="flex gap-2 items-center">
+                <Button variant="outline" size="sm" className="h-8 gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={handleClearLogs} disabled={isClearing || !activityLog || activityLog.length === 0}>
+                    {isClearing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    Temizle
+                </Button>
+                <Activity className="h-5 w-5 text-slate-300 ml-2" />
+            </div>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="p-0 flex-1">
             <div className="max-h-[400px] overflow-y-auto">
                 {activityLoading && (
                     <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary/30 w-6 h-6" /></div>
