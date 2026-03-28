@@ -356,7 +356,7 @@ export default function TakvimYonetimiPage() {
                 }
             });
 
-            for (let i = 0; i < 52; i++) {
+            for (let i = 0; i < 12; i++) {
                 let futureDate = addDays(selectedDate, i * 7);
                 if(startOfDay(futureDate) < startOfDay(new Date())) continue;
 
@@ -390,7 +390,7 @@ export default function TakvimYonetimiPage() {
             await refetch();
             toast({
                 title: 'Şablon Uygulandı',
-                description: `Seçili saatler, gelecekteki tüm ${formatInTimeZone(selectedDate, turkeyTimeZone, 'EEEE', {locale: tr})} günlerine uygulandı.`,
+                description: `Seçili saatler, gelecekteki 12 haftalık tüm ${formatInTimeZone(selectedDate, turkeyTimeZone, 'EEEE', {locale: tr})} günlerine uygulandı.`,
                 className: 'bg-green-500 text-white'
             });
 

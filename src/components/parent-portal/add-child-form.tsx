@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useFirestore } from '@/firebase';
-import { collection, addDoc, doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -170,6 +170,7 @@ export function AddChildForm({ userId, onChildAdded, child, childId, children }:
                 level: 'beginner',
                 hasUsedFreeTrial: false,
                 isProfileComplete: true,
+                createdAt: serverTimestamp(),
             });
 
             // Store new child's ID for auto-selection

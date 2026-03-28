@@ -7,7 +7,7 @@ import { Loader2, Package, ArrowLeft, User, Plus, ShoppingCart, History, Calenda
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { collection, doc, writeBatch, getDoc, updateDoc, increment, arrayRemove, arrayUnion, query, where } from 'firebase/firestore';
-import { COURSES, Course } from '@/data/courses';
+import { COURSES, Course, getCourseByCode } from '@/data/courses';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,19 +29,7 @@ import { tr } from 'date-fns/locale';
 
 const BOOK_IMAGE = "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=200&h=200&auto=format&fit=crop";
 
-const getCourseByCode = (code?: string): Course | undefined => {
-    if (!code) return undefined;
-    const courseMap: { [key: string]: string } = { 
-        'B': 'baslangic', 
-        'K': 'konusma', 
-        'G': 'gelisim', 
-        'A': 'akademik',
-        'GCSE': 'gcse'
-    };
-    const courseKey = code.replace(/[0-9]/g, '');
-    const courseId = courseMap[courseKey as keyof typeof courseMap];
-    return COURSES.find(c => c.id === courseId);
-};
+
 
 function PaketlerimPageContent() {
     const { user, loading: userLoading } = useUser();

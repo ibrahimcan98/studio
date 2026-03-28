@@ -2,7 +2,7 @@
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where, getDocs, collectionGroup, doc, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, query, where, getDocs, collectionGroup, doc, updateDoc, writeBatch, setDoc } from 'firebase/firestore';
 import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -40,7 +40,9 @@ import {
     Tags,
     Copy,
     Activity,
-    Plus
+    Plus,
+    ArrowRight,
+    Filter
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -69,7 +71,6 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { ProgressPanel } from '@/components/shared/progress-panel';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Filter } from 'lucide-react';
 import { isAfter, isSameDay } from 'date-fns';
 
 interface ParentData {
@@ -87,6 +88,7 @@ interface ParentData {
     lastPurchaseDate?: Date;
     countryName: string;
     tags?: string[];
+    isLegacy?: boolean;
     lastActivityDate?: Date;
     lastActivityType?: 'register' | 'purchase' | 'lesson';
 }
@@ -106,6 +108,7 @@ const tagStyles: { [key: string]: string } = {
     positive: 'bg-pink-100 text-pink-700',
     problem: 'bg-black text-white',
     discountlover: 'bg-amber-100 text-amber-900',
+    'eski uye': 'bg-orange-600 text-white font-bold',
 };
 
 const SUGGESTED_TAGS = [
@@ -154,6 +157,9 @@ function UsersPageContent() {
   const [selectedCourseId, setSelectedCourseId] = useState('konusma');
   const [lessonCount, setLessonCount] = useState(4);
   const [isAddingLessons, setIsAddingLessons] = useState(false);
+  
+  // Sorting State
+  const [sortType, setSortType] = useState<'registration_desc' | 'activity_desc'>('registration_desc');
 
   const parentsQuery = useMemoFirebase(() => {
     if (!db) return null;
@@ -258,6 +264,7 @@ function UsersPageContent() {
 
         const manualTags = parent.tags || [];
         manualTags.forEach((t: string) => tags.add(t));
+        if (parent.isLegacy) tags.add('eski uye');
 
         const lastPurchaseDate = parentSlots
             .filter(s => s.packageCode !== 'FREE_TRIAL')
@@ -343,14 +350,24 @@ function UsersPageContent() {
         result = result.filter(p => p.lastPurchaseDate && (isBefore(p.lastPurchaseDate, end) || isSameDay(p.lastPurchaseDate, end)));
     }
 
-    if (activityStartDate) {
-        const start = new Date(activityStartDate);
-        result = result.filter(p => p.lastActivityDate && (isAfter(p.lastActivityDate, start) || isSameDay(p.lastActivityDate, start)));
-    }
     if (activityEndDate) {
         const end = new Date(activityEndDate);
         result = result.filter(p => p.lastActivityDate && (isBefore(p.lastActivityDate, end) || isSameDay(p.lastActivityDate, end)));
     }
+    
+    // Applying Sorting
+    result = [...result].sort((a, b) => {
+        if (sortType === 'registration_desc') {
+            const timeA = a.createdAt?.toMillis?.() || 0;
+            const timeB = b.createdAt?.toMillis?.() || 0;
+            return timeB - timeA;
+        } else if (sortType === 'activity_desc') {
+            const timeA = a.lastActivityDate?.getTime() || 0;
+            const timeB = b.lastActivityDate?.getTime() || 0;
+            return timeB - timeA;
+        }
+        return 0;
+    });
     
     return result;
   }, [processedParents, searchQuery, selectedTags, regStartDate, regEndDate, purchaseStartDate, purchaseEndDate]);
@@ -437,6 +454,23 @@ function UsersPageContent() {
     }
   };
 
+  const handleToggleLegacy = async (parent: ParentData) => {
+    if (!db) return;
+    const newStatus = !parent.isLegacy;
+    try {
+        const parentRef = doc(db, 'users', parent.id);
+        await setDoc(parentRef, { isLegacy: newStatus }, { merge: true });
+        toast({ 
+            title: newStatus ? 'Eski Üye Yapıldı' : 'Eski Üye Durumu Kaldırıldı', 
+            className: newStatus ? 'bg-orange-600 text-white' : 'bg-slate-800 text-white' 
+        });
+        refetchParents();
+    } catch (e) {
+        console.error("Error toggling legacy status:", e);
+        toast({ variant: 'destructive', title: 'Hata', description: 'İşlem başarısız oldu.' });
+    }
+  };
+
   const addBulkTag = (tag: string) => {
     if (!tag || bulkTagsToAdd.includes(tag)) return;
     setBulkTagsToAdd(prev => [...prev, tag]);
@@ -511,6 +545,17 @@ function UsersPageContent() {
               />
           </div>
           
+          <div className="flex items-center gap-2 bg-slate-50/50 px-3 h-11 rounded-xl border border-slate-200">
+            <ArrowRight className="w-4 h-4 text-slate-400 rotate-90" />
+            <select 
+                className="text-xs font-bold bg-transparent border-none focus:ring-0 text-slate-600 outline-none cursor-pointer pr-8"
+                value={sortType}
+                onChange={(e) => setSortType(e.target.value as any)}
+            >
+                <option value="registration_desc">Kayıt: En Yeni</option>
+                <option value="activity_desc">Etkinlik: En Yeni</option>
+            </select>
+          </div>
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" className="h-11 rounded-xl border-slate-200 font-bold gap-2 px-4 shrink-0">
@@ -746,6 +791,15 @@ function UsersPageContent() {
                                 </DropdownMenuItem>
                                 <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-blue-600 focus:text-blue-600" onClick={() => { setSelectedParentForLessons(parent); setIsAddLessonsOpen(true); setSelectedCourseId('konusma'); setLessonCount(4); }}>
                                     Ders Ekle
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                    className={cn(
+                                        "rounded-lg font-bold text-xs py-2.5 cursor-pointer",
+                                        parent.isLegacy ? "text-slate-600" : "text-orange-600 focus:text-orange-600"
+                                    )} 
+                                    onClick={() => handleToggleLegacy(parent)}
+                                >
+                                    {parent.isLegacy ? 'Eski Üye Durumunu Kaldır' : 'Eski Üye Olarak İşaretle'}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 text-red-500 focus:text-red-500 cursor-pointer">
                                     Kullanıcıyı Yasakla

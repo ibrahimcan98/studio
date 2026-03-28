@@ -33,6 +33,7 @@ import { cn } from '@/lib/utils';
 
 interface StudentWithParent {
     id: string;
+    parentId: string; // Added to enable deletion
     parentName: string;
     parentEmail: string;
     firstName?: string;
@@ -90,6 +91,7 @@ export default function AdminStudentsPage() {
 
             return {
                 id: childDoc.id,
+                parentId: userId || '', // Store parentId for deletion
                 ...data,
                 parentName: parentInfo.name,
                 parentEmail: parentInfo.email
@@ -151,6 +153,29 @@ export default function AdminStudentsPage() {
 
     return result;
   }, [students, searchQuery, levelFilter, packageFilter, minAge, maxAge]);
+
+  const handleDeleteStudent = async (student: StudentWithParent) => {
+    if (!db || !student.parentId || !student.id) {
+        toast({ variant: 'destructive', title: 'Hata', description: 'Öğrenci veya veli bilgisi eksik.' });
+        return;
+    }
+
+    if (!confirm(`${student.firstName} isimli öğrenciyi ve tüm verilerini kalıcı olarak silmek istediğinize emin misiniz?`)) return;
+
+    try {
+        const studentRef = doc(db, 'users', student.parentId, 'children', student.id);
+        const { deleteDoc } = await import('firebase/firestore');
+        await deleteDoc(studentRef);
+        
+        // UI'dan da kaldır
+        setStudents(prev => prev.filter(s => s.id !== student.id));
+        
+        toast({ title: 'Silindi', description: 'Öğrenci başarıyla silindi.' });
+    } catch (error) {
+        console.error("Delete error:", error);
+        toast({ variant: 'destructive', title: 'Hata', description: 'Öğrenci silinemedi.' });
+    }
+  };
 
   return (
     <div className="space-y-6 font-sans">
@@ -263,7 +288,8 @@ export default function AdminStudentsPage() {
                   <TableHead className="font-bold text-slate-500">Veli Bilgisi</TableHead>
                   <TableHead className="font-bold text-slate-500">Paket Durumu</TableHead>
                   <TableHead className="font-bold text-slate-500">Akademik Seviye</TableHead>
-                  <TableHead className="font-bold text-slate-500 text-right pr-8">Rozet</TableHead>
+                  <TableHead className="font-bold text-slate-500">Rozet</TableHead>
+                  <TableHead className="font-bold text-slate-500 text-right pr-8">İşlemler</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -338,10 +364,20 @@ export default function AdminStudentsPage() {
                             </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right pr-8">
+                      <TableCell>
                         <Badge className="bg-amber-100 text-amber-700 border-none font-black text-[10px] uppercase tracking-widest">
                             {(student.badges || []).length} ROZET
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-right pr-8">
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-red-500 hover:bg-red-50"
+                            onClick={() => handleDeleteStudent(student)}
+                        >
+                            <X className="w-4 h-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))

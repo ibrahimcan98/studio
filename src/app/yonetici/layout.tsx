@@ -17,6 +17,7 @@ import {
   Presentation,
   Trophy,
   Ticket,
+  Calendar,
   Menu
 } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
@@ -99,6 +100,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     { href: '/yonetici/inbox', label: 'Mesajlar', icon: Inbox },
     { href: '/yonetici/satislar', label: 'Satışlar', icon: CreditCard },
     { href: '/yonetici/ogretmenler', label: 'Öğretmenler', icon: Presentation },
+    { href: '/yonetici/dersler', label: 'Dersler', icon: Calendar },
     { href: '/yonetici/kullanicilar', label: 'Veliler', icon: Users },
     { href: '/yonetici/ogrenciler', label: 'Öğrenciler', icon: Baby },
     { href: '/yonetici/indirimler', label: 'İndirimler', icon: Ticket },

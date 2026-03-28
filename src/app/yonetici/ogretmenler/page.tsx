@@ -177,7 +177,23 @@ export default function AdminTeachersPage() {
       resetForm();
     } catch (error: any) {
       console.error(error);
-      const message = error.code === 'auth/email-already-in-use' ? 'Bu e-posta adresi zaten kullanılıyor.' : 'Öğretmen eklenirken bir sorun oluştu.';
+      let message = 'Öğretmen eklenirken bir sorun oluştu.';
+      
+      switch (error.code) {
+        case 'auth/email-already-in-use':
+          message = 'Bu e-posta adresi zaten başka bir hesapta (veli veya öğretmen) tanımlı.';
+          break;
+        case 'auth/network-request-failed':
+          message = 'İnternet bağlantınızı kontrol edin. Firebase sunucularına ulaşılamıyor.';
+          break;
+        case 'auth/invalid-email':
+          message = 'Lütfen geçerli bir e-posta adresi girin.';
+          break;
+        case 'auth/weak-password':
+          message = 'Şifre çok zayıf. En az 6 karakter giriniz.';
+          break;
+      }
+      
       toast({ variant: 'destructive', title: 'Hata', description: message });
     } finally {
       setIsSubmitting(false);

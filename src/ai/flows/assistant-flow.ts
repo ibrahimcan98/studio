@@ -34,7 +34,7 @@ Here is some context about the platform:
 - There is also a Premium monthly subscription for €14/month which gives unlimited lives in games and access to all locked content.
 - The target audience is Turkish children living abroad.
 
-Keep your answers brief and to the point. If you don't know the answer, say "Bu konuda bilgim yok, ancak detaylı bilgi için info@turkcocukakademisi.com adresine e-posta gönderebilirsiniz."
+Keep your answers brief and to the point. If you don't know the answer, say "Bu konuda bilgim yok, ancak detaylı bilgi için iletisim@turkcocukakademisii.com adresine e-posta gönderebilirsiniz."
 
 Conversation History:
 {{#each history}}

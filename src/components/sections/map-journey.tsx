@@ -79,13 +79,7 @@ export default function MapJourney() {
   const { user } = useUser();
   const router = useRouter();
 
-  const handleChildModeClick = () => {
-    if (user) {
-      router.push('/ebeveyn-portali');
-    } else {
-      router.push('/login');
-    }
-  };
+
 
   return (
     <section id="map-journey" className="py-20 md:py-28 bg-white overflow-hidden">
@@ -115,10 +109,7 @@ export default function MapJourney() {
             ))}
           </div>
 
-          <Button size="lg" className="font-black h-14 px-8 rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 transition-transform" onClick={handleChildModeClick}>
-            <Sparkles className="mr-2 h-5 w-5 fill-current"/>
-            ÇOCUK MODUNU GÖR
-          </Button>
+
         </div>
 
         {/* SAĞ KISIM - HARİTA */}

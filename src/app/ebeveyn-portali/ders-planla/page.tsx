@@ -239,12 +239,36 @@ export default function DersPlanlaPage() {
         else if (typeof window !== 'undefined') setSelectedTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
     }, [userData]);
 
+    const isEligibleByAdditionOrder = useMemo(() => {
+        if (!children || !selectedChildId) return false;
+        // Sort by createdAt (oldest first). Handle missing createdAt by giving it a very old time.
+        const sorted = [...children].sort((a, b) => {
+            const timeA = a.createdAt?.toMillis?.() || 0;
+            const timeB = b.createdAt?.toMillis?.() || 0;
+            return timeA - timeB;
+        });
+        const firstThreeIds = sorted.slice(0, 3).map(c => c.id);
+        return firstThreeIds.includes(selectedChildId);
+    }, [children, selectedChildId]);
+
+    const trialStatusMessage = useMemo(() => {
+        if (!selectedChildData || !userData) return null;
+        if (userData.isLegacy) return "Eski üye hesabında deneme dersi hakkı bulunmamaktadır.";
+        if (selectedChildData.hasUsedFreeTrial) return "Bu öğrenci için deneme dersi hakkı daha önce kullanıldı.";
+        if ((userData.freeTrialsUsed || 0) >= MAX_FREE_TRIALS) return "Bu hesap için toplam deneme dersi limitine (3) ulaşıldı.";
+        if (!isEligibleByAdditionOrder) return "Deneme dersi hakkı sadece hesaba eklenen ilk 3 öğrenci için geçerlidir.";
+        return null;
+    }, [selectedChildData, userData, isEligibleByAdditionOrder]);
+
     useEffect(() => {
         // If we are in reschedule mode, we don't want to overwrite the package from the old lesson
         if (rescheduleId && oldLessonData) return;
 
         if (selectedChildData) {
-            const canTakeFreeTrial = !selectedChildData.hasUsedFreeTrial && (userData?.freeTrialsUsed || 0) < MAX_FREE_TRIALS;
+            const canTakeFreeTrial = !selectedChildData.hasUsedFreeTrial && 
+                                    (userData?.freeTrialsUsed || 0) < MAX_FREE_TRIALS &&
+                                    !userData?.isLegacy &&
+                                    isEligibleByAdditionOrder;
 
             if (canTakeFreeTrial) {
                 setBookingMode('free');
@@ -561,7 +585,7 @@ export default function DersPlanlaPage() {
                                 <div className="space-y-2">
                                     <h3 className="text-xl font-bold text-slate-800">Aktif Paket Bulunamadı</h3>
                                     <p className="text-slate-500 text-sm max-w-xs mx-auto">
-                                        {selectedChildData?.firstName} için ders planlayabilmek için önce bir paket atamanız gerekmektedir.
+                                        {trialStatusMessage || `${selectedChildData?.firstName} için ders planlayabilmek için önce bir paket atamanız gerekmektedir.`}
                                     </p>
                                 </div>
                                 <div className="flex flex-col sm:flex-row w-full max-w-md gap-4">

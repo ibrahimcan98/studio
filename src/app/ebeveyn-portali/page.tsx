@@ -74,7 +74,7 @@ import { ProgressPanel } from '@/components/shared/progress-panel';
 import { cn } from '@/lib/utils';
 import { format, isAfter, isBefore, isToday, isTomorrow, subHours } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { COURSES } from '@/data/courses';
+import { COURSES, getCourseByCode } from '@/data/courses';
 
 
 const MAX_LIVES = 5;
@@ -99,11 +99,11 @@ function StatCard({ title, value, icon: Icon, unit, children, className }: { tit
   )
 }
 
-function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUpdated }: { child: any, isPremium: boolean, currentLives: number, onDelete: (id: string, assignedPackage: string | null, remainingLessons: number) => void, userId: string, onChildUpdated: () => void }) {
+function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUpdated, isTrialEligible, isLegacy }: { child: any, isPremium: boolean, currentLives: number, onDelete: (id: string, assignedPackage: string | null, remainingLessons: number) => void, userId: string, onChildUpdated: () => void, isTrialEligible: boolean, isLegacy: boolean }) {
     const isProfileIncomplete = child.isProfileComplete === false;
     const router = useRouter();
 
-    const currentCourse = COURSES.find(c => c.id === child.assignedPackage);
+    const currentCourse = getCourseByCode(child.assignedPackage);
     const recommendedCourseId = child.recommendedCourseId;
     const recommendedCourse = COURSES.find(c => c.id === recommendedCourseId);
 
@@ -179,8 +179,8 @@ function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUp
                             {currentCourse.title.split('(')[0].trim()}
                         </span>
                     ) : (
-                        <span className="font-bold text-white bg-[#4CAF50] px-3 py-1 rounded-full text-[13px]">
-                            Başlangıç Kursu
+                        <span className="font-bold text-white bg-slate-400 px-3 py-1 rounded-full text-[13px]">
+                            Kurs atanmamış
                         </span>
                     )}
                 </div>
@@ -209,6 +209,12 @@ function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUp
                             <Button asChild className="h-10 px-5 text-[13px] font-bold rounded-xl shadow-sm bg-[#4CAF50] text-white hover:bg-[#388E3C] w-auto" variant="default" onClick={(e) => e.stopPropagation()}>
                                 <Link href={`/ebeveyn-portali/ders-planla?childId=${child.id}`}>
                                     <Calendar className="w-4 h-4 mr-1.5" /> Planla
+                                </Link>
+                            </Button>
+                        ) : (isTrialEligible && !isLegacy) ? (
+                            <Button asChild className="h-10 px-5 text-[13px] font-bold rounded-xl shadow-sm bg-[#4CAF50] text-white hover:bg-[#388E3C] w-auto" variant="default" onClick={(e) => e.stopPropagation()}>
+                                <Link href={`/ebeveyn-portali/ders-planla?childId=${child.id}`}>
+                                    <Plus className="w-4 h-4 mr-1.5" /> Ücretsiz Ders Planla
                                 </Link>
                             </Button>
                         ) : (
@@ -376,6 +382,16 @@ function EbeveynPortaliContent() {
     return list;
   }, [slots, childrenWithEffect]);
 
+  const firstThreeChildIds = useMemo(() => {
+    if (!childrenWithEffect) return [];
+    const sorted = [...childrenWithEffect].sort((a,b) => {
+      const tA = a.createdAt?.toMillis?.() || 0;
+      const tB = b.createdAt?.toMillis?.() || 0;
+      return tA - tB;
+    });
+    return sorted.slice(0, 3).map(c => c.id);
+  }, [childrenWithEffect]);
+
   useEffect(() => {
     if (!userLoading && (!user || user.isAnonymous)) router.push('/login');
   }, [user, userLoading, router]);
@@ -515,7 +531,9 @@ function EbeveynPortaliContent() {
                         currentLives={userData?.currentLives || 0} 
                         onDelete={handleDeleteChild} 
                         userId={user.uid} 
-                        onChildUpdated={refetchChildren} 
+                        onChildUpdated={refetchChildren}
+                        isTrialEligible={!child.hasUsedFreeTrial && firstThreeChildIds.includes(child.id) && (userData?.freeTrialsUsed || 0) < 3}
+                        isLegacy={userData?.isLegacy || false}
                     />
                 ))}
                 {childrenWithEffect?.length === 0 && <div className="col-span-full py-20 text-center text-slate-400 font-bold italic">Henüz bir çocuk eklenmemiş.</div>}

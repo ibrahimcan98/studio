@@ -264,3 +264,17 @@ export const COURSES: Course[] = [
         },
     },
 ];
+
+export const getCourseByCode = (code?: string): Course | undefined => {
+    if (!code) return undefined;
+    const courseMap: { [key: string]: string } = { 
+        'B': 'baslangic', 
+        'K': 'konusma', 
+        'G': 'gelisim', 
+        'A': 'akademik',
+        'GCSE': 'gcse'
+    };
+    const courseKey = code.replace(/[0-9]/g, '');
+    const courseId = courseMap[courseKey as keyof typeof courseMap];
+    return COURSES.find(c => c.id === courseId);
+};
