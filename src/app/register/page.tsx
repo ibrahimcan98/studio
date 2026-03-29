@@ -7,7 +7,6 @@ import { motion } from 'framer-motion';
 import {
   createUserWithEmailAndPassword,
   updateProfile,
-  sendEmailVerification,
 } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 
@@ -110,14 +109,13 @@ export default function RegisterPage() {
 
       // Then, try to send verification email (but don't fail registration if it fails)
       try {
-        const actionCodeSettings = {
-          url: `${window.location.origin}/auth/email-onay`,
-          handleCodeInApp: true,
-        };
-        await sendEmailVerification(newUser, actionCodeSettings);
+        await fetch('/api/auth/send-link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: newUser.email, type: 'verification' }),
+        });
       } catch (verificationError: any) {
-        console.error("Verification email failed to send:", verificationError);
-        // We continue anyway since the user document is already created
+        console.error("Verification email failed to send via Resend:", verificationError);
       }
 
       toast({

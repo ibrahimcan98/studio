@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatInTimeZone } from 'date-fns-tz';
 import { tr } from 'date-fns/locale';
-import { addMinutes, startOfDay } from 'date-fns';
+import { addMinutes, startOfDay, format } from 'date-fns';
 import { COURSES } from '@/data/courses';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -55,6 +55,7 @@ const teachers = [
 function CancellationButtons({ lesson, timeZone }: { lesson: any, timeZone: string }) {
     const db = useFirestore();
     const router = useRouter();
+    const { user } = useUser();
     const { toast } = useToast();
     const [isProcessing, setIsProcessing] = useState(false);
 
@@ -76,7 +77,7 @@ function CancellationButtons({ lesson, timeZone }: { lesson: any, timeZone: stri
     const hasReschedulingRight = rescheduleCount < 1;
 
     const handleCancel = async () => {
-        if (!db || !lesson.bookedBy) return;
+        if (!db || !lesson.bookedBy || !user) return;
         setIsProcessing(true);
         try {
             const batch = writeBatch(db);
@@ -123,7 +124,49 @@ function CancellationButtons({ lesson, timeZone }: { lesson: any, timeZone: stri
                 createdAt: Timestamp.fromDate(new Date())
             }).catch(console.error);
 
-            // Notify Admin (Email)
+            // Email Notification (Resend)
+            const teacherSnap = await getDocs(query(collection(db, 'users'), where('uid', '==', lesson.teacherId)));
+            const teacherData = teacherSnap.docs[0]?.data();
+            const teacherEmail = teacherData?.email;
+
+            if (teacherEmail || user.email) {
+                const emailData = {
+                    studentName: lesson.childName || 'Öğrenci',
+                    teacherName: teacherData?.firstName + ' ' + teacherData?.lastName || 'Eğitmen',
+                    date: format(startTime, 'dd MMMM yyyy', { locale: tr }),
+                    time: format(startTime, 'HH:mm', { locale: tr }),
+                };
+
+                // Send to Parent
+                if (user.email) {
+                    fetch('/api/emails/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            to: user.email,
+                            subject: 'Ders İptal Onayı',
+                            templateName: 'lesson-cancelled',
+                            data: emailData
+                        })
+                    }).catch(console.error);
+                }
+
+                // Send to Teacher
+                if (teacherEmail) {
+                    fetch('/api/emails/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            to: teacherEmail,
+                            subject: 'Bir Dersiniz İptal Edildi',
+                            templateName: 'lesson-cancelled',
+                            data: emailData
+                        })
+                    }).catch(console.error);
+                }
+            }
+
+            // Notify Admin (Email - existing legacy)
             fetch('/api/notify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

@@ -31,7 +31,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { doc, updateDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { COURSES } from '@/data/courses';
 import { Textarea } from '../ui/textarea';
@@ -248,13 +248,39 @@ export function ProgressPanel({ child, lessonId, isEditable = false, authorRole 
         
         batch.update(childDocRef, updatedData);
 
-        batch.commit().then(() => {
+        batch.commit().then(async () => {
             toast({
                 title: 'Kaydedildi',
                 description: `${child.firstName} için ilerleme paneli güncellendi.`,
                 className: 'bg-green-500 text-white'
             });
-             if (newFeedback.trim() !== "") {
+
+            // Send Email Notification if new feedback was added
+            if (newFeedback.trim() !== "") {
+                try {
+                    const parentSnap = await getDoc(doc(db, 'users', child.userId));
+                    const parentData = parentSnap.data();
+                    const parentEmail = parentData?.email;
+
+                    if (parentEmail) {
+                        fetch('/api/emails/send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                to: parentEmail,
+                                subject: 'Yeni Bir Geri Bildiriminiz Var',
+                                templateName: 'feedback',
+                                data: {
+                                    studentName: child.firstName,
+                                    teacherName: authorRole === 'admin' ? 'PDR Birimi' : 'Eğitmen'
+                                }
+                            })
+                        }).catch(console.error);
+                    }
+                } catch (emailErr) {
+                    console.error("Failed to send feedback email:", emailErr);
+                }
+
                 setFeedbackHistory(updatedFeedbackHistory);
                 setNewFeedback("");
             }

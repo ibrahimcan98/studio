@@ -415,7 +415,49 @@ export default function DersPlanlaPage() {
                 createdAt: Timestamp.fromDate(new Date())
             }).catch(console.error);
 
-            // Admin notification (Email)
+            // Email Notification (Resend)
+            const teacherSnap = await getDocs(query(collection(db, 'users'), where('uid', '==', selectedSlot.teacherId)));
+            const teacherData = teacherSnap.docs[0]?.data();
+            const teacherEmail = teacherData?.email;
+
+            if (teacherEmail || user.email) {
+                const emailData = {
+                    studentName: childName,
+                    teacherName: teacherData?.firstName + ' ' + teacherData?.lastName || 'Eğitmen',
+                    date: format(startTime, 'dd MMMM yyyy', { locale: tr }),
+                    time: format(startTime, 'HH:mm', { locale: tr }),
+                };
+
+                // Send to Parent
+                if (user.email) {
+                    fetch('/api/emails/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            to: user.email,
+                            subject: rescheduleId ? 'Dersiniz Değiştirildi' : 'Yeni Dersiniz Planlandı',
+                            templateName: 'lesson-planned',
+                            data: emailData
+                        })
+                    }).catch(console.error);
+                }
+
+                // Send to Teacher
+                if (teacherEmail) {
+                    fetch('/api/emails/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            to: teacherEmail,
+                            subject: rescheduleId ? 'Bir Dersiniz Değiştirildi' : 'Yeni Bir Dersiniz Var',
+                            templateName: 'lesson-planned',
+                            data: emailData
+                        })
+                    }).catch(console.error);
+                }
+            }
+
+            // Admin notification (Email - existing legacy)
             fetch('/api/notify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

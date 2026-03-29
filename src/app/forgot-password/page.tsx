@@ -24,24 +24,39 @@ export default function ForgotPasswordPage() {
 
     setIsLoading(true);
     try {
-      await sendPasswordResetEmail(auth, email);
+      const response = await fetch('/api/auth/send-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, type: 'password-reset' }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Böyle bir mail bulunmamaktadır.');
+        }
+        
+        // If server returns 500 or other error, fallback to standard Firebase email
+        console.warn('Resend API failed, falling back to Firebase default emailer');
+        await sendPasswordResetEmail(auth, email);
+        
+        setIsSent(true);
+        toast({
+          title: 'E-posta Gönderildi',
+          description: 'Şifre sıfırlama bağlantısı (standart servis ile) e-posta adresinize gönderildi.',
+        });
+        return;
+      }
+
       setIsSent(true);
       toast({
         title: 'E-posta Gönderildi',
-        description: 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.',
+        description: 'Özel şifre sıfırlama bağlantısı e-posta adresinize başarıyla gönderildi.',
       });
     } catch (error: any) {
-      let errorMessage = 'Şifre sıfırlama e-postası gönderilirken bir hata oluştu.';
-      if (error.code === 'auth/user-not-found') {
-        errorMessage = 'Bu e-posta adresine kayıtlı bir kullanıcı bulunamadı.';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Lütfen geçerli bir e-posta adresi girin.';
-      }
-      
       toast({
         variant: 'destructive',
         title: 'Hata',
-        description: errorMessage,
+        description: error.message || 'Şifre sıfırlama e-postası gönderilirken bir hata oluştu.',
       });
     } finally {
       setIsLoading(false);

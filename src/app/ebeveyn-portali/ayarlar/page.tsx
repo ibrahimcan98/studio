@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useFirebase, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
-import { getAuth, updateProfile, updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider, sendEmailVerification } from 'firebase/auth';
+import { getAuth, updateProfile, updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Loader2, ArrowLeft, User, Image as ImageIcon, KeyRound, Mail, AlertCircle, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -105,13 +105,14 @@ export default function AyarlarPage() {
             const credential = EmailAuthProvider.credential(authUser.email!, currentPassword);
             await reauthenticateWithCredential(auth.currentUser, credential);
 
-            // Re-authentication successful, now update email and send verification
+            // Re-authentication successful, now update email and send verification via Resend
             await updateEmail(auth.currentUser, email);
-            const actionCodeSettings = {
-                url: `${window.location.origin}/auth/email-onay`,
-                handleCodeInApp: true,
-            };
-            await sendEmailVerification(auth.currentUser, actionCodeSettings);
+            
+            await fetch('/api/auth/send-link', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email, type: 'verification' }),
+            });
 
             if (userDocRef) {
                 await updateDoc(userDocRef, { email });
@@ -159,11 +160,11 @@ export default function AyarlarPage() {
         if (!auth.currentUser) return;
         setIsResendingVerification(true);
         try {
-            const actionCodeSettings = {
-                url: `${window.location.origin}/auth/email-onay`,
-                handleCodeInApp: true,
-            };
-            await sendEmailVerification(auth.currentUser, actionCodeSettings);
+            await fetch('/api/auth/send-link', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: auth.currentUser.email, type: 'verification' }),
+            });
             toast({
                 title: 'Doğrulama E-postası Gönderildi',
                 description: 'Lütfen e-posta kutunuzu (spam dahil) kontrol edin.',
