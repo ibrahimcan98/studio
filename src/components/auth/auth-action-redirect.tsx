@@ -11,13 +11,15 @@ function AuthActionHandler() {
     const mode = searchParams.get('mode');
     const oobCode = searchParams.get('oobCode');
 
-    if (mode === 'verifyEmail' && oobCode) {
+    if ((mode === 'verifyEmail' || mode === 'resetPassword') && oobCode) {
       // Create the target URL with original parameters
       const params = new URLSearchParams();
       searchParams.forEach((value, key) => {
         params.set(key, value);
       });
-      router.push(`/auth/email-onay?${params.toString()}`);
+      
+      const targetPath = mode === 'verifyEmail' ? '/auth/email-onay' : '/auth/sifre-sifirla';
+      router.push(`${targetPath}?${params.toString()}`);
     }
   }, [searchParams, router]);
 

@@ -1,21 +1,23 @@
 const BASE_STYLE = `
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.6;
   color: #1e293b;
   max-width: 600px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 40px 20px;
 `;
 
 const BUTTON_STYLE = `
   display: inline-block;
-  padding: 12px 24px;
-  background-color: #0ea5e9;
+  padding: 14px 32px;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
   color: #ffffff;
   text-decoration: none;
-  border-radius: 12px;
-  font-weight: bold;
-  margin: 20px 0;
+  border-radius: 14px;
+  font-weight: 700;
+  margin: 24px 0;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+  text-align: center;
 `;
 
 const LOGO_URL = "https://turkcocukakademisi.com/logo.png";
@@ -25,86 +27,102 @@ export const getBaseTemplate = (content: string) => `
   <html lang="tr">
   <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Türk Çocuk Akademisi</title>
   </head>
-  <body style="margin: 0; padding: 0; background-color: #f8fafc;">
-    <div style="${BASE_STYLE}">
-      <div style="text-align: center; margin-bottom: 30px;">
-        <img src="${LOGO_URL}" alt="Türk Çocuk Akademisi" style="width: 80px; height: 80px;">
-        <h1 style="color: #0f172a; margin-top: 10px; font-size: 24px;">Türk Çocuk Akademisi</h1>
-      </div>
-      <div style="background-color: #ffffff; padding: 40px; border-radius: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-        ${content}
-      </div>
-      <div style="text-align: center; margin-top: 30px; color: #64748b; font-size: 12px;">
-        <p>© ${new Date().getFullYear()} Türk Çocuk Akademisi. Tüm hakları saklıdır.</p>
-        <p>İletişim: iletisim@turkcocukakademisi.com</p>
-      </div>
-    </div>
+  <body style="margin: 0; padding: 0; background-color: #f1f5f9;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9;">
+      <tr>
+        <td align="center" style="padding: 40px 0;">
+          <div style="${BASE_STYLE}">
+            <!-- Header/Logo Area -->
+            <div style="text-align: center; margin-bottom: 40px;">
+              <div style="display: inline-block; padding: 15px; background: white; border-radius: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 15px;">
+                <img src="${LOGO_URL}" alt="Türk Çocuk Akademisi" style="width: 120px; height: auto; display: block;">
+              </div>
+              <h1 style="color: #0f172a; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Türk Çocuk Akademisi</h1>
+            </div>
+
+            <!-- Main Content Card -->
+            <div style="background-color: #ffffff; padding: 48px; border-radius: 32px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08); border: 1px solid #f8fafc;">
+              ${content}
+            </div>
+
+            <!-- Footer Section -->
+            <div style="text-align: center; margin-top: 40px; color: #64748b; font-size: 13px;">
+              <p style="margin: 5px 0; font-weight: 600;">Türk Çocuk Akademisi</p>
+              <p style="margin: 5px 0; opacity: 0.8;">© ${new Date().getFullYear()} Tüm hakları saklıdır.</p>
+              <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0; display: inline-block;">
+                 <a href="mailto:iletisim@turkcocukakademisi.com" style="color: #0ea5e9; text-decoration: none;">iletisim@turkcocukakademisi.com</a>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </table>
   </body>
   </html>
 `;
 
 export const getVerificationTemplate = (link: string) => getBaseTemplate(`
-  <h2 style="color: #0f172a;">Hoş Geldiniz!</h2>
-  <p>Kaydınızı tamamlamak için lütfen e-posta adresinizi doğrulayın.</p>
+  <h2 style="color: #0f172a; font-size: 24px; margin-top: 0;">E-posta Doğrulaması</h2>
+  <p style="font-size: 16px; color: #475569;">Akademiye giriş yapmak için e-posta adresinizi doğrulamanız gerekmektedir. Kaydınızı tamamlamak için aşağıdaki butona tıklayın.</p>
   <div style="text-align: center;">
     <a href="${link}" style="${BUTTON_STYLE}">E-postayı Doğrula</a>
   </div>
-  <p style="font-size: 14px; color: #64748b;">Eğer butona tıklayamıyorsanız, bu bağlantıyı tarayıcınıza yapıştırabilirsiniz: <br> ${link}</p>
+  <div style="margin-top: 30px; padding: 20px; background-color: #f8fafc; border-radius: 16px;">
+    <p style="font-size: 12px; color: #94a3b8; margin: 0;">Buton çalışmıyorsa aşağıdaki bağlantıyı kopyalayıp tarayıcınıza yapıştırın:</p>
+    <p style="font-size: 11px; color: #0ea5e9; word-break: break-all; margin: 8px 0 0 0;">${link}</p>
+  </div>
 `);
 
 export const getPasswordResetTemplate = (link: string) => getBaseTemplate(`
-  <h2 style="color: #0f172a;">Şifre Sıfırlama</h2>
-  <p>Hesabınız için şifre sıfırlama talebinde bulundunuz. Yeni şifrenizi belirlemek için aşağıdaki butona tıklayın.</p>
+  <h2 style="color: #0f172a; font-size: 24px; margin-top: 0;">Şifre Sıfırlama</h2>
+  <p style="font-size: 16px; color: #475569;">Hesabınız için bir şifre sıfırlama talebi aldık. Yeni şifrenizi belirlemek için aşağıdaki butona güvenle tıklayabilirsiniz.</p>
   <div style="text-align: center;">
     <a href="${link}" style="${BUTTON_STYLE}">Şifremi Sıfırla</a>
   </div>
-  <p>Bu talebi siz yapmadıysanız lütfen bu e-postayı dikkate almayın.</p>
+  <p style="font-size: 14px; color: #64748b; margin-top: 25px;">Eğer bu talebi siz yapmadıysanız, lütfen bu e-postayı dikkate almayın. Hesabınız güvendedir.</p>
 `);
 
 export const getLessonPlannedTemplate = (data: { studentName: string; teacherName: string; date: string; time: string }) => getBaseTemplate(`
-  <h2 style="color: #0f172a;">Yeni Dersiniz Planlandı</h2>
-  <p>Merhaba,</p>
-  <p><strong>${data.studentName}</strong> için yeni bir ders planlandı.</p>
-  <div style="background-color: #f1f5f9; padding: 20px; border-radius: 16px; margin: 20px 0;">
-    <p style="margin: 5px 0;"><strong>Eğitmen:</strong> ${data.teacherName}</p>
-    <p style="margin: 5px 0;"><strong>Tarih:</strong> ${data.date}</p>
-    <p style="margin: 5px 0;"><strong>Saat:</strong> ${data.time}</p>
+  <h2 style="color: #0f172a; font-size: 24px; margin-top: 0;">Yeni Ders Planlandı</h2>
+  <p style="font-size: 16px; color: #475569;">Merhaba, <strong>${data.studentName}</strong>'in akademik yolculuğu için yeni bir ders planlandı.</p>
+  <div style="background-color: #f0f9ff; padding: 24px; border-radius: 20px; border: 1px solid #e0f2fe; margin: 24px 0;">
+    <p style="margin: 8px 0; color: #0369a1;"><strong>Eğitmen:</strong> ${data.teacherName}</p>
+    <p style="margin: 8px 0; color: #0369a1;"><strong>Tarih:</strong> ${data.date}</p>
+    <p style="margin: 8px 0; color: #0369a1;"><strong>Saat:</strong> ${data.time}</p>
   </div>
-  <p>Ders saati geldiğinde öğrenci panelinden canlı derse katılabilirsiniz.</p>
+  <p style="font-size: 14px; color: #64748b;">Ders saati geldiğinde panele girerek canlı ders odasına katılabilirsiniz.</p>
 `);
 
 export const getLessonCancelledTemplate = (data: { studentName: string; teacherName: string; date: string; time: string }) => getBaseTemplate(`
-  <h2 style="color: #ef4444;">Ders İptali Hakkında</h2>
-  <p>Merhaba,</p>
-  <p><strong>${data.studentName}</strong> için planlanan aşağıdaki ders iptal edilmiştir:</p>
-  <div style="background-color: #fef2f2; padding: 20px; border-radius: 16px; margin: 20px 0; border: 1px solid #fee2e2;">
-    <p style="margin: 5px 0;"><strong>Eğitmen:</strong> ${data.teacherName}</p>
-    <p style="margin: 5px 0;"><strong>Tarih:</strong> ${data.date}</p>
-    <p style="margin: 5px 0;"><strong>Saat:</strong> ${data.time}</p>
+  <h2 style="color: #ef4444; font-size: 24px; margin-top: 0;">Ders İptal Edildi</h2>
+  <p style="font-size: 16px; color: #475569;">Merhaba, <strong>${data.studentName}</strong> için planlanan aşağıdaki ders iptal edilmiştir.</p>
+  <div style="background-color: #fef2f2; padding: 24px; border-radius: 20px; border: 1px solid #fee2e2; margin: 24px 0;">
+    <p style="margin: 8px 0; color: #991b1b;"><strong>Eğitmen:</strong> ${data.teacherName}</p>
+    <p style="margin: 8px 0; color: #991b1b;"><strong>Tarih:</strong> ${data.date}</p>
+    <p style="margin: 8px 0; color: #991b1b;"><strong>Saat:</strong> ${data.time}</p>
   </div>
-  <p>Ders krediniz hesabınıza iade edilmiştir. Yeni bir ders planlamak için veli panelini kullanabilirsiniz.</p>
+  <p style="font-size: 14px; color: #64748b;">İptal edilen ders krediniz hesabınıza iade edilmiştir. Veli panelinden tekrar planlama yapabilirsiniz.</p>
 `);
 
 export const getLessonRescheduledTemplate = (data: { studentName: string; teacherName: string; date: string; time: string }) => getBaseTemplate(`
-  <h2 style="color: #0ea5e9;">Ders Saati Değiştirildi</h2>
-  <p>Merhaba,</p>
-  <p><strong>${data.studentName}</strong>'in ders saati güncellenmiştir.</p>
-  <div style="background-color: #f0f9ff; padding: 20px; border-radius: 16px; margin: 20px 0; border: 1px solid #e0f2fe;">
-    <p style="margin: 5px 0;"><strong>Eğitmen:</strong> ${data.teacherName}</p>
-    <p style="margin: 5px 0;"><strong>Yeni Tarih:</strong> ${data.date}</p>
-    <p style="margin: 5px 0;"><strong>Yeni Saat:</strong> ${data.time}</p>
+  <h2 style="color: #0ea5e9; font-size: 24px; margin-top: 0;">Ders Saati Güncellendi</h2>
+  <p style="font-size: 16px; color: #475569;">Merhaba, <strong>${data.studentName}</strong>'in ders saati güncellenmiştir.</p>
+  <div style="background-color: #f0f9ff; padding: 24px; border-radius: 20px; border: 1px solid #e0f2fe; margin: 24px 0;">
+    <p style="margin: 8px 0; color: #0369a1;"><strong>Eğitmen:</strong> ${data.teacherName}</p>
+    <p style="margin: 8px 0; color: #0369a1;"><strong>Yeni Tarih:</strong> ${data.date}</p>
+    <p style="margin: 8px 0; color: #0369a1;"><strong>Yeni Saat:</strong> ${data.time}</p>
   </div>
-  <p>Ders saati geldiğinde öğrenci panelinden canlı derse katılabilirsiniz.</p>
+  <p style="font-size: 14px; color: #64748b;">Yeni saatte görüşmek üzere!</p>
 `);
 
 export const getFeedbackTemplate = (data: { studentName: string; teacherName: string }) => getBaseTemplate(`
-  <h2 style="color: #0f172a;">Yeni Geri Bildirim!</h2>
-  <p>Merhaba,</p>
-  <p><strong>${data.teacherName}</strong>, <strong>${data.studentName}</strong>'in dersi hakkında yeni bir değerlendirme paylaştı.</p>
-  <p>Detayları incelemek için veli panelindeki "İlerleme" sayfasını ziyaret edebilirsiniz.</p>
+  <h2 style="color: #0f172a; font-size: 24px; margin-top: 0;">Yeni Geri Bildirim!</h2>
+  <p style="font-size: 16px; color: #475569;">Sayın veli, <strong>${data.teacherName}</strong> bugün yapılan ders hakkında <strong>${data.studentName}</strong> için bir değerlendirme notu paylaştı.</p>
+  <p style="font-size: 16px; color: #475569;">Öğrencimizin gelişimini takip etmek için hemen veli panelini ziyaret edebilirsiniz.</p>
   <div style="text-align: center;">
-    <a href="https://turkcocukakademisi.com/ebeveyn-portali" style="${BUTTON_STYLE}">Paneli Görüntüle</a>
+    <a href="https://turkcocukakademisi.com/ebeveyn-portali" style="${BUTTON_STYLE}">Panele Git</a>
   </div>
 `);
