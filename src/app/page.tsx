@@ -6,10 +6,12 @@ import MapJourney from '@/components/sections/map-journey';
 import Testimonials from '@/components/sections/testimonials';
 import Faq from '@/components/sections/faq';
 import Footer from '@/components/layout/footer';
+import { AuthActionRedirect } from '@/components/auth/auth-action-redirect';
 
 export default function Home() {
   return (
     <>
+      <AuthActionRedirect />
       <Hero />
       <WhyUs />
       <HowItWorks />

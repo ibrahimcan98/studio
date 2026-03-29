@@ -33,21 +33,13 @@ const turkeyTimeZone = 'Europe/Istanbul';
 const createDateInTurkeyTimeZone = (date: Date, time: string): Date => {
   const [hours, minutes] = time.split(':').map(Number);
   
-  // Get date components in UTC to avoid local timezone influence
-  const year = date.getUTCFullYear();
-  const month = date.getUTCMonth(); // 0-11
-  const day = date.getUTCDate();
-
-  // Create a UTC timestamp by directly providing the components.
-  // This represents the "wall clock" time in UTC.
-  const utcTimestamp = Date.UTC(year, month, day, hours, minutes);
-
-  // Turkey is UTC+3. To make our UTC time represent 09:00 in Turkey,
-  // we need to subtract 3 hours from the UTC time we created.
-  // E.g., 09:00 UTC is 12:00 in Turkey. We want 06:00 UTC to be 09:00 in Turkey.
-  const turkeyUtcOffset = 3 * 60 * 60 * 1000;
+  // Get the 'YYYY-MM-DD' from the selected date in TR timezone
+  const dateStr = formatInTimeZone(date, turkeyTimeZone, 'yyyy-MM-dd');
   
-  return new Date(utcTimestamp - turkeyUtcOffset);
+  // Create a string with the explicit UTC+3 offset
+  const fullStr = `${dateStr}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00+03:00`;
+  
+  return new Date(fullStr);
 };
 
 
@@ -146,18 +138,20 @@ export default function TakvimYonetimiPage() {
 
     const { data: lessonSlots, isLoading: areSlotsLoading, refetch } = useCollection(lessonSlotsQuery);
 
+    const selectedDateStr = useMemo(() => formatInTimeZone(selectedDate, turkeyTimeZone, 'yyyy-MM-dd'), [selectedDate]);
+
     const originalSlotsForSelectedDate = useMemo(() => {
         if (!lessonSlots) return new Map<string, SlotDetails>();
         const slotsMap = new Map<string, SlotDetails>();
         lessonSlots.forEach(slot => {
-            const zonedSlotDate = toZonedTime(slot.startTime.toDate(), turkeyTimeZone);
-            if (isSameDay(zonedSlotDate, selectedDate)) {
-                const time = format(zonedSlotDate, 'HH:mm');
+            const slotDateStr = formatInTimeZone(slot.startTime.toDate(), turkeyTimeZone, 'yyyy-MM-dd');
+            if (slotDateStr === selectedDateStr) {
+                const time = formatInTimeZone(slot.startTime.toDate(), turkeyTimeZone, 'HH:mm');
                 slotsMap.set(time, slot as SlotDetails);
             }
         });
         return slotsMap;
-    }, [lessonSlots, selectedDate]);
+    }, [lessonSlots, selectedDateStr]);
     
     useEffect(() => {
         setStagedSlots(new Map(originalSlotsForSelectedDate));
