@@ -1,6 +1,7 @@
 'use client';
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useMemo } from 'react';
 import { collection, query, where, doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
@@ -53,7 +54,8 @@ import {
   Trash2, 
   Presentation,
   CheckCircle2,
-  ExternalLink
+  ExternalLink,
+  AlertCircle
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -67,6 +69,8 @@ export default function AdminTeachersPage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState<any>(null);
+  const [selectedTeacherForStats, setSelectedTeacherForStats] = useState<any>(null);
+  const [isStatsOpen, setIsStatsOpen] = useState(false);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -416,6 +420,9 @@ export default function AdminTeachersPage() {
                           <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer" onClick={() => openEdit(teacher)}>
                             Profili Düzenle
                           </DropdownMenuItem>
+                          <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-indigo-600 focus:text-indigo-700" onClick={() => { setSelectedTeacherForStats(teacher); setIsStatsOpen(true); }}>
+                            <Presentation className="w-3.5 h-3.5 mr-2" /> İstatistikler & Geçmiş
+                          </DropdownMenuItem>
                           <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 text-red-500 focus:text-red-500 cursor-pointer" onClick={() => handleDeleteTeacher(teacher.id)}>
                             <Trash2 className="w-3.5 h-3.5 mr-2" /> Yetkiyi ve Verileri Kaldır
                           </DropdownMenuItem>
@@ -490,6 +497,130 @@ export default function AdminTeachersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* STATS DIALOG */}
+      <TeacherStatsDialog 
+        isOpen={isStatsOpen} 
+        onOpenChange={setIsStatsOpen} 
+        teacher={selectedTeacherForStats} 
+      />
     </div>
+  );
+}
+
+function TeacherStatsDialog({ isOpen, onOpenChange, teacher }: { isOpen: boolean, onOpenChange: (o: boolean) => void, teacher: any }) {
+  const db = useFirestore();
+  const statsQuery = useMemoFirebase(() => {
+    if (!db || !teacher) return null;
+    return query(collection(db, 'lesson-slots'), where('teacherId', '==', teacher.id));
+  }, [db, teacher]);
+
+  const { data: slots, isLoading } = useCollection(statsQuery);
+
+  const stats = useMemo(() => {
+    if (!slots) return { completedCount: 0, studentCount: 0, cancellations: [] };
+    
+    // Group slots by childId and startTime to count unique "lessons"
+    const grouped = new Map();
+    slots.forEach(s => {
+      const key = `${s.childId}-${s.startTime.seconds}`;
+      if (!grouped.has(key)) grouped.set(key, s);
+    });
+
+    const uniqueLessons = Array.from(grouped.values());
+    const completed = uniqueLessons.filter(l => l.status === 'completed');
+    const cancelled = uniqueLessons.filter(l => l.status === 'cancelled' && l.cancelledBy === 'teacher');
+    const students = new Set(slots.map(s => s.childId).filter(Boolean));
+
+    return {
+      completedCount: completed.length,
+      studentCount: students.size,
+      cancellations: cancelled.sort((a, b) => b.startTime.seconds - a.startTime.seconds)
+    };
+  }, [slots]);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto rounded-[32px] border-none shadow-2xl p-0">
+        <div className="bg-indigo-600 p-8 text-white relative overflow-hidden">
+             {/* Background Decoration */}
+            <div className="absolute top-[-20%] right-[-10%] w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+            
+            <DialogHeader className="relative z-10">
+                <div className="flex items-center gap-4 mb-4">
+                    <Avatar className="h-16 w-16 border-4 border-white/20">
+                        <AvatarFallback className="bg-white/20 text-white font-black text-xl">
+                            {teacher?.firstName?.[0]}{teacher?.lastName?.[0]}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div>
+                        <DialogTitle className="text-3xl font-black text-white">{teacher?.firstName} {teacher?.lastName}</DialogTitle>
+                        <DialogDescription className="text-indigo-100 font-medium opacity-90">Performans Analizi ve Ders Geçmişi</DialogDescription>
+                    </div>
+                </div>
+            </DialogHeader>
+        </div>
+
+        <div className="p-8 space-y-8">
+            {/* Quick Stats Grid */}
+            <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-50 p-6 rounded-[24px] border border-slate-100 shadow-sm relative overflow-hidden group">
+                    <div className="absolute right-[-10px] bottom-[-10px] bg-primary/5 p-4 rounded-full group-hover:scale-110 transition-transform">
+                        <CheckCircle2 className="w-12 h-12 text-primary/20" />
+                    </div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Toplam Tamamlanan Ders</p>
+                    <p className="text-4xl font-black text-slate-800 tracking-tighter">{isLoading ? '...' : stats.completedCount}</p>
+                </div>
+                <div className="bg-slate-50 p-6 rounded-[24px] border border-slate-100 shadow-sm relative overflow-hidden group">
+                    <div className="absolute right-[-10px] bottom-[-10px] bg-indigo-500/5 p-4 rounded-full group-hover:scale-110 transition-transform">
+                        <User className="w-12 h-12 text-indigo-500/20" />
+                    </div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Hizmet Verilen Öğrenci</p>
+                    <p className="text-4xl font-black text-slate-800 tracking-tighter">{isLoading ? '...' : stats.studentCount}</p>
+                </div>
+            </div>
+
+            {/* Cancellation History */}
+            <div className="space-y-4">
+                <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-500" /> Mazeretli İptal Geçmişi ({stats.cancellations.length})
+                </h3>
+                
+                {isLoading ? (
+                    <div className="py-10 text-center"><Loader2 className="animate-spin mx-auto text-primary" /></div>
+                ) : stats.cancellations.length === 0 ? (
+                    <div className="py-12 bg-slate-50 rounded-[20px] border border-dashed text-center text-slate-400 font-bold italic text-xs">
+                        Öğretmen tarafından iptal edilen bir ders bulunmamaktadır.
+                    </div>
+                ) : (
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                        {stats.cancellations.map((c: any, i: number) => (
+                            <div key={i} className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-red-100 transition-colors">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                                            {c.startTime.toDate().toLocaleString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                        <span className="font-bold text-slate-700 text-sm">Öğrenci ID: {c.childId?.substring(0, 8)}</span>
+                                    </div>
+                                    <Badge variant="outline" className="text-red-600 bg-red-50 border-red-100 text-[9px] font-black px-2">İPTAL</Badge>
+                                </div>
+                                <div className="p-3 bg-red-50/50 rounded-xl border border-red-50">
+                                    <p className="text-xs text-red-800 italic font-medium">"{c.cancelReason || 'Mazeret belirtilmedi.'}"</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+        
+        <DialogFooter className="p-6 bg-slate-50 rounded-b-[32px]">
+            <Button onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl font-bold bg-slate-900 text-white hover:bg-slate-800">
+                Kapat
+            </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, writeBatch, increment, getDocs, Timestamp, addDoc } from 'firebase/firestore';
-import { Loader2, ArrowLeft, Calendar, Clock, User, BookOpen, Baby, History, MessageSquare, Video, ClipboardList } from 'lucide-react';
+import { Loader2, ArrowLeft, Calendar, Clock, User, BookOpen, Baby, History, MessageSquare, Video, ClipboardList, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -283,8 +283,11 @@ function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZon
             <CardHeader>
                 <CardTitle className="flex justify-between items-start">
                     <span className="text-xl font-bold leading-tight">{packageDetails?.courseName || 'Ders'}</span>
-                     <Badge variant={isPast ? "outline" : "default"} className={isPast ? "bg-slate-50" : (lesson.isLive ? "bg-red-500 animate-pulse text-white" : "bg-green-100 text-green-800")}>
-                        {isPast ? 'Tamamlandı' : (lesson.isLive ? 'Canlı Yayında' : 'Yaklaşıyor')}
+                     <Badge variant={isPast ? "outline" : "default"} className={cn(
+                        isPast ? "bg-slate-50" : (lesson.isLive ? "bg-red-500 animate-pulse text-white" : "bg-green-100 text-green-800"),
+                        lesson.status === 'cancelled' && "bg-red-100 text-red-700 border-red-200 animate-none"
+                     )}>
+                        {lesson.status === 'cancelled' ? 'İptal Edildi' : (isPast ? 'Tamamlandı' : (lesson.isLive ? 'Canlı Yayında' : 'Yaklaşıyor'))}
                     </Badge>
                 </CardTitle>
                 <CardDescription className="font-medium text-slate-600">
@@ -305,6 +308,17 @@ function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZon
                     <BookOpen className="w-4 h-4 text-muted-foreground" />
                     <span><strong>Kurs:</strong> {lesson.packageCode === 'FREE_TRIAL' ? 'Ücretsiz Deneme' : packageDetails?.courseName}</span>
                 </div>
+
+                {lesson.status === 'cancelled' && lesson.cancelReason && (
+                    <div className="mt-4 p-3 bg-red-50 rounded-xl border border-red-100">
+                        <p className="text-[10px] font-black text-red-600 uppercase tracking-widest mb-1 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" /> Öğretmen Mazereti
+                        </p>
+                        <p className="text-xs text-red-800 italic font-medium leading-relaxed">
+                            "{lesson.cancelReason}"
+                        </p>
+                    </div>
+                )}
             </CardContent>
             
             <CardFooter className="flex flex-col gap-2 pt-2">
@@ -403,7 +417,9 @@ export default function DerslerimPage() {
                 rescheduleCount: firstSlot.rescheduleCount || 0,
                 feedback: feedbackSlot ? feedbackSlot.feedback : null,
                 isLive: liveSlot ? liveSlot.isLive : false,
-                liveLessonUrl: liveSlot ? liveSlot.liveLessonUrl : null
+                liveLessonUrl: liveSlot ? liveSlot.liveLessonUrl : null,
+                status: firstSlot.status,
+                cancelReason: firstSlot.cancelReason
             };
         });
     }, [lessonSlots]);
@@ -413,8 +429,13 @@ export default function DerslerimPage() {
         const upcoming: any[] = [];
         const past: any[] = [];
         groupedLessons.forEach(lesson => {
-            if (lesson.endTime > now) upcoming.push(lesson);
-            else past.push(lesson);
+            if (lesson.status === 'cancelled') {
+                past.push(lesson); // Show cancelled in past tab even if start time is future, or you can keep it in upcoming
+            } else if (lesson.endTime > now) {
+                upcoming.push(lesson);
+            } else {
+                past.push(lesson);
+            }
         });
         upcoming.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
         past.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());

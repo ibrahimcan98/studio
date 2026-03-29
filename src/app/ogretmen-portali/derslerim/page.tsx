@@ -1,10 +1,12 @@
-
 'use client';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, query, where, doc, writeBatch, getDoc } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch, getDoc, serverTimestamp, increment } from 'firebase/firestore';
 import { Loader2, Calendar, History, BookOpen, Baby, Edit, AlertCircle, Video, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -118,17 +120,22 @@ function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any
                     </div>
                 )}
             </CardContent>
-             <CardFooter className="flex flex-col items-start gap-2 pt-4 bg-slate-50/50">
+            <CardFooter className="flex flex-col gap-2 pt-4 bg-slate-50/50">
                 {!isPast ? (
-                    <Button 
-                        onClick={() => onJoinLesson(lesson)} 
-                        className='w-full font-bold'
-                        disabled={!isJoinable}
-                        title={!isJoinable ? "Derse başlamak için ders saatine en fazla 5 dakika kalmış olmalıdır." : undefined}
-                    >
-                         <Video className='w-4 h-4 mr-2'/>
-                        {lesson.isLive ? 'Derse Gir' : 'Dersi Başlat'}
-                    </Button>
+                    <div className="w-full space-y-2">
+                        <Button 
+                            onClick={() => onJoinLesson(lesson)} 
+                            className='w-full font-bold'
+                            disabled={!isJoinable}
+                            title={!isJoinable ? "Derse başlamak için ders saatine en fazla 5 dakika kalmış olmalıdır." : undefined}
+                        >
+                            <Video className='w-4 h-4 mr-2'/>
+                            {lesson.isLive ? 'Derse Gir' : 'Dersi Başlat'}
+                        </Button>
+                        
+                        {/* Teacher Cancellation Button */}
+                        <TeacherCancellationModal lesson={lesson} childName={childData?.firstName || 'Öğrenci'} />
+                    </div>
                 ) : (
                     <Button onClick={onOpenProgressPanel} variant={needsFeedback ? "destructive" : "outline"} className='w-full font-bold'>
                         <Edit className='w-4 h-4 mr-2'/> 
@@ -137,6 +144,118 @@ function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any
                 )}
             </CardFooter>
         </Card>
+    );
+}
+
+function TeacherCancellationModal({ lesson, childName }: { lesson: any, childName: string }) {
+    const db = useFirestore();
+    const { toast } = useToast();
+    const [isCancelling, setIsCancelling] = useState(false);
+    const [excuse, setExcuse] = useState('');
+    const [isOpen, setIsOpen] = useState(false);
+
+    const handleTeacherCancel = async () => {
+        if (!excuse.trim()) {
+            toast({ variant: 'destructive', title: 'Hata', description: 'Lütfen iptal mazeretinizi belirtin.' });
+            return;
+        }
+
+        setIsCancelling(true);
+        try {
+            const batch = writeBatch(db!);
+            
+            // 1. Mark slots as cancelled and save the excuse
+            lesson.slots.forEach((slot: any) => {
+                const slotRef = doc(db!, 'lesson-slots', slot.id);
+                batch.update(slotRef, {
+                    status: 'cancelled',
+                    cancelledBy: 'teacher',
+                    cancelReason: excuse,
+                    updatedAt: serverTimestamp()
+                });
+            });
+
+            // 2. Return credit to parent
+            if (lesson.packageCode !== 'FREE_TRIAL') {
+                const childRef = doc(db!, 'users', lesson.bookedBy, 'children', lesson.childId);
+                batch.update(childRef, {
+                    remainingLessons: increment(1)
+                });
+            }
+
+            await batch.commit();
+
+            // 3. Email Notification to Parent
+            const parentDoc = await getDoc(doc(db!, 'users', lesson.bookedBy));
+            const parentEmail = parentDoc.data()?.email;
+
+            if (parentEmail) {
+                const teacherName = parentDoc.data()?.teacherName || 'Öğretmeniniz'; // fallback
+                fetch('/api/emails/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: parentEmail,
+                        subject: 'Ders İptal Edildi (Öğretmen Mesajı İçerir)',
+                        templateName: 'lesson-cancelled',
+                        data: {
+                            studentName: childName,
+                            teacherName: 'Öğretmeniniz', // Can be refined if we fetch teacher info
+                            date: formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'dd MMMM yyyy', { locale: tr }),
+                            time: formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr }),
+                            reason: excuse // This template should support reason
+                        }
+                    })
+                }).catch(console.error);
+            }
+
+            toast({ title: 'Ders İptal Edildi', description: 'Veliye mazeretiniz iletildi ve kredi iade edildi.' });
+            setIsOpen(false);
+        } catch (error) {
+            console.error("Teacher cancel error:", error);
+            toast({ variant: 'destructive', title: 'Hata', description: 'İptal işlemi başarısız oldu.' });
+        } finally {
+            setIsCancelling(false);
+        }
+    };
+
+    return (
+        <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
+            <AlertDialogTrigger asChild>
+                <Button variant="outline" className="w-full text-xs font-bold text-red-500 hover:text-red-600 hover:bg-red-50 border-red-100">
+                    Dersi İptal Et (Mazeretli)
+                </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="rounded-[32px] border-none shadow-2xl p-8">
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Ders İptali</AlertDialogTitle>
+                    <AlertDialogDescription className="text-slate-500 font-medium pt-2">
+                        {childName} ile olan bu dersi iptal etmek istediğinizden emin misiniz? 
+                        Veliye iletilecek geçerli bir mazeret girmelisiniz. Ders kredisi veliye iade edilecektir.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="py-6 space-y-3">
+                    <Label className="font-bold text-slate-700 ml-1">İptal Mazeretiniz (Veli Görüntüleyecek)</Label>
+                    <Textarea 
+                        placeholder="Örn: Teknik bir arıza nedeniyle dersi iptal etmek durumundayım..."
+                        className="rounded-2xl border-slate-100 bg-slate-50 focus:bg-white min-h-[120px]"
+                        value={excuse}
+                        onChange={(e) => setExcuse(e.target.value)}
+                    />
+                </div>
+                <AlertDialogFooter className="gap-2">
+                    <AlertDialogCancel className="rounded-xl border-none bg-slate-100 hover:bg-slate-200 font-bold" disabled={isCancelling}>Vazgeç</AlertDialogCancel>
+                    <AlertDialogAction 
+                        onClick={(e) => { e.preventDefault(); handleTeacherCancel(); }}
+                        className="rounded-xl bg-red-600 hover:bg-red-700 font-bold text-white shadow-lg shadow-red-600/20"
+                        disabled={isCancelling || !excuse.trim()}
+                    >
+                        {isCancelling ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
+                        İptal Et ve Bildir
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     );
 }
 
