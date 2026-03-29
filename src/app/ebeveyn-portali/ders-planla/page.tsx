@@ -635,7 +635,7 @@ export default function DersPlanlaPage() {
                                 {/* SCROLL HINT BANNER */}
                                 <div className="bg-primary/10 border-2 border-primary/20 text-primary px-4 py-4 rounded-2xl flex items-center justify-center gap-3 shadow-md mt-4 animate-[pulse_3s_ease-in-out_infinite]">
                                     <div className="bg-primary/20 p-2 rounded-full">
-                                        <ArrowRight className="w-5 h-5 -rotate-90 animate-bounce" />
+                                        <ArrowRight className="w-5 h-5 rotate-90 animate-bounce" />
                                     </div>
                                     <span className="font-bold text-sm md:text-base tracking-wide flex-1 text-center sm:text-left">
                                         Müsait saatleri (yeşil alanları) görmek için lütfen tablonun içinde aşağıya doğru kaydırın
