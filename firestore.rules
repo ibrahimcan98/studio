@@ -25,20 +25,22 @@ service cloud.firestore {
 
     // 2. KULLANICI VE ÇOCUK VERİLERİ
     match /users/{userId} {
-      // Kullanıcı kendi verisini okuyabilir ve yazabilir
+      // 1. Kendi verisini okuyabilir ve yazabilir
       allow create: if isSignedIn() && request.auth.uid == userId;
       allow read, update, delete: if isSignedIn() && request.auth.uid == userId;
       
-      // Admin her şeyi yapabilir
-      allow list, get: if isAdmin();
-      
-      // Diğer kullanıcıları okuma izni (Referans sorgusu ve öğretmen listesi için)
-      allow get, list: if isSignedIn();
-      
-      // Takip verileri ve Referans Puanları (academyPoints) için dışarıdan güncelleme izni
+      // 2. Takip verileri ve academyPoints için (PresenceManager ve Puan Sistemi)
+      // Doc mevcut değilken update hata vermemeli ('not-found' dönmeli, 'permission-denied' değil)
       allow update: if (isSignedIn() && request.auth.uid == userId) || 
                     (isSignedIn() && resource != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isOnline', 'lastActiveAt', 'currentPath', 'status', 'onlineSince', 'academyPoints']));
 
+      // 3. Admin Erişimi
+      allow get, list: if isAdmin();
+      
+      // 4. Slug ve Diğer Kullanıcı Kontrolleri (Kayıt sırasında email/slug check için)
+      // SADECE 'get' (doküman ID'si bilinerek) izin veriyoruz, 'list' (tüm listeyi çekme) değil
+      allow get: if isSignedIn();
+      
       match /children/{childId} {
         allow read, write: if isSignedIn() && request.auth.uid == userId;
         allow read: if isAdmin() || (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'teacher']);

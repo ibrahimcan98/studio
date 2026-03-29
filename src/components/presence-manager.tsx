@@ -62,17 +62,18 @@ export function PresenceManager() {
                 lastActiveAt: serverTimestamp(),
             });
         } catch (error: any) {
-            if (error.code === 'not-found') {
-                // The user document was deleted (e.g. by an admin)
-                // We should sign them out so they aren't stuck in a zombie state.
-                // HOWEVER: Ensure we don't accidentally boot out a user who literally 
-                // just signed up 2 seconds ago and hasn't finished their db setup yet!
-                const creationTime = new Date(user.metadata.creationTime || '').getTime();
-                const now = Date.now();
-                if (now - creationTime > 2 * 60 * 1000) { // Older than 2 minutes
+            // Early out if document doesn't exist yet (normal during first 2 minutes of registration)
+            const creationTime = new Date(user.metadata.creationTime || '').getTime();
+            const now = Date.now();
+            const isVeryNewUser = (now - creationTime < 2 * 60 * 1000);
+
+            if (error.code === 'not-found' || (error.code === 'permission-denied' && isVeryNewUser)) {
+                // If the user document was deleted (and isn't new), sign them out
+                if (error.code === 'not-found' && !isVeryNewUser) {
                     const auth = getAuth();
                     signOut(auth).catch(() => {});
                 }
+                // Otherwise, ignore the error silently for brand new users
             } else {
                 console.error('Presence update error:', error);
             }
