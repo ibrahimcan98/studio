@@ -37,7 +37,7 @@ service cloud.firestore {
       
       // Takip verileri ve Referans Puanları (academyPoints) için dışarıdan güncelleme izni
       allow update: if (isSignedIn() && request.auth.uid == userId) || 
-                    (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isOnline', 'lastActiveAt', 'currentPath', 'onlineSince', 'academyPoints']));
+                    (isSignedIn() && resource != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isOnline', 'lastActiveAt', 'currentPath', 'status', 'onlineSince', 'academyPoints']));
 
       match /children/{childId} {
         allow read, write: if isSignedIn() && request.auth.uid == userId;

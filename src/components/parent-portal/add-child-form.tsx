@@ -43,7 +43,7 @@ const difficulties = [
     { id: "yazma", label: "Yazma" },
     { id: "ifade", label: "Kendini ifade" },
     { id: "motivasyon", label: "Motivasyon" },
-    { id: "ingilizce-karistirma", label: "İngilizce karıştırma" },
+    { id: "ingilizce-karistirma", label: "Dilleri karıştırma" },
 ] as const;
 
 const formSchema = z.object({

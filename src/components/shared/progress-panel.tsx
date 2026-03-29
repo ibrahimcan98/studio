@@ -56,7 +56,7 @@ const difficultiesMap: { [key: string]: string } = {
     "yazma": "Yazma",
     "ifade": "Kendini ifade",
     "motivasyon": "Motivasyon",
-    "ingilizce-karistirma": "İngilizce karıştırma"
+    "ingilizce-karistirma": "Dilleri karıştırma"
 };
 
 
