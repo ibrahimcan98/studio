@@ -1,16 +1,33 @@
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, getDocs, addDoc, serverTimestamp, orderBy, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, serverTimestamp, orderBy, onSnapshot, doc, updateDoc, deleteDoc, limit } from 'firebase/firestore';
 import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { getCountryFromPhone, cn } from '@/lib/utils';
-import { Loader2, Phone, Search, History, Clock, PhoneOff, UserCheck, CalendarClock, UserCog, User, MapPin, Hash, PhoneCall, Copy, MoreHorizontal, ShoppingBag, Baby, FileText, Tag as TagIcon, Mail, Calendar, Activity } from 'lucide-react';
+import { Loader2, Phone, Search, History, Clock, PhoneOff, UserCheck, CalendarClock, UserCog, User, MapPin, Hash, PhoneCall, Copy, MoreHorizontal, ShoppingBag, Baby, FileText, Tag as TagIcon, Mail, Calendar, Activity, Trash2, Edit2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ProgressPanel } from '@/components/shared/progress-panel';
 import { useToast } from '@/hooks/use-toast';
 import { differenceInDays, isBefore, isAfter, format } from 'date-fns';
@@ -42,6 +59,13 @@ export default function AramalarPage() {
   const [isSavingCall, setIsSavingCall] = useState(false);
   const [isChildProgressOpen, setIsChildProgressOpen] = useState(false);
   const [selectedChildForProgress, setSelectedChildForProgress] = useState<any>(null);
+  
+  // New States for Call Log Management
+  const [editingLog, setEditingLog] = useState<any | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [logToDelete, setLogToDelete] = useState<any | null>(null);
+  const [isUpdatingLog, setIsUpdatingLog] = useState(false);
 
   const parentsQuery = useMemoFirebase(() => {
     if (!db) return null;
@@ -163,6 +187,77 @@ export default function AramalarPage() {
         toast({ variant: 'destructive', title: 'Hata', description: 'Arama kaydedilirken hata oluştu.' });
     } finally {
         setIsSavingCall(false);
+    }
+  };
+
+  const handleDeleteCallLog = async () => {
+    if (!db || !selectedParent || !logToDelete) return;
+    setIsUpdatingLog(true);
+    
+    try {
+        const logId = logToDelete.id;
+        await deleteDoc(doc(db, 'users', selectedParent.id, 'call-logs', logId));
+        
+        // Fetch the newest log after deletion to update the parent document's lastCallStatus
+        const logsQuery = query(
+            collection(db, 'users', selectedParent.id, 'call-logs'), 
+            orderBy('createdAt', 'desc'),
+            limit(1)
+        );
+        const latestLogs = await getDocs(logsQuery);
+        
+        if (latestLogs.empty) {
+            // No more logs, clear the status
+            await updateDoc(doc(db, 'users', selectedParent.id), { lastCallStatus: null });
+        } else {
+            // Update with the new latest log
+            const newLatest = latestLogs.docs[0].data();
+            await updateDoc(doc(db, 'users', selectedParent.id), { 
+                lastCallStatus: {
+                    status: newLatest.status,
+                    color: newLatest.color,
+                    icon: newLatest.icon,
+                    note: newLatest.note
+                }
+            });
+        }
+
+        toast({ title: 'Başarılı', description: 'Arama kaydı veritabanından silindi.' });
+    } catch (e: any) {
+        console.error("Error deleting call log:", e);
+        toast({ variant: 'destructive', title: 'Hata', description: 'Silme işlemi başarısız: ' + e.message });
+    } finally {
+        setIsUpdatingLog(false);
+        setIsDeleteDialogOpen(false);
+        setLogToDelete(null);
+    }
+  };
+
+  const handleUpdateCallLog = async () => {
+    if (!db || !selectedParent || !editingLog) return;
+    setIsUpdatingLog(true);
+    
+    try {
+        await updateDoc(doc(db, 'users', selectedParent.id, 'call-logs', editingLog.id), {
+            note: editingLog.note.trim()
+        });
+
+        // Also check if this was the last call and update the main doc if needed
+        // Since callLogs is ordered by desc, the first one is the latest
+        if (selectedParent.lastCallStatus && callLogs[0]?.id === editingLog.id) {
+             await updateDoc(doc(db, 'users', selectedParent.id), { 
+                "lastCallStatus.note": editingLog.note.trim()
+            });
+        }
+
+        toast({ title: 'Başarılı', description: 'Not güncellendi.' });
+        setIsEditOpen(false);
+        setEditingLog(null);
+    } catch (e: any) {
+        console.error("Error updating call log:", e);
+        toast({ variant: 'destructive', title: 'Hata', description: 'Güncelleme başarısız: ' + e.message });
+    } finally {
+        setIsUpdatingLog(false);
     }
   };
 
@@ -459,10 +554,39 @@ export default function AramalarPage() {
                                                             )}
                                                         </div>
                                                     </div>
-                                                    <div className="text-right flex flex-col items-end gap-1 shrink-0">
+                                                    <div className="text-right flex items-center gap-3 shrink-0">
                                                         <Badge variant="outline" className="text-[10px] bg-slate-50 text-slate-500 font-bold px-2 py-1 uppercase tracking-widest border-slate-200">
                                                             {log.createdAt?.toDate().toLocaleDateString('tr-TR')} {log.createdAt?.toDate().toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'})}
                                                         </Badge>
+                                                        
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-slate-100 rounded-full">
+                                                                    <MoreHorizontal className="h-4 w-4 text-slate-400" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end" className="rounded-xl border-none shadow-2xl p-2 w-48">
+                                                                <DropdownMenuLabel className="text-[10px] font-black text-slate-400 uppercase mb-1 px-2">İşlemler</DropdownMenuLabel>
+                                                                <DropdownMenuItem 
+                                                                    className="rounded-lg font-bold text-xs py-2.5 cursor-pointer flex items-center gap-2"
+                                                                    onClick={() => {
+                                                                        setEditingLog(log);
+                                                                        setIsEditOpen(true);
+                                                                    }}
+                                                                >
+                                                                    <Edit2 className="w-3.5 h-3.5 text-blue-500" /> Notu Düzenle
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem 
+                                                                    className="rounded-lg font-bold text-xs py-2.5 text-red-500 focus:text-red-500 cursor-pointer flex items-center gap-2"
+                                                                    onClick={() => {
+                                                                        setLogToDelete(log);
+                                                                        setIsDeleteDialogOpen(true);
+                                                                    }}
+                                                                >
+                                                                    <Trash2 className="w-3.5 h-3.5" /> Kaydı Sil
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
                                                     </div>
                                                 </div>
                                             ))}
@@ -512,6 +636,54 @@ export default function AramalarPage() {
             </div>
         </DialogContent>
       </Dialog>
+
+      {/* CALL LOG EDIT DIALOG */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-md rounded-[24px]">
+            <DialogHeader>
+                <DialogTitle className="text-xl font-bold">Arama Notunu Düzenle</DialogTitle>
+                <DialogDescription>Seçili arama kaydına ait notu güncelleyin.</DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+                <Input 
+                    value={editingLog?.note || ''} 
+                    onChange={e => setEditingLog({...editingLog, note: e.target.value})}
+                    placeholder="Yeni notunuzu girin..."
+                    className="h-12 rounded-xl"
+                />
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={isUpdatingLog}>Vazgeç</Button>
+                <Button onClick={handleUpdateCallLog} disabled={isUpdatingLog} className="font-bold">
+                    {isUpdatingLog ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Edit2 className="w-4 h-4 mr-2" />}
+                    Güncelle
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* CALL LOG DELETE CONFIRMATION */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="rounded-[24px]">
+            <AlertDialogHeader>
+                <AlertDialogTitle className="text-xl font-bold text-red-600">Kaydı Sil?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Bu arama kaydı kalıcı olarak silinecek. Bu işlem geri alınamaz.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel disabled={isUpdatingLog}>Vazgeç</AlertDialogCancel>
+                <AlertDialogAction 
+                    onClick={handleDeleteCallLog} 
+                    disabled={isUpdatingLog}
+                    className="bg-red-600 hover:bg-red-700 text-white font-bold"
+                >
+                    {isUpdatingLog ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                    Evet, Sil
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
