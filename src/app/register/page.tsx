@@ -72,12 +72,6 @@ export default function RegisterPage() {
 
       await updateProfile(newUser, { displayName: name });
       
-      const actionCodeSettings = {
-        url: `${window.location.origin}/auth/email-onay`,
-        handleCodeInApp: true,
-      };
-      await sendEmailVerification(newUser, actionCodeSettings);
-
       const userDocRef = doc(db, 'users', newUser.uid);
       
       const isAdmin = cleanEmail.toLowerCase() === adminEmail.toLowerCase();
@@ -111,7 +105,20 @@ export default function RegisterPage() {
           });
       }
 
+      // First, create the Firestore document
       await setDoc(userDocRef, userData, { merge: true });
+
+      // Then, try to send verification email (but don't fail registration if it fails)
+      try {
+        const actionCodeSettings = {
+          url: `${window.location.origin}/auth/email-onay`,
+          handleCodeInApp: true,
+        };
+        await sendEmailVerification(newUser, actionCodeSettings);
+      } catch (verificationError: any) {
+        console.error("Verification email failed to send:", verificationError);
+        // We continue anyway since the user document is already created
+      }
 
       toast({
         title: role === 'teacher' ? 'Hoş Geldiniz Öğretmenim!' : 'Kayıt Başarılı!',
