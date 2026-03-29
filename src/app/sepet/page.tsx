@@ -48,22 +48,8 @@ export default function SepetPage() {
     const publicCouponsQuery = useMemoFirebase(() => db ? query(collection(db, 'coupons'), where('isPublicDisplay', '==', true), where('isActive', '==', true)) : null, [db]);
     const { data: publicCoupons } = useCollection(publicCouponsQuery);
 
-    useEffect(() => {
-        if (publicCoupons && publicCoupons.length > 0 && !appliedCoupon && cartItems.length > 0) {
-            const publicCoupon = publicCoupons[0];
-            applyStandardDiscount(
-                publicCoupon.code, 
-                publicCoupon.discountPct, 
-                publicCoupon.applicableCourseId, 
-                publicCoupon.applicablePackage
-            );
-            toast({
-                title: 'Kampanya Uygulandı!',
-                description: `Vitrin indirimi sepetinize otomatik olarak tanımlandı.`,
-                className: 'bg-green-500 text-white'
-            });
-        }
-    }, [publicCoupons, appliedCoupon, cartItems.length, applyStandardDiscount, toast]);
+    // Redundant auto-apply logic removed as CartProvider now handles multi-discounts automatically for each item.
+    // Also removed to prevent setting a single 'appliedCouponData' when multiple targeted public discounts are active.
     
     // Bakiye Logic
     const userDocRef = useMemoFirebase(() => (db && user?.uid) ? doc(db, 'users', user.uid) : null, [db, user?.uid]);
@@ -317,18 +303,38 @@ export default function SepetPage() {
                                                             let hasDiscount = false;
                                                             
                                                             // Calculate individual item discount
+                                                            let maxItemPct = 0;
+                                                            
+                                                            // 1. Check Standard Coupon (Manual)
                                                             if (appliedCouponData) {
                                                                 const [courseId] = item.id.split('-');
                                                                 const courseMatches = !appliedCouponData.applicableCourseId || appliedCouponData.applicableCourseId === courseId;
                                                                 const packageMatches = !appliedCouponData.applicablePackage || appliedCouponData.applicablePackage === lessonsCount;
-                                                                
                                                                 if (courseMatches && packageMatches) {
-                                                                    itemBasePriceEur *= (1 - appliedCouponData.discountPct);
-                                                                    hasDiscount = true;
+                                                                    maxItemPct = Math.max(maxItemPct, appliedCouponData.discountPct);
                                                                 }
                                                             }
                                                             
-                                                            // Global referral 5%
+                                                            // 2. Check Public Coupons (Automatic)
+                                                            if (publicCoupons && publicCoupons.length > 0) {
+                                                                const [courseId] = item.id.split('-');
+                                                                const matchingPublic = publicCoupons.filter((c: any) => {
+                                                                    const courseMatches = !c.applicableCourseId || c.applicableCourseId === courseId;
+                                                                    const packageMatches = !c.applicablePackage || c.applicablePackage === lessonsCount;
+                                                                    return courseMatches && packageMatches;
+                                                                });
+                                                                if (matchingPublic.length > 0) {
+                                                                    const bestPublicPct = Math.max(...matchingPublic.map((c: any) => c.discountPct || 0));
+                                                                    maxItemPct = Math.max(maxItemPct, bestPublicPct);
+                                                                }
+                                                            }
+                                                            
+                                                            if (maxItemPct > 0) {
+                                                                itemBasePriceEur *= (1 - maxItemPct);
+                                                                hasDiscount = true;
+                                                            }
+                                                            
+                                                            // Global referral 5% (Additive)
                                                             if (appliedReferralCode) {
                                                                 itemBasePriceEur *= 0.95;
                                                                 hasDiscount = true;
@@ -417,17 +423,19 @@ export default function SepetPage() {
                                     <Separator />
                                     <div className="space-y-4">
                                         {/* İndirim Kodu Kısımı */}
-                                        {appliedCoupon ? (
+                                        {appliedCoupon && (
                                             <div className="flex items-center justify-between gap-2">
                                                 <Badge>
                                                     <Tag className="w-3 h-3 mr-1"/>
-                                                    {appliedCoupon} (%20 İndirim)
+                                                    Kupon: {appliedCoupon} (%{(appliedCouponData!.discountPct * 100).toFixed(0)})
                                                 </Badge>
                                                 <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={removeCoupon}>
                                                     <XCircle className="w-4 h-4"/>
                                                 </Button>
                                             </div>
-                                        ): (
+                                        )}
+                                        {/* If no manual coupon, users can enter one */}
+                                        {!appliedCoupon && (
                                             <div className="space-y-2">
                                                 <Label htmlFor="coupon">İndirim Kodu</Label>
                                                 <div className="flex gap-2">

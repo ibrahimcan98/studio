@@ -32,7 +32,7 @@ export function KurslarClientPage({
         db ? query(collection(db, 'coupons'), where('isPublicDisplay', '==', true), where('isActive', '==', true)) : null
     , [db]);
     const { data: globalCoupons } = useCollection(globalCouponsQuery);
-    const activeGlobalCoupon = globalCoupons?.[0]; // take the first active public coupon if exists
+    // Remove taking only the first one, use the whole list for matching
     
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -77,12 +77,15 @@ export function KurslarClientPage({
     const PriceDisplay = ({ price, courseId, packageLessons }: { price: number, courseId: string, packageLessons: number }) => {
         let discountPct = 0;
         
-        if (activeGlobalCoupon) {
-            const courseMatches = !activeGlobalCoupon.applicableCourseId || activeGlobalCoupon.applicableCourseId === courseId;
-            const packageMatches = !activeGlobalCoupon.applicablePackage || activeGlobalCoupon.applicablePackage === packageLessons;
+        if (globalCoupons && globalCoupons.length > 0) {
+            const matchingCoupons = globalCoupons.filter((coupon: any) => {
+                const courseMatches = !coupon.applicableCourseId || coupon.applicableCourseId === courseId;
+                const packageMatches = !coupon.applicablePackage || coupon.applicablePackage === packageLessons;
+                return courseMatches && packageMatches;
+            });
             
-            if (courseMatches && packageMatches) {
-                discountPct = activeGlobalCoupon.discountPct;
+            if (matchingCoupons.length > 0) {
+                discountPct = Math.max(...matchingCoupons.map((c: any) => c.discountPct || 0));
             }
         }
         
@@ -131,12 +134,15 @@ export function KurslarClientPage({
     const PerLessonPrice = ({ perLessonPriceInGbp, courseId, packageLessons }: { perLessonPriceInGbp: number, courseId: string, packageLessons: number }) => {
         let discountPct = 0;
         
-        if (activeGlobalCoupon) {
-            const courseMatches = !activeGlobalCoupon.applicableCourseId || activeGlobalCoupon.applicableCourseId === courseId;
-            const packageMatches = !activeGlobalCoupon.applicablePackage || activeGlobalCoupon.applicablePackage === packageLessons;
+        if (globalCoupons && globalCoupons.length > 0) {
+            const matchingCoupons = globalCoupons.filter((coupon: any) => {
+                const courseMatches = !coupon.applicableCourseId || coupon.applicableCourseId === courseId;
+                const packageMatches = !coupon.applicablePackage || coupon.applicablePackage === packageLessons;
+                return courseMatches && packageMatches;
+            });
             
-            if (courseMatches && packageMatches) {
-                discountPct = activeGlobalCoupon.discountPct;
+            if (matchingCoupons.length > 0) {
+                discountPct = Math.max(...matchingCoupons.map((c: any) => c.discountPct || 0));
             }
         }
         

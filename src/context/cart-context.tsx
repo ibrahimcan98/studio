@@ -3,6 +3,8 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { getExchangeRates } from '@/ai/flows/exchange-rate-flow';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
 
 export type CartItem = {
     id: string;
@@ -76,6 +78,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     
     const [selectedCurrency, setSelectedCurrencyState] = useState('GBP');
     const [exchangeRates, setExchangeRates] = useState<{ [key: string]: number }>({ GBP: 1 });
+    
+    // Fetch public coupons to apply automatically
+    const db = useFirestore();
+    const publicCouponsQuery = useMemoFirebase(() => 
+        db ? query(collection(db, 'coupons'), where('isPublicDisplay', '==', true), where('isActive', '==', true)) : null
+    , [db]);
+    const { data: publicCoupons } = useCollection(publicCouponsQuery);
 
     useEffect(() => {
         try {
@@ -182,8 +191,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     const discountAmount = cartItems.reduce((total, item) => {
         let itemDiscount = 0;
+        let maxItemDiscountPct = 0;
         
-        // 1. Check Standard Coupon
+        // 1. Check Standard Coupon (Manually entered)
         if (appliedCouponData) {
             const [courseId] = item.id.split('-');
             const lessonsCount = parseInt(item.description.split(' ')[0]) || 0;
@@ -192,11 +202,32 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             const packageMatches = !appliedCouponData.applicablePackage || appliedCouponData.applicablePackage === lessonsCount;
             
             if (courseMatches && packageMatches) {
-                itemDiscount += (item.price * item.quantity * appliedCouponData.discountPct);
+                const manualPct = appliedCouponData.discountPct;
+                maxItemDiscountPct = Math.max(maxItemDiscountPct, manualPct);
             }
         }
         
-        // 2. Check Referral Discount (Referral is usually global 5%)
+        // 2. Check Automatic Public Coupons
+        if (publicCoupons && publicCoupons.length > 0) {
+            const [courseId] = item.id.split('-');
+            const lessonsCount = parseInt(item.description.split(' ')[0]) || 0;
+            
+            const matchingPublicCoupons = publicCoupons.filter((c: any) => {
+                const courseMatches = !c.applicableCourseId || c.applicableCourseId === courseId;
+                const packageMatches = !c.applicablePackage || c.applicablePackage === lessonsCount;
+                return courseMatches && packageMatches;
+            });
+            
+            if (matchingPublicCoupons.length > 0) {
+                const bestPublicPct = Math.max(...matchingPublicCoupons.map((c: any) => c.discountPct || 0));
+                maxItemDiscountPct = Math.max(maxItemDiscountPct, bestPublicPct);
+            }
+        }
+        
+        // Apply the best found discount for this item
+        itemDiscount += (item.price * item.quantity * maxItemDiscountPct);
+        
+        // 3. Check Referral Discount (Referral is additive if applicable, but usually kept separate)
         if (referralDiscountPct > 0) {
             itemDiscount += (item.price * item.quantity * referralDiscountPct);
         }
