@@ -38,8 +38,7 @@ service cloud.firestore {
       allow get, list: if isAdmin();
       
       // 4. Slug ve Diğer Kullanıcı Kontrolleri (Kayıt sırasında email/slug check için)
-      // SADECE 'get' (doküman ID'si bilinerek) izin veriyoruz, 'list' (tüm listeyi çekme) değil
-      allow get: if isSignedIn();
+      allow get, list: if isSignedIn();
       
       match /children/{childId} {
         allow read, write: if isSignedIn() && request.auth.uid == userId;
