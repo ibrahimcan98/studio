@@ -42,6 +42,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { AddChildForm } from '@/components/parent-portal/add-child-form';
+import { Logo } from '@/components/logo';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -539,9 +540,9 @@ function EbeveynPortaliContent() {
 
         <Dialog open={showWelcomeModal} onOpenChange={setShowWelcomeModal}>
             <DialogContent className="max-w-md rounded-[32px] p-8 text-center border-none shadow-2xl">
-                <DialogHeader className="space-y-4 items-center flex flex-col">
-                   <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
-                       <Gift className="w-10 h-10 text-primary" />
+                <DialogHeader className="space-y-4 items-center flex flex-col pt-4">
+                   <div className="flex justify-center mb-4">
+                       <Logo className="scale-125 sm:scale-150 transform origin-center" />
                    </div>
                    <DialogTitle className="text-3xl font-black text-slate-900 tracking-tight">Hoş Geldiniz!</DialogTitle>
                    <DialogDescription className="text-base font-medium text-slate-500 max-w-[280px]">

@@ -48,10 +48,12 @@ export default function RegisterPage() {
   }, []);
 
   useEffect(() => {
-    if (!loading && user && !user.isAnonymous && isMounted) {
+    if (!loading && user && !user.isAnonymous && isMounted && !isSubmitting) {
+      // Sadece sayfa ilk açıldığında halihazırda login olanları yönlendirir.
+      // isSubmitting true iken (kayıt esnasında) erken yönlendirmeyi önler.
       router.push('/ebeveyn-portali');
     }
-  }, [user, loading, router, isMounted]);
+  }, [user, loading, router, isMounted, isSubmitting]);
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -116,6 +118,10 @@ export default function RegisterPage() {
         description: 'Hesabınız oluşturuldu. Portala yönlendiriliyorsunuz. Lütfen e-postanızı kontrol ederek hesabınızı doğrulayın.',
         duration: 8000,
       });
+
+      // Veli kayıt olduktan sonra portalda hoşgeldin modalını kesinlikle görsün diye
+      // eğer aynı sekmede daha önce test yapıldıysa kalan flag'i temizliyoruz.
+      sessionStorage.removeItem('seenWelcomeTrial');
 
       router.push(targetPath);
 

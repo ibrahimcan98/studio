@@ -619,7 +619,7 @@ export default function DersPlanlaPage() {
                                         <div className="flex items-center gap-1.5 bg-slate-100/50 p-1 rounded-xl border border-slate-200/30">
                                             <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-white" onClick={() => setCurrentWeekStart(d => addDays(d, -7))}><ChevronLeft className="w-4 h-4" /></Button>
                                             <span className="text-xs font-black text-slate-700 px-3 whitespace-nowrap min-w-[150px] text-center">
-                                                {format(currentWeekStart, 'd MMMM')} - {format(addDays(currentWeekStart, 6), 'd MMMM', { locale: tr })}
+                                                {format(currentWeekStart, 'd MMMM', { locale: tr })} - {format(addDays(currentWeekStart, 6), 'd MMMM', { locale: tr })}
                                             </span>
                                             <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-white" onClick={() => setCurrentWeekStart(d => addDays(d, 7))}><ArrowRight className="w-4 h-4 cursor-pointer" /></Button>
                                         </div>
@@ -630,6 +630,16 @@ export default function DersPlanlaPage() {
                                         <div className="flex items-center gap-2.5"><div className="w-3.5 h-3.5 bg-red-400 rounded-md"></div> Dolu</div>
                                         <div className="flex items-center gap-2.5"><div className="w-3.5 h-3.5 bg-slate-200 rounded-md"></div> Kapalı</div>
                                     </div>
+                                </div>
+
+                                {/* SCROLL HINT BANNER */}
+                                <div className="bg-primary/10 border-2 border-primary/20 text-primary px-4 py-4 rounded-2xl flex items-center justify-center gap-3 shadow-md mt-4 animate-[pulse_3s_ease-in-out_infinite]">
+                                    <div className="bg-primary/20 p-2 rounded-full">
+                                        <ArrowRight className="w-5 h-5 -rotate-90 animate-bounce" />
+                                    </div>
+                                    <span className="font-bold text-sm md:text-base tracking-wide flex-1 text-center sm:text-left">
+                                        Müsait saatleri (yeşil alanları) görmek için lütfen tablonun içinde aşağıya doğru kaydırın
+                                    </span>
                                 </div>
 
                                 {/* WEEKLY GRID */}
@@ -648,7 +658,7 @@ export default function DersPlanlaPage() {
                                     </div>
 
                                     {/* Scrollable Time Grid */}
-                                    <div className="flex-1 overflow-y-auto overflow-x-hidden relative scroll-smooth scrollbar-thin scrollbar-thumb-slate-200">
+                                    <div className="flex-1 overflow-y-auto overflow-x-hidden relative scroll-smooth custom-scrollbar pr-1">
                                         <div className="flex min-h-full">
                                             {/* Time Labels Column */}
                                             <div className="w-16 shrink-0 border-r border-slate-100 bg-slate-50/40">
