@@ -108,7 +108,7 @@ export default function LoginPage() {
        else if (error.code === 'auth/wrong-password') msg = 'Şifreniz hatalı.';
        else if (error.code === 'auth/invalid-credential') msg = 'E-posta adresiniz veya şifreniz hatalı.';
        else if (error.code === 'auth/too-many-requests') msg = 'Çok fazla hatalı deneme. Hesabınız geçici kilitlendi.';
-       else msg = error.message || 'E-posta veya şifre hatalı.';
+       else msg = 'E-posta veya şifre hatalı.';
        
        toast({ variant: 'destructive', title: 'Hata', description: msg });
        setIsSubmitting(false);

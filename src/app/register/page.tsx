@@ -145,7 +145,7 @@ export default function RegisterPage() {
       toast({
         variant: 'destructive',
         title: 'Hata',
-        description: `${errorMessage} (Kod: ${error.code || 'unknown'})`,
+        description: errorMessage,
       });
     } finally {
       setIsSubmitting(false);
