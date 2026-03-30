@@ -424,22 +424,27 @@ export default function DerslerimPage() {
         });
     }, [lessonSlots]);
     
-    const { upcomingLessons, pastLessons } = useMemo(() => {
+    const { upcomingLessons, pastLessons, cancelledLessons } = useMemo(() => {
         const now = new Date();
         const upcoming: any[] = [];
         const past: any[] = [];
+        const cancelled: any[] = [];
+
         groupedLessons.forEach(lesson => {
             if (lesson.status === 'cancelled') {
-                past.push(lesson); // Show cancelled in past tab even if start time is future, or you can keep it in upcoming
+                cancelled.push(lesson); 
             } else if (lesson.endTime > now) {
                 upcoming.push(lesson);
             } else {
                 past.push(lesson);
             }
         });
+
         upcoming.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
         past.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
-        return { upcomingLessons: upcoming, pastLessons: past };
+        cancelled.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
+
+        return { upcomingLessons: upcoming, pastLessons: past, cancelledLessons: cancelled };
     }, [groupedLessons]);
 
     const handleShowProgress = (lesson: any) => {
@@ -469,9 +474,10 @@ export default function DerslerimPage() {
             </div>
 
             <Tabs defaultValue="upcoming" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="upcoming"><Calendar className="mr-2 h-4 w-4" />Yaklaşan Dersler ({upcomingLessons.length})</TabsTrigger>
                     <TabsTrigger value="past"><History className="mr-2 h-4 w-4" />Geçmiş Dersler ({pastLessons.length})</TabsTrigger>
+                    <TabsTrigger value="cancelled"><AlertCircle className="mr-2 h-4 w-4" />İptal Edilenler ({cancelledLessons.length})</TabsTrigger>
                 </TabsList>
                 <TabsContent value="upcoming">
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mt-4">
@@ -483,6 +489,12 @@ export default function DerslerimPage() {
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mt-4">
                         {pastLessons.map(lesson => <LessonCard key={lesson.id} lesson={lesson} timeZone={timeZone} onShowProgress={handleShowProgress} />)}
                         {pastLessons.length === 0 && <div className="col-span-full text-center py-20 bg-white rounded-xl border border-dashed text-muted-foreground">Henüz tamamlanmış bir dersiniz bulunmuyor.</div>}
+                    </div>
+                </TabsContent>
+                <TabsContent value="cancelled">
+                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mt-4">
+                        {cancelledLessons.map(lesson => <LessonCard key={lesson.id} lesson={lesson} timeZone={timeZone} onShowProgress={handleShowProgress} />)}
+                        {cancelledLessons.length === 0 && <div className="col-span-full text-center py-20 bg-white rounded-xl border border-dashed text-muted-foreground">İptal edilen bir dersiniz bulunmuyor.</div>}
                     </div>
                 </TabsContent>
             </Tabs>
