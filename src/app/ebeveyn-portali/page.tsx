@@ -361,31 +361,41 @@ function EbeveynPortaliContent() {
         });
     }
 
-    // 3. İptal Edilen Dersler (Son 48 saat)
-    const cancelledLessons = slots
+    // 3. İptal Edilen Dersler (Son 48 saat) - Gruplandırılmış
+    const cancelledMap = new Map();
+    slots
       .filter(s => {
           const updatedAt = s.updatedAt?.toDate ? s.updatedAt.toDate() : new Date();
           return s.status === 'cancelled' && isAfter(updatedAt, subHours(now, 48));
       })
+      .forEach(slot => {
+          const date = slot.startTime.toDate ? slot.startTime.toDate() : new Date(slot.startTime);
+          // Her ders için (çocuk-tarih-saat bazlı) tek bir bildirim göstermek için unik bir key
+          const key = `${slot.childId}-${format(date, 'yyyy-MM-dd-HH', { locale: tr })}`;
+          if (!cancelledMap.has(key)) {
+              cancelledMap.set(key, slot);
+          }
+      });
+
+    Array.from(cancelledMap.values())
       .sort((a, b) => {
           const aTime = a.updatedAt?.seconds || 0;
           const bTime = b.updatedAt?.seconds || 0;
           return bTime - aTime;
+      })
+      .forEach(cl => {
+          const date = cl.startTime.toDate ? cl.startTime.toDate() : new Date(cl.startTime);
+          list.push({
+              id: `cancel-${cl.id}`,
+              type: 'cancelled',
+              icon: <AlertTriangle className="h-4 w-4" />,
+              color: 'bg-red-100 text-red-600',
+              title: '⚠️ Ders İptal Edildi:',
+              text: `${format(date, 'dd MMMM', { locale: tr })} dersi öğretmen tarafından iptal edildi.`,
+              fullText: cl.cancelReason ? `Mazeret: "${cl.cancelReason}" (Krediniz iade edilmiştir.)` : 'Öğretmeniniz dersi iptal etti. Krediniz iade edilmiştir.',
+              path: '/ebeveyn-portali/dersler?tab=cancelled'
+          });
       });
-
-    cancelledLessons.forEach(cl => {
-        const date = cl.startTime.toDate ? cl.startTime.toDate() : new Date(cl.startTime);
-        list.push({
-            id: `cancel-${cl.id}`,
-            type: 'cancelled',
-            icon: <AlertTriangle className="h-4 w-4" />,
-            color: 'bg-red-100 text-red-600',
-            title: '⚠️ Ders İptal Edildi:',
-            text: `${format(date, 'dd MMMM', { locale: tr })} dersi öğretmen tarafından iptal edildi.`,
-            fullText: cl.cancelReason ? `Mazeret: "${cl.cancelReason}" (Krediniz iade edilmiştir.)` : 'Öğretmeniniz dersi iptal etti. Krediniz iade edilmiştir.',
-            path: '/ebeveyn-portali/dersler?tab=past'
-        });
-    });
 
     // 4. Seviye Bilgisi
     childrenWithEffect.forEach(child => {
