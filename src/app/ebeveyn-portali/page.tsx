@@ -361,25 +361,33 @@ function EbeveynPortaliContent() {
         });
     }
 
-    // 3. İptal Edilen Dersler (Son 48 saat)
-    const cancelledLessons = slots
+    // 3. İptal Edilen Dersler (Son 48 saat) - Gruplandırılmış
+    const cancelledMap = new Map();
+    slots
       .filter(s => {
           const updatedAt = s.updatedAt?.toDate ? s.updatedAt.toDate() : new Date();
           return s.status === 'cancelled' && isAfter(updatedAt, subHours(now, 48));
       })
-      .sort((a, b) => {
-          const aTime = a.updatedAt?.seconds || 0;
-          const bTime = b.updatedAt?.seconds || 0;
-          return bTime - aTime;
+      .forEach(s => {
+          const key = `${s.childId}-${s.startTime.seconds}`;
+          if (!cancelledMap.has(key)) {
+              cancelledMap.set(key, s);
+          }
       });
 
-    cancelledLessons.forEach(cl => {
+    const groupedCancelled = Array.from(cancelledMap.values()).sort((a, b) => {
+        const aTime = a.updatedAt?.seconds || 0;
+        const bTime = b.updatedAt?.seconds || 0;
+        return bTime - aTime;
+    });
+
+    groupedCancelled.forEach(cl => {
         const date = cl.startTime.toDate ? cl.startTime.toDate() : new Date(cl.startTime);
         list.push({
             id: `cancel-${cl.id}`,
             type: 'cancelled',
             icon: <AlertTriangle className="h-4 w-4" />,
-            color: 'bg-red-100 text-red-600',
+            color: 'bg-red-50 text-red-600 border-red-100',
             title: '⚠️ Ders İptal Edildi:',
             text: `${format(date, 'dd MMMM', { locale: tr })} dersi öğretmen tarafından iptal edildi.`,
             fullText: cl.cancelReason ? `Mazeret: "${cl.cancelReason}" (Krediniz iade edilmiştir.)` : 'Öğretmeniniz dersi iptal etti. Krediniz iade edilmiştir.',
