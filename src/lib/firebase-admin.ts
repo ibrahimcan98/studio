@@ -22,9 +22,10 @@ const initializeFirebaseAdmin = (): App => {
       if (serviceAccount.private_key) {
         serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
       }
-      console.log('[Firebase Admin] Initializing from Environment Variable...');
+      console.log('[Firebase Admin] Initializing from Environment Variable with Project ID:', serviceAccount.project_id);
       return initializeApp({
-        credential: cert(serviceAccount)
+        credential: cert(serviceAccount),
+        projectId: serviceAccount.project_id
       });
     } catch (e: any) {
       console.warn('[Firebase Admin] Env JSON parse failed:', e.message);
@@ -38,9 +39,10 @@ const initializeFirebaseAdmin = (): App => {
       if (serviceAccount.private_key) {
         serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
       }
-      console.log('[Firebase Admin] Initializing from service-account.json file.');
+      console.log('[Firebase Admin] Initializing from service-account.json file with Project ID:', serviceAccount.project_id);
       return initializeApp({
-        credential: cert(serviceAccount)
+        credential: cert(serviceAccount),
+        projectId: serviceAccount.project_id
       });
     } catch (e: any) {
       console.warn('[Firebase Admin] File JSON parse failed:', e.message);
