@@ -105,8 +105,13 @@ function CancellationButtons({ lesson, timeZone }: { lesson: any, timeZone: stri
                 });
             });
 
+            const userDocRef = doc(db, 'users', user.uid);
             const childDocRef = doc(db, 'users', lesson.bookedBy, 'children', lesson.childId);
-            if (lesson.packageCode !== 'FREE_TRIAL') {
+            
+            if (lesson.packageCode === 'FREE_TRIAL') {
+                batch.update(userDocRef, { freeTrialsUsed: increment(-1) });
+                batch.update(childDocRef, { hasUsedFreeTrial: false });
+            } else {
                 batch.update(childDocRef, { remainingLessons: increment(1) });
             }
 

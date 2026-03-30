@@ -175,11 +175,16 @@ function TeacherCancellationModal({ lesson, childName, teacherName }: { lesson: 
                 });
             });
 
-            // 2. Return credit to parent (including FREE_TRIAL)
+            // 2. Return credit to parent
+            const userRef = doc(db!, 'users', lesson.bookedBy);
             const childRef = doc(db!, 'users', lesson.bookedBy, 'children', lesson.childId);
-            batch.update(childRef, {
-                remainingLessons: increment(1)
-            });
+            
+            if (lesson.packageCode === 'FREE_TRIAL') {
+                batch.update(userRef, { freeTrialsUsed: increment(-1) });
+                batch.update(childRef, { hasUsedFreeTrial: false });
+            } else {
+                batch.update(childRef, { remainingLessons: increment(1) });
+            }
 
             await batch.commit();
 
