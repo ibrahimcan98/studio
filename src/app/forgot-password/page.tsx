@@ -20,31 +20,20 @@ export default function ForgotPasswordPage() {
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth || !email) return;
+    if (!email) return;
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/auth/send-link', {
+      const response = await fetch('/api/auth/password-reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, type: 'password-reset' }),
+        body: JSON.stringify({ email }),
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Böyle bir mail bulunmamaktadır.');
-        }
-        
-        // If server returns 500 or other error, fallback to standard Firebase email
-        console.warn('Resend API failed, falling back to Firebase default emailer');
-        await sendPasswordResetEmail(auth, email);
-        
-        setIsSent(true);
-        toast({
-          title: 'E-posta Gönderildi',
-          description: 'Şifre sıfırlama bağlantısı (standart servis ile) e-posta adresinize gönderildi.',
-        });
-        return;
+        throw new Error(result.error || 'Şifre sıfırlama e-postası gönderilemedi.');
       }
 
       setIsSent(true);

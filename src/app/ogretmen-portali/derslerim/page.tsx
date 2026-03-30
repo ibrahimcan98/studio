@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, query, where, doc, writeBatch, getDoc, serverTimestamp, increment } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch, getDoc, serverTimestamp, increment, arrayUnion, addDoc, Timestamp } from 'firebase/firestore';
 import { Loader2, Calendar, History, BookOpen, Baby, Edit, AlertCircle, Video, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -154,6 +154,13 @@ function TeacherCancellationModal({ lesson, childName }: { lesson: any, childNam
     const [excuse, setExcuse] = useState('');
     const [isOpen, setIsOpen] = useState(false);
 
+    const getRefundPackageCode = (originalCode: string) => {
+        if (originalCode === 'FREE_TRIAL') return 'FREE_TRIAL';
+        // Remove numbers and add '1'
+        const prefix = originalCode.replace(/[0-9]/g, '');
+        return `${prefix}1`;
+    };
+
     const handleTeacherCancel = async () => {
         if (!excuse.trim()) {
             toast({ variant: 'destructive', title: 'Hata', description: 'Lütfen iptal mazeretinizi belirtin.' });
@@ -175,11 +182,35 @@ function TeacherCancellationModal({ lesson, childName }: { lesson: any, childNam
                 });
             });
 
-            // 2. Return credit to parent (including FREE_TRIAL)
+            // 2. Conditional Refund Logic
             const childRef = doc(db!, 'users', lesson.bookedBy, 'children', lesson.childId);
-            batch.update(childRef, {
-                remainingLessons: increment(1)
-            });
+            const parentRef = doc(db!, 'users', lesson.bookedBy);
+            
+            const childSnap = await getDoc(childRef);
+            const parentSnap = await getDoc(parentRef);
+            
+            const childData = childSnap.data();
+            const currentChildLessons = childData?.remainingLessons || 0;
+            let refundTarget = 'child';
+
+            if (lesson.packageCode === 'FREE_TRIAL') {
+                // Free Trial Refund
+                batch.update(parentRef, { freeTrialsUsed: increment(-1) });
+                batch.update(childRef, { hasUsedFreeTrial: false });
+                refundTarget = 'free_trial';
+            } else if (currentChildLessons > 0) {
+                // Child already has credits, just add one more
+                batch.update(childRef, { remainingLessons: increment(1) });
+            } else {
+                // Child has 0 credits (last lesson or empty)
+                // Refund to parent's unassigned pool
+                const refundCode = getRefundPackageCode(lesson.packageCode);
+                batch.update(parentRef, {
+                    enrolledPackages: arrayUnion(refundCode),
+                    remainingLessons: increment(1)
+                });
+                refundTarget = 'parent_pool';
+            }
 
             await batch.commit();
 
@@ -212,7 +243,28 @@ function TeacherCancellationModal({ lesson, childName }: { lesson: any, childNam
                 }).catch(console.error);
             }
 
-            toast({ title: 'Ders İptal Edildi', description: 'Veliye mazeretiniz iletildi ve kredi iade edildi.' });
+            const toastDesc = refundTarget === 'parent_pool' 
+                ? 'İade velinin atanmamış kurslarına (havuza) aktarıldı.' 
+                : (refundTarget === 'free_trial' ? 'Ücretsiz deneme hakkı veliye iade edildi.' : 'Ders kredisi öğrenciye iade edildi.');
+
+            // 4. Operational Flow Log for Admins
+            const teacherFullName = (teacherData?.firstName && teacherData?.lastName) 
+                ? `${teacherData.firstName} ${teacherData.lastName}` 
+                : 'Eğitmen';
+
+            addDoc(collection(db!, 'activity-log'), {
+                event: '❌ Ders İptal Edildi (Öğretmen)',
+                icon: '❌',
+                details: {
+                    'Öğrenci': childName,
+                    'Eğitmen': teacherFullName,
+                    'Mazeret': excuse,
+                    'Ders Saati': formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'dd MMMM yyyy HH:mm', { locale: tr }),
+                },
+                createdAt: Timestamp.now()
+            }).catch(console.error);
+
+            toast({ title: 'Ders İptal Edildi', description: `Veliye mazeretiniz iletildi. ${toastDesc}` });
             setIsOpen(false);
         } catch (error) {
             console.error("Teacher cancel error:", error);
@@ -273,7 +325,7 @@ function OgretmenDerslerimPageContent() {
 
     const lessonsQuery = useMemoFirebase(() => {
         if (!user || !db) return null;
-        return query(collection(db, 'lesson-slots'), where('teacherId', '==', user.uid), where('status', '==', 'booked'));
+        return query(collection(db, 'lesson-slots'), where('teacherId', '==', user.uid), where('status', 'in', ['booked', 'cancelled']));
     }, [user, db]);
 
     const { data: lessonSlots, isLoading: lessonsLoading } = useCollection(lessonsQuery);
@@ -349,18 +401,26 @@ function OgretmenDerslerimPageContent() {
         });
     }, [lessonSlots]);
 
-    const { upcomingLessons, pastLessons } = useMemo(() => {
+    const { upcomingLessons, pastLessons, cancelledLessons } = useMemo(() => {
         const now = new Date();
         const upcoming: any[] = [];
         const past: any[] = [];
+        const cancelled: any[] = [];
+        
         groupedLessons.forEach(lesson => {
-            if (isBefore(now, lesson.endTime)) { // Use isBefore for better date comparison
+            const isCancelled = lesson.slots.some((s: any) => s.status === 'cancelled');
+            
+            if (isCancelled) {
+                cancelled.push(lesson);
+            } else if (isBefore(now, lesson.endTime)) { // Use isBefore for better date comparison
                 upcoming.push(lesson);
             } else {
                 past.push(lesson);
             }
         });
+        
         upcoming.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+        cancelled.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
         past.sort((a, b) => {
             const aNeedsFeedback = !a.feedback;
             const bNeedsFeedback = !b.feedback;
@@ -368,7 +428,7 @@ function OgretmenDerslerimPageContent() {
             if (!aNeedsFeedback && bNeedsFeedback) return 1;
             return b.startTime.getTime() - a.startTime.getTime();
         });
-        return { upcomingLessons: upcoming, pastLessons: past };
+        return { upcomingLessons: upcoming, pastLessons: past, cancelledLessons: cancelled };
     }, [groupedLessons]);
 
     const handleJoinLesson = async (lesson: any) => {
@@ -428,9 +488,10 @@ function OgretmenDerslerimPageContent() {
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen">
             <h2 className="text-3xl font-bold tracking-tight">Derslerim</h2>
             <Tabs defaultValue="upcoming" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="upcoming"><Calendar className="mr-2 h-4 w-4" />Yaklaşan Dersler ({upcomingLessons.length})</TabsTrigger>
-                    <TabsTrigger value="past"><History className="mr-2 h-4 w-4" />Geçmiş Dersler ({pastLessons.length})</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="upcoming"><Calendar className="mr-2 h-4 w-4" />Yaklaşan ({upcomingLessons.length})</TabsTrigger>
+                    <TabsTrigger value="past"><History className="mr-2 h-4 w-4" />Geçmiş ({pastLessons.length})</TabsTrigger>
+                    <TabsTrigger value="cancelled" className="text-red-500 data-[state=active]:text-red-600"><AlertCircle className="mr-2 h-4 w-4" />İptal Edilenler ({cancelledLessons.length})</TabsTrigger>
                 </TabsList>
                 <TabsContent value="upcoming" className="pt-4">
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -458,6 +519,45 @@ function OgretmenDerslerimPageContent() {
                             <div className="text-center text-muted-foreground">
                                 <History className="w-12 h-12 mx-auto mb-4 opacity-20" />
                                 <p className="text-lg font-medium">Henüz tamamlanmış bir dersiniz yok.</p>
+                            </div>
+                        </Card>
+                    )}
+                </TabsContent>
+                <TabsContent value="cancelled" className="pt-4">
+                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        {cancelledLessons.map(lesson => {
+                            const firstSlot = lesson.slots[0];
+                            return (
+                                <Card key={lesson.id} className="opacity-75 border-red-50 hover:opacity-100 transition-opacity">
+                                    <CardHeader className="pb-3">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <Badge variant="destructive">İptal Edildi</Badge>
+                                            <span className="text-[10px] font-bold text-slate-400">
+                                                {formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'dd MMM, HH:mm', { locale: tr })}
+                                            </span>
+                                        </div>
+                                        <CardTitle className="text-base font-bold">{getCourseDetailsFromPackageCode(lesson.packageCode)?.courseName || 'Ders'}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-2 pb-4">
+                                        {firstSlot.cancelReason && (
+                                            <div className="bg-red-50 p-2 rounded-lg mt-2">
+                                                <p className="text-[10px] font-black text-red-700 uppercase tracking-widest mb-1">Mazeret:</p>
+                                                <p className="text-xs italic text-red-600">"{firstSlot.cancelReason}"</p>
+                                            </div>
+                                        )}
+                                        <div className="text-[10px] text-slate-400 mt-2">
+                                            Öğrenci ID: {lesson.childId}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )
+                        })}
+                    </div>
+                    {cancelledLessons.length === 0 && (
+                        <Card className="p-12">
+                            <div className="text-center text-muted-foreground">
+                                <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                                <p className="text-lg font-medium">İptal edilen dersiniz bulunmuyor.</p>
                             </div>
                         </Card>
                     )}

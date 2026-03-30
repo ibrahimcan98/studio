@@ -435,30 +435,40 @@ export default function DersPlanlaPage() {
 
                 // Send to Parent
                 if (user.email) {
-                    fetch('/api/emails/send', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            to: user.email,
-                            subject: rescheduleId ? 'Dersiniz Değiştirildi' : 'Yeni Dersiniz Planlandı',
-                            templateName: 'lesson-planned',
-                            data: emailData
-                        })
-                    }).catch(console.error);
+                    try {
+                        const res = await fetch('/api/emails/send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                to: user.email,
+                                subject: rescheduleId ? 'Dersiniz Değiştirildi' : 'Yeni Dersiniz Planlandı',
+                                templateName: 'lesson-planned',
+                                data: emailData
+                            })
+                        });
+                        if (!res.ok) console.error('Parent email failed:', await res.text());
+                    } catch (e) {
+                        console.error('Parent email fetch error:', e);
+                    }
                 }
 
                 // Send to Teacher
                 if (teacherEmail) {
-                    fetch('/api/emails/send', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            to: teacherEmail,
-                            subject: rescheduleId ? 'Bir Dersiniz Değiştirildi' : 'Yeni Bir Dersiniz Var',
-                            templateName: 'lesson-planned',
-                            data: emailData
-                        })
-                    }).catch(console.error);
+                    try {
+                        const res = await fetch('/api/emails/send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                to: teacherEmail,
+                                subject: rescheduleId ? 'Bir Dersiniz Değiştirildi' : 'Yeni Bir Dersiniz Var',
+                                templateName: 'lesson-planned',
+                                data: emailData
+                            })
+                        });
+                        if (!res.ok) console.error('Teacher email failed:', await res.text());
+                    } catch (e) {
+                        console.error('Teacher email fetch error:', e);
+                    }
                 }
             }
 

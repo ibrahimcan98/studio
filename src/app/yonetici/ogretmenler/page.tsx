@@ -523,7 +523,8 @@ function TeacherStatsDialog({ isOpen, onOpenChange, teacher }: { isOpen: boolean
     // Group slots by childId and startTime to count unique "lessons"
     const grouped = new Map();
     slots.forEach(s => {
-      const key = `${s.childId}-${s.startTime.seconds}`;
+      const updatedAtStr = s.updatedAt?.seconds || s.startTime.seconds;
+      const key = `${s.childId}-${s.status}-${updatedAtStr}`;
       if (!grouped.has(key)) grouped.set(key, s);
     });
 

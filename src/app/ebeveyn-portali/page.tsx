@@ -369,7 +369,8 @@ function EbeveynPortaliContent() {
           return s.status === 'cancelled' && isAfter(updatedAt, subHours(now, 48));
       })
       .forEach(s => {
-          const key = `${s.childId}-${s.startTime.seconds}`;
+          const updatedAtStr = s.updatedAt?.seconds || s.startTime.seconds;
+          const key = `${s.childId}-${updatedAtStr}`;
           if (!cancelledMap.has(key)) {
               cancelledMap.set(key, s);
           }

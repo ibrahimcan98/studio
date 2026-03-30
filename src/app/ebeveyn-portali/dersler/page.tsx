@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, writeBatch, increment, getDocs, Timestamp, addDoc } from 'firebase/firestore';
-import { Loader2, ArrowLeft, Calendar, Clock, User, BookOpen, Baby, History, MessageSquare, Video, ClipboardList } from 'lucide-react';
+import { Loader2, ArrowLeft, Calendar, Clock, User, BookOpen, Baby, History, MessageSquare, Video, ClipboardList, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -434,14 +434,19 @@ function DerslerimPageContent() {
     }, [lessonSlots]);
     
     
-    const { upcomingLessons, pastLessons } = useMemo(() => {
-        if (!groupedLessons) return { upcomingLessons: [], pastLessons: [] };
+    const { upcomingLessons, pastLessons, cancelledLessons } = useMemo(() => {
+        if (!groupedLessons) return { upcomingLessons: [], pastLessons: [], cancelledLessons: [] };
         const now = new Date();
         const upcoming: any[] = [];
         const past: any[] = [];
+        const cancelled: any[] = [];
 
         groupedLessons.forEach(lesson => {
-            if (isBefore(now, lesson.endTime)) {
+            const isCancelled = lesson.slots.some((s: any) => s.status === 'cancelled');
+
+            if (isCancelled) {
+                cancelled.push(lesson);
+            } else if (isBefore(now, lesson.endTime)) {
                 upcoming.push(lesson);
             } else {
                 past.push(lesson);
@@ -450,8 +455,9 @@ function DerslerimPageContent() {
 
         upcoming.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
         past.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
+        cancelled.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
 
-        return { upcomingLessons: upcoming, pastLessons: past };
+        return { upcomingLessons: upcoming, pastLessons: past, cancelledLessons: cancelled };
     }, [groupedLessons]);
 
     if (userLoading || lessonsLoading || isUserLoading || !timeZone) {
@@ -480,14 +486,18 @@ function DerslerimPageContent() {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="upcoming" className="font-bold">
                         <Calendar className="mr-2 h-4 w-4" />
-                        Yaklaşan Dersler ({upcomingLessons.length})
+                        Yaklaşan ({upcomingLessons.length})
                     </TabsTrigger>
                     <TabsTrigger value="past" className="font-bold">
                         <History className="mr-2 h-4 w-4" />
-                        Geçmiş Dersler ({pastLessons.length})
+                        Geçmiş ({pastLessons.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="cancelled" className="font-bold text-red-500 data-[state=active]:text-red-600">
+                        <AlertCircle className="mr-2 h-4 w-4" />
+                        İptal Edilenler ({cancelledLessons.length})
                     </TabsTrigger>
                 </TabsList>
                 <TabsContent value="upcoming" className="pt-4">
@@ -522,6 +532,34 @@ function DerslerimPageContent() {
                                 <History className="w-12 h-12 mx-auto mb-4 opacity-20" />
                                 <p className="text-lg font-bold text-slate-600">Henüz tamamlanmış bir dersiniz yok.</p>
                             </div>
+                        </Card>
+                    )}
+                </TabsContent>
+                <TabsContent value="cancelled" className="pt-4">
+                    {cancelledLessons.length > 0 ? (
+                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+                            {cancelledLessons.map(lesson => {
+                                const firstSlot = lesson.slots[0];
+                                return (
+                                    <div key={lesson.id} className="relative group">
+                                        <LessonCard lesson={lesson} timeZone={timeZone} onShowProgress={() => {}} />
+                                        <div className="absolute top-2 right-2 flex flex-col items-end gap-1 pointer-events-none">
+                                             <Badge variant="destructive" className="shadow-sm">İptal Edildi</Badge>
+                                        </div>
+                                        {firstSlot.cancelReason && (
+                                            <div className="absolute inset-x-4 bottom-2 bg-red-50/90 backdrop-blur-sm p-3 rounded-xl border border-red-100 shadow-sm transition-all group-hover:bottom-4">
+                                                <p className="text-[10px] font-black text-red-800 uppercase tracking-widest leading-none mb-1">Öğretmen Mazereti:</p>
+                                                <p className="text-xs italic text-red-700 font-medium line-clamp-2">"${firstSlot.cancelReason}"</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    ) : (
+                        <Card className="p-12 border-dashed border-2 bg-transparent text-center">
+                            <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-20 text-red-500" />
+                            <p className="text-lg font-bold text-slate-600">İptal edilen bir dersiniz bulunmuyor.</p>
                         </Card>
                     )}
                 </TabsContent>

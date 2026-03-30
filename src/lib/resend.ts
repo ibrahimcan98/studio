@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
 
-export const resend = new Resend(process.env.RESEND_API_KEY || 're_3DFgTCD8_DPvDZnoNX1fJftQHKUokKEqW');
+// Only load API key from environment for security and to avoid 401 errors from old hardcoded tokens.
+export const resend = new Resend(process.env.RESEND_API_KEY);
 export const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'iletisim@turkcocukakademisi.com';
