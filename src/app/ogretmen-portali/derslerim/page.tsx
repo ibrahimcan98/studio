@@ -53,7 +53,7 @@ const getCourseDetailsFromPackageCode = (code?: string) => {
     return { courseName: course.title, duration };
 }
 
-function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any, onOpenProgressPanel: () => void, onJoinLesson: (lesson: any) => void }) {
+function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson, teacherName }: { lesson: any, onOpenProgressPanel: () => void, onJoinLesson: (lesson: any) => void, teacherName: string }) {
     const db = useFirestore();
 
     const childDocRef = useMemoFirebase(() => {
@@ -134,7 +134,7 @@ function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any
                         </Button>
 
                         {/* Teacher Cancellation Button */}
-                        <TeacherCancellationModal lesson={lesson} childName={childData?.firstName || 'Öğrenci'} />
+                        <TeacherCancellationModal lesson={lesson} childName={childData?.firstName || 'Öğrenci'} teacherName={teacherName} />
                     </div>
                 ) : (
                     <Button onClick={onOpenProgressPanel} variant={needsFeedback ? "destructive" : "outline"} className='w-full font-bold'>
@@ -147,7 +147,7 @@ function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any
     );
 }
 
-function TeacherCancellationModal({ lesson, childName }: { lesson: any, childName: string }) {
+function TeacherCancellationModal({ lesson, childName, teacherName }: { lesson: any, childName: string, teacherName: string }) {
     const db = useFirestore();
     const { toast } = useToast();
     const [isCancelling, setIsCancelling] = useState(false);
@@ -198,7 +198,7 @@ function TeacherCancellationModal({ lesson, childName }: { lesson: any, childNam
                         templateName: 'lesson-cancelled',
                         data: {
                             studentName: childName,
-                            teacherName: 'Öğretmeniniz', // Can be refined if we fetch teacher info
+                            teacherName: teacherName || 'Öğretmeniniz',
                             date: formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'dd MMMM yyyy', { locale: tr }),
                             time: formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr }),
                             reason: excuse // Passing the excuse to the email template
@@ -430,7 +430,13 @@ function OgretmenDerslerimPageContent() {
                 <TabsContent value="upcoming" className="pt-4">
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {upcomingLessons.map(lesson => (
-                            <LessonCard key={lesson.id} lesson={lesson} onOpenProgressPanel={() => { setSelectedLesson(lesson); setIsProgressPanelOpen(true); }} onJoinLesson={handleJoinLesson} />
+                            <LessonCard 
+                                key={lesson.id} 
+                                lesson={lesson} 
+                                onOpenProgressPanel={() => { setSelectedLesson(lesson); setIsProgressPanelOpen(true); }} 
+                                onJoinLesson={handleJoinLesson}
+                                teacherName={`${teacherData?.firstName} ${teacherData?.lastName}`}
+                            />
                         ))}
                     </div>
                     {upcomingLessons.length === 0 && (
@@ -445,7 +451,13 @@ function OgretmenDerslerimPageContent() {
                 <TabsContent value="past" className="pt-4">
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {pastLessons.map(lesson => (
-                            <LessonCard key={lesson.id} lesson={lesson} onOpenProgressPanel={() => { setSelectedLesson(lesson); setIsProgressPanelOpen(true); }} onJoinLesson={handleJoinLesson} />
+                            <LessonCard 
+                                key={lesson.id} 
+                                lesson={lesson} 
+                                onOpenProgressPanel={() => { setSelectedLesson(lesson); setIsProgressPanelOpen(true); }} 
+                                onJoinLesson={handleJoinLesson}
+                                teacherName={`${teacherData?.firstName} ${teacherData?.lastName}`}
+                            />
                         ))}
                     </div>
                     {pastLessons.length === 0 && (

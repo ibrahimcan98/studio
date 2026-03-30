@@ -50,10 +50,12 @@ export const getBaseTemplate = (content: string) => `
 
             <!-- Footer Section -->
             <div style="text-align: center; margin-top: 40px; color: #64748b; font-size: 13px;">
-              <p style="margin: 5px 0; font-weight: 600;">Türk Çocuk Akademisi</p>
-              <p style="margin: 5px 0; opacity: 0.8;">© ${new Date().getFullYear()} Tüm hakları saklıdır.</p>
+              <p style="margin: 5px 0; font-weight: 600; color: #0ea5e9;">
+                <a href="https://turkcocukakademisi.com/" style="color: #0ea5e9; text-decoration: none;">www.turkcocukakademisi.com</a>
+              </p>
+              <p style="margin: 5px 0; opacity: 0.8;">© ${new Date().getFullYear()} Türk Çocuk Akademisi. Tüm hakları saklıdır.</p>
               <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0; display: inline-block;">
-                 <a href="mailto:iletisim@turkcocukakademisi.com" style="color: #0ea5e9; text-decoration: none;">iletisim@turkcocukakademisi.com</a>
+                 <a href="mailto:iletisim@turkcocukakademisi.com" style="color: #64748b; text-decoration: none; font-size: 11px;">iletisim@turkcocukakademisi.com</a>
               </div>
             </div>
           </div>
