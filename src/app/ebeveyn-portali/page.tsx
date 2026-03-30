@@ -159,6 +159,14 @@ function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUp
                     </div>
                 </div>
 
+                {isTrialEligible && !isLegacy && !child.assignedPackage && (
+                    <div className="flex justify-center -mt-2 mb-2">
+                        <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-green-200 animate-pulse text-[10px] font-bold">
+                            ÜCRETSİZ DENEME HAKKI AKTİF 🎁
+                        </Badge>
+                    </div>
+                )}
+
                 <div className='flex justify-between items-center'>
                     <span className='text-slate-500 font-medium text-[15px]'>Kurs:</span>
                     {currentCourse ? (
@@ -201,7 +209,7 @@ function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUp
                         ) : (isTrialEligible && !isLegacy) ? (
                             <Button asChild className="h-10 px-5 text-[13px] font-bold rounded-xl shadow-sm bg-[#4CAF50] text-white hover:bg-[#388E3C] w-auto" variant="default" onClick={(e) => e.stopPropagation()}>
                                 <Link href={`/ebeveyn-portali/ders-planla?childId=${child.id}`}>
-                                    <Plus className="w-4 h-4 mr-1.5" /> Ücretsiz Ders Planla
+                                    <Rocket className="w-4 h-4 mr-1.5" /> Ücretsiz Deneme Planla
                                 </Link>
                             </Button>
                         ) : (
