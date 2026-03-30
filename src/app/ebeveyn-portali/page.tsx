@@ -159,14 +159,6 @@ function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUp
                     </div>
                 </div>
 
-                {isTrialEligible && !isLegacy && !child.assignedPackage && (
-                    <div className="flex justify-center -mt-2 mb-2">
-                        <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-green-200 animate-pulse text-[10px] font-bold">
-                            ÜCRETSİZ DENEME HAKKI AKTİF 🎁
-                        </Badge>
-                    </div>
-                )}
-
                 <div className='flex justify-between items-center'>
                     <span className='text-slate-500 font-medium text-[15px]'>Kurs:</span>
                     {currentCourse ? (
@@ -209,7 +201,7 @@ function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUp
                         ) : (isTrialEligible && !isLegacy) ? (
                             <Button asChild className="h-10 px-5 text-[13px] font-bold rounded-xl shadow-sm bg-[#4CAF50] text-white hover:bg-[#388E3C] w-auto" variant="default" onClick={(e) => e.stopPropagation()}>
                                 <Link href={`/ebeveyn-portali/ders-planla?childId=${child.id}`}>
-                                    <Rocket className="w-4 h-4 mr-1.5" /> Ücretsiz Deneme Planla
+                                    <Plus className="w-4 h-4 mr-1.5" /> Ücretsiz Ders Planla
                                 </Link>
                             </Button>
                         ) : (
@@ -369,41 +361,31 @@ function EbeveynPortaliContent() {
         });
     }
 
-    // 3. İptal Edilen Dersler (Son 48 saat) - Gruplandırılmış
-    const cancelledMap = new Map();
-    slots
+    // 3. İptal Edilen Dersler (Son 48 saat)
+    const cancelledLessons = slots
       .filter(s => {
           const updatedAt = s.updatedAt?.toDate ? s.updatedAt.toDate() : new Date();
           return s.status === 'cancelled' && isAfter(updatedAt, subHours(now, 48));
       })
-      .forEach(slot => {
-          const date = slot.startTime.toDate ? slot.startTime.toDate() : new Date(slot.startTime);
-          // Her ders için (çocuk-tarih-saat bazlı) tek bir bildirim göstermek için unik bir key
-          const key = `${slot.childId}-${format(date, 'yyyy-MM-dd-HH', { locale: tr })}`;
-          if (!cancelledMap.has(key)) {
-              cancelledMap.set(key, slot);
-          }
-      });
-
-    Array.from(cancelledMap.values())
       .sort((a, b) => {
           const aTime = a.updatedAt?.seconds || 0;
           const bTime = b.updatedAt?.seconds || 0;
           return bTime - aTime;
-      })
-      .forEach(cl => {
-          const date = cl.startTime.toDate ? cl.startTime.toDate() : new Date(cl.startTime);
-          list.push({
-              id: `cancel-${cl.id}`,
-              type: 'cancelled',
-              icon: <AlertTriangle className="h-4 w-4" />,
-              color: 'bg-red-100 text-red-600',
-              title: '⚠️ Ders İptal Edildi:',
-              text: `${format(date, 'dd MMMM', { locale: tr })} dersi öğretmen tarafından iptal edildi.`,
-              fullText: cl.cancelReason ? `Mazeret: "${cl.cancelReason}" (Krediniz iade edilmiştir.)` : 'Öğretmeniniz dersi iptal etti. Krediniz iade edilmiştir.',
-              path: '/ebeveyn-portali/dersler?tab=cancelled'
-          });
       });
+
+    cancelledLessons.forEach(cl => {
+        const date = cl.startTime.toDate ? cl.startTime.toDate() : new Date(cl.startTime);
+        list.push({
+            id: `cancel-${cl.id}`,
+            type: 'cancelled',
+            icon: <AlertTriangle className="h-4 w-4" />,
+            color: 'bg-red-100 text-red-600',
+            title: '⚠️ Ders İptal Edildi:',
+            text: `${format(date, 'dd MMMM', { locale: tr })} dersi öğretmen tarafından iptal edildi.`,
+            fullText: cl.cancelReason ? `Mazeret: "${cl.cancelReason}" (Krediniz iade edilmiştir.)` : 'Öğretmeniniz dersi iptal etti. Krediniz iade edilmiştir.',
+            path: '/ebeveyn-portali/dersler?tab=past'
+        });
+    });
 
     // 4. Seviye Bilgisi
     childrenWithEffect.forEach(child => {

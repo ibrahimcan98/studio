@@ -416,16 +416,19 @@ export default function DersPlanlaPage() {
             }).catch(console.error);
 
             // Email Notification (Resend)
-            const teacherDoc = await getDoc(doc(db, 'users', selectedSlot.teacherId));
-            const teacherData = teacherDoc.data();
+            const teacherDocRef = doc(db, 'users', selectedSlot.teacherId);
+            const teacherSnap = await getDoc(teacherDocRef);
+            const teacherData = teacherSnap.exists() ? teacherSnap.data() : null;
             const teacherEmail = teacherData?.email;
 
             if (teacherEmail || user.email) {
+                const teacherFullName = (teacherData?.firstName && teacherData?.lastName) 
+                    ? `${teacherData.firstName} ${teacherData.lastName}` 
+                    : 'Eğitmen';
+
                 const emailData = {
                     studentName: childName,
-                    teacherName: (teacherData?.firstName && teacherData?.lastName) 
-                        ? `${teacherData.firstName} ${teacherData.lastName}` 
-                        : 'Eğitmeniniz',
+                    teacherName: teacherFullName,
                     date: format(startTime, 'dd MMMM yyyy', { locale: tr }),
                     time: format(startTime, 'HH:mm', { locale: tr }),
                 };

@@ -105,13 +105,8 @@ function CancellationButtons({ lesson, timeZone }: { lesson: any, timeZone: stri
                 });
             });
 
-            const userDocRef = doc(db, 'users', user.uid);
             const childDocRef = doc(db, 'users', lesson.bookedBy, 'children', lesson.childId);
-            
-            if (lesson.packageCode === 'FREE_TRIAL') {
-                batch.update(userDocRef, { freeTrialsUsed: increment(-1) });
-                batch.update(childDocRef, { hasUsedFreeTrial: false });
-            } else {
+            if (lesson.packageCode !== 'FREE_TRIAL') {
                 batch.update(childDocRef, { remainingLessons: increment(1) });
             }
 
@@ -429,27 +424,22 @@ export default function DerslerimPage() {
         });
     }, [lessonSlots]);
     
-    const { upcomingLessons, pastLessons, cancelledLessons } = useMemo(() => {
+    const { upcomingLessons, pastLessons } = useMemo(() => {
         const now = new Date();
         const upcoming: any[] = [];
         const past: any[] = [];
-        const cancelled: any[] = [];
-
         groupedLessons.forEach(lesson => {
             if (lesson.status === 'cancelled') {
-                cancelled.push(lesson); 
+                past.push(lesson); // Show cancelled in past tab even if start time is future, or you can keep it in upcoming
             } else if (lesson.endTime > now) {
                 upcoming.push(lesson);
             } else {
                 past.push(lesson);
             }
         });
-
         upcoming.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
         past.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
-        cancelled.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
-
-        return { upcomingLessons: upcoming, pastLessons: past, cancelledLessons: cancelled };
+        return { upcomingLessons: upcoming, pastLessons: past };
     }, [groupedLessons]);
 
     const handleShowProgress = (lesson: any) => {
@@ -479,10 +469,9 @@ export default function DerslerimPage() {
             </div>
 
             <Tabs defaultValue="upcoming" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="upcoming"><Calendar className="mr-2 h-4 w-4" />Yaklaşan Dersler ({upcomingLessons.length})</TabsTrigger>
                     <TabsTrigger value="past"><History className="mr-2 h-4 w-4" />Geçmiş Dersler ({pastLessons.length})</TabsTrigger>
-                    <TabsTrigger value="cancelled"><AlertCircle className="mr-2 h-4 w-4" />İptal Edilenler ({cancelledLessons.length})</TabsTrigger>
                 </TabsList>
                 <TabsContent value="upcoming">
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mt-4">
@@ -494,12 +483,6 @@ export default function DerslerimPage() {
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mt-4">
                         {pastLessons.map(lesson => <LessonCard key={lesson.id} lesson={lesson} timeZone={timeZone} onShowProgress={handleShowProgress} />)}
                         {pastLessons.length === 0 && <div className="col-span-full text-center py-20 bg-white rounded-xl border border-dashed text-muted-foreground">Henüz tamamlanmış bir dersiniz bulunmuyor.</div>}
-                    </div>
-                </TabsContent>
-                <TabsContent value="cancelled">
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mt-4">
-                        {cancelledLessons.map(lesson => <LessonCard key={lesson.id} lesson={lesson} timeZone={timeZone} onShowProgress={handleShowProgress} />)}
-                        {cancelledLessons.length === 0 && <div className="col-span-full text-center py-20 bg-white rounded-xl border border-dashed text-muted-foreground">İptal edilen bir dersiniz bulunmuyor.</div>}
                     </div>
                 </TabsContent>
             </Tabs>

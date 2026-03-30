@@ -53,7 +53,7 @@ const getCourseDetailsFromPackageCode = (code?: string) => {
     return { courseName: course.title, duration };
 }
 
-function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson, teacherName }: { lesson: any, onOpenProgressPanel: () => void, onJoinLesson: (lesson: any) => void, teacherName: string }) {
+function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any, onOpenProgressPanel: () => void, onJoinLesson: (lesson: any) => void }) {
     const db = useFirestore();
 
     const childDocRef = useMemoFirebase(() => {
@@ -134,7 +134,7 @@ function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson, teacherName }: 
                         </Button>
 
                         {/* Teacher Cancellation Button */}
-                        <TeacherCancellationModal lesson={lesson} childName={childData?.firstName || 'Öğrenci'} teacherName={teacherName} />
+                        <TeacherCancellationModal lesson={lesson} childName={childData?.firstName || 'Öğrenci'} />
                     </div>
                 ) : (
                     <Button onClick={onOpenProgressPanel} variant={needsFeedback ? "destructive" : "outline"} className='w-full font-bold'>
@@ -147,7 +147,7 @@ function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson, teacherName }: 
     );
 }
 
-function TeacherCancellationModal({ lesson, childName, teacherName }: { lesson: any, childName: string, teacherName: string }) {
+function TeacherCancellationModal({ lesson, childName }: { lesson: any, childName: string }) {
     const db = useFirestore();
     const { toast } = useToast();
     const [isCancelling, setIsCancelling] = useState(false);
@@ -175,25 +175,25 @@ function TeacherCancellationModal({ lesson, childName, teacherName }: { lesson: 
                 });
             });
 
-            // 2. Return credit to parent
-            const userRef = doc(db!, 'users', lesson.bookedBy);
+            // 2. Return credit to parent (including FREE_TRIAL)
             const childRef = doc(db!, 'users', lesson.bookedBy, 'children', lesson.childId);
-            
-            if (lesson.packageCode === 'FREE_TRIAL') {
-                batch.update(userRef, { freeTrialsUsed: increment(-1) });
-                batch.update(childRef, { hasUsedFreeTrial: false });
-            } else {
-                batch.update(childRef, { remainingLessons: increment(1) });
-            }
+            batch.update(childRef, {
+                remainingLessons: increment(1)
+            });
 
             await batch.commit();
 
             // 3. Email Notification to Parent
+            const teacherSnap = await getDoc(doc(db!, 'users', lesson.teacherId)); // Use lesson.teacherId directly
+            const teacherData = teacherSnap.exists() ? teacherSnap.data() : null;
             const parentDoc = await getDoc(doc(db!, 'users', lesson.bookedBy));
             const parentEmail = parentDoc.data()?.email;
 
             if (parentEmail) {
-                const teacherName = parentDoc.data()?.teacherName || 'Öğretmeniniz'; // fallback
+                const teacherFullName = (teacherData?.firstName && teacherData?.lastName) 
+                    ? `${teacherData.firstName} ${teacherData.lastName}` 
+                    : 'Eğitmen';
+
                 fetch('/api/emails/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -203,7 +203,7 @@ function TeacherCancellationModal({ lesson, childName, teacherName }: { lesson: 
                         templateName: 'lesson-cancelled',
                         data: {
                             studentName: childName,
-                            teacherName: teacherName || 'Öğretmeniniz',
+                            teacherName: teacherFullName,
                             date: formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'dd MMMM yyyy', { locale: tr }),
                             time: formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr }),
                             reason: excuse // Passing the excuse to the email template
@@ -273,7 +273,7 @@ function OgretmenDerslerimPageContent() {
 
     const lessonsQuery = useMemoFirebase(() => {
         if (!user || !db) return null;
-        return query(collection(db, 'lesson-slots'), where('teacherId', '==', user.uid), where('status', 'in', ['booked', 'cancelled']));
+        return query(collection(db, 'lesson-slots'), where('teacherId', '==', user.uid), where('status', '==', 'booked'));
     }, [user, db]);
 
     const { data: lessonSlots, isLoading: lessonsLoading } = useCollection(lessonsQuery);
@@ -344,29 +344,22 @@ function OgretmenDerslerimPageContent() {
                     slots: lesson.slots,
                     isLive: liveInfoSlot ? liveInfoSlot.isLive : false,
                     liveLessonUrl: liveInfoSlot ? liveInfoSlot.liveLessonUrl : null,
-                    status: firstSlot.status,
-                    cancelReason: firstSlot.cancelReason
                 };
             });
         });
     }, [lessonSlots]);
 
-    const { upcomingLessons, pastLessons, cancelledLessons } = useMemo(() => {
+    const { upcomingLessons, pastLessons } = useMemo(() => {
         const now = new Date();
         const upcoming: any[] = [];
         const past: any[] = [];
-        const cancelled: any[] = [];
-
         groupedLessons.forEach(lesson => {
-            if (lesson.status === 'cancelled') {
-                cancelled.push(lesson);
-            } else if (isBefore(now, lesson.endTime)) {
+            if (isBefore(now, lesson.endTime)) { // Use isBefore for better date comparison
                 upcoming.push(lesson);
             } else {
                 past.push(lesson);
             }
         });
-
         upcoming.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
         past.sort((a, b) => {
             const aNeedsFeedback = !a.feedback;
@@ -375,9 +368,7 @@ function OgretmenDerslerimPageContent() {
             if (!aNeedsFeedback && bNeedsFeedback) return 1;
             return b.startTime.getTime() - a.startTime.getTime();
         });
-        cancelled.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
-
-        return { upcomingLessons: upcoming, pastLessons: past, cancelledLessons: cancelled };
+        return { upcomingLessons: upcoming, pastLessons: past };
     }, [groupedLessons]);
 
     const handleJoinLesson = async (lesson: any) => {
@@ -437,21 +428,14 @@ function OgretmenDerslerimPageContent() {
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen">
             <h2 className="text-3xl font-bold tracking-tight">Derslerim</h2>
             <Tabs defaultValue="upcoming" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="upcoming"><Calendar className="mr-2 h-4 w-4" />Yaklaşan Dersler ({upcomingLessons.length})</TabsTrigger>
                     <TabsTrigger value="past"><History className="mr-2 h-4 w-4" />Geçmiş Dersler ({pastLessons.length})</TabsTrigger>
-                    <TabsTrigger value="cancelled"><AlertCircle className="mr-2 h-4 w-4" />İptal Edilenler ({cancelledLessons.length})</TabsTrigger>
                 </TabsList>
                 <TabsContent value="upcoming" className="pt-4">
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {upcomingLessons.map(lesson => (
-                            <LessonCard 
-                                key={lesson.id} 
-                                lesson={lesson} 
-                                onOpenProgressPanel={() => { setSelectedLesson(lesson); setIsProgressPanelOpen(true); }} 
-                                onJoinLesson={handleJoinLesson}
-                                teacherName={`${teacherData?.firstName} ${teacherData?.lastName}`}
-                            />
+                            <LessonCard key={lesson.id} lesson={lesson} onOpenProgressPanel={() => { setSelectedLesson(lesson); setIsProgressPanelOpen(true); }} onJoinLesson={handleJoinLesson} />
                         ))}
                     </div>
                     {upcomingLessons.length === 0 && (
@@ -466,13 +450,7 @@ function OgretmenDerslerimPageContent() {
                 <TabsContent value="past" className="pt-4">
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {pastLessons.map(lesson => (
-                            <LessonCard 
-                                key={lesson.id} 
-                                lesson={lesson} 
-                                onOpenProgressPanel={() => { setSelectedLesson(lesson); setIsProgressPanelOpen(true); }} 
-                                onJoinLesson={handleJoinLesson}
-                                teacherName={`${teacherData?.firstName} ${teacherData?.lastName}`}
-                            />
+                            <LessonCard key={lesson.id} lesson={lesson} onOpenProgressPanel={() => { setSelectedLesson(lesson); setIsProgressPanelOpen(true); }} onJoinLesson={handleJoinLesson} />
                         ))}
                     </div>
                     {pastLessons.length === 0 && (
@@ -480,27 +458,6 @@ function OgretmenDerslerimPageContent() {
                             <div className="text-center text-muted-foreground">
                                 <History className="w-12 h-12 mx-auto mb-4 opacity-20" />
                                 <p className="text-lg font-medium">Henüz tamamlanmış bir dersiniz yok.</p>
-                            </div>
-                        </Card>
-                    )}
-                </TabsContent>
-                <TabsContent value="cancelled" className="pt-4">
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {cancelledLessons.map(lesson => (
-                            <LessonCard 
-                                key={lesson.id} 
-                                lesson={lesson} 
-                                onOpenProgressPanel={() => { setSelectedLesson(lesson); setIsProgressPanelOpen(true); }} 
-                                onJoinLesson={handleJoinLesson}
-                                teacherName={`${teacherData?.firstName} ${teacherData?.lastName}`}
-                            />
-                        ))}
-                    </div>
-                    {cancelledLessons.length === 0 && (
-                        <Card className="p-12">
-                            <div className="text-center text-muted-foreground">
-                                <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                                <p className="text-lg font-medium">İptal edilen bir dersiniz bulunmuyor.</p>
                             </div>
                         </Card>
                     )}
