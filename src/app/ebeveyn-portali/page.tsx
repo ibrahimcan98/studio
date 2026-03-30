@@ -361,7 +361,33 @@ function EbeveynPortaliContent() {
         });
     }
 
-    // 3. Seviye Bilgisi
+    // 3. İptal Edilen Dersler (Son 48 saat)
+    const cancelledLessons = slots
+      .filter(s => {
+          const updatedAt = s.updatedAt?.toDate ? s.updatedAt.toDate() : new Date();
+          return s.status === 'cancelled' && isAfter(updatedAt, subHours(now, 48));
+      })
+      .sort((a, b) => {
+          const aTime = a.updatedAt?.seconds || 0;
+          const bTime = b.updatedAt?.seconds || 0;
+          return bTime - aTime;
+      });
+
+    cancelledLessons.forEach(cl => {
+        const date = cl.startTime.toDate ? cl.startTime.toDate() : new Date(cl.startTime);
+        list.push({
+            id: `cancel-${cl.id}`,
+            type: 'cancelled',
+            icon: <AlertTriangle className="h-4 w-4" />,
+            color: 'bg-red-100 text-red-600',
+            title: '⚠️ Ders İptal Edildi:',
+            text: `${format(date, 'dd MMMM', { locale: tr })} dersi öğretmen tarafından iptal edildi.`,
+            fullText: cl.cancelReason ? `Mazeret: "${cl.cancelReason}" (Krediniz iade edilmiştir.)` : 'Öğretmeniniz dersi iptal etti. Krediniz iade edilmiştir.',
+            path: '/ebeveyn-portali/dersler?tab=past'
+        });
+    });
+
+    // 4. Seviye Bilgisi
     childrenWithEffect.forEach(child => {
         if (child.cefrProfile?.speaking) {
             list.push({

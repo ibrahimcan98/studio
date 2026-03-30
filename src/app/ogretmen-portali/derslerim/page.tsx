@@ -17,11 +17,11 @@ import { addMinutes, startOfDay, isBefore } from 'date-fns';
 import { COURSES } from '@/data/courses';
 import { Badge } from '@/components/ui/badge';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
 } from "@/components/ui/dialog"
 import { useToast } from '@/hooks/use-toast';
 import { ProgressPanel } from '@/components/shared/progress-panel';
@@ -31,17 +31,17 @@ import { cn } from '@/lib/utils';
 const getCourseDetailsFromPackageCode = (code?: string) => {
     if (!code) return null;
     if (code === 'FREE_TRIAL') return { courseName: 'Ücretsiz Deneme Dersi', duration: 30 };
-    
-    const courseCodeMap: { [key: string]: string } = { 
-        'B': 'baslangic', 
-        'K': 'konusma', 
-        'G': 'gelisim', 
+
+    const courseCodeMap: { [key: string]: string } = {
+        'B': 'baslangic',
+        'K': 'konusma',
+        'G': 'gelisim',
         'A': 'akademik',
         'GCSE': 'gcse'
     };
     const courseId = courseCodeMap[code.replace(/[0-9]/g, '') as keyof typeof courseCodeMap];
     const course = COURSES.find(c => c.id === courseId);
-    
+
     if (!course) return null;
 
     let duration = 30;
@@ -103,7 +103,7 @@ function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any
                     <span><strong>Paket:</strong> {lesson.packageCode === 'FREE_TRIAL' ? 'Deneme Dersi' : packageDetails?.courseName}</span>
                 </div>
                 {needsFeedback && (
-                     <div className="bg-destructive/10 text-destructive text-[10px] font-black px-2 py-1 rounded flex items-center gap-1 mt-2 uppercase tracking-wider">
+                    <div className="bg-destructive/10 text-destructive text-[10px] font-black px-2 py-1 rounded flex items-center gap-1 mt-2 uppercase tracking-wider">
                         <AlertCircle className="w-3 h-3" />
                         Geri Bildirim Bekliyor
                     </div>
@@ -111,7 +111,7 @@ function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any
 
                 {!isPast && (
                     <div className="mt-4 pt-4 border-t">
-                        <LessonQuickChat 
+                        <LessonQuickChat
                             lessonId={lesson.id}
                             teacherId={lesson.teacherId}
                             parentId={lesson.bookedBy}
@@ -123,22 +123,22 @@ function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any
             <CardFooter className="flex flex-col gap-2 pt-4 bg-slate-50/50">
                 {!isPast ? (
                     <div className="w-full space-y-2">
-                        <Button 
-                            onClick={() => onJoinLesson(lesson)} 
+                        <Button
+                            onClick={() => onJoinLesson(lesson)}
                             className='w-full font-bold'
                             disabled={!isJoinable}
                             title={!isJoinable ? "Derse başlamak için ders saatine en fazla 5 dakika kalmış olmalıdır." : undefined}
                         >
-                            <Video className='w-4 h-4 mr-2'/>
+                            <Video className='w-4 h-4 mr-2' />
                             {lesson.isLive ? 'Derse Gir' : 'Dersi Başlat'}
                         </Button>
-                        
+
                         {/* Teacher Cancellation Button */}
                         <TeacherCancellationModal lesson={lesson} childName={childData?.firstName || 'Öğrenci'} />
                     </div>
                 ) : (
                     <Button onClick={onOpenProgressPanel} variant={needsFeedback ? "destructive" : "outline"} className='w-full font-bold'>
-                        <Edit className='w-4 h-4 mr-2'/> 
+                        <Edit className='w-4 h-4 mr-2' />
                         {needsFeedback ? "Geri Bildirim Ekle" : "İlerlemeyi Gör"}
                     </Button>
                 )}
@@ -163,7 +163,7 @@ function TeacherCancellationModal({ lesson, childName }: { lesson: any, childNam
         setIsCancelling(true);
         try {
             const batch = writeBatch(db!);
-            
+
             // 1. Mark slots as cancelled and save the excuse
             lesson.slots.forEach((slot: any) => {
                 const slotRef = doc(db!, 'lesson-slots', slot.id);
@@ -175,13 +175,11 @@ function TeacherCancellationModal({ lesson, childName }: { lesson: any, childNam
                 });
             });
 
-            // 2. Return credit to parent
-            if (lesson.packageCode !== 'FREE_TRIAL') {
-                const childRef = doc(db!, 'users', lesson.bookedBy, 'children', lesson.childId);
-                batch.update(childRef, {
-                    remainingLessons: increment(1)
-                });
-            }
+            // 2. Return credit to parent (including FREE_TRIAL)
+            const childRef = doc(db!, 'users', lesson.bookedBy, 'children', lesson.childId);
+            batch.update(childRef, {
+                remainingLessons: increment(1)
+            });
 
             await batch.commit();
 
@@ -203,7 +201,7 @@ function TeacherCancellationModal({ lesson, childName }: { lesson: any, childNam
                             teacherName: 'Öğretmeniniz', // Can be refined if we fetch teacher info
                             date: formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'dd MMMM yyyy', { locale: tr }),
                             time: formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr }),
-                            reason: excuse // This template should support reason
+                            reason: excuse // Passing the excuse to the email template
                         }
                     })
                 }).catch(console.error);
@@ -230,13 +228,13 @@ function TeacherCancellationModal({ lesson, childName }: { lesson: any, childNam
                 <AlertDialogHeader>
                     <AlertDialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Ders İptali</AlertDialogTitle>
                     <AlertDialogDescription className="text-slate-500 font-medium pt-2">
-                        {childName} ile olan bu dersi iptal etmek istediğinizden emin misiniz? 
+                        {childName} ile olan bu dersi iptal etmek istediğinizden emin misiniz?
                         Veliye iletilecek geçerli bir mazeret girmelisiniz. Ders kredisi veliye iade edilecektir.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="py-6 space-y-3">
                     <Label className="font-bold text-slate-700 ml-1">İptal Mazeretiniz (Veli Görüntüleyecek)</Label>
-                    <Textarea 
+                    <Textarea
                         placeholder="Örn: Teknik bir arıza nedeniyle dersi iptal etmek durumundayım..."
                         className="rounded-2xl border-slate-100 bg-slate-50 focus:bg-white min-h-[120px]"
                         value={excuse}
@@ -245,7 +243,7 @@ function TeacherCancellationModal({ lesson, childName }: { lesson: any, childNam
                 </div>
                 <AlertDialogFooter className="gap-2">
                     <AlertDialogCancel className="rounded-xl border-none bg-slate-100 hover:bg-slate-200 font-bold" disabled={isCancelling}>Vazgeç</AlertDialogCancel>
-                    <AlertDialogAction 
+                    <AlertDialogAction
                         onClick={(e) => { e.preventDefault(); handleTeacherCancel(); }}
                         className="rounded-xl bg-red-600 hover:bg-red-700 font-bold text-white shadow-lg shadow-red-600/20"
                         disabled={isCancelling || !excuse.trim()}
@@ -299,7 +297,7 @@ function OgretmenDerslerimPageContent() {
             if (!sessions[sessionKey]) sessions[sessionKey] = [];
             sessions[sessionKey].push(slot);
         });
-        
+
         return Object.values(sessions).flatMap(sessionSlots => {
             if (sessionSlots.length === 0) return [];
             sessionSlots.sort((a, b) => a.startTime.seconds - b.startTime.seconds);
@@ -320,7 +318,7 @@ function OgretmenDerslerimPageContent() {
                 }
             }
             if (currentLesson) lessons.push(currentLesson);
-            
+
             return lessons.map(lesson => {
                 const firstSlot = lesson.slots[0];
                 const startTime = firstSlot.startTime.toDate();
@@ -371,7 +369,7 @@ function OgretmenDerslerimPageContent() {
     const handleJoinLesson = async (lesson: any) => {
         try {
             if (!teacherData?.googleMeetLink) {
-                 toast({
+                toast({
                     variant: 'destructive',
                     title: 'Google Meet Linki Eksik',
                     description: 'Lütfen profil sayfanızdan Google Meet linkinizi ekleyin.',
@@ -384,7 +382,7 @@ function OgretmenDerslerimPageContent() {
                 window.open(lesson.liveLessonUrl, '_blank');
                 return;
             }
-            
+
             if (!db || isStartingLesson) return;
             setIsStartingLesson(true);
 
@@ -461,7 +459,7 @@ function OgretmenDerslerimPageContent() {
                 </TabsContent>
             </Tabs>
 
-             <Dialog open={isProgressPanelOpen} onOpenChange={setIsProgressPanelOpen}>
+            <Dialog open={isProgressPanelOpen} onOpenChange={setIsProgressPanelOpen}>
                 <DialogContent className="max-w-5xl h-[90vh]">
                     <DialogHeader>
                         <DialogTitle className="text-3xl font-bold font-headline">
@@ -470,7 +468,7 @@ function OgretmenDerslerimPageContent() {
                         <DialogDescription>Çocuğun ilerlemesini izleyin ve geri bildirim verin.</DialogDescription>
                     </DialogHeader>
                     {isChildDataLoading || !selectedChildData || !selectedLesson ? (
-                         <div className="flex h-full items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>
+                        <div className="flex h-full items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>
                     ) : (
                         <ProgressPanel child={selectedChildData} lessonId={selectedLesson.id} isEditable={true} />
                     )}

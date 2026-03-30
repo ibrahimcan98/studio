@@ -96,15 +96,27 @@ export const getLessonPlannedTemplate = (data: { studentName: string; teacherNam
   <p style="font-size: 14px; color: #64748b;">Ders saati geldiğinde panele girerek canlı ders odasına katılabilirsiniz.</p>
 `);
 
-export const getLessonCancelledTemplate = (data: { studentName: string; teacherName: string; date: string; time: string }) => getBaseTemplate(`
+export const getLessonCancelledTemplate = (data: { studentName: string; teacherName: string; date: string; time: string; reason?: string }) => getBaseTemplate(`
   <h2 style="color: #ef4444; font-size: 24px; margin-top: 0;">Ders İptal Edildi</h2>
   <p style="font-size: 16px; color: #475569;">Merhaba, <strong>${data.studentName}</strong> için planlanan aşağıdaki ders iptal edilmiştir.</p>
+  
   <div style="background-color: #fef2f2; padding: 24px; border-radius: 20px; border: 1px solid #fee2e2; margin: 24px 0;">
     <p style="margin: 8px 0; color: #991b1b;"><strong>Eğitmen:</strong> ${data.teacherName}</p>
     <p style="margin: 8px 0; color: #991b1b;"><strong>Tarih:</strong> ${data.date}</p>
     <p style="margin: 8px 0; color: #991b1b;"><strong>Saat:</strong> ${data.time}</p>
+    ${data.reason ? `
+    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #fca5a5;">
+      <p style="margin: 0; color: #991b1b; font-size: 13px; font-weight: 700; text-transform: uppercase;">Öğretmen Mazereti:</p>
+      <p style="margin: 5px 0 0 0; color: #b91c1c; font-style: italic; font-size: 15px;">"${data.reason}"</p>
+    </div>
+    ` : ''}
   </div>
+
   <p style="font-size: 14px; color: #64748b;">İptal edilen ders krediniz hesabınıza iade edilmiştir. Veli panelinden tekrar planlama yapabilirsiniz.</p>
+  
+  <div style="text-align: center; margin-top: 30px;">
+    <a href="https://turkcocukakademisi.com/ebeveyn-portali" style="${BUTTON_STYLE}">Hemen Yeni Ders Planla</a>
+  </div>
 `);
 
 export const getLessonRescheduledTemplate = (data: { studentName: string; teacherName: string; date: string; time: string }) => getBaseTemplate(`
