@@ -12,7 +12,7 @@ const initializeFirebaseAdmin = (): App => {
 
   const serviceAccountPath = path.join(process.cwd(), 'service-account.json');
   const serviceAccountVar = process.env.FIREBASE_SERVICE_ACCOUNT;
-  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID;
 
   // 1. Try Environment Variable (JSON string)
   if (serviceAccountVar) {
