@@ -312,29 +312,51 @@ function OgretmenDerslerimPageContent() {
 
     const groupedLessons = useMemo(() => {
         if (!lessonSlots) return [];
+        
+        const parseDate = (val: any) => {
+            if (!val) return new Date();
+            if (val.toDate) return val.toDate();
+            if (val instanceof Date) return val;
+            const d = new Date(val);
+            return isNaN(d.getTime()) ? new Date() : d;
+        };
+
         const sessions: { [key: string]: any[] } = {};
-        lessonSlots.forEach(slot => {
-            const startTime = slot.startTime.toDate();
+        
+        // Only process booked or cancelled lessons
+        const relevantSlots = lessonSlots.filter(s => s.status && s.status !== 'available');
+
+        relevantSlots.forEach(slot => {
+            const startTime = parseDate(slot.startTime);
             const sessionDate = startOfDay(startTime).toISOString();
-            const sessionKey = `${sessionDate}-${slot.childId}-${slot.teacherId}-${slot.packageCode}`;
+            const sessionKey = `${sessionDate}-${slot.childId || 'nochild'}-${slot.teacherId || 'noteacher'}-${slot.packageCode || 'nopackage'}`;
             if (!sessions[sessionKey]) sessions[sessionKey] = [];
             sessions[sessionKey].push(slot);
         });
 
         return Object.values(sessions).flatMap(sessionSlots => {
             if (sessionSlots.length === 0) return [];
-            sessionSlots.sort((a, b) => a.startTime.seconds - b.startTime.seconds);
+            
+            sessionSlots.sort((a, b) => {
+                const timeA = parseDate(a.startTime).getTime();
+                const timeB = parseDate(b.startTime).getTime();
+                return timeA - timeB;
+            });
+
             const lessons: any[] = [];
             let currentLesson: any = null;
+
             for (const slot of sessionSlots) {
                 if (!currentLesson) {
                     currentLesson = { ...slot, slots: [slot] };
                 } else {
-                    const lastSlotTime = currentLesson.slots[currentLesson.slots.length - 1].startTime.toDate();
-                    const currentSlotTime = slot.startTime.toDate();
+                    const lastSlotTime = parseDate(currentLesson.slots[currentLesson.slots.length - 1].startTime);
+                    const currentSlotTime = parseDate(slot.startTime);
                     const timeDiff = (currentSlotTime.getTime() - lastSlotTime.getTime()) / (1000 * 60);
-                    if (timeDiff <= 5) currentLesson.slots.push(slot);
-                    else {
+
+                    if (timeDiff <= 5) {
+                        currentLesson.slots.push(slot);
+                    } else {
                         lessons.push(currentLesson);
                         currentLesson = { ...slot, slots: [slot] };
                     }
@@ -344,7 +366,7 @@ function OgretmenDerslerimPageContent() {
 
             return lessons.map(lesson => {
                 const firstSlot = lesson.slots[0];
-                const startTime = firstSlot.startTime.toDate();
+                const startTime = parseDate(firstSlot.startTime);
                 const packageDetails = getCourseDetailsFromPackageCode(firstSlot.packageCode);
                 const duration = packageDetails ? packageDetails.duration : 30;
                 const endTime = addMinutes(startTime, duration);

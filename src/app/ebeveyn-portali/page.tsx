@@ -369,15 +369,24 @@ function EbeveynPortaliContent() {
     const list: any[] = [];
     const now = new Date();
     
+    const parseDate = (val: any) => {
+        if (!val) return new Date();
+        if (val.toDate) return val.toDate();
+        if (val instanceof Date) return val;
+        const d = new Date(val);
+        return isNaN(d.getTime()) ? new Date() : d;
+    };
+
     // 1. Sıradaki Ders (Gelecek)
     const nextLesson = slots
       .filter(s => {
-          const startTime = s.startTime.toDate ? s.startTime.toDate() : new Date(s.startTime);
+          if (s.status === 'cancelled') return false;
+          const startTime = parseDate(s.startTime);
           return isAfter(startTime, now);
       })
       .sort((a, b) => {
-          const aTime = a.startTime.seconds || new Date(a.startTime).getTime() / 1000;
-          const bTime = b.startTime.seconds || new Date(b.startTime).getTime() / 1000;
+          const aTime = parseDate(a.startTime).getTime();
+          const bTime = parseDate(b.startTime).getTime();
           return aTime - bTime;
       })[0];
     
