@@ -424,11 +424,14 @@ export default function DersPlanlaPage() {
             if (teacherEmail || user.email) {
                 const teacherFullName = (teacherData?.firstName && teacherData?.lastName) 
                     ? `${teacherData.firstName} ${teacherData.lastName}` 
-                    : 'Eğitmen';
+                    : (teacherData?.firstName || 'Akademi Eğitmeni');
+
+                const courseDetails = getCourseDetailsFromPackageCode(selectedPackage);
 
                 const emailData = {
                     studentName: childName,
                     teacherName: teacherFullName,
+                    courseName: courseDetails?.courseName || 'Akademik Ders',
                     date: format(startTime, 'dd MMMM yyyy', { locale: tr }),
                     time: format(startTime, 'HH:mm', { locale: tr }),
                 };

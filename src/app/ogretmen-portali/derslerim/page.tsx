@@ -53,6 +53,16 @@ const getCourseDetailsFromPackageCode = (code?: string) => {
     return { courseName: course.title, duration };
 }
 
+function StudentName({ bookedBy, childId }: { bookedBy: string, childId: string }) {
+    const db = useFirestore();
+    const childDocRef = useMemoFirebase(() => {
+        if (!db || !bookedBy || !childId) return null;
+        return doc(db, 'users', bookedBy, 'children', childId);
+    }, [db, bookedBy, childId]);
+    const { data: childData } = useDoc(childDocRef);
+    return <span>{childData?.firstName || '...'}</span>;
+}
+
 function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any, onOpenProgressPanel: () => void, onJoinLesson: (lesson: any) => void }) {
     const db = useFirestore();
 
@@ -169,62 +179,35 @@ function TeacherCancellationModal({ lesson, childName }: { lesson: any, childNam
 
         setIsCancelling(true);
         try {
-            const batch = writeBatch(db!);
-
-            // 1. Mark slots as cancelled and save the excuse
-            lesson.slots.forEach((slot: any) => {
-                const slotRef = doc(db!, 'lesson-slots', slot.id);
-                batch.update(slotRef, {
-                    status: 'cancelled',
-                    cancelledBy: 'teacher',
-                    cancelReason: excuse,
-                    updatedAt: serverTimestamp()
-                });
-            });
-
-            // 2. Conditional Refund Logic
-            const childRef = doc(db!, 'users', lesson.bookedBy, 'children', lesson.childId);
-            const parentRef = doc(db!, 'users', lesson.bookedBy);
-            
-            const childSnap = await getDoc(childRef);
-            const parentSnap = await getDoc(parentRef);
-            
-            const childData = childSnap.data();
-            const currentChildLessons = childData?.remainingLessons || 0;
-            let refundTarget = 'child';
-
-            if (lesson.packageCode === 'FREE_TRIAL') {
-                // Free Trial Refund
-                batch.update(parentRef, { freeTrialsUsed: increment(-1) });
-                batch.update(childRef, { hasUsedFreeTrial: false });
-                refundTarget = 'free_trial';
-            } else if (currentChildLessons > 0) {
-                // Child already has credits, just add one more
-                batch.update(childRef, { remainingLessons: increment(1) });
-            } else {
-                // Child has 0 credits (last lesson or empty)
-                // Refund to parent's unassigned pool
-                const refundCode = getRefundPackageCode(lesson.packageCode);
-                batch.update(parentRef, {
-                    enrolledPackages: arrayUnion(refundCode),
-                    remainingLessons: increment(1)
-                });
-                refundTarget = 'parent_pool';
-            }
-
-            await batch.commit();
-
-            // 3. Email Notification to Parent
-            const teacherSnap = await getDoc(doc(db!, 'users', lesson.teacherId)); // Use lesson.teacherId directly
-            const teacherData = teacherSnap.exists() ? teacherSnap.data() : null;
+            // Get parent email first for the notification
             const parentDoc = await getDoc(doc(db!, 'users', lesson.bookedBy));
             const parentEmail = parentDoc.data()?.email;
 
-            if (parentEmail) {
-                const teacherFullName = (teacherData?.firstName && teacherData?.lastName) 
-                    ? `${teacherData.firstName} ${teacherData.lastName}` 
-                    : 'Eğitmen';
+            const response = await fetch('/api/lessons/teacher-cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    slots: lesson.slots.map((s: any) => ({ id: s.id })),
+                    parentId: lesson.bookedBy,
+                    childId: lesson.childId,
+                    packageCode: lesson.packageCode,
+                    teacherId: lesson.teacherId,
+                    cancelReason: excuse,
+                    studentName: childName,
+                    startTime: formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'dd MMMM yyyy HH:mm', { locale: tr }),
+                    parentEmail: parentEmail
+                })
+            });
 
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'İptal işlemi başarısız oldu.');
+            }
+
+            const data = await response.json();
+
+            // Email Notification to Parent
+            if (parentEmail) {
                 fetch('/api/emails/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -234,41 +217,24 @@ function TeacherCancellationModal({ lesson, childName }: { lesson: any, childNam
                         templateName: 'lesson-cancelled',
                         data: {
                             studentName: childName,
-                            teacherName: teacherFullName,
+                            teacherName: data.teacherFullName || 'Eğitmen',
                             date: formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'dd MMMM yyyy', { locale: tr }),
                             time: formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr }),
-                            reason: excuse // Passing the excuse to the email template
+                            reason: excuse
                         }
                     })
                 }).catch(console.error);
             }
 
-            const toastDesc = refundTarget === 'parent_pool' 
+            const toastDesc = data.refundTarget === 'parent_pool' 
                 ? 'İade velinin atanmamış kurslarına (havuza) aktarıldı.' 
-                : (refundTarget === 'free_trial' ? 'Ücretsiz deneme hakkı veliye iade edildi.' : 'Ders kredisi öğrenciye iade edildi.');
-
-            // 4. Operational Flow Log for Admins
-            const teacherFullName = (teacherData?.firstName && teacherData?.lastName) 
-                ? `${teacherData.firstName} ${teacherData.lastName}` 
-                : 'Eğitmen';
-
-            addDoc(collection(db!, 'activity-log'), {
-                event: '❌ Ders İptal Edildi (Öğretmen)',
-                icon: '❌',
-                details: {
-                    'Öğrenci': childName,
-                    'Eğitmen': teacherFullName,
-                    'Mazeret': excuse,
-                    'Ders Saati': formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'dd MMMM yyyy HH:mm', { locale: tr }),
-                },
-                createdAt: Timestamp.now()
-            }).catch(console.error);
+                : (data.refundTarget === 'free_trial' ? 'Ücretsiz deneme hakkı veliye iade edildi.' : 'Ders kredisi öğrenciye iade edildi.');
 
             toast({ title: 'Ders İptal Edildi', description: `Veliye mazeretiniz iletildi. ${toastDesc}` });
             setIsOpen(false);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Teacher cancel error:", error);
-            toast({ variant: 'destructive', title: 'Hata', description: 'İptal işlemi başarısız oldu.' });
+            toast({ variant: 'destructive', title: 'Hata', description: error.message || 'İptal işlemi başarısız oldu.' });
         } finally {
             setIsCancelling(false);
         }
@@ -545,8 +511,8 @@ function OgretmenDerslerimPageContent() {
                                                 <p className="text-xs italic text-red-600">"{firstSlot.cancelReason}"</p>
                                             </div>
                                         )}
-                                        <div className="text-[10px] text-slate-400 mt-2">
-                                            Öğrenci ID: {lesson.childId}
+                                        <div className="text-[10px] text-slate-400 mt-2 font-bold">
+                                            Öğrenci: <StudentName bookedBy={lesson.bookedBy} childId={lesson.childId} />
                                         </div>
                                     </CardContent>
                                 </Card>

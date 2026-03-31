@@ -161,7 +161,7 @@ function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUp
 
                 <div className='flex justify-between items-center'>
                     <span className='text-slate-500 font-medium text-[15px]'>Kurs:</span>
-                    {currentCourse ? (
+                    {currentCourse && child.remainingLessons > 0 ? (
                         <span className="font-bold text-white bg-[#4CAF50] px-3 py-1 rounded-full text-[13px]">
                             {currentCourse.title.split('(')[0].trim()}
                         </span>
@@ -267,6 +267,71 @@ function EbeveynPortaliContent() {
 
   const [refundChildId, setRefundChildId] = useState<string | null>(null);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [unseenCancellations, setUnseenCancellations] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (slots && slots.length > 0) {
+       const unseen = slots.filter(s => s.status === 'cancelled' && s.cancelledBy === 'teacher' && s.parentSeenCancellation === false);
+       
+       const parseDate = (val: any) => {
+           if (!val) return new Date();
+           if (val.toDate) return val.toDate();
+           const d = new Date(val);
+           return isNaN(d.getTime()) ? new Date() : d;
+       };
+
+       // Group consecutive or same-session slots
+       const groups: any[] = [];
+       const sortedUnseen = [...unseen].sort((a, b) => {
+           const dateA = parseDate(a.startTime);
+           const dateB = parseDate(b.startTime);
+           return dateA.getTime() - dateB.getTime();
+       });
+
+       sortedUnseen.forEach(slot => {
+           const slotDate = parseDate(slot.startTime);
+           const existingGroup = groups.find(g => 
+               g.childId === slot.childId && 
+               g.teacherId === slot.teacherId &&
+               Math.abs(g.startTime.getTime() - slotDate.getTime()) < 60 * 60 * 1000
+           );
+
+           if (existingGroup) {
+               existingGroup.slots.push(slot);
+               if (slotDate < existingGroup.startTime) existingGroup.startTime = slotDate;
+               if (slot.cancelReason && !existingGroup.cancelReason) existingGroup.cancelReason = slot.cancelReason;
+           } else {
+               groups.push({
+                   id: slot.id,
+                   childId: slot.childId,
+                   teacherId: slot.teacherId,
+                   startTime: slotDate,
+                   cancelReason: slot.cancelReason,
+                   slots: [slot]
+               });
+           }
+       });
+
+       setUnseenCancellations(groups);
+    }
+  }, [slots]);
+
+  const handleAcknowledgeCancellations = async () => {
+      if (!db || unseenCancellations.length === 0) return;
+      try {
+          const batch = writeBatch(db);
+          unseenCancellations.forEach(group => {
+              group.slots.forEach((s: any) => {
+                  const slotRef = doc(db, 'lesson-slots', s.id);
+                  batch.update(slotRef, { parentSeenCancellation: true });
+              });
+          });
+          await batch.commit();
+          setUnseenCancellations([]);
+      } catch (error) {
+          console.error("Acknowledge cancellation error:", error);
+      }
+  };
 
   useEffect(() => {
     if (!childrenLoading && children && children.length === 0 && !userData?.isLegacy) {
@@ -596,6 +661,52 @@ function EbeveynPortaliContent() {
                 </div>
             </DialogContent>
         </Dialog>
-    </div>
+
+        <AlertDialog open={unseenCancellations.length > 0}>
+            <AlertDialogContent className="max-w-md rounded-[32px] p-8 text-center border-none shadow-2xl bg-white">
+                <AlertDialogHeader className="items-center">
+                    <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                        <AlertTriangle className="w-10 h-10 text-red-600 animate-pulse" />
+                    </div>
+                    <AlertDialogTitle className="text-3xl font-black text-red-600 tracking-tight">Ders İptal Edildi!</AlertDialogTitle>
+                    <AlertDialogDescription className="text-base font-medium text-slate-600 mt-2">
+                        Öğretmeniniz bir dersinizi iptal etmek durumunda kaldı. Ders krediniz hesabınıza iade edilmiştir.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                
+                <div className="my-6 space-y-4">
+                     {unseenCancellations.map((group, i) => {
+                        const date = group.startTime instanceof Date && !isNaN(group.startTime.getTime()) ? group.startTime : new Date();
+                        const child = children?.find(ch => ch.id === group.childId);
+                        return (
+                            <div key={group.id || i} className="bg-red-50 p-4 rounded-2xl border border-red-100 text-left">
+                                <p className="text-xs font-black text-red-700 uppercase tracking-widest mb-1">
+                                    {child?.firstName || 'Öğrenci'} - {format(date, 'dd MMMM yyyy', { locale: tr })}
+                                </p>
+                                <p className="text-sm font-bold text-slate-800">
+                                    Saat: {format(date, 'HH:mm')}
+                                </p>
+                                {group.cancelReason && (
+                                    <div className="mt-2 pt-2 border-t border-red-100">
+                                        <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">Öğretmen Notu:</p>
+                                        <p className="text-sm italic text-red-700">"{group.cancelReason}"</p>
+                                    </div>
+                                )}
+                            </div>
+                        )
+                    })}
+                </div>
+
+                <AlertDialogFooter>
+                    <AlertDialogAction 
+                        onClick={handleAcknowledgeCancellations}
+                        className="w-full h-14 rounded-2xl text-base font-bold bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-600/20"
+                    >
+                        Anladım, Kredimi Kontrol Ettim
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+      </div>
   );
 }

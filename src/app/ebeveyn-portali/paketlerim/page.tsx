@@ -145,7 +145,7 @@ function PaketlerimPageContent() {
         const lessonsInPackage = parseInt(selectedPackageToAssign.replace(/\D/g, ''), 10);
         const prefix = selectedPackageToAssign.replace(/[0-9]/g, '');
 
-        if (childSnap.exists() && childSnap.data()?.assignedPackage) {
+        if (childSnap.exists() && childSnap.data()?.assignedPackage && (childSnap.data()?.remainingLessons || 0) > 0) {
             const currentPackage = childSnap.data().assignedPackage;
             const currentPrefix = currentPackage.replace(/[0-9]/g, '');
             if (currentPrefix !== prefix) {
@@ -251,7 +251,7 @@ function PaketlerimPageContent() {
     };
     
     const unassignedPackages = userData?.enrolledPackages || [];
-    const childrenWithoutPackages = children?.filter(c => !c.assignedPackage) || [];
+    const childrenWithoutPackages = children?.filter(c => !c.assignedPackage || (c.remainingLessons || 0) <= 0) || [];
     const totalUnassignedLessons = userData?.remainingLessons || 0;
 
     if (userLoading || userDataLoading || childrenLoading || transactionsLoading || isVerifyingPayment) {

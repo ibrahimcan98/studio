@@ -88,15 +88,22 @@ export const getPasswordResetTemplate = (link: string) => getBaseTemplate(`
   <p style="font-size: 14px; color: #64748b; margin-top: 25px;">Eğer bu talebi siz yapmadıysanız, lütfen bu e-postayı dikkate almayın. Hesabınız güvendedir.</p>
 `);
 
-export const getLessonPlannedTemplate = (data: { studentName: string; teacherName: string; date: string; time: string }) => getBaseTemplate(`
+export const getLessonPlannedTemplate = (data: { studentName: string; teacherName: string; date: string; time: string; courseName?: string }) => getBaseTemplate(`
   <h2 style="color: #0f172a; font-size: 24px; margin-top: 0;">Yeni Ders Planlandı</h2>
   <p style="font-size: 16px; color: #475569;">Merhaba, <strong>${data.studentName}</strong>'in akademik yolculuğu için yeni bir ders planlandı.</p>
+  
   <div style="background-color: #f0f9ff; padding: 24px; border-radius: 20px; border: 1px solid #e0f2fe; margin: 24px 0;">
+    ${data.courseName ? `<p style="margin: 8px 0; color: #0369a1;"><strong>Kurs:</strong> ${data.courseName}</p>` : ''}
     <p style="margin: 8px 0; color: #0369a1;"><strong>Eğitmen:</strong> ${data.teacherName}</p>
     <p style="margin: 8px 0; color: #0369a1;"><strong>Tarih:</strong> ${data.date}</p>
     <p style="margin: 8px 0; color: #0369a1;"><strong>Saat:</strong> ${data.time}</p>
   </div>
+  
   <p style="font-size: 14px; color: #64748b;">Ders saati geldiğinde panele girerek canlı ders odasına katılabilirsiniz.</p>
+  
+  <div style="text-align: center; margin-top: 30px;">
+    <a href="https://turkcocukakademisi.com/ebeveyn-portali" style="${BUTTON_STYLE}">Ebeveyn Paneline Git</a>
+  </div>
 `);
 
 export const getLessonCancelledTemplate = (data: { studentName: string; teacherName: string; date: string; time: string; reason?: string }) => getBaseTemplate(`
