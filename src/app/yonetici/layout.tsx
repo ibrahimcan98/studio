@@ -4,7 +4,7 @@
 import { useUser, useFirestore, doc, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import {
   Loader2,
   LogOut,
@@ -55,6 +55,41 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
   }, [user, db]);
 
   const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
+
+  const allNavItems = [
+    { id: 'dashboard', href: '/yonetici', label: 'Genel Bakış', icon: Home },
+    { id: 'canli-takip', href: '/yonetici/canli-takip', label: 'Canlı İzle', icon: Activity },
+    { id: 'inbox', href: '/yonetici/inbox', label: 'Mesajlar', icon: Inbox },
+    { id: 'satislar', href: '/yonetici/satislar', label: 'Satışlar', icon: CreditCard },
+    { id: 'ogretmenler', href: '/yonetici/ogretmenler', label: 'Öğretmenler', icon: Presentation },
+    { id: 'dersler', href: '/yonetici/dersler', label: 'Dersler', icon: Calendar },
+    { id: 'kullanicilar', href: '/yonetici/kullanicilar', label: 'Veliler', icon: Users },
+    { id: 'aramalar', href: '/yonetici/aramalar', label: 'Aramalar', icon: PhoneCall },
+    { id: 'ogrenciler', href: '/yonetici/ogrenciler', label: 'Öğrenciler', icon: Baby },
+    { id: 'indirimler', href: '/yonetici/indirimler', label: 'İndirimler', icon: Ticket },
+    { id: 'puan-merkezi', href: '/yonetici/puan-merkezi', label: 'Puan Merkezi', icon: Trophy },
+    { id: 'admin-yonetimi', href: '/yonetici/admin-yonetimi', label: 'Admin Yönetimi', icon: ShieldAlert },
+  ];
+
+  const navItems = useMemo(() => {
+    const isUltraAdmin = user?.email === 'tubakodak@turkcocukakademisii.com';
+
+    // Core filtering based on permissions
+    let items = allNavItems;
+    
+    if (userData?.permissions) {
+      items = allNavItems.filter((item: any) => 
+        item.id === 'dashboard' || 
+        userData.permissions.includes(item.id)
+      );
+    }
+
+    // FINAL STRICT CHECK: Only Ultra Admin sees Admin Management
+    return items.filter((item: any) => {
+        if (item.id === 'admin-yonetimi') return isUltraAdmin;
+        return true;
+    });
+  }, [userData?.permissions, user?.email]);
 
   useEffect(() => {
     if (!isMounted || authLoading) return;
@@ -147,19 +182,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const navItems = [
-    { href: '/yonetici', label: 'Genel Bakış', icon: Home },
-    { href: '/yonetici/canli-takip', label: 'Canlı İzle', icon: Activity },
-    { href: '/yonetici/inbox', label: 'Mesajlar', icon: Inbox },
-    { href: '/yonetici/satislar', label: 'Satışlar', icon: CreditCard },
-    { href: '/yonetici/ogretmenler', label: 'Öğretmenler', icon: Presentation },
-    { href: '/yonetici/dersler', label: 'Dersler', icon: Calendar },
-    { href: '/yonetici/kullanicilar', label: 'Veliler', icon: Users },
-    { href: '/yonetici/aramalar', label: 'Aramalar', icon: PhoneCall },
-    { href: '/yonetici/ogrenciler', label: 'Öğrenciler', icon: Baby },
-    { href: '/yonetici/indirimler', label: 'İndirimler', icon: Ticket },
-    { href: '/yonetici/puan-merkezi', label: 'Puan Merkezi', icon: Trophy },
-  ];
+
 
   return (
     <TooltipProvider>
@@ -172,7 +195,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
               </Link>
             </div>
             <nav className="flex-1 space-y-1 p-4">
-            {navItems.map((item) => (
+            {navItems.map((item: any) => (
               <Link key={item.href} href={item.href}
                 className={cn('flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200',
                   pathname === item.href ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:text-primary hover:bg-slate-50'
@@ -211,7 +234,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
                       </SheetHeader>
                       <div className="flex h-20 items-center border-b px-8 mt-4"><Logo /></div>
                       <nav className="flex-1 space-y-1 p-4">
-                        {navItems.map((item) => (
+                        {navItems.map((item: any) => (
                           <Link 
                             key={item.href} 
                             href={item.href}
@@ -236,7 +259,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
                       </div>
                     </SheetContent>
                   </Sheet>
-                  <h1 className="font-bold text-lg text-slate-800 uppercase tracking-tight">{navItems.find(i => i.href === pathname)?.label || 'Yönetici'}</h1>
+                  <h1 className="font-bold text-lg text-slate-800 uppercase tracking-tight">{navItems.find((i: any) => i.href === pathname)?.label || 'Yönetici'}</h1>
                 </div>
 
                 <div className="flex items-center gap-3">
