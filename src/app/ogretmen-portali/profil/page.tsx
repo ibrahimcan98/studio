@@ -4,11 +4,11 @@
 import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
-import { updateProfile } from 'firebase/auth';
+import { updateProfile, updatePassword } from 'firebase/auth';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, User, Sprout, Video, Link as LinkIcon, Lock } from 'lucide-react';
+import { Loader2, User, Sprout, Video, Link as LinkIcon, Lock, KeyRound, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -65,6 +65,56 @@ export default function TeacherProfilePage() {
       });
     }
   }, [userData, form]);
+
+  // Password States
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isPasswordUpdating, setIsPasswordUpdating] = useState(false);
+
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    
+    if (newPassword.length < 6) {
+      toast({ variant: 'destructive', title: 'Hata', description: 'Şifre en az 6 karakter olmalıdır.' });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast({ variant: 'destructive', title: 'Hata', description: 'Şifreler birbiriyle eşleşmiyor.' });
+      return;
+    }
+
+    setIsPasswordUpdating(true);
+    try {
+      await updatePassword(user, newPassword);
+      toast({ 
+        title: 'Başarılı!', 
+        description: 'Şifreniz güncellendi. Bir sonraki girişinizde yeni şifrenizi kullanabilirsiniz.',
+        className: 'bg-green-50 border-green-200 text-green-800'
+      });
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error: any) {
+      console.error(error);
+      if (error.code === 'auth/requires-recent-login') {
+        toast({ 
+          variant: 'destructive', 
+          title: 'Güvenlik Kontrolü', 
+          description: 'Şifre değiştirmek için lütfen çıkış yapıp tekrar giriş yapın.' 
+        });
+      } else {
+        toast({ 
+          variant: 'destructive', 
+          title: 'Hata', 
+          description: 'Şifre güncellenirken bir hata oluştu.' 
+        });
+      }
+    } finally {
+      setIsPasswordUpdating(false);
+    }
+  };
 
 
   const onSubmit = async (data: ProfileFormValues) => {
@@ -140,19 +190,82 @@ export default function TeacherProfilePage() {
                 </CardContent>
             </Card>
 
-             <Card>
+            {/* Password Change Card */}
+            <Card className="border-blue-100 bg-blue-50/10 h-full">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-blue-900"><KeyRound className="h-5 w-5" /> Şifre Değiştir</CardTitle>
+                    <CardDescription>Hesabınızın güvenliği için yeni bir şifre belirleyin.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="newPassword">Yeni Şifre</Label>
+                        <div className="relative">
+                            <Input 
+                                id="newPassword" 
+                                type={showPassword ? "text" : "password"}
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                className="pr-10"
+                                placeholder="••••••••"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                            >
+                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="confirmPassword">Şifreyi Onayla</Label>
+                        <Input 
+                            id="confirmPassword" 
+                            type={showPassword ? "text" : "password"}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            placeholder="••••••••"
+                        />
+                    </div>
+                    <Button 
+                        onClick={handlePasswordUpdate}
+                        disabled={isPasswordUpdating || !newPassword || !confirmPassword}
+                        className="w-full bg-blue-600 hover:bg-blue-700 font-bold"
+                    >
+                        {isPasswordUpdating ? (
+                            <><Loader2 className="animate-spin mr-2 h-4 w-4"/> Güncelleniyor...</>
+                        ) : (
+                            <><ShieldCheck className="mr-2 h-4 w-4"/> Şifremi Güncelle</>
+                        )}
+                    </Button>
+                    <p className="text-[10px] text-slate-500 text-center leading-tight pt-2">
+                        Şifrenizi güncelledikten sonra mevcut oturumunuz devam eder ancak bir sonraki girişinizde yeni şifreniz istenecektir.
+                    </p>
+                </CardContent>
+            </Card>
+
+             <Card className="lg:col-span-2">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Sprout /> Ek Bilgiler</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div>
-                        <Label htmlFor="hobbies">Hobiler</Label>
-                        <Input id="hobbies" {...form.register('hobbies')} placeholder="Kitap okumak, seyahat etmek, yüzmek..." disabled={isProfileLocked} />
-                        <p className="text-xs text-muted-foreground mt-1">Hobilerinizi virgülle ayırarak yazın.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <Label htmlFor="hobbies">Hobiler</Label>
+                            <Input id="hobbies" {...form.register('hobbies')} placeholder="Kitap okumak, seyahat etmek, yüzmek..." disabled={isProfileLocked} />
+                            <p className="text-xs text-muted-foreground mt-1">Hobilerinizi virgülle ayırarak yazın.</p>
+                        </div>
+                        <div>
+                            <Label htmlFor="googleMeetLink">Google Meet Linki</Label>
+                            <Input id="googleMeetLink" {...form.register('googleMeetLink')} placeholder="https://meet.google.com/xxx-xxxx-xxx" disabled={isProfileLocked} />
+                            {form.formState.errors.googleMeetLink && <p className="text-destructive text-sm mt-1">{form.formState.errors.googleMeetLink.message}</p>}
+                            <p className="text-xs text-muted-foreground mt-1">Bu link tüm dersleriniz için kullanılacaktır.</p>
+                        </div>
                     </div>
-                    <div className="pt-2">
+                    
+                    <div className="pt-4 border-t">
                         <Label className="text-base font-bold text-slate-800">Kurs Başına Kazanç (€, Ders Başı)</Label>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-3">
                            <div className="space-y-1"><Label className="text-xs text-slate-500 font-medium">Başlangıç</Label><Input value={userData?.lessonRates?.baslangic !== undefined ? `${userData.lessonRates.baslangic} €` : '-'} disabled className="bg-slate-50 font-bold" /></div>
                            <div className="space-y-1"><Label className="text-xs text-slate-500 font-medium">Konuşma</Label><Input value={userData?.lessonRates?.konusma !== undefined ? `${userData.lessonRates.konusma} €` : '-'} disabled className="bg-slate-50 font-bold" /></div>
                            <div className="space-y-1"><Label className="text-xs text-slate-500 font-medium">Akademik</Label><Input value={userData?.lessonRates?.akademik !== undefined ? `${userData.lessonRates.akademik} €` : '-'} disabled className="bg-slate-50 font-bold" /></div>
@@ -162,28 +275,6 @@ export default function TeacherProfilePage() {
                         </div>
                         <p className="text-xs text-muted-foreground mt-2">Bu ücretler yönetici tarafından güncellenir, değiştirilemez.</p>
                     </div>
-                     <div>
-                        <Label htmlFor="googleMeetLink">Google Meet Linki</Label>
-                        <Input id="googleMeetLink" {...form.register('googleMeetLink')} placeholder="https://meet.google.com/xxx-xxxx-xxx" disabled={isProfileLocked} />
-                        {form.formState.errors.googleMeetLink && <p className="text-destructive text-sm mt-1">{form.formState.errors.googleMeetLink.message}</p>}
-                        <p className="text-xs text-muted-foreground mt-1">Bu link tüm dersleriniz için kullanılacaktır.</p>
-                    </div>
-                    {/* <div>
-                        <Label htmlFor="introVideoUrl">Tanıtım Videosu URL'si</Label>
-                        <Input id="introVideoUrl" {...form.register('introVideoUrl')} placeholder="https://youtube.com/watch?v=..." disabled={isProfileLocked} />
-                        {form.formState.errors.introVideoUrl && <p className="text-destructive text-sm mt-1">{form.formState.errors.introVideoUrl.message}</p>}
-                    </div> */}
-                    {/* {introVideoUrl && (
-                        <div>
-                            <h4 className="font-semibold mb-2 text-sm">Video Önizlemesi</h4>
-                             <Button asChild variant="outline" disabled={isProfileLocked}>
-                                <Link href={introVideoUrl} target="_blank" rel="noopener noreferrer">
-                                    <Video className="w-4 h-4 mr-2" />
-                                    Videoyu Yeni Sekmede Aç
-                                </Link>
-                            </Button>
-                        </div>
-                    )} */}
                 </CardContent>
             </Card>
         </div>

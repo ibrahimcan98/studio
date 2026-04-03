@@ -294,12 +294,12 @@ export default function AdminManagementPage() {
                                             {admin.email?.[0].toUpperCase()}
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="font-bold text-slate-900 flex items-center gap-2">
+                                            <div className="font-bold text-slate-900 flex items-center gap-2">
                                                 {admin.email}
                                                 {(!admin.permissions || admin.permissions.length === 0) && (
                                                     <Badge variant="secondary" className="bg-amber-100 text-amber-700 hover:bg-amber-100 text-[10px] py-0 border-none font-black tracking-tighter">TAM YETKİ</Badge>
                                                 )}
-                                            </p>
+                                            </div>
                                             <div className="flex flex-wrap gap-1.5">
                                                 {admin.permissions?.map((p: string) => (
                                                     <Badge key={p} variant="outline" className="text-[10px] py-0 border-slate-200 text-slate-500 font-medium bg-white">
