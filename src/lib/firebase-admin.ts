@@ -8,12 +8,17 @@ let firebaseApp: App;
 
 const initializeFirebaseAdmin = (): App => {
   const apps = getApps();
-  if (apps.length > 0) return apps[0];
+  if (apps.length > 0) {
+    console.log('[Firebase Admin] Using existing app instance.');
+    return apps[0];
+  }
 
   const serviceAccountPath = path.join(process.cwd(), 'service-account.json');
   const serviceAccountVar = process.env.FIREBASE_SERVICE_ACCOUNT;
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID;
   const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY || 'AIzaSyBaMRqed7S3Hoo0rbD6yF1Kz5lAdzGkkEU';
+
+  console.log('[Firebase Admin] Starting initialization. Project ID:', projectId);
 
   // 1. Try Environment Variable (JSON string)
   if (serviceAccountVar) {
@@ -23,10 +28,10 @@ const initializeFirebaseAdmin = (): App => {
       if (serviceAccount.private_key) {
         serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
       }
-      console.log('[Firebase Admin] Initializing from Environment Variable with Project ID:', serviceAccount.project_id);
+      console.log('[Firebase Admin] Attempting init from Environment Variable. Account Email:', serviceAccount.client_email);
       return initializeApp({
         credential: cert(serviceAccount),
-        projectId: serviceAccount.project_id,
+        projectId: serviceAccount.project_id || projectId,
         apiKey: apiKey
       } as any);
     } catch (e: any) {
@@ -41,10 +46,10 @@ const initializeFirebaseAdmin = (): App => {
       if (serviceAccount.private_key) {
         serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
       }
-      console.log('[Firebase Admin] Initializing from service-account.json file with Project ID:', serviceAccount.project_id);
+      console.log('[Firebase Admin] Attempting init from service-account.json file.');
       return initializeApp({
         credential: cert(serviceAccount),
-        projectId: serviceAccount.project_id,
+        projectId: serviceAccount.project_id || projectId,
         apiKey: apiKey
       } as any);
     } catch (e: any) {
@@ -54,26 +59,24 @@ const initializeFirebaseAdmin = (): App => {
 
   // 3. Last Fallback (Project ID only)
   if (projectId) {
-    console.log('[Firebase Admin] Initializing with Project ID fallback...');
+    console.log('[Firebase Admin] Initializing with Project ID fallback ONLY. Links may fail.');
     return initializeApp({
       projectId: projectId,
       apiKey: apiKey
     } as any);
   }
 
-  // BUILD PHASE FALLBACK: If we reach here, no valid config was found.
-  // We only use a dummy ID during the build phase (detected by missing keys in production).
+  // BUILD PHASE FALLBACK
   const isCI = !!process.env.CI;
   const isProbablyBuild = process.env.NODE_ENV === 'production' && !serviceAccountVar && !fs.existsSync(serviceAccountPath);
 
   if (isCI || isProbablyBuild) {
-    console.warn('[Firebase Admin] No credentials found. Using placeholder for build phase.');
+    console.warn('[Firebase Admin] Using placeholder for build phase.');
     return initializeApp({
       projectId: 'studio-placeholder-build'
     });
   }
 
-  // At runtime (e.g. local dev), we should throw a clear error.
   throw new Error('Firebase Admin Configuration Missing: No service-account.json or environment variables found.');
 };
 
