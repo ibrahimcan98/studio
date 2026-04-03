@@ -72,10 +72,10 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { format, addMinutes } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { getCourseByCode } from '@/data/courses';
+import { getCourseByCode, COURSES } from '@/data/courses';
 
 // UI Components for the manual assignment flow
 import {
@@ -94,6 +94,30 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Label } from '@/components/ui/label';
+
+const getCourseDetailsFromPackageCode = (code: string) => {
+    if (code === 'FREE_TRIAL') return { courseName: 'Ücretsiz Deneme Dersi', duration: 30 };
+    const courseCodeMap: { [key: string]: string } = { 
+        'B': 'baslangic', 
+        'K': 'konusma', 
+        'G': 'gelisim', 
+        'A': 'akademik', 
+        'GCSE': 'gcse' 
+    };
+    const courseKey = code.replace(/[0-9]/g, '');
+    const courseId = courseCodeMap[courseKey];
+    const course = COURSES.find((c: any) => c.id === courseId);
+    
+    if (!course) return { courseName: code, duration: 30 };
+    
+    let duration = 30;
+    if (course.id === 'baslangic') duration = 20;
+    if (course.id === 'konusma') duration = 30;
+    if (course.id === 'gelisim' || course.id === 'akademik') duration = 45;
+    if (course.id === 'gcse') duration = 50;
+    
+    return { courseName: course.title, duration };
+}
 
 export default function AdminDerslerPage() {
     const db = useFirestore();
@@ -266,6 +290,10 @@ export default function AdminDerslerPage() {
         
         if (typeFilter === 'trial') result = result.filter(l => l.isTrial);
         if (typeFilter === 'regular') result = result.filter(l => !l.isTrial);
+        
+        // Final sanity filter: only show lessons with status 'booked' (though already filtered by query)
+        // And ensure duration is at least 5 mins
+        result = result.filter(l => l.status === 'booked' && l.duration >= 5);
 
         // Sort by Date (Descending)
         return result.sort((a, b) => b.startDateTime.getTime() - a.startDateTime.getTime());
@@ -346,10 +374,9 @@ export default function AdminDerslerPage() {
         setIsAssigning(true);
         try {
             const batch = writeBatch(db);
-            const slotRef = doc(db, 'lesson-slots', selectedSlotId);
             const parentId = selectedParentId;
             const childInfo = allChildren.find(c => c.id === selectedChildId);
-            const packageCode = childInfo?.assignedPackage || 'K4'; // Default to a standard package if unknown
+            const packageCode = childInfo?.assignedPackage || 'K4';
 
             // Check if student has remaining lessons (skip if FREE_TRIAL)
             if (packageCode === 'FREE_TRIAL') {
@@ -373,6 +400,40 @@ export default function AdminDerslerPage() {
                 return;
             }
 
+            // Get Course Duration and calculate slots
+            // (Duration + 5) / 5 because each slot is 5 mins and we include a 5 min buffer/block
+            const details = getCourseDetailsFromPackageCode(packageCode);
+            const numSlots = Math.ceil((details.duration + 5) / 5);
+
+            // Find all required consecutive slots
+            const startSlot = availableSlots.find(s => s.id === selectedSlotId);
+            if (!startSlot) throw new Error("Başlangıç slotu bulunamadı.");
+
+            const startTime = startSlot.startTime.toDate();
+            const slotsToBook: any[] = [];
+
+            // Fetch and check availability for all required slots
+            for (let i = 0; i < numSlots; i++) {
+                const slotTime = addMinutes(startTime, i * 5);
+                const q = query(
+                    collection(db, 'lesson-slots'), 
+                    where('teacherId', '==', selectedTeacherId), 
+                    where('startTime', '==', Timestamp.fromDate(slotTime))
+                );
+                const snap = await getDocs(q);
+                
+                if (snap.empty || snap.docs[0].data().status !== 'available') {
+                    toast({ 
+                        variant: 'destructive', 
+                        title: 'Çakışma / Müsaitlik Sorunu', 
+                        description: `Seçtiğiniz saatten itibaren ${details.duration} dakikalık ders için yeterli boşluk bulunmuyor. (${format(slotTime, 'HH:mm')} dolu veya kapalı)` 
+                    });
+                    setIsAssigning(false);
+                    return;
+                }
+                slotsToBook.push(snap.docs[0]);
+            }
+
             // Record assignment to Activity Log
             const activityRef = doc(collection(db, 'activity-log'));
             batch.set(activityRef, {
@@ -381,19 +442,22 @@ export default function AdminDerslerPage() {
                 details: {
                     'Öğrenci': childInfo?.firstName || '-',
                     'Ders': packageCode,
-                    'Veli ID': parentId
+                    'Veli ID': parentId,
+                    'Süre': `${details.duration} dk`
                 },
                 createdAt: Timestamp.now()
             });
 
-            // Update Slot
-            batch.update(slotRef, {
-                status: 'booked',
-                bookedBy: parentId,
-                childId: selectedChildId,
-                packageCode: packageCode,
-                bookedAt: Timestamp.now(),
-                assignedBy: 'admin'
+            // Update all Slots in batch
+            slotsToBook.forEach(slotDoc => {
+                batch.update(slotDoc.ref, {
+                    status: 'booked',
+                    bookedBy: parentId,
+                    childId: selectedChildId,
+                    packageCode: packageCode,
+                    bookedAt: Timestamp.now(),
+                    assignedBy: 'admin'
+                });
             });
 
             // Update Child (Decrement lesson)
@@ -402,14 +466,11 @@ export default function AdminDerslerPage() {
                 const childSnap = await getDoc(childRef);
                 if (childSnap.exists()) {
                     batch.update(childRef, { remainingLessons: increment(-1) });
-                } else {
-                    console.warn("Child document not found for update:", childRef.path);
-                    // It's safer to just skip credit update if doc is missing than to crash the whole batch
                 }
             }
 
             await batch.commit();
-            toast({ title: 'Ders Atandı', description: 'Manuel ders atama işlemi başarılı.' });
+            toast({ title: 'Ders Atandı', description: `${details.duration} dakikalık ders başarıyla atandı.` });
             setIsAssignDialogOpen(false);
             setAssignStep(1);
             refetchLessons();
