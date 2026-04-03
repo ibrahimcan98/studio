@@ -27,14 +27,25 @@ import {
 const LESSON_DURATION_MINUTES = 30;
 
 // 5-minute buffer is excluded from duration
+const getCourseId = (code?: string) => {
+    if (!code) return null;
+    if (code === 'FREE_TRIAL') return 'FREE_TRIAL';
+    const courseCodeMap: { [key: string]: string } = { 
+        'B': 'baslangic', 'K': 'konusma', 'G': 'gelisim', 'A': 'akademik', 'GCSE': 'gcse'
+    };
+    return courseCodeMap[code.replace(/[0-9]/g, '')] || null;
+};
+
 const getLessonPrice = (packageCode: string | undefined, userData: any): number => {
-    // Admin must enter the wage/rate for the teacher in user profile (e.g., userData.wagePerLesson or userData.hourlyRate)
-    // If no explicit rate is set for the teacher, do not increase earnings artificially.
-    if (!userData || !userData.lessonWage) {
+    if (!userData || !userData.lessonRates) {
         return 0; 
     }
-    // E.g. userData.lessonWage could be a flat rate, or an object based on package
-    return Number(userData.lessonWage) || 0;
+    const courseId = getCourseId(packageCode);
+    if (!courseId) return 0;
+    
+    // Explicit check for lessonRates object
+    const rate = userData.lessonRates[courseId];
+    return Number(rate) || 0;
 };
 
 
@@ -81,8 +92,28 @@ const StudentCard = ({ student, lessons, teacherData }: { student: any, lessons:
     });
 
     const totalLessons = uniqueStudentLessons.length;
-    // Each lesson has a 5 min buffer slot at the end. We subtract it.
-    const totalMinutes = (studentLessons.length - totalLessons) * 5;
+    
+    // Each lesson block duration:
+    // If only 1 slot -> assume 30 mins (fallback for legacy single-slot lessons)
+    // If >1 slots -> (Number of slots * 5)
+    const totalMinutes = studentLessons.reduce((acc, current, idx, arr) => {
+        // Find if this is the start of a block
+        const slotTime = current.startTime.seconds;
+        const isStart = !arr.some(o => o.startTime.seconds === slotTime - 300);
+        if (isStart) {
+            // Find how many consecutive slots follow
+            let count = 1;
+            while (arr.some(o => o.startTime.seconds === slotTime + (count * 300))) {
+                count++;
+            }
+            // If it's a legacy single-slot, assume 30 mins. 
+            // If multi-slot, we use (count * 5) but often there's a 5 min buffer at end, so we might want (count-1)*5?
+            // Parent portal uses: numSlots = Math.ceil((duration + 5) / 5) -> so duration = (numSlots * 5) - 5
+            return acc + (count === 1 ? 30 : (count * 5) - 5);
+        }
+        return acc;
+    }, 0);
+
     const totalEarned = uniqueStudentLessons.reduce((sum, lesson) => sum + getLessonPrice(lesson.packageCode, teacherData), 0);
     const lastLesson = uniqueStudentLessons.sort((a,b) => b.startTime.seconds - a.startTime.seconds)[0];
 
@@ -216,8 +247,23 @@ export default function OgrencilerimPage() {
         });
 
         const actualTotalLessons = uniqueLessons.length;
-        // Each lesson block includes a 5 min buffer at the end. Duration is: (Total Slots - Total Unique Lessons) * 5 mins
-        const totalMinutesTaught = (lessons.length - actualTotalLessons) * 5;
+        
+        // Calculate minutes based on blocks
+        const totalMinutesTaught = lessons.reduce((acc, current, idx, arr) => {
+            const slotTime = current.startTime.seconds;
+            // Check if this slot is the start of a block for this student
+            const isStart = !arr.some(o => o.childId === current.childId && o.startTime.seconds === slotTime - 300);
+            if (isStart) {
+                let count = 1;
+                while (arr.some(o => o.childId === current.childId && o.startTime.seconds === slotTime + (count * 300))) {
+                    count++;
+                }
+                // Legacy fallback: 30 mins for 1 slot. Multi-slot: (count*5)-5
+                return acc + (count === 1 ? 30 : (count * 5) - 5);
+            }
+            return acc;
+        }, 0);
+
         const totalEarnings = uniqueLessons.reduce((sum, lesson) => sum + getLessonPrice(lesson.packageCode, teacherData), 0);
         
         return {
