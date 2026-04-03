@@ -5,12 +5,25 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { firebaseConfig } from '@/firebase/config';
 
-let firebaseApp: App;
+/**
+ * GOAL: Use a singleton pattern to ensure Firebase Admin is initialized once.
+ * This is crucial in Next.js development (HMR) to avoid "App already exists"
+ * errors AND to ensure the internal auth instances maintain their state.
+ */
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __firebaseAdminApp: App | undefined;
+  // eslint-disable-next-line no-var
+  var __firebaseAdminAuth: Auth | undefined;
+  // eslint-disable-next-line no-var
+  var __firebaseAdminDb: Firestore | undefined;
+}
 
 const initializeFirebaseAdmin = (): App => {
+  // 1. Check if we already have an app in this runtime instance
   const apps = getApps();
   if (apps.length > 0) {
-    console.log('[Firebase Admin] Using existing app instance.');
     return apps[0];
   }
 
@@ -19,7 +32,10 @@ const initializeFirebaseAdmin = (): App => {
   const projectId = firebaseConfig.projectId || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID;
   const apiKey = firebaseConfig.apiKey || process.env.NEXT_PUBLIC_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY;
 
-  console.log('[Firebase Admin] Initializing for Project:', projectId);
+  console.log('[Firebase Admin] Initializing singleton for Project:', projectId);
+
+  // Path Selection Logic
+  let app: App;
 
   // 1. Try Environment Variable (JSON string)
   if (serviceAccountVar) {
@@ -29,12 +45,13 @@ const initializeFirebaseAdmin = (): App => {
       if (serviceAccount.private_key) {
         serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
       }
-      console.log('[Firebase Admin] Initializing from environment variable.');
-      return initializeApp({
+      app = initializeApp({
         credential: cert(serviceAccount),
         projectId: serviceAccount.project_id || projectId,
         apiKey: apiKey
       } as any);
+      console.log('[Firebase Admin] Initialized via Environment Variable.');
+      return app;
     } catch (e: any) {
       console.warn('[Firebase Admin] Env JSON parse failed:', e.message);
     }
@@ -47,24 +64,26 @@ const initializeFirebaseAdmin = (): App => {
       if (serviceAccount.private_key) {
         serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
       }
-      console.log('[Firebase Admin] Initializing from service-account.json file.');
-      return initializeApp({
+      app = initializeApp({
         credential: cert(serviceAccount),
         projectId: serviceAccount.project_id || projectId,
         apiKey: apiKey
       } as any);
+      console.log('[Firebase Admin] Initialized via service-account.json.');
+      return app;
     } catch (e: any) {
       console.warn('[Firebase Admin] File JSON parse failed:', e.message);
     }
   }
 
-  // 3. Last Fallback (Project ID only)
+  // 3. Last Fallback (Project ID only - might limit some Auth features)
   if (projectId) {
-    console.log('[Firebase Admin] Initializing with Project ID fallback ONLY. Links may fail.');
-    return initializeApp({
+    app = initializeApp({
       projectId: projectId,
       apiKey: apiKey
     } as any);
+    console.log('[Firebase Admin] Initialized via Project ID fallback.');
+    return app;
   }
 
   // BUILD PHASE FALLBACK
@@ -72,7 +91,6 @@ const initializeFirebaseAdmin = (): App => {
   const isProbablyBuild = process.env.NODE_ENV === 'production' && !serviceAccountVar && !fs.existsSync(serviceAccountPath);
 
   if (isCI || isProbablyBuild) {
-    console.warn('[Firebase Admin] Using placeholder for build phase.');
     return initializeApp({
       projectId: 'studio-placeholder-build'
     });
@@ -81,7 +99,12 @@ const initializeFirebaseAdmin = (): App => {
   throw new Error('Firebase Admin Configuration Missing: No service-account.json or environment variables found.');
 };
 
-firebaseApp = initializeFirebaseAdmin();
+// Singleton check via global to survive HMR in dev mode
+if (!global.__firebaseAdminApp) {
+  global.__firebaseAdminApp = initializeFirebaseAdmin();
+  global.__firebaseAdminAuth = getAuth(global.__firebaseAdminApp);
+  global.__firebaseAdminDb = getFirestore(global.__firebaseAdminApp);
+}
 
-export const auth: Auth = getAuth(firebaseApp);
-export const db: Firestore = getFirestore(firebaseApp);
+export const auth = global.__firebaseAdminAuth!;
+export const db = global.__firebaseAdminDb!;
