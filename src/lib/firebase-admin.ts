@@ -3,6 +3,7 @@ import { getAuth, Auth } from 'firebase-admin/auth';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 import * as fs from 'fs';
 import * as path from 'path';
+import { firebaseConfig } from '@/firebase/config';
 
 let firebaseApp: App;
 
@@ -15,10 +16,10 @@ const initializeFirebaseAdmin = (): App => {
 
   const serviceAccountPath = path.join(process.cwd(), 'service-account.json');
   const serviceAccountVar = process.env.FIREBASE_SERVICE_ACCOUNT;
-  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID;
-  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY || 'AIzaSyBaMRqed7S3Hoo0rbD6yF1Kz5lAdzGkkEU';
+  const projectId = firebaseConfig.projectId || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID;
+  const apiKey = firebaseConfig.apiKey || process.env.NEXT_PUBLIC_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY;
 
-  console.log('[Firebase Admin] Starting initialization. Project ID:', projectId);
+  console.log('[Firebase Admin] Initializing for Project:', projectId);
 
   // 1. Try Environment Variable (JSON string)
   if (serviceAccountVar) {
@@ -28,7 +29,7 @@ const initializeFirebaseAdmin = (): App => {
       if (serviceAccount.private_key) {
         serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
       }
-      console.log('[Firebase Admin] Attempting init from Environment Variable. Account Email:', serviceAccount.client_email);
+      console.log('[Firebase Admin] Initializing from environment variable.');
       return initializeApp({
         credential: cert(serviceAccount),
         projectId: serviceAccount.project_id || projectId,
@@ -46,7 +47,7 @@ const initializeFirebaseAdmin = (): App => {
       if (serviceAccount.private_key) {
         serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
       }
-      console.log('[Firebase Admin] Attempting init from service-account.json file.');
+      console.log('[Firebase Admin] Initializing from service-account.json file.');
       return initializeApp({
         credential: cert(serviceAccount),
         projectId: serviceAccount.project_id || projectId,
