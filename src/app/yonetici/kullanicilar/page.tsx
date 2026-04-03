@@ -2,7 +2,7 @@
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where, getDocs, collectionGroup, doc, updateDoc, writeBatch, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDoc, collectionGroup, doc, updateDoc, writeBatch, setDoc, deleteDoc } from 'firebase/firestore';
 import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -72,6 +72,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { ProgressPanel } from '@/components/shared/progress-panel';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { isAfter, isSameDay } from 'date-fns';
 
 interface ParentData {
@@ -155,8 +156,10 @@ function UsersPageContent() {
   // Add Lessons States
   const [isAddLessonsOpen, setIsAddLessonsOpen] = useState(false);
   const [selectedParentForLessons, setSelectedParentForLessons] = useState<ParentData | null>(null);
+  const [selectedChildForPackage, setSelectedChildForPackage] = useState<any | null>(null);
   const [selectedCourseId, setSelectedCourseId] = useState('konusma');
   const [lessonCount, setLessonCount] = useState(4);
+  const [selectedPackageFromPool, setSelectedPackageFromPool] = useState('');
   const [isAddingLessons, setIsAddingLessons] = useState(false);
   
   // Sorting State
@@ -186,6 +189,22 @@ function UsersPageContent() {
   };
 
   useEffect(() => { fetchData(); }, [db]);
+    
+  useEffect(() => {
+    const fetchFreshParent = async () => {
+        if (!isAddLessonsOpen || !selectedParentForLessons || !db) return;
+        try {
+            const parentRef = doc(db, 'users', selectedParentForLessons.id);
+            const snap = await getDoc(parentRef);
+            if (snap.exists()) {
+                setSelectedParentForLessons({ ...snap.data(), id: snap.id } as ParentData);
+            }
+        } catch (e) {
+            console.error("Error fetching fresh parent:", e);
+        }
+    };
+    fetchFreshParent();
+  }, [isAddLessonsOpen, db]);
 
 
 
@@ -203,7 +222,7 @@ function UsersPageContent() {
         const hasFinishedTrial = parentSlots.some(s => s.packageCode === 'FREE_TRIAL' && isBefore(s.startTime.toDate(), new Date()));
         if (hasFinishedTrial) tags.add('trialdone');
 
-        const hasActivePackage = parentChildren.some(c => c.assignedPackage && c.remainingLessons > 0) || (parent.enrolledPackages?.length > 0);
+        const hasActivePackage = parentChildren.some(c => c.assignedPackage && (c.remainingLessons || 0) > 0) || ((parent.enrolledPackages || []).length > 0);
         if (hasActivePackage) tags.add('active');
 
         const packageFinished = parentChildren.some(c => c.finishedPackage && !c.assignedPackage);
@@ -346,7 +365,7 @@ function UsersPageContent() {
     });
     
     return result;
-  }, [processedParents, searchQuery, selectedTags, regStartDate, regEndDate, purchaseStartDate, purchaseEndDate]);
+  }, [processedParents, searchQuery, selectedTags, regStartDate, regEndDate, purchaseStartDate, purchaseEndDate, activityEndDate, sortType]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) setSelectedUserIds(filteredParents.map(p => p.id));
@@ -354,7 +373,7 @@ function UsersPageContent() {
   };
 
   const handleBulkUpdateTags = async () => {
-    // ...existing handleBulkUpdateTags...
+    // Toplu etiket güncelleme mantığı buraya...
   };
 
   const handleAddLessons = async () => {
@@ -364,67 +383,125 @@ function UsersPageContent() {
         const parentRef = doc(db, 'users', selectedParentForLessons.id);
         const batch = writeBatch(db);
         
-        // Map course to prefix
-        const prefixes: { [key: string]: string } = {
-            'baslangic': 'B',
-            'konusma': 'K',
-            'akademik': 'A',
-            'gelisim': 'G',
-            'gcse': 'GCSE'
-        };
-        const courseNames: { [key: string]: string } = {
-            'baslangic': 'Başlangıç Kursu (Pre A1)',
-            'konusma': 'Konuşma Kursu (A1)',
-            'akademik': 'Akademik Kurs (A2)',
-            'gelisim': 'Gelişim Kursu (B1)',
-            'gcse': 'GCSE Türkçe Kursu'
-        };
-        
-        const prefix = prefixes[selectedCourseId] || 'B';
-        const courseName = courseNames[selectedCourseId] || 'Hediye Kurs';
-        const packageCode = `${prefix}${lessonCount}`;
+        if (selectedChildForPackage) {
+            // CASE: TRANSFER FROM POOL TO CHILD
+            if (!selectedPackageFromPool) {
+                toast({ variant: 'destructive', title: 'Hata', description: 'Lütfen havuzdan bir paket seçin.' });
+                setIsAddingLessons(false);
+                return;
+            }
 
-        batch.update(parentRef, {
-            remainingLessons: (selectedParentForLessons.remainingLessons || 0) + lessonCount,
-            enrolledPackages: [...(selectedParentForLessons.enrolledPackages || []), packageCode]
-        });
+            const lessonsInPackage = parseInt(selectedPackageFromPool.replace(/\D/g, ''), 10);
+            const prefix = selectedPackageFromPool.replace(/[0-9]/g, '');
 
-        const txRef = doc(collection(db, 'transactions'));
-        batch.set(txRef, {
-            userId: selectedParentForLessons.id,
-            status: 'completed',
-            amountGbp: 0,
-            description: '🎁 Manuel Tanımlanan Dersler / Hediye',
-            items: [{
-                name: courseName,
-                quantity: 1,
-                price: 0
-            }],
-            newPackages: [packageCode],
-            totalLessonsToAdd: lessonCount,
-            createdAt: new Date(),
-        });
+            const courseNames: { [key: string]: string } = {
+                'B': 'Başlangıç Kursu (Pre A1)',
+                'K': 'Konuşma Kursu (A1)',
+                'A': 'Akademik Kurs (A2)',
+                'G': 'Gelişim Kursu (B1)',
+                'GCSE': 'GCSE Türkçe Kursu'
+            };
+            const courseName = courseNames[prefix] || 'Standart Kurs';
+            const assignedPackageCode = `${prefix}${lessonCount}`;
 
-        const activityRef = doc(collection(db, 'activity-log'));
-        batch.set(activityRef, {
-            event: '🎁 Manuel Ders Ekleme',
-            icon: '🎁',
-            details: {
-                'Veli': `${selectedParentForLessons.firstName} ${selectedParentForLessons.lastName}`,
-                'Kurs': courseName,
-                'Ders Sayısı': lessonCount.toString(),
-                'Neden': 'Admin Manuel Tanımlama'
-            },
-            createdAt: new Date(),
-        });
+            // 1. Update Child Document
+            const childRef = doc(db, 'users', selectedParentForLessons.id, 'children', selectedChildForPackage.id);
+            batch.update(childRef, {
+                remainingLessons: (selectedChildForPackage.remainingLessons || 0) + lessonCount,
+                assignedPackage: assignedPackageCode,
+                assignedPackageName: courseName,
+                updatedAt: new Date()
+            });
+
+            // 2. Update Parent Document (Pool)
+            const updatedPackages = [...(selectedParentForLessons.enrolledPackages || [])];
+            const packageIndex = updatedPackages.indexOf(selectedPackageFromPool);
+            
+            if (packageIndex !== -1) {
+                updatedPackages.splice(packageIndex, 1);
+                const remainder = lessonsInPackage - lessonCount;
+                if (remainder > 0) {
+                    updatedPackages.push(`${prefix}${remainder}`);
+                }
+            }
+
+            batch.update(parentRef, {
+                enrolledPackages: updatedPackages,
+                remainingLessons: (selectedParentForLessons.remainingLessons - lessonCount)
+            });
+
+            // 3. Transactions & Activity
+            const txRef = doc(collection(db, 'transactions'));
+            batch.set(txRef, {
+                userId: selectedParentForLessons.id,
+                childId: selectedChildForPackage.id,
+                childName: selectedChildForPackage.firstName,
+                status: 'completed',
+                amountGbp: 0,
+                description: `🔄 [${selectedChildForPackage.firstName}] İçin Havuzdan Paket Atama`,
+                items: [{ name: courseName, quantity: 1, price: 0 }],
+                sourcePackage: selectedPackageFromPool,
+                assignedLessons: lessonCount,
+                createdAt: new Date(),
+            });
+
+            const activityRef = doc(collection(db, 'activity-log'));
+            batch.set(activityRef, {
+                event: '🔄 Havuzdan Paket Atama',
+                icon: '👶',
+                details: {
+                    'Öğrenci': selectedChildForPackage.firstName,
+                    'Veli': `${selectedParentForLessons.firstName} ${selectedParentForLessons.lastName}`,
+                    'Transfer Edilen': `${lessonCount} Ders`,
+                    'Kaynak Paket': selectedPackageFromPool
+                },
+                createdAt: new Date(),
+            });
+
+        } else {
+            // CASE: MANUAL ADD TO PARENT POOL
+            const prefixes: { [key: string]: string } = {
+                'baslangic': 'B', 'konusma': 'K', 'akademik': 'A', 'gelisim': 'G', 'gcse': 'GCSE'
+            };
+            const courseNames: { [key: string]: string } = {
+                'baslangic': 'Başlangıç Kursu (Pre A1)',
+                'konusma': 'Konuşma Kursu (A1)',
+                'akademik': 'Akademik Kurs (A2)',
+                'gelisim': 'Gelişim Kursu (B1)',
+                'gcse': 'GCSE Türkçe Kursu'
+            };
+            const prefix = prefixes[selectedCourseId] || 'B';
+            const courseName = courseNames[selectedCourseId] || 'Hediye Kurs';
+            const packageCode = `${prefix}${lessonCount}`;
+
+            batch.update(parentRef, {
+                remainingLessons: (selectedParentForLessons.remainingLessons || 0) + lessonCount,
+                enrolledPackages: [...(selectedParentForLessons.enrolledPackages || []), packageCode]
+            });
+
+            // Log activity for manual add
+            const activityRef = doc(collection(db, 'activity-log'));
+            batch.set(activityRef, {
+                event: '🎁 Manuel Ders Ekleme',
+                icon: '🎫',
+                details: {
+                    'Veli': `${selectedParentForLessons.firstName} ${selectedParentForLessons.lastName}`,
+                    'Paket': packageCode,
+                    'Tip': 'Yönetici Tanımlı'
+                },
+                createdAt: new Date(),
+            });
+        }
 
         await batch.commit();
-        toast({ title: 'Dersler Başarıyla Eklendi', className: 'bg-green-500 text-white' });
+        toast({ title: selectedChildForPackage ? 'Transfer Başarılı' : 'Dersler Eklendi', className: 'bg-green-500 text-white' });
         setIsAddLessonsOpen(false);
+        fetchData();
         refetchParents();
+
     } catch (e) {
-        console.error("Error adding manual lessons:", e);
-        toast({ variant: 'destructive', title: 'Hata', description: 'Dersler tanımlanamadı.' });
+        console.error("Error updating lessons:", e);
+        toast({ variant: 'destructive', title: 'Hata', description: 'İşlem başarısız oldu.' });
     } finally {
         setIsAddingLessons(false);
     }
@@ -936,6 +1013,14 @@ function UsersPageContent() {
                                                         <FileText className="w-3 h-3 mr-1" />
                                                         Detaylı İlerleme
                                                     </Button>
+                                                    <Button variant="outline" size="sm" className="h-8 text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => {
+                                                        setSelectedParentForLessons(selectedParent);
+                                                        setSelectedChildForPackage(child);
+                                                        setIsAddLessonsOpen(true);
+                                                    }}>
+                                                        <Plus className="w-3 h-3 mr-1" />
+                                                        Paket Ata
+                                                    </Button>
                                                 </div>
                                             </Card>
                                         ))}
@@ -1127,63 +1212,160 @@ function UsersPageContent() {
       </Dialog>
 
       {/* ADD LESSONS DIALOG */}
-      <Dialog open={isAddLessonsOpen} onOpenChange={setIsAddLessonsOpen}>
+      <Dialog open={isAddLessonsOpen} onOpenChange={(open) => {
+          setIsAddLessonsOpen(open);
+          if (!open) {
+              setSelectedChildForPackage(null);
+              setSelectedPackageFromPool('');
+          }
+      }}>
         <DialogContent className="max-w-md p-0 overflow-hidden rounded-[32px] border-none shadow-2xl">
             <DialogHeader className="p-8 bg-blue-600 text-white">
                 <DialogTitle className="text-2xl font-black flex items-center gap-3">
-                    <Package className="w-6 h-6" /> Manuel Ders Ekle
+                    <Package className="w-6 h-6" /> {selectedChildForPackage ? 'Havuzdan Paket Ata' : 'Manuel Ders Ekle'}
                 </DialogTitle>
                 <DialogDescription className="text-blue-100 font-medium">
-                    {selectedParentForLessons?.firstName} isimli velinin hesabına manuel ders tanımlayın.
+                    {selectedChildForPackage 
+                        ? `${selectedChildForPackage.firstName} için veli havuzundan ders seçin.` 
+                        : `${selectedParentForLessons?.firstName} isimli velinin hesabına (havuzuna) ders tanımlayın.`}
                 </DialogDescription>
             </DialogHeader>
+
             <div className="p-8 space-y-6 bg-white">
-                <div className="space-y-2">
-                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Kurs Seçimi</Label>
-                    <select 
-                        className="w-full h-12 rounded-xl border border-slate-200 px-4 font-bold text-slate-700 bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none"
-                        value={selectedCourseId}
-                        onChange={(e) => setSelectedCourseId(e.target.value)}
-                    >
-                        <option value="baslangic">Başlangıç Kursu (Pre-A1)</option>
-                        <option value="konusma">Konuşma Kursu (A1)</option>
-                        <option value="akademik">Akademik Kurs (A2)</option>
-                        <option value="gelisim">Gelişim Kursu (B1)</option>
-                        <option value="gcse">GCSE Türkçe Kursu</option>
-                    </select>
-                </div>
+                {selectedChildForPackage ? (
+                    /* CASE: ASSIGNING EXISTING TO CHILD */
+                    (selectedParentForLessons?.enrolledPackages && selectedParentForLessons.enrolledPackages.length > 0) ? (
+                        <>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Havuzdaki Paketler</Label>
+                                <Select value={selectedPackageFromPool} onValueChange={(val) => {
+                                    setSelectedPackageFromPool(val);
+                                    setLessonCount(parseInt(val.replace(/\D/g, ''), 10) || 0);
+                                }}>
+                                    <SelectTrigger className="h-12 rounded-xl border-slate-200 font-bold">
+                                        <SelectValue placeholder="Paket Seçin" />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-xl border-none shadow-2xl">
+                                        {selectedParentForLessons?.enrolledPackages?.map((pkg: string, idx: number) => {
+                                            const prefix = pkg.replace(/[0-9]/g, '');
+                                            const lessons = parseInt(pkg.replace(/\D/g, ''), 10);
+                                            const courseNames: { [key: string]: string } = {
+                                                'B': 'Başlangıç (Pre A1)',
+                                                'K': 'Konuşma (A1)',
+                                                'A': 'Akademik (A2)',
+                                                'G': 'Gelişim (B1)',
+                                                'GCSE': 'GCSE Türkçe'
+                                            };
+                                            return (
+                                                <SelectItem key={`${pkg}-${idx}`} value={pkg} className="font-bold">
+                                                    {courseNames[prefix] || 'Kurs'} ({lessons} Ders)
+                                                </SelectItem>
+                                            );
+                                        })}
+                                    </SelectContent>
+                                </Select>
+                            </div>
 
-                <div className="space-y-2">
-                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Ders Sayısı</Label>
-                    <div className="flex items-center gap-4">
-                        <Input 
-                            type="number" 
-                            className="h-12 rounded-xl border-slate-200 font-bold text-lg text-center"
-                            value={lessonCount}
-                            onChange={(e) => setLessonCount(parseInt(e.target.value) || 0)}
-                        />
-                        <div className="flex gap-2">
-                            {[4, 8, 12, 24].map(n => (
-                                <Button 
-                                    key={n} 
-                                    variant={lessonCount === n ? 'default' : 'outline'} 
-                                    className="w-10 h-10 p-0 rounded-lg text-xs font-bold shrink-0"
-                                    onClick={() => setLessonCount(n)}
-                                >
-                                    {n}
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center px-1">
+                                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Atanacak Ders Sayısı</Label>
+                                    <span className="text-[10px] font-bold text-primary">Maks: {parseInt(selectedPackageFromPool.replace(/\D/g, ''), 10) || 0}</span>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <Input 
+                                        type="number" 
+                                        className="h-12 rounded-xl border-slate-200 font-bold text-lg text-center"
+                                        value={lessonCount}
+                                        onChange={(e) => setLessonCount(Math.min(parseInt(selectedPackageFromPool.replace(/\D/g, ''), 10), parseInt(e.target.value) || 0))}
+                                    />
+                                    <div className="flex gap-2">
+                                        {[4, 8, 12, 24].map(n => {
+                                            const max = parseInt(selectedPackageFromPool.replace(/\D/g, ''), 10) || 0;
+                                            return (
+                                                <Button 
+                                                    key={n} 
+                                                    variant={lessonCount === n ? 'default' : 'outline'} 
+                                                    className="w-10 h-10 p-0 rounded-lg text-xs font-bold shrink-0"
+                                                    onClick={() => setLessonCount(Math.min(max, n))}
+                                                    disabled={n > max}
+                                                >
+                                                    {n}
+                                                </Button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-4 flex gap-3">
+                                <Button variant="outline" className="flex-1 h-12 rounded-xl font-bold border-2" onClick={() => setIsAddLessonsOpen(false)}>Vazgeç</Button>
+                                <Button className="flex-1 h-12 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200" onClick={handleAddLessons} disabled={isAddingLessons || !selectedPackageFromPool}>
+                                    {isAddingLessons ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                                    Paketi Aktar
                                 </Button>
-                            ))}
+                            </div>
+                        </>
+                    ) : (
+                        <div className="py-8 text-center space-y-4">
+                            <Package className="w-12 h-12 mx-auto text-slate-200" />
+                            <div className="space-y-1">
+                                <p className="font-bold text-slate-800">Havuz Boş</p>
+                                <p className="text-sm text-slate-500">Bu velinin henüz atanmamış dersi bulunmuyor. Önce ders eklemelisiniz.</p>
+                            </div>
+                            <Button variant="outline" className="rounded-xl font-bold w-full" onClick={() => setIsAddLessonsOpen(false)}>Tamam</Button>
                         </div>
-                    </div>
-                </div>
+                    )
+                ) : (
+                    /* CASE: ADDING NEW LESSONS TO PARENT POOL */
+                    <>
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Kurs Seçimi</Label>
+                            <select 
+                                className="w-full h-12 rounded-xl border border-slate-200 px-4 font-bold text-slate-700 bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none"
+                                value={selectedCourseId}
+                                onChange={(e) => setSelectedCourseId(e.target.value)}
+                            >
+                                <option value="baslangic">Başlangıç Kursu (Pre-A1)</option>
+                                <option value="konusma">Konuşma Kursu (A1)</option>
+                                <option value="akademik">Akademik Kurs (A2)</option>
+                                <option value="gelisim">Gelişim Kursu (B1)</option>
+                                <option value="gcse">GCSE Türkçe Kursu</option>
+                            </select>
+                        </div>
 
-                <div className="pt-4 flex gap-3">
-                    <Button variant="outline" className="flex-1 h-12 rounded-xl font-bold border-2" onClick={() => setIsAddLessonsOpen(false)}>Vazgeç</Button>
-                    <Button className="flex-1 h-12 rounded-xl font-bold bg-blue-600 hover:bg-blue-700" onClick={handleAddLessons} disabled={isAddingLessons}>
-                        {isAddingLessons ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-                        Dersleri Tanımla
-                    </Button>
-                </div>
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Ders Sayısı</Label>
+                            <div className="flex items-center gap-4">
+                                <Input 
+                                    type="number" 
+                                    className="h-12 rounded-xl border-slate-200 font-bold text-lg text-center"
+                                    value={lessonCount}
+                                    onChange={(e) => setLessonCount(parseInt(e.target.value) || 0)}
+                                />
+                                <div className="flex gap-2">
+                                    {[4, 8, 12, 24].map(n => (
+                                        <Button 
+                                            key={n} 
+                                            variant={lessonCount === n ? 'default' : 'outline'} 
+                                            className="w-10 h-10 p-0 rounded-lg text-xs font-bold shrink-0"
+                                            onClick={() => setLessonCount(n)}
+                                        >
+                                            {n}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="pt-4 flex gap-3">
+                            <Button variant="outline" className="flex-1 h-12 rounded-xl font-bold border-2" onClick={() => setIsAddLessonsOpen(false)}>Vazgeç</Button>
+                            <Button className="flex-1 h-12 rounded-xl font-bold bg-blue-600 hover:bg-blue-700" onClick={handleAddLessons} disabled={isAddingLessons}>
+                                {isAddingLessons ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                                Dersleri Tanımla
+                            </Button>
+                        </div>
+                    </>
+                )}
             </div>
         </DialogContent>
       </Dialog>

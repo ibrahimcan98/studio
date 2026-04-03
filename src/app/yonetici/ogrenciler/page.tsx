@@ -18,13 +18,21 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, Baby, User, Calendar, BookOpen, GraduationCap, MapPin, Search, Filter, X, ChevronDown, ShoppingBag, Copy } from 'lucide-react';
+import { Loader2, Baby, User, Calendar, BookOpen, GraduationCap, MapPin, Search, Filter, X, ChevronDown, ShoppingBag, Copy, Plus, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO, differenceInYears } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -33,7 +41,7 @@ import { cn } from '@/lib/utils';
 
 interface StudentWithParent {
     id: string;
-    parentId: string; // Added to enable deletion
+    parentId: string;
     parentName: string;
     parentEmail: string;
     firstName?: string;
@@ -63,18 +71,25 @@ export default function AdminStudentsPage() {
   const [minAge, setMinAge] = useState('');
   const [maxAge, setMaxAge] = useState('');
 
+  // Add Package States
+  const [selectedStudentForPackage, setSelectedStudentForPackage] = useState<StudentWithParent | null>(null);
+  const [isAddPackageOpen, setIsAddPackageOpen] = useState(false);
+  const [parentPackages, setParentPackages] = useState<string[]>([]);
+  const [parentRemainingLessons, setParentRemainingLessons] = useState(0);
+  const [selectedPackageFromPool, setSelectedPackageFromPool] = useState('');
+  const [amountToAssign, setAmountToAssign] = useState(0);
+  const [isAddingPackage, setIsAddingPackage] = useState(false);
+
   useEffect(() => {
     const fetchStudents = async () => {
       if (!db) return;
       setIsLoading(true);
       try {
-        // Tüm çocukları ana koleksiyon bağımsız olarak çek (Collection Group)
         const childrenQuery = query(collectionGroup(db, 'children'));
         const querySnapshot = await getDocs(childrenQuery);
         
         const studentData = await Promise.all(querySnapshot.docs.map(async (childDoc) => {
             const data = childDoc.data();
-            // Parent ID'yi doküman yolundan çek (users/userId/children/childId)
             const userId = childDoc.ref.parent.parent?.id;
             
             let parentInfo = { name: 'Bilinmiyor', email: '-' };
@@ -91,14 +106,13 @@ export default function AdminStudentsPage() {
 
             return {
                 id: childDoc.id,
-                parentId: userId || '', // Store parentId for deletion
+                parentId: userId || '',
                 ...data,
                 parentName: parentInfo.name,
                 parentEmail: parentInfo.email
             };
         }));
 
-        // Alfabetik sırala
         setStudents(studentData.sort((a, b) => ((a as any).firstName || "").localeCompare((b as any).firstName || "")));
       } catch (error) {
         console.error("Error fetching students:", error);
@@ -109,6 +123,32 @@ export default function AdminStudentsPage() {
 
     fetchStudents();
   }, [db]);
+
+  // Fetch Parent Pool when dialog opens
+  useEffect(() => {
+    const fetchParentPool = async () => {
+        if (!selectedStudentForPackage || !db || !isAddPackageOpen) return;
+        try {
+            const parentRef = doc(db, 'users', selectedStudentForPackage.parentId);
+            const parentSnap = await getDoc(parentRef);
+            if (parentSnap.exists()) {
+                const data = parentSnap.data();
+                const packages = data.enrolledPackages || [];
+                setParentPackages(packages);
+                setParentRemainingLessons(data.remainingLessons || 0);
+                
+                if (packages.length > 0) {
+                    const firstPkg = packages[0];
+                    setSelectedPackageFromPool(firstPkg);
+                    setAmountToAssign(parseInt(firstPkg.replace(/\D/g, ''), 10) || 0);
+                }
+            }
+        } catch (e) {
+            console.error("Error fetching parent pool:", e);
+        }
+    };
+    fetchParentPool();
+  }, [selectedStudentForPackage, isAddPackageOpen, db]);
 
   const getAge = (dob: string) => {
     if (!dob) return 0;
@@ -156,6 +196,104 @@ export default function AdminStudentsPage() {
     return result;
   }, [students, searchQuery, levelFilter, packageFilter, minAge, maxAge]);
 
+  const handleAddPackageToChild = async () => {
+    if (!selectedStudentForPackage || !db || !selectedPackageFromPool || amountToAssign <= 0) {
+        toast({ variant: 'destructive', title: 'Hata', description: 'Lütfen geçerli bir paket ve ders sayısı seçin.' });
+        return;
+    }
+    
+    setIsAddingPackage(true);
+    try {
+        const { writeBatch, collection } = await import('firebase/firestore');
+        const batch = writeBatch(db);
+        
+        const lessonsInPackage = parseInt(selectedPackageFromPool.replace(/\D/g, ''), 10);
+        const prefix = selectedPackageFromPool.replace(/[0-9]/g, '');
+
+        const courseNames: { [key: string]: string } = {
+            'B': 'Başlangıç Kursu (Pre A1)',
+            'K': 'Konuşma Kursu (A1)',
+            'A': 'Akademik Kurs (A2)',
+            'G': 'Gelişim Kursu (B1)',
+            'GCSE': 'GCSE Türkçe Kursu'
+        };
+        const courseName = courseNames[prefix] || 'Standart Kurs';
+        const assignedPackageCode = `${prefix}${amountToAssign}`;
+
+        const childRef = doc(db, 'users', selectedStudentForPackage.parentId, 'children', selectedStudentForPackage.id);
+        batch.update(childRef, {
+            remainingLessons: (selectedStudentForPackage.remainingLessons || 0) + amountToAssign,
+            assignedPackage: assignedPackageCode,
+            assignedPackageName: courseName,
+            updatedAt: new Date()
+        });
+
+        const parentRef = doc(db, 'users', selectedStudentForPackage.parentId);
+        const updatedPackages = [...parentPackages];
+        const packageIndex = updatedPackages.indexOf(selectedPackageFromPool);
+        
+        if (packageIndex !== -1) {
+            updatedPackages.splice(packageIndex, 1);
+            const remainder = lessonsInPackage - amountToAssign;
+            if (remainder > 0) {
+                updatedPackages.push(`${prefix}${remainder}`);
+            }
+        }
+
+        batch.update(parentRef, {
+            enrolledPackages: updatedPackages,
+            remainingLessons: (parentRemainingLessons - amountToAssign)
+        });
+
+        const txRef = doc(collection(db, 'transactions'));
+        batch.set(txRef, {
+            userId: selectedStudentForPackage.parentId,
+            childId: selectedStudentForPackage.id,
+            childName: selectedStudentForPackage.firstName,
+            status: 'completed',
+            amountGbp: 0,
+            description: `🔄 [${selectedStudentForPackage.firstName}] İçin Havuzdan Paket Atama`,
+            items: [{
+                name: courseName,
+                quantity: 1,
+                price: 0
+            }],
+            sourcePackage: selectedPackageFromPool,
+            assignedLessons: amountToAssign,
+            createdAt: new Date(),
+        });
+
+        const activityRef = doc(collection(db, 'activity-log'));
+        batch.set(activityRef, {
+            event: '🔄 Havuzdan Paket Atama',
+            icon: '👶',
+            details: {
+                'Öğrenci': selectedStudentForPackage.firstName,
+                'Veli': selectedStudentForPackage.parentName,
+                'Transfer Edilen': `${amountToAssign} Ders`,
+                'Kaynak Paket': selectedPackageFromPool
+            },
+            createdAt: new Date(),
+        });
+
+        await batch.commit();
+        toast({ title: 'Paket Başarıyla Aktarıldı', className: 'bg-green-500 text-white' });
+        setIsAddPackageOpen(false);
+        
+        setStudents(prev => prev.map(s => 
+            s.id === selectedStudentForPackage.id 
+                ? { ...s, remainingLessons: (s.remainingLessons || 0) + amountToAssign, assignedPackage: assignedPackageCode, assignedPackageName: courseName } 
+                : s
+        ));
+
+    } catch (e) {
+        console.error("Error transferring package to child:", e);
+        toast({ variant: 'destructive', title: 'Hata', description: 'İşlem başarısız oldu.' });
+    } finally {
+        setIsAddingPackage(false);
+    }
+  };
+
   const handleDeleteStudent = async (student: StudentWithParent) => {
     if (!db || !student.parentId || !student.id) {
         toast({ variant: 'destructive', title: 'Hata', description: 'Öğrenci veya veli bilgisi eksik.' });
@@ -168,10 +306,7 @@ export default function AdminStudentsPage() {
         const studentRef = doc(db, 'users', student.parentId, 'children', student.id);
         const { deleteDoc } = await import('firebase/firestore');
         await deleteDoc(studentRef);
-        
-        // UI'dan da kaldır
         setStudents(prev => prev.filter(s => s.id !== student.id));
-        
         toast({ title: 'Silindi', description: 'Öğrenci başarıyla silindi.' });
     } catch (error) {
         console.error("Delete error:", error);
@@ -249,11 +384,7 @@ export default function AdminStudentsPage() {
                               </div>
                           </div>
                       </div>
-                      <Button 
-                          variant="secondary" 
-                          className="w-full rounded-xl h-10 font-bold text-xs" 
-                          onClick={() => { setMinAge(''); setMaxAge(''); }}
-                      > Sıfırla </Button>
+                      <Button variant="secondary" className="w-full rounded-xl h-10 font-bold text-xs" onClick={() => { setMinAge(''); setMaxAge(''); }}>Sıfırla</Button>
                   </PopoverContent>
               </Popover>
 
@@ -345,12 +476,27 @@ export default function AdminStudentsPage() {
                                 <Badge variant="secondary" className="w-fit text-[10px] bg-blue-50 text-blue-700 border-blue-100 font-bold uppercase tracking-tighter">
                                     {student.assignedPackageName || student.assignedPackage}
                                 </Badge>
-                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                    {student.remainingLessons} DERS KALDI
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                        {student.remainingLessons} DERS KALDI
+                                    </span>
+                                    <button 
+                                        onClick={() => { setSelectedStudentForPackage(student); setIsAddPackageOpen(true); }}
+                                        className="text-[9px] font-bold text-blue-600 hover:text-blue-800 underline uppercase transition-colors"
+                                    >
+                                        Ekle
+                                    </button>
+                                </div>
                             </div>
                         ) : (
-                            <Badge variant="outline" className="text-[9px] text-slate-300 border-slate-200 font-bold uppercase tracking-tighter">Paket Atanmamış</Badge>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-7 text-[9px] font-black uppercase tracking-widest border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg px-3 transition-all"
+                                onClick={() => { setSelectedStudentForPackage(student); setIsAddPackageOpen(true); }}
+                            >
+                                <Plus className="w-3 h-3 mr-1" /> Paket Ata
+                            </Button>
                         )}
                       </TableCell>
                       <TableCell>
@@ -386,7 +532,7 @@ export default function AdminStudentsPage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-32 text-center text-muted-foreground italic text-sm">
+                    <TableCell colSpan={7} className="h-32 text-center text-muted-foreground italic text-sm">
                       Arama kriterlerinize uygun öğrenci bulunamadı.
                     </TableCell>
                   </TableRow>
@@ -396,6 +542,103 @@ export default function AdminStudentsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* ADD PACKAGE DIALOG */}
+      <Dialog open={isAddPackageOpen} onOpenChange={setIsAddPackageOpen}>
+        <DialogContent className="max-w-md p-0 overflow-hidden rounded-[32px] border-none shadow-2xl">
+            <DialogHeader className="p-8 bg-blue-600 text-white">
+                <DialogTitle className="text-2xl font-black flex items-center gap-3">
+                    <Package className="w-6 h-6" /> Havuzdan Paket Ata
+                </DialogTitle>
+                <DialogDescription className="text-blue-100 font-medium">
+                    {selectedStudentForPackage?.parentName} isimli velinin havuzundaki dersleri {selectedStudentForPackage?.firstName} için tanımlayın.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="p-8 space-y-6 bg-white">
+                {parentPackages.length > 0 ? (
+                    <>
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Havuzdaki Mevcut Paketler</Label>
+                            <Select value={selectedPackageFromPool} onValueChange={(val) => {
+                                setSelectedPackageFromPool(val);
+                                setAmountToAssign(parseInt(val.replace(/\D/g, ''), 10) || 0);
+                            }}>
+                                <SelectTrigger className="h-12 rounded-xl border-slate-200 font-bold">
+                                    <SelectValue placeholder="Paket Seçin" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl border-none shadow-2xl">
+                                    {parentPackages.map((pkg, idx) => {
+                                        const prefix = pkg.replace(/[0-9]/g, '');
+                                        const lessons = parseInt(pkg.replace(/\D/g, ''), 10);
+                                        const courseNames: { [key: string]: string } = {
+                                            'B': 'Başlangıç (Pre A1)',
+                                            'K': 'Konuşma (A1)',
+                                            'A': 'Akademik (A2)',
+                                            'G': 'Gelişim (B1)',
+                                            'GCSE': 'GCSE Türkçe'
+                                        };
+                                        return (
+                                            <SelectItem key={`${pkg}-${idx}`} value={pkg} className="font-bold">
+                                                {courseNames[prefix] || 'Kurs'} ({lessons} Ders)
+                                            </SelectItem>
+                                        );
+                                    })}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center px-1">
+                                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Atanacak Ders Sayısı</Label>
+                                <span className="text-[10px] font-bold text-primary">Maks: {parseInt(selectedPackageFromPool.replace(/\D/g, ''), 10) || 0}</span>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <Input 
+                                    type="number" 
+                                    className="h-12 rounded-xl border-slate-200 font-bold text-lg text-center"
+                                    value={amountToAssign}
+                                    onChange={(e) => setAmountToAssign(Math.min(parseInt(selectedPackageFromPool.replace(/\D/g, ''), 10), parseInt(e.target.value) || 0))}
+                                />
+                                <div className="flex gap-2">
+                                    {[4, 8, 12, 24].map(n => {
+                                        const max = parseInt(selectedPackageFromPool.replace(/\D/g, ''), 10) || 0;
+                                        return (
+                                            <Button 
+                                                key={n} 
+                                                variant={amountToAssign === n ? 'default' : 'outline'} 
+                                                className="w-10 h-10 p-0 rounded-lg text-xs font-bold shrink-0"
+                                                onClick={() => setAmountToAssign(Math.min(max, n))}
+                                                disabled={n > max}
+                                            >
+                                                {n}
+                                            </Button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="pt-4 flex gap-3">
+                            <Button variant="outline" className="flex-1 h-12 rounded-xl font-bold border-2" onClick={() => setIsAddPackageOpen(false)}>Vazgeç</Button>
+                            <Button className="flex-1 h-12 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200" onClick={handleAddPackageToChild} disabled={isAddingPackage}>
+                                {isAddingPackage ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                                Paketi Aktar
+                            </Button>
+                        </div>
+                    </>
+                ) : (
+                    <div className="py-8 text-center space-y-4">
+                        <Package className="w-12 h-12 mx-auto text-slate-200" />
+                        <div className="space-y-1">
+                            <p className="font-bold text-slate-800">Havuz Boş</p>
+                            <p className="text-sm text-slate-500">Bu velinin henüz atanmamış dersi bulunmuyor. Önce veli profilinden ders eklemelisiniz.</p>
+                        </div>
+                        <Button variant="outline" className="rounded-xl font-bold" onClick={() => setIsAddPackageOpen(false)}>Tamam</Button>
+                    </div>
+                )}
+            </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
