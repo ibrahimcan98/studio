@@ -200,6 +200,17 @@ export default function AdminDerslerPage() {
         return groups;
     }, [availableSlots]);
 
+    const datesByMonth = useMemo(() => {
+        const months: { [monthKey: string]: string[] } = {};
+        Object.keys(groupedSlots).sort().forEach(dateKey => {
+            const date = new Date(dateKey);
+            const monthKey = format(date, 'MMMM yyyy', { locale: tr });
+            if (!months[monthKey]) months[monthKey] = [];
+            months[monthKey].push(dateKey);
+        });
+        return months;
+    }, [groupedSlots]);
+
     const filteredLessons = useMemo(() => {
         if (!bookedLessons || !allChildren || !users) return [];
         
@@ -722,26 +733,29 @@ export default function AdminDerslerPage() {
                                             <p className="text-sm text-red-500 font-medium p-4 bg-red-50 rounded-xl">Bu öğretmenin hiç müsait zamanı bulunmuyor.</p>
                                         ) : (
                                             <div className="space-y-6">
-                                                {/* Day Selection */}
-                                                <div className="space-y-3">
-                                                    <Label className="font-bold text-slate-500 text-[10px] uppercase tracking-widest">GÜN SEÇİN</Label>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {Object.keys(groupedSlots).map(dateKey => (
-                                                            <Button
-                                                                key={dateKey}
-                                                                variant={selectedDateKey === dateKey ? 'default' : 'outline'}
-                                                                onClick={() => {
-                                                                    setSelectedDateKey(dateKey);
-                                                                    setSelectedHour(null);
-                                                                    setSelectedSlotId('');
-                                                                }}
-                                                                className="rounded-xl font-bold h-10 px-4"
-                                                                size="sm"
-                                                            >
-                                                                {format(new Date(dateKey), 'dd MMM', { locale: tr })}
-                                                            </Button>
-                                                        ))}
-                                                    </div>
+                                                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                                    {Object.entries(datesByMonth).map(([monthName, dates]) => (
+                                                        <div key={monthName} className="space-y-3">
+                                                            <Label className="font-black text-primary text-[10px] uppercase tracking-widest bg-primary/5 px-2 py-1 rounded inline-block">{monthName}</Label>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {dates.map(dateKey => (
+                                                                    <Button
+                                                                        key={dateKey}
+                                                                        variant={selectedDateKey === dateKey ? 'default' : 'outline'}
+                                                                        onClick={() => {
+                                                                            setSelectedDateKey(dateKey);
+                                                                            setSelectedHour(null);
+                                                                            setSelectedSlotId('');
+                                                                        }}
+                                                                        className="rounded-xl font-bold h-10 px-4"
+                                                                        size="sm"
+                                                                    >
+                                                                        {format(new Date(dateKey), 'dd MMM', { locale: tr })}
+                                                                    </Button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ))}
                                                 </div>
 
                                                 {/* Hour Selection */}

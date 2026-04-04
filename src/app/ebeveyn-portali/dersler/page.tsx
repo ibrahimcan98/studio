@@ -592,7 +592,7 @@ function DerslerimPageContent() {
                         {isChildDataLoading || !selectedChildData || !selectedLesson ? (
                             <div className="flex h-full items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>
                         ) : (
-                            <ProgressPanel child={selectedChildData} lessonId={selectedLesson.id} isEditable={false} />
+                            <ProgressPanel child={selectedChildData} lessonId={selectedLesson.id} isEditable={false} authorRole="parent" />
                         )}
                     </div>
                 </DialogContent>

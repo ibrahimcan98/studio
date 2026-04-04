@@ -502,7 +502,7 @@ export default function DerslerimPage() {
                         {isChildDataLoading || !selectedChildData || !selectedLesson ? (
                             <div className="flex h-64 items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>
                         ) : (
-                            <ProgressPanel child={selectedChildData} lessonId={selectedLesson.id} isEditable={false} />
+                            <ProgressPanel child={selectedChildData} lessonId={selectedLesson.id} isEditable={false} authorRole="parent" />
                         )}
                     </div>
                 </DialogContent>

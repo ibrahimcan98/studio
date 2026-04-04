@@ -21,7 +21,8 @@ import {
     Minus,
     Award,
     MessageSquare,
-    Loader2
+    Loader2,
+    Settings
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -29,12 +30,14 @@ import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { BookOpen, Search, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { doc, getDoc, updateDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { COURSES } from '@/data/courses';
 import { Textarea } from '../ui/textarea';
+import { AddChildForm } from '../parent-portal/add-child-form';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Separator } from '../ui/separator';
 import {
@@ -57,6 +60,19 @@ const difficultiesMap: { [key: string]: string } = {
     "ifade": "Kendini ifade",
     "motivasyon": "Motivasyon",
     "ingilizce-karistirma": "Dilleri karıştırma"
+};
+
+const schoolLiteracyMap: { [key: string]: string } = {
+    'not-yet': 'Henüz öğrenmedi',
+    'in-progress': 'Devam ediyor',
+    'fluent': 'Akıcı okuyup yazıyor'
+};
+
+const turkishLiteracyMap: { [key: string]: string } = {
+    'none': 'Hiç yok',
+    'word-sentence': 'Kelime/Cümle',
+    'reads-short-writes': 'Kısa Yazma',
+    'fluent': 'Akıcı'
 };
 
 
@@ -96,10 +112,26 @@ interface Feedback {
     type?: 'pdr' | 'teacher';
 }
 
-export function ProgressPanel({ child, lessonId, isEditable = false, authorRole = 'teacher' }: { child: any, lessonId?: string, isEditable?: boolean, authorRole?: 'teacher' | 'admin' }) {
+interface ProgressPanelProps {
+    child: any;
+    lessonId?: string;
+    isEditable?: boolean;
+    authorRole?: 'teacher' | 'admin' | 'parent';
+}
+
+export function ProgressPanel({ child, lessonId, isEditable = false, authorRole = 'teacher' }: ProgressPanelProps) {
     const { toast } = useToast();
     const db = useFirestore();
     const [isSaving, setIsSaving] = useState(false);
+    const [currentSlide, setCurrentSlide] = useState(0);
+    const [carouselApi, setCarouselApi] = useState<any>(null);
+
+    useEffect(() => {
+        if (!carouselApi) return;
+        carouselApi.on("select", () => {
+            setCurrentSlide(carouselApi.selectedScrollSnap());
+        });
+    }, [carouselApi]);
     
     // State for editable fields
     const [cefrProfile, setCefrProfile] = useState(child.cefrProfile || { listening: 'preA1', speaking: 'preA1', reading: 'preA1', writing: 'preA1' });
@@ -112,6 +144,7 @@ export function ProgressPanel({ child, lessonId, isEditable = false, authorRole 
     const [newFeedback, setNewFeedback] = useState("");
     const [feedbackHistory, setFeedbackHistory] = useState<Feedback[]>(child.feedbackHistory || []);
     const [editingFeedback, setEditingFeedback] = useState<Feedback | null>(null);
+    const [isChildFormOpen, setIsChildFormOpen] = useState(false);
 
 
     useEffect(() => {
@@ -343,45 +376,154 @@ export function ProgressPanel({ child, lessonId, isEditable = false, authorRole 
                     </CardContent>
                 </Card>
 
-                <Card className="col-span-1 rounded-2xl bg-[#FFF3E0] border-orange-200">
-                    <CardHeader className="flex-row items-center gap-3 space-y-0">
-                        <Globe className="w-6 h-6 text-orange-500" />
-                        <CardTitle className="text-lg text-orange-900">Dil Ortamı</CardTitle>
+                <Card className="col-span-1 rounded-2xl bg-[#FFF3E0] border-orange-200 flex flex-col h-full overflow-hidden group">
+                    <CardHeader className="flex-row items-center justify-between gap-3 space-y-0 pb-2">
+                        <div className="flex items-center gap-3">
+                            {currentSlide === 0 ? <Globe className="w-5 h-5 text-orange-500" /> : 
+                             currentSlide === 1 ? <BookOpen className="w-5 h-5 text-orange-500" /> : 
+                             <Search className="w-5 h-5 text-orange-500" />}
+                            <CardTitle className="text-lg text-orange-900">
+                                {currentSlide === 0 ? "Dil Ortamı" : 
+                                 currentSlide === 1 ? "Okuryazarlık" : 
+                                 "Gözlemler"}
+                            </CardTitle>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            {authorRole !== 'teacher' && (
+                                <AddChildForm
+                                    userId={child.userId}
+                                    child={child}
+                                    childId={child.id}
+                                    onChildAdded={() => window.location.reload()}
+                                    forceOpen={isChildFormOpen}
+                                    onOpenChange={setIsChildFormOpen}
+                                >
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-8 w-8 rounded-full hover:bg-orange-100 text-orange-600"
+                                        onClick={() => setIsChildFormOpen(true)}
+                                    >
+                                        <Settings className="w-4 h-4" />
+                                    </Button>
+                                </AddChildForm>
+                            )}
+                        </div>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div>
-                            <h4 className="text-sm font-semibold mb-2 text-gray-700">Evde Dil Kullanımı</h4>
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <PieChart>
-                                            <Pie data={homeLanguagePieData} cx="50%" cy="50%" innerRadius={12} outerRadius={20} dataKey="value" paddingAngle={3}>
-                                                {homeLanguagePieData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                                            </Pie>
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                </div>
-                                <div className="text-xs space-y-1">
-                                    {homeLanguagePieData.map((entry, index) => (
-                                        <p key={index} className="flex items-center">
-                                            <span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: COLORS[index % COLORS.length] }}></span>
-                                            %{entry.value} {entry.name}
-                                        </p>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                        <div>
-                            <h4 className="text-sm font-semibold mb-1 text-gray-700">Türkçe Maruziyet Yoğunluğu</h4>
-                            <div className="flex items-center gap-2 text-sm"><span className="text-lg font-mono text-orange-500">{exposureInfo.dots}</span> <span className='text-gray-600'>{exposureInfo.label}</span></div>
-                        </div>
-                        <div className="pt-2">
-                            <h4 className="text-sm font-semibold mb-2 flex items-center gap-1 text-gray-700"><UserIcon className="w-4 h-4" />Veli Bildirimi – Zorlanma Alanları</h4>
-                            <div className="flex flex-wrap gap-2">
-                                {child.turkishDifficulties?.length > 0 ? child.turkishDifficulties.map((d: string) => <Badge key={d} variant="secondary" className="bg-green-100 text-green-800 border border-green-200">{difficultiesMap[d] || d}</Badge>) : <p className="text-xs text-muted-foreground">Belirtilmedi.</p>}
-                            </div>
-                        </div>
+                    <CardContent className="flex-1 p-0">
+                         <Carousel setApi={setCarouselApi} className="w-full h-full">
+                            <CarouselContent className="h-full items-start">
+                                {/* Slide 1: Language Environment */}
+                                <CarouselItem className="h-full">
+                                    <div className="px-6 pb-6 space-y-4">
+                                        <div>
+                                            <h4 className="text-sm font-semibold mb-2 text-gray-700">Evde Dil Kullanımı</h4>
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12">
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                        <PieChart>
+                                                            <Pie data={homeLanguagePieData} cx="50%" cy="50%" innerRadius={12} outerRadius={20} dataKey="value" paddingAngle={3}>
+                                                                {homeLanguagePieData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                                                            </Pie>
+                                                        </PieChart>
+                                                    </ResponsiveContainer>
+                                                </div>
+                                                <div className="text-xs space-y-1">
+                                                    {homeLanguagePieData.map((entry, index) => (
+                                                        <p key={index} className="flex items-center">
+                                                            <span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: COLORS[index % COLORS.length] }}></span>
+                                                            %{entry.value} {entry.name}
+                                                        </p>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <h4 className="text-sm font-semibold mb-1 text-gray-700">Türkçe Maruziyet Yoğunluğu</h4>
+                                            <div className="flex items-center gap-2 text-sm"><span className="text-lg font-mono text-orange-500">{exposureInfo.dots}</span> <span className='text-gray-600'>{exposureInfo.label}</span></div>
+                                        </div>
+                                        <div className="pt-1">
+                                            <h4 className="text-sm font-semibold mb-1 text-gray-700">Okul Dili</h4>
+                                            <p className="text-sm font-medium text-slate-800">{child.schoolLanguage}</p>
+                                        </div>
+                                    </div>
+                                </CarouselItem>
+
+                                {/* Slide 2: Literacy */}
+                                <CarouselItem className="h-full">
+                                    <div className="px-6 pb-6 space-y-6">
+                                        <div className="space-y-2">
+                                            <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2 leading-tight">
+                                                Okulda Okuma/Yazma Durumu
+                                            </h4>
+                                            <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 py-1.5 px-3 rounded-lg w-full justify-center text-sm font-bold">
+                                                {schoolLiteracyMap[child.schoolLiteracyStatus] || child.schoolLiteracyStatus || 'Belirtilmedi'}
+                                            </Badge>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2 leading-tight">
+                                                Türkçe Okuma/Yazma Seviyesi
+                                            </h4>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {Object.keys(turkishLiteracyMap).map((level) => (
+                                                    <div key={level} className={cn(
+                                                        "p-2 rounded-xl text-[11px] font-black text-center border transition-all",
+                                                        child.turkishLiteracyLevel === level 
+                                                            ? "bg-orange-100 text-orange-800 border-orange-300 shadow-sm" 
+                                                            : "bg-slate-50 text-slate-400 border-slate-100 opacity-60"
+                                                    )}>
+                                                        {turkishLiteracyMap[level]}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </CarouselItem>
+
+                                {/* Slide 3: Observations */}
+                                <CarouselItem className="h-full">
+                                    <div className="px-6 pb-6 space-y-4">
+                                        <div className="space-y-3">
+                                            <h4 className="text-sm font-semibold flex items-center gap-2 text-gray-700 leading-tight">
+                                                <Info className="w-4 h-4 text-orange-500" /> Velinin Zorlandığı Alanlar
+                                            </h4>
+                                            <div className="flex flex-wrap gap-2">
+                                                {child.turkishDifficulties?.length > 0 ? (
+                                                    child.turkishDifficulties.map((d: string) => (
+                                                        <Badge key={d} variant="secondary" className="bg-orange-100/50 text-orange-800 border border-orange-200/50 px-3 py-1 text-xs">
+                                                            {difficultiesMap[d] || d}
+                                                        </Badge>
+                                                    ))
+                                                ) : (
+                                                    <p className="text-xs text-muted-foreground italic">Zorlanılan bir alan belirtilmedi.</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-slate-100/50 p-3 rounded-xl">
+                                            <p className="text-[10px] uppercase font-black text-slate-400 tracking-wider mb-1">Ebeveyn Dili</p>
+                                            <p className="text-sm font-bold text-slate-700">{child.parentTongues}</p>
+                                        </div>
+                                    </div>
+                                </CarouselItem>
+                            </CarouselContent>
+                            <CarouselPrevious className="absolute left-1 top-1/2 -translate-y-1/2 h-7 w-7 bg-white/60 border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700 z-10 transition-all opacity-0 group-hover:opacity-100 sm:opacity-100" />
+                            <CarouselNext className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 bg-white/60 border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700 z-10 transition-all opacity-0 group-hover:opacity-100 sm:opacity-100" />
+                        </Carousel>
                     </CardContent>
+                    <div className="flex justify-center gap-1.5 pb-4">
+                        {[0, 1, 2].map((i) => (
+                            <button 
+                                key={i}
+                                className={cn(
+                                    "w-1.5 h-1.5 rounded-full transition-all duration-300",
+                                    currentSlide === i ? "bg-orange-500 w-4" : "bg-orange-200"
+                                )}
+                                onClick={() => carouselApi?.scrollTo(i)}
+                            />
+                        ))}
+                    </div>
                 </Card>
 
                 <Card className="col-span-1 rounded-2xl bg-[#E8F5E9] border-green-200">

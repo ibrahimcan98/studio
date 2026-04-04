@@ -221,7 +221,7 @@ function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUp
                                 <DialogHeader>
                                     <DialogTitle className="text-3xl font-bold font-headline">{child.firstName} İlerleme Paneli</DialogTitle>
                                 </DialogHeader>
-                                <ProgressPanel child={child} isEditable={false} />
+                                <ProgressPanel child={child} isEditable={false} authorRole="parent" />
                             </DialogContent>
                         </Dialog>
                     </div>
