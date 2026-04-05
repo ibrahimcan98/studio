@@ -43,7 +43,8 @@ import {
     Activity,
     Plus,
     ArrowRight,
-    Filter
+    Filter,
+    Clock
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -66,7 +67,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { format, differenceInDays, isBefore, differenceInYears } from 'date-fns';
+import { format, differenceInDays, isBefore, differenceInYears, addMinutes } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -89,6 +90,7 @@ interface ParentData {
     manualTags: string[];
     lastPurchaseDate?: Date;
     countryName: string;
+    manualCountry?: string;
     tags?: string[];
     isLegacy?: boolean;
     lastActivityDate?: Date;
@@ -122,6 +124,13 @@ function UsersPageContent() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const userIdParam = searchParams.get('userId');
+
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   const [allChildren, setAllChildren] = useState<any[]>([]);
   const [allSlots, setAllSlots] = useState<any[]>([]);
@@ -190,6 +199,22 @@ function UsersPageContent() {
 
   useEffect(() => { fetchData(); }, [db]);
     
+  const getCourseDetailsFromPackageCode = (code?: string) => {
+    if (!code) return null;
+    if (code === 'FREE_TRIAL') return { courseName: 'Ücretsiz Deneme Dersi', duration: 30 };
+    
+    const courseCodeMap: { [key: string]: string } = { 'B': 'baslangic', 'K': 'konusma', 'G': 'gelisim', 'A': 'akademik' };
+    const prefix = code.replace(/[0-9]/g, '');
+    const courseId = courseCodeMap[prefix as keyof typeof courseCodeMap];
+    
+    let duration = 30; // Default
+    if (courseId === 'baslangic') duration = 20;
+    if (courseId === 'konusma') duration = 30;
+    if (courseId === 'gelisim' || courseId === 'akademik') duration = 45;
+
+    return { duration };
+  };
+
   useEffect(() => {
     const fetchFreshParent = async () => {
         if (!isAddLessonsOpen || !selectedParentForLessons || !db) return;
@@ -205,6 +230,8 @@ function UsersPageContent() {
     };
     fetchFreshParent();
   }, [isAddLessonsOpen, db]);
+
+
 
 
 
@@ -286,7 +313,7 @@ function UsersPageContent() {
 
         return {
             ...parent,
-            countryName: getCountryFromPhone(parent.phoneNumber),
+            countryName: parent.manualCountry || getCountryFromPhone(parent.phoneNumber),
             computedTags: Array.from(tags),
             manualTags: manualTags,
             lastPurchaseDate,
@@ -295,6 +322,16 @@ function UsersPageContent() {
         } as ParentData;
     });
   }, [parents, allChildren, allSlots, loadingExtras]);
+
+  useEffect(() => {
+    if (userIdParam && processedParents && processedParents.length > 0) {
+        const parent = processedParents.find(p => p.id === userIdParam);
+        if (parent) {
+            setSelectedParent(parent);
+            setIsDetailOpen(true);
+        }
+    }
+  }, [userIdParam, processedParents]);
 
   const allAvailableTags = useMemo(() => {
     const tags = new Set<string>();
@@ -553,16 +590,20 @@ function UsersPageContent() {
     setBulkTagsToAdd(prev => prev.filter(t => t !== tag));
   };
 
-  // Deep Link Handling: Auto-open detail if userId is provided
-  useEffect(() => {
-    if (userIdParam && processedParents.length > 0 && !isDetailOpen) {
-        const parent = processedParents.find(p => p.id === userIdParam);
-        if (parent) {
-            setSelectedParent(parent);
-            setIsDetailOpen(true);
-        }
+  // Bulk Tags Update logic would go here...
+
+  const handleUpdateCountry = async (parent: ParentData, newCountry: string) => {
+    if (!db) return;
+    try {
+        const parentRef = doc(db, 'users', parent.id);
+        await updateDoc(parentRef, { manualCountry: newCountry });
+        toast({ title: 'Ülke Güncellendi', className: 'bg-green-500 text-white' });
+        refetchParents();
+    } catch (e) {
+        console.error("Error updating country:", e);
+        toast({ variant: 'destructive', title: 'Hata', description: 'Ülke kaydedilemedi.' });
     }
-  }, [userIdParam, processedParents, isDetailOpen]);
+  };
 
   const handleUpdateTags = async () => {
     if (!selectedParent || !db) return;
@@ -811,10 +852,52 @@ function UsersPageContent() {
                       </div>
                     </TableCell>
                     <TableCell>
-                        <div className="flex items-center gap-1.5 text-slate-600 font-semibold text-sm">
-                            <MapPin className="w-3.5 h-3.5 text-slate-300" />
-                            {parent.countryName}
-                        </div>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <div className="flex items-center gap-1.5 text-slate-600 font-semibold text-sm cursor-pointer hover:text-primary transition-colors group">
+                                    <MapPin className="w-3.5 h-3.5 text-slate-300 group-hover:text-primary" />
+                                    {parent.countryName}
+                                </div>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-64 p-3 rounded-2xl shadow-2xl border-none">
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase">Ülke Değiştir</span>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className="h-6 text-[10px] font-bold py-0 text-red-500" 
+                                            onClick={() => handleUpdateCountry(parent, "")}
+                                        > Sıfırla (Otomatik) </Button>
+                                    </div>
+                                    <div className="max-h-48 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                                        {[
+                                            "🇹🇷 Türkiye", "🇬🇧 İngiltere", "🇳🇱 Hollanda", "🇩🇪 Almanya", 
+                                            "🇦🇪 B.A.E", "🇮🇩 Endonezya", "🇫🇷 Fransa", "🇧🇪 Belçika", 
+                                            "🇦🇹 Avusturya", "🇨🇭 İsviçre", "🇸🇪 İsveç", "🇩🇰 Danimarka", 
+                                            "🇳🇴 Norveç", "🇮🇹 İtalya", "🇪🇸 İspanya", "🇺🇸 ABD", "🇨🇦 Kanada",
+                                            "🇦🇺 Avustralya", "🇦🇿 Azerbaycan", "🇶🇦 Katar", "🇸🇦 Suudi Arabistan"
+                                        ].map(c => (
+                                            <button
+                                                key={c}
+                                                className={cn(
+                                                    "w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-colors",
+                                                    parent.countryName === c ? "bg-primary text-white" : "hover:bg-slate-50 text-slate-600"
+                                                )}
+                                                onClick={() => handleUpdateCountry(parent, c)}
+                                            >
+                                                {c}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="pt-2 border-t mt-1">
+                                        <p className="text-[9px] font-medium text-slate-400 leading-tight">
+                                            Manuel seçim yapıldığında telefon numarasından gelen otomatik bilgi geçersiz kılınır.
+                                        </p>
+                                    </div>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
                     </TableCell>
                     <TableCell>
                         <div className="flex items-center gap-1.5 text-slate-500 text-sm">
@@ -841,7 +924,7 @@ function UsersPageContent() {
                     </TableCell>
                     <TableCell>
                         <div className="flex flex-wrap gap-1.5 max-w-[300px]">
-                            {parent.computedTags.map((tag) => (
+                            {parent.computedTags?.map((tag) => (
                                 <Badge key={tag} variant="secondary" className={cn("text-[9px] px-2 py-0.5 border-none font-bold uppercase tracking-tighter", tagStyles[tag] || 'bg-slate-100 text-slate-500')}>
                                     {tag}
                                 </Badge>
@@ -931,7 +1014,7 @@ function UsersPageContent() {
                             </TabsList>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-8 bg-white">
+                        <div className="flex-1 overflow-y-auto p-8 bg-white custom-scrollbar">
                             <TabsContent value="overview" className="mt-0 space-y-8">
                                 <div className="grid grid-cols-3 gap-6">
                                     <Card className="bg-slate-50 border-none p-6 space-y-2">
@@ -973,7 +1056,7 @@ function UsersPageContent() {
                                         <TagIcon className="w-4 h-4 text-primary" /> Aktif Etiketler
                                     </h3>
                                     <div className="flex flex-wrap gap-2">
-                                        {selectedParent.computedTags.map(tag => (
+                                        {selectedParent.computedTags?.map(tag => (
                                             <Badge key={tag} className={cn("px-3 py-1 border-none font-bold uppercase tracking-tighter text-[10px]", tagStyles[tag] || 'bg-slate-100 text-slate-500')}>
                                                 {tag}
                                             </Badge>
@@ -984,7 +1067,7 @@ function UsersPageContent() {
 
                             <TabsContent value="children" className="mt-0 space-y-6">
                                 {allChildren.filter(c => c.parentId === selectedParent.id).length > 0 ? (
-                                    <div className="grid gap-4">
+                                    <div className="grid gap-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2 py-1">
                                         {allChildren.filter(c => c.parentId === selectedParent.id).map(child => (
                                             <Card key={child.id} className="p-6 border-slate-100 shadow-sm flex items-center justify-between">
                                                 <div className="flex items-center gap-4">
@@ -1035,29 +1118,89 @@ function UsersPageContent() {
 
                             <TabsContent value="history" className="mt-0">
                                 <div className="space-y-4">
-                                    {allSlots.filter(s => s.bookedBy === selectedParent.id).length > 0 ? (
-                                        <div className="divide-y border rounded-2xl overflow-hidden">
-                                            {allSlots.filter(s => s.bookedBy === selectedParent.id).sort((a,b) => b.startTime.seconds - a.startTime.seconds).map((slot, i) => (
-                                                <div key={i} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", slot.packageCode === 'FREE_TRIAL' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600')}>
-                                                            <History className="w-5 h-5" />
+                                    {(() => {
+                                        const parentSlots = allSlots.filter(s => s.bookedBy === selectedParent.id);
+                                        if (parentSlots.length === 0) return (
+                                            <div className="py-20 text-center space-y-4">
+                                                <History className="w-12 h-12 mx-auto text-slate-200" />
+                                                <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">Ders kaydı bulunamadı</p>
+                                            </div>
+                                        );
+
+                                        // Grouping Logic
+                                        const sessions: { [key: string]: any[] } = {};
+                                        parentSlots.forEach(slot => {
+                                            const st = slot.startTime.toDate();
+                                            const dateKey = format(st, 'yyyy-MM-dd');
+                                            // Group by date, child, teacher and package (within the same day)
+                                            const sessionKey = `${dateKey}-${slot.childId}-${slot.teacherId}`;
+                                            if (!sessions[sessionKey]) sessions[sessionKey] = [];
+                                            sessions[sessionKey].push(slot);
+                                        });
+
+                                        const groupedSessions = Object.values(sessions).map(sessionSlots => {
+                                            sessionSlots.sort((a,b) => a.startTime.seconds - b.startTime.seconds);
+                                            const first = sessionSlots[0];
+                                            const st = first.startTime.toDate();
+                                            const details = getCourseDetailsFromPackageCode(first.packageCode);
+                                            const duration = details?.duration || 30;
+                                            const et = addMinutes(st, duration);
+
+                                            return {
+                                                id: first.id,
+                                                startTime: st,
+                                                endTime: et,
+                                                packageCode: first.packageCode,
+                                                childId: first.childId,
+                                                status: first.status
+                                            };
+                                        }).sort((a,b) => b.startTime.getTime() - a.startTime.getTime());
+
+                                        return (
+                                            <div className="divide-y border rounded-2xl overflow-y-auto max-h-[60vh] custom-scrollbar bg-white shadow-inner">
+                                                {groupedSessions.map((session, i) => (
+                                                    <div key={i} className="p-5 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className={cn("w-12 h-12 rounded-full flex items-center justify-center shadow-sm", session.packageCode === 'FREE_TRIAL' ? 'bg-blue-50 text-blue-500' : 'bg-emerald-50 text-emerald-500')}>
+                                                                <History className="w-6 h-6" />
+                                                            </div>
+                                                            <div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <p className="font-black text-slate-800">{session.packageCode === 'FREE_TRIAL' ? 'Deneme Dersi' : `Paket Dersi (${session.packageCode})`}</p>
+                                                                    <Badge variant="outline" className="text-[9px] font-black uppercase tracking-tighter h-4 border-slate-200 text-slate-400">
+                                                                        {allChildren.find(c => c.id === session.childId)?.firstName || 'Öğrenci'}
+                                                                    </Badge>
+                                                                </div>
+                                                                <div className="flex items-center gap-3 mt-0.5">
+                                                                    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
+                                                                        <Calendar className="w-3.5 h-3.5 opacity-40" />
+                                                                        {format(session.startTime, 'dd MMM yyyy', { locale: tr })}
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
+                                                                        <Clock className="w-3.5 h-3.5 opacity-40" />
+                                                                        {format(session.startTime, 'HH:mm')} - {format(session.endTime, 'HH:mm')}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <p className="font-bold text-sm text-slate-800">{slot.packageCode === 'FREE_TRIAL' ? 'Deneme Dersi' : `Paket Dersi (${slot.packageCode})`}</p>
-                                                            <p className="text-xs text-slate-500 font-medium">{format(slot.startTime.toDate(), 'dd MMM yyyy, HH:mm', { locale: tr })}</p>
-                                                        </div>
+                                                        {(() => {
+                                                            const isStarted = currentTime >= session.startTime;
+                                                            const isEnded = currentTime >= session.endTime;
+                                                            
+                                                            if (isEnded) return <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50/50 border-emerald-100 px-3 py-1 rounded-full">Tamamlandı</Badge>;
+                                                            if (isStarted) return (
+                                                                <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest text-red-600 bg-red-50 border-red-100 px-3 py-1 rounded-full animate-pulse flex items-center gap-1.5 shadow-sm shadow-red-100">
+                                                                    <div className="w-1.5 h-1.5 rounded-full bg-red-600 animate-ping" />
+                                                                    Ders Yapılıyor
+                                                                </Badge>
+                                                            );
+                                                            return <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest text-blue-500 bg-blue-50 border-blue-100 px-3 py-1 rounded-full">Ders Başlamadı</Badge>;
+                                                        })()}
                                                     </div>
-                                                    <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-widest text-slate-400 border-slate-200">Tamamlandı</Badge>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="py-20 text-center space-y-4">
-                                            <History className="w-12 h-12 mx-auto text-slate-200" />
-                                            <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">Ders kaydı bulunamadı</p>
-                                        </div>
-                                    )}
+                                                ))}
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             </TabsContent>
                         </div>
@@ -1104,7 +1247,7 @@ function UsersPageContent() {
                         {selectedParent?.manualTags.length === 0 && (
                             <span className="text-xs text-slate-400 italic">Henüz etiket eklenmemiş.</span>
                         )}
-                        {selectedParent?.manualTags.map(tag => (
+                        {selectedParent?.manualTags?.map(tag => (
                             <Badge key={tag} className="bg-primary text-white font-bold gap-1 pl-3 pr-1 py-1 rounded-full group">
                                 {tag}
                                 <button onClick={() => removeTag(tag)} className="p-0.5 hover:bg-white/20 rounded-full transition-colors">

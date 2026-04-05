@@ -110,11 +110,9 @@ export default function AdminDashboard() {
 
     const countries: any = {};
     parents.forEach(p => {
-        // We evaluate country distribution globally, or for parents registered this month?
-        // Let's keep it for parents registered this month if we want monthly stats.
         const pTime = p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt?.seconds * 1000 || 0);
         if (isWithinInterval(pTime, { start: monthStart, end: monthEnd })) {
-            const country = getCountryFromPhone(p.phoneNumber);
+            const country = p.manualCountry || getCountryFromPhone(p.phoneNumber);
             countries[country] = (countries[country] || 0) + 1;
         }
     });

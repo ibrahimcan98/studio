@@ -388,21 +388,27 @@ export default function DerslerimPage() {
 
     const groupedLessons = useMemo(() => {
         if (!lessonSlots) return [];
+        
+        // Group by Date, Child and Teacher
         const sessions: { [key: string]: any[] } = {};
         lessonSlots.forEach(slot => {
-            const startTime = slot.startTime.toDate();
-            const sessionDate = formatInTimeZone(startTime, 'UTC', 'yyyy-MM-dd-HH-mm');
-            const sessionKey = `${sessionDate}-${slot.childId}-${slot.teacherId}`;
+            const st = slot.startTime.toDate();
+            const dateKey = formatInTimeZone(st, 'UTC', 'yyyy-MM-dd');
+            const sessionKey = `${dateKey}-${slot.childId}-${slot.teacherId}`;
             if (!sessions[sessionKey]) sessions[sessionKey] = [];
             sessions[sessionKey].push(slot);
         });
+
         return Object.values(sessions).map(sessionSlots => {
             sessionSlots.sort((a, b) => a.startTime.seconds - b.startTime.seconds);
             const firstSlot = sessionSlots[0];
             const startTime = firstSlot.startTime.toDate();
+            
+            // Get proper duration based on package
             const packageDetails = getCourseDetailsFromPackageCode(firstSlot.packageCode);
-            const duration = packageDetails ? packageDetails.duration : 30;
+            const duration = packageDetails?.duration || 30;
             const endTime = addMinutes(startTime, duration);
+            
             const feedbackSlot = sessionSlots.find(s => s.feedback);
             const liveSlot = sessionSlots.find(s => s.isLive);
 

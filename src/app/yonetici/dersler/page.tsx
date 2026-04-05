@@ -62,6 +62,14 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from "@/components/ui/dialog";
+import {
     AlertDialog,
     AlertDialogAction,
     AlertDialogCancel,
@@ -71,21 +79,6 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useToast } from '@/hooks/use-toast';
-import { format, addMinutes } from 'date-fns';
-import { tr } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
-import { getCourseByCode, COURSES } from '@/data/courses';
-
-// UI Components for the manual assignment flow
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-    DialogFooter,
-} from "@/components/ui/dialog";
 import {
     Select,
     SelectContent,
@@ -93,7 +86,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from '@/hooks/use-toast';
+import { format, addMinutes, isAfter, isSameDay } from 'date-fns';
+import { tr } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+import { getCourseByCode, COURSES } from '@/data/courses';
+import { Label } from "@/components/ui/label";
 
 const getCourseDetailsFromPackageCode = (code: string) => {
     if (code === 'FREE_TRIAL') return { courseName: 'Ücretsiz Deneme Dersi', duration: 30 };
@@ -143,6 +142,12 @@ export default function AdminDerslerPage() {
 
     const [allChildren, setAllChildren] = useState<any[]>([]);
     const [isLoadingChildren, setIsLoadingChildren] = useState(false);
+    const [currentTime, setCurrentTime] = useState(new Date());
+
+    useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 30000);
+        return () => clearInterval(timer);
+    }, []);
 
     useEffect(() => {
         const fetchChildren = async () => {
@@ -215,9 +220,9 @@ export default function AdminDerslerPage() {
         if (!bookedLessons || !allChildren || !users) return [];
         
         // 1. First augment all slots with basic info
-        const augmentedSlots = bookedLessons.map(lesson => {
+        const augmentedSlots = bookedLessons?.map(lesson => {
             // Resilient lookup for student
-            const student = allChildren.find(c => 
+            const student = allChildren?.find(c => 
                 c.id === lesson.childId || 
                 c.uid === lesson.childId || 
                 c._id === lesson.childId
@@ -306,9 +311,21 @@ export default function AdminDerslerPage() {
         // And ensure duration is at least 5 mins
         result = result.filter(l => l.status === 'booked' && l.duration >= 5);
 
-        // Sort by Date (Descending)
+        // Sort by Date (Descending for base, will be re-sorted by tab)
         return result.sort((a, b) => b.startDateTime.getTime() - a.startDateTime.getTime());
     }, [bookedLessons, allChildren, users, searchQuery, typeFilter]);
+
+    const { upcomingLessons, completedLessons } = useMemo(() => {
+        const upcoming = filteredLessons?.filter(l => currentTime < addMinutes(l.startDateTime, l.duration)) || [];
+        const completed = filteredLessons?.filter(l => currentTime >= addMinutes(l.startDateTime, l.duration)) || [];
+        
+        // Sort Upcoming: soonest first
+        upcoming.sort((a, b) => a.startDateTime.getTime() - b.startDateTime.getTime());
+        // Sort Completed: latest first
+        completed.sort((a, b) => b.startDateTime.getTime() - a.startDateTime.getTime());
+        
+        return { upcomingLessons: upcoming, completedLessons: completed };
+    }, [filteredLessons, currentTime]);
 
     // Handlers
     const handleCancelLesson = async () => {
@@ -514,134 +531,132 @@ export default function AdminDerslerPage() {
                 </Button>
             </div>
 
-            <Card className="border-none shadow-xl rounded-3xl overflow-hidden bg-white/80 backdrop-blur-sm">
-                <CardHeader className="border-b bg-slate-50/50 p-6">
-                    <div className="flex flex-col lg:flex-row justify-between gap-4">
-                        <div className="relative flex-1 max-w-sm">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                            <Input 
-                                placeholder="Öğrenci, öğretmen veya veli adı..." 
-                                className="pl-10 rounded-xl border-slate-200 bg-white"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                        </div>
-                        <div className="flex gap-2">
-                            <Button 
-                                variant={typeFilter === 'all' ? 'default' : 'outline'} 
-                                onClick={() => setTypeFilter('all')}
-                                className="rounded-xl font-bold"
-                            >
-                                Hepsi
-                            </Button>
-                            <Button 
-                                variant={typeFilter === 'trial' ? 'default' : 'outline'} 
-                                onClick={() => setTypeFilter('trial')}
-                                className="rounded-xl font-bold"
-                            >
-                                Deneme
-                            </Button>
-                            <Button 
-                                variant={typeFilter === 'regular' ? 'default' : 'outline'} 
-                                onClick={() => setTypeFilter('regular')}
-                                className="rounded-xl font-bold"
-                            >
-                                Normal
-                            </Button>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="bg-slate-50/50 hover:bg-slate-50/50 border-b">
-                                    <TableHead className="font-black text-slate-800 p-6">Ders Zamanı</TableHead>
-                                    <TableHead className="font-black text-slate-800 p-6">Öğrenci / Veli</TableHead>
-                                    <TableHead className="font-black text-slate-800 p-6">Öğretmen</TableHead>
-                                    <TableHead className="font-black text-slate-800 p-6">Ders Türü</TableHead>
-                                    <TableHead className="font-black text-slate-800 p-6">Durum</TableHead>
-                                    <TableHead className="p-6 text-right">İşlem</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredLessons.length === 0 ? (
-                                    <TableRow key="empty-state">
-                                        <TableCell colSpan={6} className="h-32 text-center text-slate-400 italic">
-                                            Kayıtlı ders bulunamadı.
-                                        </TableCell>
-                                    </TableRow>
-                                ) : filteredLessons.map((lesson, idx) => (
-                                    <TableRow key={lesson.id || idx} className="group hover:bg-slate-50/50 transition-colors border-b">
-                                        <TableCell className="p-6">
-                                            <div className="flex flex-col">
-                                                <span className="font-bold text-slate-900">{format(lesson.startDateTime, 'dd MMMM yyyy', { locale: tr })}</span>
-                                                <span className="text-slate-500 text-sm font-medium flex items-center gap-1.5 mt-0.5">
-                                                    <Clock className="w-3.5 h-3.5" /> 
-                                                    {format(lesson.startDateTime, 'HH:mm')} 
-                                                    <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-400 font-bold ml-1">
-                                                        {lesson.duration} DK
-                                                    </span>
-                                                </span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="p-6">
-                                            <div className="flex flex-col">
-                                                <div className="flex items-center gap-2 font-black text-slate-800">
-                                                    <Baby className="w-4 h-4 text-primary" /> {lesson.studentName}
-                                                </div>
-                                                <span className="text-xs text-slate-400 font-medium ml-6">{lesson.parentName}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="p-6">
-                                            <div className="flex items-center gap-2 font-bold text-slate-700">
-                                                <User className="w-4 h-4 text-slate-400" /> {lesson.teacherName}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="p-6">
-                                            <Badge className={cn(
-                                                "rounded-lg font-bold px-3 py-1",
-                                                lesson.isTrial ? "bg-blue-100 text-blue-700 hover:bg-blue-100" : "bg-emerald-100 text-emerald-700 hover:bg-emerald-100"
-                                            )}>
-                                                {lesson.courseName}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="p-6">
-                                            <Badge variant="outline" className="rounded-lg border-emerald-200 bg-emerald-50 text-emerald-700 font-bold px-3 py-1">
-                                                Onaylı
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="p-6 text-right">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="rounded-xl hover:bg-slate-100">
-                                                        <MoreHorizontal className="w-5 h-5 text-slate-400" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl border-slate-200">
-                                                    <DropdownMenuLabel className="font-black text-slate-800 text-[10px] uppercase tracking-widest px-3 py-2">Ders İşlemleri</DropdownMenuLabel>
-                                                    {lesson.isLive && (
-                                                         <DropdownMenuItem className="rounded-xl font-bold text-primary gap-2 p-3 cursor-pointer" onClick={() => window.open(lesson.liveLessonUrl)}>
-                                                            <Video className="w-4 h-4" /> Derse Git (Live)
-                                                         </DropdownMenuItem>
-                                                    )}
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem 
-                                                        className="rounded-xl font-bold text-red-600 hover:text-red-700 hover:bg-red-50 gap-2 p-3 cursor-pointer"
-                                                        onClick={() => setLessonToCancel(lesson)}
-                                                    >
-                                                        <X className="w-4 h-4" /> Dersi İptal Et
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </CardContent>
-            </Card>
+            <Tabs defaultValue="upcoming" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6 h-12 bg-white/50 backdrop-blur-sm border-none shadow-sm p-1 rounded-2xl">
+                    <TabsTrigger value="upcoming" className="rounded-xl font-black text-sm data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                        <Calendar className="w-4 h-4 mr-2" /> 
+                        Yapılmamış / Yaklaşan ({upcomingLessons.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="past" className="rounded-xl font-black text-sm data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
+                        <CheckCircle2 className="w-4 h-4 mr-2" /> 
+                        Tamamlandı ({completedLessons.length})
+                    </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="upcoming">
+                    <Card className="border-none shadow-xl rounded-3xl overflow-hidden bg-white/80 backdrop-blur-sm">
+                        <CardHeader className="border-b bg-slate-50/50 p-6">
+                            <div className="flex flex-col lg:flex-row justify-between gap-4">
+                                <div className="relative flex-1 max-w-sm">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                    <Input 
+                                        placeholder="Öğrenci, öğretmen veya veli adı..." 
+                                        className="pl-10 rounded-xl border-slate-200 bg-white"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                    />
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button 
+                                        variant={typeFilter === 'all' ? 'default' : 'outline'} 
+                                        onClick={() => setTypeFilter('all')}
+                                        className="rounded-xl font-bold"
+                                    >
+                                        Hepsi
+                                    </Button>
+                                    <Button 
+                                        variant={typeFilter === 'trial' ? 'default' : 'outline'} 
+                                        onClick={() => setTypeFilter('trial')}
+                                        className="rounded-xl font-bold"
+                                    >
+                                        Deneme
+                                    </Button>
+                                    <Button 
+                                        variant={typeFilter === 'regular' ? 'default' : 'outline'} 
+                                        onClick={() => setTypeFilter('regular')}
+                                        className="rounded-xl font-bold"
+                                    >
+                                        Normal
+                                    </Button>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="bg-slate-50/50 hover:bg-slate-50/50 border-b">
+                                            <TableHead className="font-black text-slate-800 p-6">Ders Zamanı</TableHead>
+                                            <TableHead className="font-black text-slate-800 p-6">Öğrenci / Veli</TableHead>
+                                            <TableHead className="font-black text-slate-800 p-6">Öğretmen</TableHead>
+                                            <TableHead className="font-black text-slate-800 p-6">Ders Türü</TableHead>
+                                            <TableHead className="font-black text-slate-800 p-6">Durum</TableHead>
+                                            <TableHead className="p-6 text-right">İşlem</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {upcomingLessons.length === 0 ? (
+                                            <TableRow key="empty-upcoming">
+                                                <TableCell colSpan={6} className="h-32 text-center text-slate-400 italic">
+                                                    Planlanmış ders bulunamadı.
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : upcomingLessons.map((lesson, idx) => (
+                                            <LessonRow key={lesson.id || idx} lesson={lesson} currentTime={currentTime} onCancel={() => setLessonToCancel(lesson)} />
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="past">
+                    <Card className="border-none shadow-xl rounded-3xl overflow-hidden bg-white/80 backdrop-blur-sm">
+                        {/* Same Header for past as well */}
+                        <CardHeader className="border-b bg-slate-50/50 p-6">
+                            <div className="flex flex-col lg:flex-row justify-between gap-4">
+                                <div className="relative flex-1 max-w-sm">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                    <Input 
+                                        placeholder="Ara..." 
+                                        className="pl-10 rounded-xl border-slate-200 bg-white"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="bg-slate-50/50 hover:bg-slate-50/50 border-b">
+                                            <TableHead className="font-black text-slate-800 p-6">Ders Zamanı</TableHead>
+                                            <TableHead className="font-black text-slate-800 p-6">Öğrenci / Veli</TableHead>
+                                            <TableHead className="font-black text-slate-800 p-6">Öğretmen</TableHead>
+                                            <TableHead className="font-black text-slate-800 p-6">Ders Türü</TableHead>
+                                            <TableHead className="font-black text-slate-800 p-6">Durum</TableHead>
+                                            <TableHead className="p-6 text-right">İşlem</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {completedLessons.length === 0 ? (
+                                            <TableRow key="empty-past">
+                                                <TableCell colSpan={6} className="h-32 text-center text-slate-400 italic">
+                                                    Tamamlanmış ders bulunamadı.
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : completedLessons.map((lesson, idx) => (
+                                            <LessonRow key={lesson.id || idx} lesson={lesson} currentTime={currentTime} onCancel={() => setLessonToCancel(lesson)} />
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
 
             {/* Assignment Dialog */}
             <Dialog open={isAssignDialogOpen} onOpenChange={(open) => {
@@ -864,6 +879,100 @@ export default function AdminDerslerPage() {
                 </AlertDialogContent>
             </AlertDialog>
         </div>
+    );
+}
+
+function LessonRow({ lesson, currentTime, onCancel }: { lesson: any, currentTime: Date, onCancel: () => void }) {
+    const endTime = addMinutes(lesson.startDateTime, lesson.duration);
+    const isStarted = currentTime >= lesson.startDateTime;
+    const isEnded = currentTime >= endTime;
+
+    return (
+        <TableRow className="group hover:bg-slate-50/50 transition-colors border-b">
+            <TableCell className="p-6">
+                <div className="flex flex-col">
+                    <span className="font-bold text-slate-900">{format(lesson.startDateTime, 'dd MMMM yyyy', { locale: tr })}</span>
+                    <span className="text-slate-500 text-sm font-medium flex items-center gap-1.5 mt-0.5">
+                        <Clock className="w-3.5 h-3.5" /> 
+                        {format(lesson.startDateTime, 'HH:mm')} 
+                        <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-400 font-bold ml-1 uppercase">
+                            {lesson.duration} Dakika
+                        </span>
+                    </span>
+                </div>
+            </TableCell>
+            <TableCell className="p-6">
+                <div className="flex flex-col">
+                    <div className="flex items-center gap-2 font-black text-slate-800">
+                        <Baby className="w-4 h-4 text-primary" /> {lesson.studentName}
+                    </div>
+                    <span className="text-xs text-slate-400 font-medium ml-6">{lesson.parentName}</span>
+                </div>
+            </TableCell>
+            <TableCell className="p-6">
+                <div className="flex items-center gap-2 font-bold text-slate-700">
+                    <User className="w-4 h-4 text-slate-400" /> {lesson.teacherName}
+                </div>
+            </TableCell>
+            <TableCell className="p-6">
+                <Badge className={cn(
+                    "rounded-lg font-bold px-3 py-1",
+                    lesson.isTrial ? "bg-blue-100 text-blue-700 hover:bg-blue-100" : "bg-emerald-100 text-emerald-700 hover:bg-emerald-100"
+                )}>
+                    {lesson.courseName}
+                </Badge>
+            </TableCell>
+            <TableCell className="p-6">
+                {(() => {
+                    if (isEnded) return <Badge variant="outline" className="rounded-xl border-emerald-200 bg-emerald-50 text-emerald-700 font-black px-3 py-1 uppercase text-[10px] tracking-widest">Tamamlandı</Badge>;
+                    if (isStarted) return (
+                        <Badge variant="outline" className="rounded-xl border-red-100 bg-red-50 text-red-600 font-black px-3 py-1 uppercase text-[10px] tracking-widest animate-pulse flex items-center gap-1.5">
+                             <div className="w-1.5 h-1.5 rounded-full bg-red-600 animate-ping" />
+                             Ders Yapılıyor
+                        </Badge>
+                    );
+                    return <Badge variant="outline" className="rounded-xl border-blue-100 bg-blue-50 text-blue-500 font-black px-3 py-1 uppercase text-[10px] tracking-widest">Ders Başlamadı</Badge>;
+                })()}
+            </TableCell>
+            <TableCell className="p-6 text-right">
+                <div className="flex items-center justify-end gap-2">
+                    <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        className="rounded-xl font-bold bg-slate-100 text-slate-600 hover:bg-slate-900 hover:text-white transition-all group"
+                        asChild
+                    >
+                        <a href={`/yonetici/kullanicilar?userId=${lesson.bookedBy}`}>
+                            <UsersIcon className="w-4 h-4 mr-2" />
+                            Veli Paneli
+                        </a>
+                    </Button>
+
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="rounded-xl hover:bg-slate-100">
+                                <MoreHorizontal className="w-5 h-5 text-slate-400" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl border-slate-200">
+                            <DropdownMenuLabel className="font-black text-slate-800 text-[10px] uppercase tracking-widest px-3 py-2">Ders İşlemleri</DropdownMenuLabel>
+                            {lesson.isLive && (
+                                <DropdownMenuItem className="rounded-xl font-bold text-primary gap-2 p-3 cursor-pointer" onClick={() => window.open(lesson.liveLessonUrl)}>
+                                    <Video className="w-4 h-4" /> Derse Git (Live)
+                                </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                                className="rounded-xl font-bold text-red-600 hover:text-red-700 hover:bg-red-50 gap-2 p-3 cursor-pointer"
+                                onClick={onCancel}
+                            >
+                                <X className="w-4 h-4" /> Dersi İptal Et
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            </TableCell>
+        </TableRow>
     );
 }
 

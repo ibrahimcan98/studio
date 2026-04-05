@@ -16,7 +16,8 @@ export function getCountryFromPhone(phone: string | undefined | null) {
   if (cleanPhone.startsWith("+90")) return "🇹🇷 Türkiye";
   if (cleanPhone.startsWith("+49")) return "🇩🇪 Almanya";
   if (cleanPhone.startsWith("+44")) return "🇬🇧 İngiltere";
-  if (cleanPhone.startsWith("+1")) return "🇺🇸 Kanada/ABD";
+  if (cleanPhone.startsWith("+1")) return "🇺🇸/🇨🇦 ABD/Kanada";
+  if (cleanPhone.startsWith("+62")) return "🇮🇩 Endonezya";
   if (cleanPhone.startsWith("+353")) return "🇮🇪 İrlanda";
   if (cleanPhone.startsWith("+33")) return "🇫🇷 Fransa";
   if (cleanPhone.startsWith("+31")) return "🇳🇱 Hollanda";
