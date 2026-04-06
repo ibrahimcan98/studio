@@ -88,6 +88,7 @@ interface ParentData {
     enrolledPackages: string[];
     computedTags: string[];
     manualTags: string[];
+    hiddenTags: string[];
     lastPurchaseDate?: Date;
     countryName: string;
     manualCountry?: string;
@@ -116,7 +117,7 @@ const tagStyles: { [key: string]: string } = {
 };
 
 const SUGGESTED_TAGS = [
-    'positive', 'problem', 'discountlover', 'zam öncesi'
+    'ak', 'kk', 'bk', 'gk', 'positive', 'problem', 'discountlover', 'zam öncesi'
 ];
 
 function UsersPageContent() {
@@ -173,6 +174,11 @@ function UsersPageContent() {
   
   // Sorting State
   const [sortType, setSortType] = useState<'registration_desc' | 'activity_desc'>('registration_desc');
+
+  // Custom Confirm States
+  const [isConfirmRemoveOpen, setIsConfirmRemoveOpen] = useState(false);
+  const [tagToRemove, setTagToRemove] = useState('');
+  const [parentForRemoval, setParentForRemoval] = useState<ParentData | null>(null);
 
   const parentsQuery = useMemoFirebase(() => {
     if (!db) return null;
@@ -276,9 +282,14 @@ function UsersPageContent() {
             if (code.includes('GCSE')) tags.add('gcse');
         });
 
-        const manualTags = parent.tags || [];
-        manualTags.forEach((t: string) => tags.add(t));
-        if (parent.isLegacy) tags.add('eski uye');
+        const manualTags = (parent.tags || []).map((t: string) => t.toLowerCase());
+        const hiddenTags = (parent.hiddenTags || []).map((t: string) => t.toLowerCase());
+
+        manualTags.forEach((t: string) => {
+            if (!hiddenTags.includes(t)) tags.add(t);
+        });
+
+        if (parent.isLegacy && !hiddenTags.includes('eski uye')) tags.add('eski uye');
 
         const lastPurchaseDate = parentSlots
             .filter(s => s.packageCode !== 'FREE_TRIAL')
@@ -314,8 +325,9 @@ function UsersPageContent() {
         return {
             ...parent,
             countryName: parent.manualCountry || getCountryFromPhone(parent.phoneNumber),
-            computedTags: Array.from(tags),
+            computedTags: Array.from(tags).map(t => t.toLowerCase()).filter(t => !hiddenTags.includes(t)),
             manualTags: manualTags,
+            hiddenTags: hiddenTags,
             lastPurchaseDate,
             lastActivityDate,
             lastActivityType
@@ -581,13 +593,14 @@ function UsersPageContent() {
   };
 
   const addBulkTag = (tag: string) => {
-    if (!tag || bulkTagsToAdd.includes(tag)) return;
-    setBulkTagsToAdd(prev => [...prev, tag]);
+    const normalizedTag = tag?.toLowerCase();
+    if (!normalizedTag || bulkTagsToAdd.includes(normalizedTag)) return;
+    setBulkTagsToAdd(prev => [...prev, normalizedTag]);
     setNewBulkTagInput('');
   };
 
   const removeBulkTag = (tag: string) => {
-    setBulkTagsToAdd(prev => prev.filter(t => t !== tag));
+    setBulkTagsToAdd(prev => prev.filter(t => t !== tag.toLowerCase()));
   };
 
   // Bulk Tags Update logic would go here...
@@ -622,14 +635,60 @@ function UsersPageContent() {
     }
   };
 
+  const handleQuickRemoveTag = (parent: ParentData, tag: string) => {
+    setTagToRemove(tag);
+    setParentForRemoval(parent);
+    setIsConfirmRemoveOpen(true);
+  };
+
+  const confirmRemoval = async () => {
+    if (!db || !parentForRemoval || !tagToRemove) return;
+    const normalizedTag = tagToRemove.toLowerCase();
+    
+    try {
+        const parentRef = doc(db, 'users', parentForRemoval.id);
+        const newManualTags = (parentForRemoval.manualTags || []).filter(t => t.toLowerCase() !== normalizedTag);
+        const newHiddenTags = Array.from(new Set([...(parentForRemoval.hiddenTags || []), normalizedTag]));
+        
+        const updates: any = { 
+            tags: newManualTags,
+            hiddenTags: newHiddenTags
+        };
+
+        if (normalizedTag === 'eski uye') {
+            updates.isLegacy = false;
+        }
+
+        await updateDoc(parentRef, updates);
+        toast({ title: 'Etiket Gizlendi', className: 'bg-slate-800 text-white' });
+        setIsConfirmRemoveOpen(false);
+        setTagToRemove('');
+        setParentForRemoval(null);
+        refetchParents();
+    } catch (e) {
+        console.error("Error removing tag:", e);
+        toast({ variant: 'destructive', title: 'Hata', description: 'Etiket kaldırılamadı.' });
+    }
+  };
+
   const addTag = (tag: string) => {
-    if (!tag || selectedParent?.manualTags.includes(tag)) return;
-    setSelectedParent(prev => prev ? { ...prev, manualTags: [...prev.manualTags, tag] } : null);
+    const normalizedTag = tag?.toLowerCase();
+    if (!normalizedTag || selectedParent?.manualTags.includes(normalizedTag)) return;
+    setSelectedParent(prev => prev ? { 
+        ...prev, 
+        manualTags: [...prev.manualTags, normalizedTag],
+        computedTags: prev.computedTags.includes(normalizedTag) ? prev.computedTags : [...prev.computedTags, normalizedTag]
+    } : null);
     setNewTagInput('');
   };
 
   const removeTag = (tag: string) => {
-    setSelectedParent(prev => prev ? { ...prev, manualTags: prev.manualTags.filter(t => t !== tag) } : null);
+    const normalizedTag = tag.toLowerCase();
+    setSelectedParent(prev => prev ? { 
+        ...prev, 
+        manualTags: prev.manualTags.filter(t => t.toLowerCase() !== normalizedTag),
+        computedTags: prev.computedTags.filter(t => t.toLowerCase() !== normalizedTag)
+    } : null);
   };
 
   return (
@@ -924,11 +983,24 @@ function UsersPageContent() {
                     </TableCell>
                     <TableCell>
                         <div className="flex flex-wrap gap-1.5 max-w-[300px]">
-                            {parent.computedTags?.map((tag) => (
-                                <Badge key={tag} variant="secondary" className={cn("text-[9px] px-2 py-0.5 border-none font-bold uppercase tracking-tighter", tagStyles[tag] || 'bg-slate-100 text-slate-500')}>
-                                    {tag}
-                                </Badge>
-                            ))}
+                            {parent.computedTags?.map((tag) => {
+                                const isManual = parent.manualTags?.includes(tag);
+                                return (
+                                        <Badge key={tag} variant="secondary" className={cn("relative group text-[9px] px-2 py-0.5 border-none font-bold uppercase tracking-tighter overflow-visible", tagStyles[tag] || 'bg-slate-100 text-slate-500')}>
+                                            {tag}
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleQuickRemoveTag(parent, tag);
+                                                }}
+                                                className="absolute -top-1 -right-1 w-3 h-3 p-0 bg-white text-slate-400 border border-slate-200 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white hover:border-red-600 transition-all shadow-sm opacity-0 group-hover:opacity-100"
+                                                title="Etiketi Kaldır"
+                                            >
+                                                <X className="w-2 h-2" />
+                                            </button>
+                                        </Badge>
+                                );
+                            })}
                         </div>
                     </TableCell>
                     <TableCell className="text-right pr-8">
@@ -1242,19 +1314,24 @@ function UsersPageContent() {
                 </div>
 
                 <div className="space-y-4">
-                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mevcut Manuel Etiketler</Label>
+                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mevcut Etiketler</Label>
                     <div className="flex flex-wrap gap-2 min-h-[40px] p-4 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-                        {selectedParent?.manualTags.length === 0 && (
+                        {selectedParent?.computedTags.length === 0 && (
                             <span className="text-xs text-slate-400 italic">Henüz etiket eklenmemiş.</span>
                         )}
-                        {selectedParent?.manualTags?.map(tag => (
-                            <Badge key={tag} className="bg-primary text-white font-bold gap-1 pl-3 pr-1 py-1 rounded-full group">
-                                {tag}
-                                <button onClick={() => removeTag(tag)} className="p-0.5 hover:bg-white/20 rounded-full transition-colors">
-                                    <X className="w-3.5 h-3.5" />
-                                </button>
-                            </Badge>
-                        ))}
+                        {selectedParent?.computedTags?.map(tag => {
+                            return (
+                                <Badge key={tag} className={cn("relative group font-bold pl-3 py-1 rounded-full overflow-visible transition-all", selectedParent.manualTags?.includes(tag) ? "bg-primary text-white pr-3" : "bg-slate-200 text-slate-500 pr-3 border-none shadow-none")}>
+                                    {tag}
+                                    <button 
+                                        onClick={() => handleQuickRemoveTag(selectedParent, tag)} 
+                                        className="absolute -top-1 -right-1 w-4 h-4 p-0 bg-white text-slate-400 border border-slate-200 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white hover:border-red-600 transition-all shadow-sm opacity-0 group-hover:opacity-100"
+                                    >
+                                        <X className="w-2.5 h-2.5" />
+                                    </button>
+                                </Badge>
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -1282,7 +1359,26 @@ function UsersPageContent() {
         </DialogContent>
       </Dialog>
 
-      {/* BULK TAGS DIALOG */}
+      {/* DELETE TAG CONFIRMATION */}
+      <Dialog open={isConfirmRemoveOpen} onOpenChange={setIsConfirmRemoveOpen}>
+        <DialogContent className="max-w-[400px] rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
+            <div className="bg-red-50 p-8 flex flex-col items-center text-center space-y-4">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+                    <X className="w-8 h-8 text-red-600" />
+                </div>
+                <div className="space-y-2">
+                    <DialogTitle className="text-xl font-black text-red-900 uppercase tracking-tight">Etiketi Gizle?</DialogTitle>
+                    <DialogDescription className="text-red-700 font-medium">
+                        <span className="font-black bg-red-200 px-2 py-0.5 rounded text-red-800">'{tagToRemove.toUpperCase()}'</span> etiketini bu veli için tamamen gizlemek istediğinize emin misiniz?
+                    </DialogDescription>
+                </div>
+            </div>
+            <div className="p-6 bg-white flex gap-3">
+                <Button variant="outline" className="flex-1 h-12 rounded-xl font-bold border-2" onClick={() => setIsConfirmRemoveOpen(false)}>Vazgeç</Button>
+                <Button className="flex-1 h-12 rounded-xl font-bold bg-red-600 hover:bg-red-700 shadow-lg shadow-red-200 text-white" onClick={confirmRemoval}>Evet, Gizle</Button>
+            </div>
+        </DialogContent>
+      </Dialog>
       <Dialog open={isBulkTagOpen} onOpenChange={setIsBulkTagOpen}>
         <DialogContent className="max-w-md rounded-[24px] p-8">
             <DialogHeader>

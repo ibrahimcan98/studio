@@ -112,13 +112,15 @@ function CancellationButtons({ lesson, timeZone }: { lesson: any, timeZone: stri
 
             await batch.commit();
 
+            const lessonTimeFormatted = formatInTimeZone(startTime, 'Europe/Istanbul', 'dd.MM.yyyy HH:mm', { locale: tr });
+
             // Store in Activity Log (Frontend side for auth)
             addDoc(collection(db, 'activity-log'), {
                 event: '❌ Ders İptal Edildi',
                 icon: '❌',
                 details: {
                     'Öğrenci': lesson.childName || lesson.childId || '-',
-                    'Ders Saati': startTime.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
+                    'Ders Saati': lessonTimeFormatted,
                     'Ders Türü': lesson.packageCode || '-',
                 },
                 createdAt: Timestamp.fromDate(new Date())
@@ -130,11 +132,23 @@ function CancellationButtons({ lesson, timeZone }: { lesson: any, timeZone: stri
             const teacherEmail = teacherData?.email;
 
             if (teacherEmail || user.email) {
-                const emailData = {
+                const commonEmailData = {
                     studentName: lesson.childName || 'Öğrenci',
                     teacherName: teacherData?.firstName + ' ' + teacherData?.lastName || 'Eğitmen',
-                    date: format(startTime, 'dd MMMM yyyy', { locale: tr }),
-                    time: format(startTime, 'HH:mm', { locale: tr }),
+                };
+
+                const parentEmailData = {
+                    ...commonEmailData,
+                    date: formatInTimeZone(startTime, timeZone, 'dd MMMM yyyy', { locale: tr }),
+                    time: formatInTimeZone(startTime, timeZone, 'HH:mm', { locale: tr }),
+                    role: 'parent' as const,
+                };
+
+                const teacherEmailData = {
+                    ...commonEmailData,
+                    date: formatInTimeZone(startTime, 'Europe/Istanbul', 'dd MMMM yyyy', { locale: tr }),
+                    time: formatInTimeZone(startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr }),
+                    role: 'teacher' as const,
                 };
 
                 // Send to Parent
@@ -146,7 +160,7 @@ function CancellationButtons({ lesson, timeZone }: { lesson: any, timeZone: stri
                             to: user.email,
                             subject: 'Ders İptal Onayı',
                             templateName: 'lesson-cancelled',
-                            data: emailData
+                            data: parentEmailData
                         })
                     }).catch(console.error);
                 }
@@ -160,7 +174,7 @@ function CancellationButtons({ lesson, timeZone }: { lesson: any, timeZone: stri
                             to: teacherEmail,
                             subject: 'Bir Dersiniz İptal Edildi',
                             templateName: 'lesson-cancelled',
-                            data: emailData
+                            data: teacherEmailData
                         })
                     }).catch(console.error);
                 }
@@ -174,7 +188,7 @@ function CancellationButtons({ lesson, timeZone }: { lesson: any, timeZone: stri
                     event: '❌ Ders İptal Edildi',
                     details: {
                         'Öğrenci': lesson.childName || lesson.childId || '-',
-                        'Ders Saati': startTime.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
+                        'Ders Saati': lessonTimeFormatted,
                         'Ders Türü': lesson.packageCode || '-',
                     }
                 })

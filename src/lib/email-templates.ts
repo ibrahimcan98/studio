@@ -20,7 +20,19 @@ const BUTTON_STYLE = `
   text-align: center;
 `;
 
-const LOGO_URL = "https://turkcocukakademisi.com/logo.png";
+const LOGO_URL = "https://turkcocukakademisii.com/logo.png";
+
+const generateGoogleCalendarUrl = (data: { studentName: string; teacherName: string; startTime?: string; courseName?: string }) => {
+  if (!data.startTime) return null;
+  const start = new Date(data.startTime);
+  const end = new Date(start.getTime() + 45 * 60 * 1000); // Default 45 min lesson
+
+  const formatUTC = (date: Date) => date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  const title = `Ders: ${data.studentName} - ${data.courseName || 'Akademik Ders'}`;
+  const details = `Eğitmen: ${data.teacherName}\nPanel: https://turkcocukakademisi.com/ebeveyn-portali`;
+  
+  return `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${formatUTC(start)}/${formatUTC(end)}&details=${encodeURIComponent(details)}`;
+};
 
 export const getBaseTemplate = (content: string) => `
   <!DOCTYPE html>
@@ -88,25 +100,43 @@ export const getPasswordResetTemplate = (link: string) => getBaseTemplate(`
   <p style="font-size: 14px; color: #64748b; margin-top: 25px;">Eğer bu talebi siz yapmadıysanız, lütfen bu e-postayı dikkate almayın. Hesabınız güvendedir.</p>
 `);
 
-export const getLessonPlannedTemplate = (data: { studentName: string; teacherName: string; date: string; time: string; courseName?: string }) => getBaseTemplate(`
-  <h2 style="color: #0f172a; font-size: 24px; margin-top: 0;">Yeni Ders Planlandı</h2>
-  <p style="font-size: 16px; color: #475569;">Merhaba, <strong>${data.studentName}</strong>'in akademik yolculuğu için yeni bir ders planlandı.</p>
-  
-  <div style="background-color: #f0f9ff; padding: 24px; border-radius: 20px; border: 1px solid #e0f2fe; margin: 24px 0;">
-    ${data.courseName ? `<p style="margin: 8px 0; color: #0369a1;"><strong>Kurs:</strong> ${data.courseName}</p>` : ''}
-    <p style="margin: 8px 0; color: #0369a1;"><strong>Eğitmen:</strong> ${data.teacherName}</p>
-    <p style="margin: 8px 0; color: #0369a1;"><strong>Tarih:</strong> ${data.date}</p>
-    <p style="margin: 8px 0; color: #0369a1;"><strong>Saat:</strong> ${data.time}</p>
-  </div>
-  
-  <p style="font-size: 14px; color: #64748b;">Ders saati geldiğinde panele girerek canlı ders odasına katılabilirsiniz.</p>
-  
-  <div style="text-align: center; margin-top: 30px;">
-    <a href="https://turkcocukakademisi.com/ebeveyn-portali" style="${BUTTON_STYLE}">Ebeveyn Paneline Git</a>
-  </div>
-`);
+export const getLessonPlannedTemplate = (data: { studentName: string; teacherName: string; date: string; time: string; courseName?: string; startTime?: string; role?: 'parent' | 'teacher' }) => {
+  const calendarUrl = generateGoogleCalendarUrl(data);
+  const isTeacher = data.role === 'teacher';
+  const buttonText = isTeacher ? 'Öğretmen Paneline Git' : 'Veli Paneline Git';
+  const buttonUrl = isTeacher ? 'https://turkcocukakademisi.com/ogretmen-portali' : 'https://turkcocukakademisi.com/ebeveyn-portali';
 
-export const getLessonCancelledTemplate = (data: { studentName: string; teacherName: string; date: string; time: string; reason?: string }) => getBaseTemplate(`
+  return getBaseTemplate(`
+    <h2 style="color: #0f172a; font-size: 24px; margin-top: 0;">Yeni Ders Planlandı</h2>
+    <p style="font-size: 16px; color: #475569;">Merhaba, <strong>${data.studentName}</strong>'in akademik yolculuğu için yeni bir ders planlandı.</p>
+    
+    <div style="background-color: #f0f9ff; padding: 24px; border-radius: 20px; border: 1px solid #e0f2fe; margin: 24px 0;">
+      ${data.courseName ? `<p style="margin: 8px 0; color: #0369a1;"><strong>Kurs:</strong> ${data.courseName}</p>` : ''}
+      <p style="margin: 8px 0; color: #0369a1;"><strong>Eğitmen:</strong> ${data.teacherName}</p>
+      <p style="margin: 8px 0; color: #0369a1;"><strong>Tarih:</strong> ${data.date}</p>
+      <p style="margin: 8px 0; color: #0369a1;"><strong>Saat:</strong> ${data.time}</p>
+    </div>
+    
+    ${calendarUrl ? `
+    <div style="text-align: center; margin-bottom: 24px;">
+      <a href="${calendarUrl}" style="display: inline-block; padding: 10px 20px; background: #ffffff; color: #4285F4; text-decoration: none; border-radius: 10px; font-weight: 700; border: 2px solid #4285F4; font-size: 14px;">📅 Google Takvime Ekle</a>
+    </div>
+    ` : ''}
+
+    <p style="font-size: 14px; color: #64748b;">Ders saati geldiğinde panele girerek canlı ders odasına katılabilirsiniz.</p>
+    
+    <div style="text-align: center; margin-top: 30px;">
+      <a href="${buttonUrl}" style="${BUTTON_STYLE}">${buttonText}</a>
+    </div>
+  `);
+};
+
+export const getLessonCancelledTemplate = (data: { studentName: string; teacherName: string; date: string; time: string; reason?: string; role?: 'parent' | 'teacher' }) => {
+  const isTeacher = data.role === 'teacher';
+  const buttonText = isTeacher ? 'Öğretmen Paneline Git' : 'Hemen Yeni Ders Planla';
+  const buttonUrl = isTeacher ? 'https://turkcocukakademisi.com/ogretmen-portali' : 'https://turkcocukakademisi.com/ebeveyn-portali';
+
+  return getBaseTemplate(`
   <h2 style="color: #ef4444; font-size: 24px; margin-top: 0;">Ders İptal Edildi</h2>
   <p style="font-size: 16px; color: #475569;">Merhaba, <strong>${data.studentName}</strong> için planlanan aşağıdaki ders iptal edilmiştir.</p>
   
@@ -116,35 +146,61 @@ export const getLessonCancelledTemplate = (data: { studentName: string; teacherN
     <p style="margin: 8px 0; color: #991b1b;"><strong>Saat:</strong> ${data.time}</p>
     ${data.reason ? `
     <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #fca5a5;">
-      <p style="margin: 0; color: #991b1b; font-size: 13px; font-weight: 700; text-transform: uppercase;">Öğretmen Mazereti:</p>
+      <p style="margin: 0; color: #991b1b; font-size: 13px; font-weight: 700; text-transform: uppercase;">Mazeret:</p>
       <p style="margin: 5px 0 0 0; color: #b91c1c; font-style: italic; font-size: 15px;">"${data.reason}"</p>
     </div>
     ` : ''}
   </div>
 
-  <p style="font-size: 14px; color: #64748b;">İptal edilen ders krediniz hesabınıza iade edilmiştir. Veli panelinden tekrar planlama yapabilirsiniz.</p>
+  <p style="font-size: 14px; color: #64748b;">${isTeacher ? 'İptal edilen saatleriniz takviminizde tekrar boşa çıkmıştır.' : 'İptal edilen ders krediniz hesabınıza iade edilmiştir. Veli panelinden tekrar planlama yapabilirsiniz.'}</p>
   
   <div style="text-align: center; margin-top: 30px;">
-    <a href="https://turkcocukakademisi.com/ebeveyn-portali" style="${BUTTON_STYLE}">Hemen Yeni Ders Planla</a>
+    <a href="${buttonUrl}" style="${BUTTON_STYLE}">${buttonText}</a>
   </div>
 `);
+};
 
-export const getLessonRescheduledTemplate = (data: { studentName: string; teacherName: string; date: string; time: string }) => getBaseTemplate(`
-  <h2 style="color: #0ea5e9; font-size: 24px; margin-top: 0;">Ders Saati Güncellendi</h2>
-  <p style="font-size: 16px; color: #475569;">Merhaba, <strong>${data.studentName}</strong>'in ders saati güncellenmiştir.</p>
-  <div style="background-color: #f0f9ff; padding: 24px; border-radius: 20px; border: 1px solid #e0f2fe; margin: 24px 0;">
-    <p style="margin: 8px 0; color: #0369a1;"><strong>Eğitmen:</strong> ${data.teacherName}</p>
-    <p style="margin: 8px 0; color: #0369a1;"><strong>Yeni Tarih:</strong> ${data.date}</p>
-    <p style="margin: 8px 0; color: #0369a1;"><strong>Yeni Saat:</strong> ${data.time}</p>
-  </div>
-  <p style="font-size: 14px; color: #64748b;">Yeni saatte görüşmek üzere!</p>
-`);
+export const getLessonRescheduledTemplate = (data: { studentName: string; teacherName: string; date: string; time: string; startTime?: string; role?: 'parent' | 'teacher' }) => {
+  const calendarUrl = generateGoogleCalendarUrl(data);
+  const isTeacher = data.role === 'teacher';
+  const buttonText = isTeacher ? 'Öğretmen Paneline Git' : 'Veli Paneline Git';
+  const buttonUrl = isTeacher ? 'https://turkcocukakademisi.com/ogretmen-portali' : 'https://turkcocukakademisi.com/ebeveyn-portali';
 
-export const getFeedbackTemplate = (data: { studentName: string; teacherName: string }) => getBaseTemplate(`
+  return getBaseTemplate(`
+    <h2 style="color: #0ea5e9; font-size: 24px; margin-top: 0;">Ders Saati Güncellendi</h2>
+    <p style="font-size: 16px; color: #475569;">Merhaba, <strong>${data.studentName}</strong>'in ders saati güncellenmiştir.</p>
+    <div style="background-color: #f0f9ff; padding: 24px; border-radius: 20px; border: 1px solid #e0f2fe; margin: 24px 0;">
+      <p style="margin: 8px 0; color: #0369a1;"><strong>Eğitmen:</strong> ${data.teacherName}</p>
+      <p style="margin: 8px 0; color: #0369a1;"><strong>Yeni Tarih:</strong> ${data.date}</p>
+      <p style="margin: 8px 0; color: #0369a1;"><strong>Yeni Saat:</strong> ${data.time}</p>
+    </div>
+
+    ${calendarUrl ? `
+    <div style="text-align: center; margin-bottom: 24px;">
+      <a href="${calendarUrl}" style="display: inline-block; padding: 10px 20px; background: #ffffff; color: #4285F4; text-decoration: none; border-radius: 10px; font-weight: 700; border: 2px solid #4285F4; font-size: 14px;">📅 Yeni Saati Takvime Ekle</a>
+    </div>
+    ` : ''}
+
+    <p style="font-size: 14px; color: #64748b;">Yeni saatte görüşmek üzere!</p>
+
+    <div style="text-align: center; margin-top: 30px;">
+      <a href="${buttonUrl}" style="${BUTTON_STYLE}">${buttonText}</a>
+    </div>
+  `);
+};
+
+export const getFeedbackTemplate = (data: { studentName: string; teacherName: string; role?: 'parent' | 'teacher' }) => {
+  const isTeacher = data.role === 'teacher';
+  const buttonUrl = isTeacher ? 'https://turkcocukakademisi.com/ogretmen-portali' : 'https://turkcocukakademisi.com/ebeveyn-portali';
+  const buttonText = isTeacher ? 'Öğretmen Paneline Git' : 'Panele Git';
+
+  return getBaseTemplate(`
   <h2 style="color: #0f172a; font-size: 24px; margin-top: 0;">Yeni Geri Bildirim!</h2>
   <p style="font-size: 16px; color: #475569;">Sayın veli, <strong>${data.teacherName}</strong> bugün yapılan ders hakkında <strong>${data.studentName}</strong> için bir değerlendirme notu paylaştı.</p>
   <p style="font-size: 16px; color: #475569;">Öğrencimizin gelişimini takip etmek için hemen veli panelini ziyaret edebilirsiniz.</p>
   <div style="text-align: center;">
-    <a href="https://turkcocukakademisi.com/ebeveyn-portali" style="${BUTTON_STYLE}">Panele Git</a>
+    <a href="${buttonUrl}" style="${BUTTON_STYLE}">${buttonText}</a>
   </div>
 `);
+};
+

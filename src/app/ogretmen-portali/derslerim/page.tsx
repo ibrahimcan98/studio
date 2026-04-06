@@ -179,9 +179,10 @@ function TeacherCancellationModal({ lesson, childName }: { lesson: any, childNam
 
         setIsCancelling(true);
         try {
-            // Get parent email first for the notification
             const parentDoc = await getDoc(doc(db!, 'users', lesson.bookedBy));
-            const parentEmail = parentDoc.data()?.email;
+            const parentData = parentDoc.data();
+            const parentEmail = parentData?.email;
+            const parentTimezone = parentData?.timezone || 'Europe/Istanbul';
 
             const response = await fetch('/api/lessons/teacher-cancel', {
                 method: 'POST',
@@ -218,9 +219,10 @@ function TeacherCancellationModal({ lesson, childName }: { lesson: any, childNam
                         data: {
                             studentName: childName,
                             teacherName: data.teacherFullName || 'Eğitmen',
-                            date: formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'dd MMMM yyyy', { locale: tr }),
-                            time: formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr }),
-                            reason: excuse
+                            date: formatInTimeZone(lesson.startTime, parentTimezone, 'dd MMMM yyyy', { locale: tr }),
+                            time: formatInTimeZone(lesson.startTime, parentTimezone, 'HH:mm', { locale: tr }),
+                            reason: excuse,
+                            role: 'parent'
                         }
                     })
                 }).catch(console.error);

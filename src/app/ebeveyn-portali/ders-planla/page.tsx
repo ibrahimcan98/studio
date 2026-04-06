@@ -401,7 +401,7 @@ export default function DersPlanlaPage() {
 
             await batch.commit();
             const childName = selectedChildData?.firstName || selectedChildId;
-            const lessonTime = startTime.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });
+            const lessonTime = formatInTimeZone(startTime, 'Europe/Istanbul', 'dd.MM.yyyy HH:mm', { locale: tr });
 
             // Store in Activity Log (Frontend side for auth)
             addDoc(collection(db, 'activity-log'), {
@@ -428,12 +428,26 @@ export default function DersPlanlaPage() {
 
                 const courseDetails = getCourseDetailsFromPackageCode(selectedPackage);
 
-                const emailData = {
+                const commonData = {
                     studentName: childName,
                     teacherName: teacherFullName,
                     courseName: courseDetails?.courseName || 'Akademik Ders',
-                    date: format(startTime, 'dd MMMM yyyy', { locale: tr }),
-                    time: format(startTime, 'HH:mm', { locale: tr }),
+                };
+
+                const parentEmailData = {
+                    ...commonData,
+                    date: formatInTimeZone(startTime, selectedTimeZone, 'dd MMMM yyyy', { locale: tr }),
+                    time: formatInTimeZone(startTime, selectedTimeZone, 'HH:mm', { locale: tr }),
+                    startTime: startTime.toISOString(),
+                    role: 'parent' as const,
+                };
+
+                const teacherEmailData = {
+                    ...commonData,
+                    date: formatInTimeZone(startTime, 'Europe/Istanbul', 'dd MMMM yyyy', { locale: tr }),
+                    time: formatInTimeZone(startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr }),
+                    startTime: startTime.toISOString(),
+                    role: 'teacher' as const,
                 };
 
                 // Send to Parent
@@ -446,7 +460,7 @@ export default function DersPlanlaPage() {
                                 to: user.email,
                                 subject: rescheduleId ? 'Dersiniz Değiştirildi' : 'Yeni Dersiniz Planlandı',
                                 templateName: 'lesson-planned',
-                                data: emailData
+                                data: parentEmailData
                             })
                         });
                         if (!res.ok) console.error('Parent email failed:', await res.text());
@@ -465,7 +479,7 @@ export default function DersPlanlaPage() {
                                 to: teacherEmail,
                                 subject: rescheduleId ? 'Bir Dersiniz Değiştirildi' : 'Yeni Bir Dersiniz Var',
                                 templateName: 'lesson-planned',
-                                data: emailData
+                                data: teacherEmailData
                             })
                         });
                         if (!res.ok) console.error('Teacher email failed:', await res.text());
