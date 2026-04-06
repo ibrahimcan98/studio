@@ -432,6 +432,7 @@ export default function DersPlanlaPage() {
                     studentName: childName,
                     teacherName: teacherFullName,
                     courseName: courseDetails?.courseName || 'Akademik Ders',
+                    duration: courseDetails?.duration || 45,
                 };
 
                 const parentEmailData = {

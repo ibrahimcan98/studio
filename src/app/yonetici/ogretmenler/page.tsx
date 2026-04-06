@@ -55,11 +55,13 @@ import {
   Presentation,
   CheckCircle2,
   ExternalLink,
-  AlertCircle
+  AlertCircle,
+  Calendar as CalendarIcon
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
+import { TeacherCalendarDialog } from './calendar-dialog';
 
 export default function AdminTeachersPage() {
   const db = useFirestore();
@@ -71,6 +73,8 @@ export default function AdminTeachersPage() {
   const [selectedTeacher, setSelectedTeacher] = useState<any>(null);
   const [selectedTeacherForStats, setSelectedTeacherForStats] = useState<any>(null);
   const [isStatsOpen, setIsStatsOpen] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [selectedTeacherForCalendar, setSelectedTeacherForCalendar] = useState<any>(null);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -420,6 +424,9 @@ export default function AdminTeachersPage() {
                           <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer" onClick={() => openEdit(teacher)}>
                             Profili Düzenle
                           </DropdownMenuItem>
+                          <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-emerald-600 focus:text-emerald-700" onClick={() => { setSelectedTeacherForCalendar(teacher); setIsCalendarOpen(true); }}>
+                            <CalendarIcon className="w-3.5 h-3.5 mr-2" /> Takvim Yönetimi (Müsaitlik)
+                          </DropdownMenuItem>
                           <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-indigo-600 focus:text-indigo-700" onClick={() => { setSelectedTeacherForStats(teacher); setIsStatsOpen(true); }}>
                             <Presentation className="w-3.5 h-3.5 mr-2" /> İstatistikler & Geçmiş
                           </DropdownMenuItem>
@@ -503,6 +510,13 @@ export default function AdminTeachersPage() {
         isOpen={isStatsOpen} 
         onOpenChange={setIsStatsOpen} 
         teacher={selectedTeacherForStats} 
+      />
+
+      {/* CALENDAR DIALOG */}
+      <TeacherCalendarDialog
+        isOpen={isCalendarOpen}
+        onOpenChange={setIsCalendarOpen}
+        teacher={selectedTeacherForCalendar}
       />
     </div>
   );

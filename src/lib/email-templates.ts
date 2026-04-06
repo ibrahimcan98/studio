@@ -22,14 +22,15 @@ const BUTTON_STYLE = `
 
 const LOGO_URL = "https://turkcocukakademisii.com/logo.png";
 
-const generateGoogleCalendarUrl = (data: { studentName: string; teacherName: string; startTime?: string; courseName?: string }) => {
+const generateGoogleCalendarUrl = (data: { studentName: string; teacherName: string; startTime?: string; courseName?: string; duration?: number }) => {
   if (!data.startTime) return null;
   const start = new Date(data.startTime);
-  const end = new Date(start.getTime() + 45 * 60 * 1000); // Default 45 min lesson
+  const durationInMinutes = data.duration || 45;
+  const end = new Date(start.getTime() + durationInMinutes * 60 * 1000);
 
   const formatUTC = (date: Date) => date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
   const title = `Ders: ${data.studentName} - ${data.courseName || 'Akademik Ders'}`;
-  const details = `Eğitmen: ${data.teacherName}\nPanel: https://turkcocukakademisi.com/ebeveyn-portali`;
+  const details = `Eğitmen: ${data.teacherName}\nSüre: ${durationInMinutes} Dakika\nPanel: https://turkcocukakademisi.com/ebeveyn-portali`;
   
   return `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${formatUTC(start)}/${formatUTC(end)}&details=${encodeURIComponent(details)}`;
 };
@@ -100,7 +101,7 @@ export const getPasswordResetTemplate = (link: string) => getBaseTemplate(`
   <p style="font-size: 14px; color: #64748b; margin-top: 25px;">Eğer bu talebi siz yapmadıysanız, lütfen bu e-postayı dikkate almayın. Hesabınız güvendedir.</p>
 `);
 
-export const getLessonPlannedTemplate = (data: { studentName: string; teacherName: string; date: string; time: string; courseName?: string; startTime?: string; role?: 'parent' | 'teacher' }) => {
+export const getLessonPlannedTemplate = (data: { studentName: string; teacherName: string; date: string; time: string; courseName?: string; startTime?: string; role?: 'parent' | 'teacher'; duration?: number }) => {
   const calendarUrl = generateGoogleCalendarUrl(data);
   const isTeacher = data.role === 'teacher';
   const buttonText = isTeacher ? 'Öğretmen Paneline Git' : 'Veli Paneline Git';
@@ -160,7 +161,7 @@ export const getLessonCancelledTemplate = (data: { studentName: string; teacherN
 `);
 };
 
-export const getLessonRescheduledTemplate = (data: { studentName: string; teacherName: string; date: string; time: string; startTime?: string; role?: 'parent' | 'teacher' }) => {
+export const getLessonRescheduledTemplate = (data: { studentName: string; teacherName: string; date: string; time: string; startTime?: string; role?: 'parent' | 'teacher'; duration?: number }) => {
   const calendarUrl = generateGoogleCalendarUrl(data);
   const isTeacher = data.role === 'teacher';
   const buttonText = isTeacher ? 'Öğretmen Paneline Git' : 'Veli Paneline Git';

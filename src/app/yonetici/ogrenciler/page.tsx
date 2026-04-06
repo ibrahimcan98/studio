@@ -248,11 +248,13 @@ export default function AdminStudentsPage() {
         const txRef = doc(collection(db, 'transactions'));
         batch.set(txRef, {
             userId: selectedStudentForPackage.parentId,
+            userName: selectedStudentForPackage.parentName,
+            userEmail: selectedStudentForPackage.parentEmail,
             childId: selectedStudentForPackage.id,
             childName: selectedStudentForPackage.firstName,
             status: 'completed',
             amountGbp: 0,
-            description: `🔄 [${selectedStudentForPackage.firstName}] İçin Havuzdan Paket Atama`,
+            description: `🔄 Manuel Paket Tanımlama (Yönetici) [Öğrenci: ${selectedStudentForPackage.firstName}]`,
             items: [{
                 name: courseName,
                 quantity: 1,
