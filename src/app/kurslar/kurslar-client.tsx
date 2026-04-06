@@ -77,12 +77,23 @@ export function KurslarClientPage({
     const PriceDisplay = ({ price, courseId, packageLessons }: { price: number, courseId: string, packageLessons: number }) => {
         let discountPct = 0;
         
+        const isCouponMatching = (c: any) => {
+            // Course Check: If array exists and has length, check includes. Otherwise check legacy.
+            const c_ids = Array.isArray(c.applicableCourseIds) ? c.applicableCourseIds : (c.applicableCourseId ? [c.applicableCourseId] : []);
+            const courseMatches = c_ids.length === 0 || c_ids.includes(courseId);
+            
+            // Package Check: Force everything to Number for safe comparison
+            const c_pkgs = Array.isArray(c.applicablePackages) 
+                ? c.applicablePackages.map((p: any) => Number(p)) 
+                : (c.applicablePackage ? [Number(c.applicablePackage)] : []);
+            
+            const packageMatches = c_pkgs.length === 0 || c_pkgs.includes(Number(packageLessons));
+
+            return courseMatches && packageMatches;
+        };
+
         if (globalCoupons && globalCoupons.length > 0) {
-            const matchingCoupons = globalCoupons.filter((coupon: any) => {
-                const courseMatches = !coupon.applicableCourseId || coupon.applicableCourseId === courseId;
-                const packageMatches = !coupon.applicablePackage || coupon.applicablePackage === packageLessons;
-                return courseMatches && packageMatches;
-            });
+            const matchingCoupons = globalCoupons.filter((coupon: any) => isCouponMatching(coupon));
             
             if (matchingCoupons.length > 0) {
                 discountPct = Math.max(...matchingCoupons.map((c: any) => c.discountPct || 0));
@@ -133,13 +144,24 @@ export function KurslarClientPage({
 
     const PerLessonPrice = ({ perLessonPriceInGbp, courseId, packageLessons }: { perLessonPriceInGbp: number, courseId: string, packageLessons: number }) => {
         let discountPct = 0;
+
+        const isCouponMatching = (c: any) => {
+            // Course Check: If array exists and has length, check includes. Otherwise check legacy.
+            const c_ids = Array.isArray(c.applicableCourseIds) ? c.applicableCourseIds : (c.applicableCourseId ? [c.applicableCourseId] : []);
+            const courseMatches = c_ids.length === 0 || c_ids.includes(courseId);
+            
+            // Package Check: Force everything to Number for safe comparison
+            const c_pkgs = Array.isArray(c.applicablePackages) 
+                ? c.applicablePackages.map((p: any) => Number(p)) 
+                : (c.applicablePackage ? [Number(c.applicablePackage)] : []);
+            
+            const packageMatches = c_pkgs.length === 0 || c_pkgs.includes(Number(packageLessons));
+
+            return courseMatches && packageMatches;
+        };
         
         if (globalCoupons && globalCoupons.length > 0) {
-            const matchingCoupons = globalCoupons.filter((coupon: any) => {
-                const courseMatches = !coupon.applicableCourseId || coupon.applicableCourseId === courseId;
-                const packageMatches = !coupon.applicablePackage || coupon.applicablePackage === packageLessons;
-                return courseMatches && packageMatches;
-            });
+            const matchingCoupons = globalCoupons.filter((coupon: any) => isCouponMatching(coupon));
             
             if (matchingCoupons.length > 0) {
                 discountPct = Math.max(...matchingCoupons.map((c: any) => c.discountPct || 0));

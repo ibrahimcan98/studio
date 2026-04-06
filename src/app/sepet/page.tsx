@@ -302,27 +302,31 @@ export default function SepetPage() {
                                                             let itemBasePriceEur = item.price;
                                                             let hasDiscount = false;
                                                             
-                                                            // Calculate individual item discount
+                                                            const [courseId] = item.id.split('-');
                                                             let maxItemPct = 0;
                                                             
+                                                            // Helper to check if a coupon matches an item
+                                                            const isCouponMatching = (c: any) => {
+                                                                const c_ids = Array.isArray(c.applicableCourseIds) ? c.applicableCourseIds : (c.applicableCourseId ? [c.applicableCourseId] : []);
+                                                                const courseMatches = c_ids.length === 0 || c_ids.includes(courseId);
+                                                                
+                                                                const c_pkgs = Array.isArray(c.applicablePackages) 
+                                                                    ? c.applicablePackages.map((p: any) => Number(p)) 
+                                                                    : (c.applicablePackage ? [Number(c.applicablePackage)] : []);
+                                                                    
+                                                                const packageMatches = c_pkgs.length === 0 || c_pkgs.includes(Number(lessonsCount));
+
+                                                                return courseMatches && packageMatches;
+                                                            };
+                                                            
                                                             // 1. Check Standard Coupon (Manual)
-                                                            if (appliedCouponData) {
-                                                                const [courseId] = item.id.split('-');
-                                                                const courseMatches = !appliedCouponData.applicableCourseId || appliedCouponData.applicableCourseId === courseId;
-                                                                const packageMatches = !appliedCouponData.applicablePackage || appliedCouponData.applicablePackage === lessonsCount;
-                                                                if (courseMatches && packageMatches) {
-                                                                    maxItemPct = Math.max(maxItemPct, appliedCouponData.discountPct);
-                                                                }
+                                                            if (appliedCouponData && isCouponMatching(appliedCouponData)) {
+                                                                maxItemPct = Math.max(maxItemPct, appliedCouponData.discountPct);
                                                             }
                                                             
                                                             // 2. Check Public Coupons (Automatic)
                                                             if (publicCoupons && publicCoupons.length > 0) {
-                                                                const [courseId] = item.id.split('-');
-                                                                const matchingPublic = publicCoupons.filter((c: any) => {
-                                                                    const courseMatches = !c.applicableCourseId || c.applicableCourseId === courseId;
-                                                                    const packageMatches = !c.applicablePackage || c.applicablePackage === lessonsCount;
-                                                                    return courseMatches && packageMatches;
-                                                                });
+                                                                const matchingPublic = publicCoupons.filter((c: any) => isCouponMatching(c));
                                                                 if (matchingPublic.length > 0) {
                                                                     const bestPublicPct = Math.max(...matchingPublic.map((c: any) => c.discountPct || 0));
                                                                     maxItemPct = Math.max(maxItemPct, bestPublicPct);

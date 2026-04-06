@@ -36,15 +36,17 @@ interface CartContextType {
     updateQuantity: (id: string, quantity: number) => void;
     clearCart: () => void;
     cartTotal: number;
-    applyStandardDiscount: (code: string, pct: number, applicableCourseId?: string | null, applicablePackage?: number | null) => void;
+    applyStandardDiscount: (code: string, pct: number, applicableCourseIds?: string[] | null, applicablePackages?: number[] | null) => void;
     discountAmount: number;
     finalTotal: number;
     appliedCoupon: string | null;
     appliedCouponData: {
         code: string;
         discountPct: number;
-        applicableCourseId?: string | null;
-        applicablePackage?: number | null;
+        applicableCourseIds?: string[] | null;
+        applicablePackages?: number[] | null;
+        applicableCourseId?: string | null; // Legacy
+        applicablePackage?: number | null; // Legacy
     } | null;
     removeCoupon: () => void;
     
@@ -68,8 +70,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const [appliedCouponData, setAppliedCouponData] = useState<{
         code: string;
         discountPct: number;
-        applicableCourseId?: string | null;
-        applicablePackage?: number | null;
+        applicableCourseIds?: string[] | null;
+        applicablePackages?: number[] | null;
+        applicableCourseId?: string | null; // Legacy
+        applicablePackage?: number | null; // Legacy
     } | null>(null);
     const appliedCoupon = appliedCouponData?.code || null;
     const [referralDiscountPct, setReferralDiscountPct] = useState(0);
@@ -159,12 +163,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         setCartItems([]);
     }
 
-    const applyStandardDiscount = (code: string, pct: number, applicableCourseId?: string | null, applicablePackage?: number | null) => {
+    const applyStandardDiscount = (code: string, pct: number, applicableCourseIds?: string[] | null, applicablePackages?: number[] | null) => {
         setAppliedCouponData({
             code: code.toUpperCase(),
             discountPct: pct,
-            applicableCourseId: applicableCourseId || null,
-            applicablePackage: applicablePackage || null
+            applicableCourseIds: applicableCourseIds || null,
+            applicablePackages: applicablePackages || null
         });
     };
     
@@ -193,30 +197,33 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         let itemDiscount = 0;
         let maxItemDiscountPct = 0;
         
+        const [courseId] = item.id.split('-');
+        const lessonsCount = parseInt(item.description.split(' ')[0]) || 0;
+
+        // Helper to check if a coupon matches an item
+        const isCouponMatching = (c: any) => {
+            // Course Check: If array exists and has length, check includes. Otherwise check legacy.
+            const c_ids = Array.isArray(c.applicableCourseIds) ? c.applicableCourseIds : (c.applicableCourseId ? [c.applicableCourseId] : []);
+            const courseMatches = c_ids.length === 0 || c_ids.includes(courseId);
+            
+            // Package Check: Force everything to Number for safe comparison
+            const c_pkgs = Array.isArray(c.applicablePackages) 
+                ? c.applicablePackages.map((p: any) => Number(p)) 
+                : (c.applicablePackage ? [Number(c.applicablePackage)] : []);
+            
+            const packageMatches = c_pkgs.length === 0 || c_pkgs.includes(Number(lessonsCount));
+
+            return courseMatches && packageMatches;
+        };
+        
         // 1. Check Standard Coupon (Manually entered)
-        if (appliedCouponData) {
-            const [courseId] = item.id.split('-');
-            const lessonsCount = parseInt(item.description.split(' ')[0]) || 0;
-            
-            const courseMatches = !appliedCouponData.applicableCourseId || appliedCouponData.applicableCourseId === courseId;
-            const packageMatches = !appliedCouponData.applicablePackage || appliedCouponData.applicablePackage === lessonsCount;
-            
-            if (courseMatches && packageMatches) {
-                const manualPct = appliedCouponData.discountPct;
-                maxItemDiscountPct = Math.max(maxItemDiscountPct, manualPct);
-            }
+        if (appliedCouponData && isCouponMatching(appliedCouponData)) {
+            maxItemDiscountPct = Math.max(maxItemDiscountPct, appliedCouponData.discountPct);
         }
         
         // 2. Check Automatic Public Coupons
         if (publicCoupons && publicCoupons.length > 0) {
-            const [courseId] = item.id.split('-');
-            const lessonsCount = parseInt(item.description.split(' ')[0]) || 0;
-            
-            const matchingPublicCoupons = publicCoupons.filter((c: any) => {
-                const courseMatches = !c.applicableCourseId || c.applicableCourseId === courseId;
-                const packageMatches = !c.applicablePackage || c.applicablePackage === lessonsCount;
-                return courseMatches && packageMatches;
-            });
+            const matchingPublicCoupons = publicCoupons.filter((c: any) => isCouponMatching(c));
             
             if (matchingPublicCoupons.length > 0) {
                 const bestPublicPct = Math.max(...matchingPublicCoupons.map((c: any) => c.discountPct || 0));
