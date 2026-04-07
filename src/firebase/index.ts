@@ -4,6 +4,7 @@
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+import { getMessaging, Messaging } from 'firebase/messaging';
 import { 
   initializeFirestore,
   getFirestore, 
@@ -46,6 +47,7 @@ export {
 // Singleton initialization
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+export const messaging = typeof window !== 'undefined' ? getMessaging(app) : null;
 
 // Use initializeFirestore with long polling to avoid connection issues in virtual environments
 // We use a singleton pattern to ensure initializeFirestore is only called once

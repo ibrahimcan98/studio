@@ -2,28 +2,24 @@ import { NextResponse } from 'next/server';
 import { collection, query, where, getDocs, getDoc, doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/firebase/server'; 
 import { sendPushNotification } from '@/lib/notifications';
-import { formatInTimeZone } from 'date-fns-tz';
-import { tr } from 'date-fns/locale';
 
-// Secret key to prevent unauthorized access to the cron route
 const CRON_SECRET = process.env.CRON_SECRET || 'dev_secret_123';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const secret = searchParams.get('secret');
 
-    // Simple security check
     if (secret !== CRON_SECRET) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     try {
         const now = new Date();
-        // Look for lessons starting in 10-15 minutes specifically
-        const windowStart = new Date(now.getTime() + 8 * 60000); 
-        const windowEnd = new Date(now.getTime() + 15 * 60000);
+        // Lessons that started between 24 hours ago and 12 hours ago
+        const windowStart = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const windowEnd = new Date(now.getTime() - 12 * 60 * 60 * 1000);
 
-        console.log(`Checking for lessons between ${windowStart.toISOString()} and ${windowEnd.toISOString()}`);
+        console.log(`Checking for missing feedback between ${windowStart.toISOString()} and ${windowEnd.toISOString()}`);
 
         const lessonsRef = collection(db, 'lesson-slots');
         const q = query(
@@ -39,40 +35,38 @@ export async function GET(request: Request) {
         for (const lessonDoc of querySnapshot.docs) {
             const lesson = lessonDoc.data();
             
-            // Only send once per lesson
-            if (lesson.pushReminderSent) continue;
+            // If feedback already exists or reminder already sent, skip
+            if (lesson.feedback || lesson.feedbackReminderSent) continue;
 
             const lessonId = lessonDoc.id;
-            const parentId = lesson.bookedBy;
+            const teacherId = lesson.teacherId;
             const childId = lesson.childId;
-            const startTime = lesson.startTime.toDate();
+            const parentId = lesson.bookedBy;
 
-            // Fetch Parent Info
-            const parentDoc = await getDoc(doc(db, 'users', parentId));
-            const parentData = parentDoc.data();
-            const parentName = parentData?.firstName || 'Veli';
+            // Fetch Teacher Info
+            const teacherDoc = await getDoc(doc(db, 'users', teacherId));
+            const teacherData = teacherDoc.data();
+            const teacherName = teacherData?.firstName || 'Öğretmenim';
 
             // Fetch Child Info
             const childDoc = await getDoc(doc(db, 'users', parentId, 'children', childId));
             const childName = childDoc.data()?.firstName || 'Öğrenci';
 
-            const formattedTime = formatInTimeZone(startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr });
-
-            // Send Push Notification to Parent
+            // Send Push Notification to Teacher
             await sendPushNotification(
-                parentId,
-                '⏰ Dersiniz Başlıyor!',
-                `Merhaba ${parentName}, ${childName}'nin dersi 10 dakika içinde (${formattedTime}) başlayacaktır. İyi dersler! 📚`,
-                '/ebeveyn-portali/derslerim'
+                teacherId,
+                '📝 Geri Bildirim Hatırlatması',
+                `Merhaba ${teacherName}, ${childName} ile yaptığınız dersin üzerinden 12 saat geçti. Lütfen gelişim raporunu tamamlamayı unutmayın.`,
+                '/ogretmen-portali/derslerim'
             );
 
             // Mark as sent
             await updateDoc(doc(db, 'lesson-slots', lessonId), {
-                pushReminderSent: true,
-                pushReminderSentAt: Timestamp.fromDate(new Date())
+                feedbackReminderSent: true,
+                feedbackReminderSentAt: Timestamp.fromDate(new Date())
             });
 
-            remindersSent.push({ lessonId, childName });
+            remindersSent.push({ lessonId, teacherName, childName });
         }
 
         return NextResponse.json({ 
@@ -82,7 +76,7 @@ export async function GET(request: Request) {
         });
 
     } catch (error: any) {
-        console.error('Error in reminders cron:', error);
+        console.error('Error in feedback reminders cron:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

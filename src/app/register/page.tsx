@@ -107,6 +107,23 @@ export default function RegisterPage() {
       // First, create the Firestore document
       await setDoc(userDocRef, userData, { merge: true });
 
+      // Notify Admin about new registration
+      if (role === 'parent') {
+        try {
+          await fetch('/api/notify/admin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: '🆕 Yeni Veli Kaydoldu!',
+              body: `${name} (${cleanEmail}) aramıza katıldı.`,
+              link: `/yonetici/kullanicilar?userId=${newUser.uid}`
+            }),
+          });
+        } catch (notifyError) {
+          console.error("Admin notification failed:", notifyError);
+        }
+      }
+
       // Then, try to send verification email (but don't fail registration if it fails)
       try {
         await fetch('/api/auth/send-link', {

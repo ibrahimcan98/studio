@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { writeBatch, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { NotificationSender } from '@/components/admin/notification-sender';
 
 function GrowthCard({ title, value, subValue, icon: Icon, color }: any) {
   return (
@@ -174,37 +175,41 @@ export default function AdminDashboard() {
         <GrowthCard title="Gerçekleşen Deneme" value={metrics?.totalFreeTrials || 0} subValue="Ders İşlendi" icon={CalendarCheck} color="bg-blue-500" />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-1 border-none shadow-md overflow-hidden">
-          <CardHeader className="bg-white border-b pb-4">
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-                <Globe2 className="h-5 w-5 text-primary" /> Ülke Dağılımı (Veliler)
-            </CardTitle>
-            <CardDescription>Telefon alan kodlarına göre analiz.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="max-h-[400px] overflow-y-auto">
-              {Object.entries(metrics?.countries || {})
-                .sort((a: any, b: any) => b[1] - a[1])
-                .map(([name, count]: any, index) => (
-                <div key={name} className={cn(
-                    "flex items-center justify-between p-4 border-b last:border-0 hover:bg-slate-50 transition-colors",
-                    index % 2 === 0 ? "bg-white" : "bg-slate-50/30"
-                )}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
-                        {index + 1}
+      <div className="grid gap-6 lg:grid-cols-3 items-start">
+        <div className="lg:col-span-1 space-y-6">
+          <NotificationSender />
+          
+          <Card className="border-none shadow-md overflow-hidden">
+            <CardHeader className="bg-white border-b pb-4">
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                  <Globe2 className="h-5 w-5 text-primary" /> Ülke Dağılımı (Veliler)
+              </CardTitle>
+              <CardDescription>Telefon alan kodlarına göre analiz.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="max-h-[300px] overflow-y-auto">
+                {Object.entries(metrics?.countries || {})
+                  .sort((a: any, b: any) => b[1] - a[1])
+                  .map(([name, count]: any, index) => (
+                  <div key={name} className={cn(
+                      "flex items-center justify-between p-4 border-b last:border-0 hover:bg-slate-50 transition-colors",
+                      index % 2 === 0 ? "bg-white" : "bg-slate-50/30"
+                  )}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
+                          {index + 1}
+                      </div>
+                      <span className="text-sm font-semibold text-slate-700">{name}</span>
                     </div>
-                    <span className="text-sm font-semibold text-slate-700">{name}</span>
+                    <Badge variant="secondary" className="font-black text-slate-900 bg-slate-100">
+                      {count}
+                    </Badge>
                   </div>
-                  <Badge variant="secondary" className="font-black text-slate-900 bg-slate-100">
-                    {count}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         <Card className="lg:col-span-2 border-none shadow-md overflow-hidden flex flex-col">
            <CardHeader className="flex flex-row items-center justify-between bg-white border-b pb-4">

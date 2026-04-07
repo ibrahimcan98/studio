@@ -1,5 +1,6 @@
 import { initializeApp, getApps, cert, App } from 'firebase-admin/app';
 import { getAuth, Auth } from 'firebase-admin/auth';
+import { getMessaging, Messaging } from 'firebase-admin/messaging';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -18,6 +19,8 @@ declare global {
   var __firebaseAdminAuth: Auth | undefined;
   // eslint-disable-next-line no-var
   var __firebaseAdminDb: Firestore | undefined;
+  // eslint-disable-next-line no-var
+  var __firebaseAdminMessaging: Messaging | undefined;
 }
 
 const initializeFirebaseAdmin = (): App => {
@@ -104,7 +107,9 @@ if (!global.__firebaseAdminApp) {
   global.__firebaseAdminApp = initializeFirebaseAdmin();
   global.__firebaseAdminAuth = getAuth(global.__firebaseAdminApp);
   global.__firebaseAdminDb = getFirestore(global.__firebaseAdminApp);
+  global.__firebaseAdminMessaging = getMessaging(global.__firebaseAdminApp);
 }
 
 export const auth = global.__firebaseAdminAuth!;
 export const db = global.__firebaseAdminDb!;
+export const messaging = global.__firebaseAdminMessaging!;

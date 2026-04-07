@@ -4,6 +4,8 @@ import { usePathname } from 'next/navigation';
 import Header from '@/components/layout/header';
 import { AIAssistant } from '@/components/ai-assistant';
 import { PresenceManager } from '@/components/presence-manager';
+import { useNotifications } from '@/hooks/use-notifications';
+import { useEffect } from 'react';
 
 export function LayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -11,6 +13,9 @@ export function LayoutContent({ children }: { children: React.ReactNode }) {
   const isCocukModu = pathname?.startsWith('/cocuk-modu');
   const isLiveLesson = pathname?.includes('/live-lesson/');
   const isSpecialLayout = pathname?.startsWith('/ogretmen-portali') || pathname?.startsWith('/yonetici');
+  
+  // Initialize notifications
+  const { permission, requestPermission } = useNotifications();
 
   const showHeader = !isCocukModu && !isLiveLesson && !isSpecialLayout;
   const showAIAssistant = !isCocukModu && !isLiveLesson && !isSpecialLayout;

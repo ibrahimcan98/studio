@@ -490,7 +490,32 @@ export default function DersPlanlaPage() {
                 }
             }
 
-            // Admin notification (Email - existing legacy)
+            // Admin notification (Push)
+            fetch('/api/notify/admin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: rescheduleId ? '🔄 Ders Değiştirildi' : '📅 Ders Planlandı',
+                    body: `${childName} için ${lessonTime} saatine ders ${rescheduleId ? 'taşındı' : 'planlandı'}.`,
+                    link: '/yonetici/dersler'
+                })
+            }).catch(console.error);
+
+            // Parent Low Balance Notification (Push)
+            if (bookingMode === 'paid' && !rescheduleId && selectedChildData && (selectedChildData.remainingLessons - 1) === 2) {
+                fetch('/api/notify/user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: user.uid,
+                        title: '🪫 Paketiniz Azalıyor!',
+                        body: `${childName} için sadece 2 dersiniz kaldı. Devamlılık için yeni bir paket almayı unutmayın.`,
+                        link: '/ebeveyn-portali/paket-al'
+                    })
+                }).catch(console.error);
+            }
+
+            // Legacy notify call (if still needed)
             fetch('/api/notify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

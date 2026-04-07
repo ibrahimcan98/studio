@@ -180,6 +180,17 @@ function CancellationButtons({ lesson, timeZone }: { lesson: any, timeZone: stri
                 }
             }
 
+            // Admin notification (Push)
+            fetch('/api/notify/admin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: '❌ Ders İptal Edildi',
+                    body: `${lesson.childName || 'Öğrenci'} için ${lessonTimeFormatted} saatindeki ders veli tarafından iptal edildi.`,
+                    link: '/yonetici/dersler'
+                })
+            }).catch(console.error);
+
             // Notify Admin (Email - existing legacy)
             fetch('/api/notify', {
                 method: 'POST',
