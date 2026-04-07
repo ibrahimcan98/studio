@@ -19,22 +19,45 @@ export function PermissionBanner() {
   const userDocRef = useMemoFirebase(() => (user && db) ? doc(db, 'users', user.uid) : null, [user, db]);
   const { data: userData } = useDoc(userDocRef);
 
+  const isAdmin = userData?.role === 'admin';
+  const isTeacher = userData?.role === 'teacher';
+
+  const PRIMARY_ADMIN_EMAILS = [
+    'iletisim@turkcocukakademisi.com',
+    'tubakodak@turkcocukakademisii.com'
+  ];
+  const isPrimaryAdmin = user?.email && PRIMARY_ADMIN_EMAILS.includes(user.email.toLowerCase());
+
   useEffect(() => {
     // Show only if:
     // 1. Permission is default (not granted/blocked)
     // 2. User is logged in
-    // 3. Not dismissed in this session
-    const dismissed = sessionStorage.getItem('notification-banner-dismissed');
-    if (permission === 'default' && user && !dismissed) {
-      const timer = setTimeout(() => setIsVisible(true), 2000); // Delay for better UX
-      return () => clearTimeout(timer);
+    if (permission === 'default' && user && userData) {
+      
+      // PERSISTENCE LOGIC:
+      // If primary admin -> always show (ignore dismissal)
+      if (isPrimaryAdmin) {
+        const timer = setTimeout(() => setIsVisible(true), 1500); 
+        return () => clearTimeout(timer);
+      }
+
+      // If others (Parent/Teacher) -> show every 24 hours if dismissed
+      const lastDismissedAt = localStorage.getItem('notification-banner-dismissed-at');
+      const now = new Date().getTime();
+      const twentyFourHours = 24 * 60 * 60 * 1000;
+
+      if (!lastDismissedAt || (now - parseInt(lastDismissedAt)) > twentyFourHours) {
+        const timer = setTimeout(() => setIsVisible(true), 3000); 
+        return () => clearTimeout(timer);
+      }
     }
-  }, [permission, user]);
+  }, [permission, user, userData, isPrimaryAdmin]);
 
   const handleDismiss = () => {
     setIsVisible(false);
     setIsDismissed(true);
-    sessionStorage.setItem('notification-banner-dismissed', 'true');
+    // Store timestamp of dismissal
+    localStorage.setItem('notification-banner-dismissed-at', new Date().getTime().toString());
   };
 
   const handleEnable = async () => {
@@ -43,9 +66,6 @@ export function PermissionBanner() {
   };
 
   if (!isVisible || isDismissed) return null;
-
-  const isAdmin = userData?.role === 'admin';
-  const isTeacher = userData?.role === 'teacher';
 
   const content = {
     title: isAdmin 

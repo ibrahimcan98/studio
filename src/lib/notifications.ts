@@ -73,8 +73,49 @@ export async function sendNotificationToRole(role: string, title: string, body: 
 }
 
 /**
- * Sends a notification to the main admin(s).
+ * Sends a notification to the main primary admin(s).
  */
 export async function notifyAdmin(title: string, body: string, link?: string) {
-  return sendNotificationToRole('admin', title, body, link);
+  try {
+    const adminEmails = [
+      'iletisim@turkcocukakademisi.com',
+      'tubakodak@turkcocukakademisii.com'
+    ];
+    
+    // Fetch users with these emails
+    const snapshot = await db.collection('users')
+      .where('email', 'in', adminEmails.map(e => e.toLowerCase()))
+      .get();
+      
+    const tokens: string[] = [];
+
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.fcmTokens && Array.isArray(data.fcmTokens)) {
+        tokens.push(...data.fcmTokens);
+      }
+    });
+
+    if (tokens.length === 0) {
+      console.log('No tokens found for primary admins');
+      return { success: false, error: 'No tokens found' };
+    }
+
+    const uniqueTokens = Array.from(new Set(tokens));
+
+    const response = await messaging.sendEachForMulticast({
+      tokens: uniqueTokens,
+      notification: { title, body },
+      webpush: {
+        fcmOptions: {
+          link: link || 'https://turkcocukakademisi.com'
+        }
+      }
+    });
+
+    return { success: true, successCount: response.successCount };
+  } catch (error) {
+    console.error(`Error sending notification to primary admins:`, error);
+    return { success: false, error };
+  }
 }

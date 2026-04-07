@@ -73,7 +73,11 @@ export default function RegisterPage() {
       
       const userDocRef = doc(db, 'users', newUser.uid);
       
-      const isAdmin = cleanEmail.toLowerCase() === adminEmail.toLowerCase();
+      const adminEmails = [
+        'iletisim@turkcocukakademisi.com',
+        'tubakodak@turkcocukakademisii.com'
+      ];
+      const isAdmin = adminEmails.map(e => e.toLowerCase()).includes(cleanEmail.toLowerCase());
       const role = isAdmin ? 'admin' : (isPreAuthorizedTeacher ? 'teacher' : 'parent');
       
       let targetPath = '/ebeveyn-portali';
