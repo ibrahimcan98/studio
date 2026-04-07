@@ -36,30 +36,40 @@ export function useNotifications() {
   }, [user]);
 
   const requestPermission = useCallback(async () => {
-    if (!messaging) return;
+    if (!messaging) {
+      toast({ variant: 'destructive', title: 'Hata', description: 'Messaging servisi başlatılamadı.' });
+      return;
+    }
 
     try {
+      console.log('Requesting permission...');
       const status = await Notification.requestPermission();
       setPermission(status);
 
       if (status === 'granted') {
+        console.log('Permission granted. Fetching token...');
         const currentToken = await getToken(messaging, {
           vapidKey: VAPID_KEY,
         });
 
         if (currentToken) {
+          console.log('Token received:', currentToken);
           setToken(currentToken);
           if (user) {
             await saveTokenToFirestore(currentToken);
+            toast({ title: 'Başarılı', description: 'Bildirimler başarıyla aktif edildi!' });
           }
         } else {
-          console.log('No registration token available. Request permission to generate one.');
+          toast({ variant: 'destructive', title: 'Token Alınamadı', description: 'Cihaz kimliği oluşturulamadı.' });
         }
+      } else {
+        toast({ variant: 'destructive', title: 'İzin Verilmedi', description: 'Bildirim izni reddedildi.' });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('An error occurred while retrieving token:', error);
+      toast({ variant: 'destructive', title: 'FCM Hatası', description: error.message || 'Bilinmeyen bir hata oluştu.' });
     }
-  }, [saveTokenToFirestore, user]);
+  }, [saveTokenToFirestore, user, toast]);
 
   // Listen for foreground messages
   useEffect(() => {

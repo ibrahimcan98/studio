@@ -935,7 +935,8 @@ function UsersPageContent() {
                                             "🇦🇪 B.A.E", "🇮🇩 Endonezya", "🇫🇷 Fransa", "🇧🇪 Belçika", 
                                             "🇦🇹 Avusturya", "🇨🇭 İsviçre", "🇸🇪 İsveç", "🇩🇰 Danimarka", 
                                             "🇳🇴 Norveç", "🇮🇹 İtalya", "🇪🇸 İspanya", "🇺🇸 ABD", "🇨🇦 Kanada",
-                                            "🇦🇺 Avustralya", "🇦🇿 Azerbaycan", "🇶🇦 Katar", "🇸🇦 Suudi Arabistan"
+                                            "🇦🇺 Avustralya", "🇦🇿 Azerbaycan", "🇶🇦 Katar", "🇸🇦 Suudi Arabistan",
+                                            "🇭🇷 Hırvatistan", "🇴🇲 Umman"
                                         ].map(c => (
                                             <button
                                                 key={c}
