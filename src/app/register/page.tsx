@@ -25,7 +25,7 @@ import { useAuth, useFirestore, useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 
-const adminEmail = 'admin@hotmail.com';
+const adminEmail = 'iletisim@turkcocukakademisi.com';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');

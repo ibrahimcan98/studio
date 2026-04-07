@@ -7,6 +7,8 @@ import { PresenceManager } from '@/components/presence-manager';
 import { useNotifications } from '@/hooks/use-notifications';
 import { useEffect } from 'react';
 
+import { PermissionBanner } from '@/components/notifications/permission-banner';
+
 export function LayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
@@ -29,6 +31,7 @@ export function LayoutContent({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       
+      <PermissionBanner />
       {showAIAssistant && <AIAssistant />}
     </div>
   );
