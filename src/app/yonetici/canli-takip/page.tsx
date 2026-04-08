@@ -59,9 +59,16 @@ export default function CanliTakipPage() {
 
   const filteredUsers = useMemo(() => {
     if (!users) return [];
+    
+    const now = new Date().getTime();
+    const threeMinutes = 3 * 60 * 1000;
+
     return users.filter(user => {
-        // "Away olanları gösterme" -> Sadece isOnline: true olanları göster
-        if (!user.isOnline) return false;
+        // Must be marked as online AND must have sent a heartbeat in the last 3 minutes
+        const lastActive = user.lastActiveAt?.toDate()?.getTime() || 0;
+        const isActuallyActive = user.isOnline && (now - lastActive < threeMinutes);
+        
+        if (!isActuallyActive) return false;
         
         const matchesSearch = 
             user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||

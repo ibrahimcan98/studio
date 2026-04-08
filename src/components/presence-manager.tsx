@@ -91,20 +91,27 @@ export function PresenceManager() {
             updatePresence(true);
         }, 60000);
 
-        // Offline on close
+        // Offline on close attempts
+        const handleUnload = () => {
+            // This is "best effort" as browsers limit async work in unload
+            updatePresence(false);
+        };
+
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'hidden') {
-                // We keep it as online but update timestamp, 
-                // or we could set offline. Usually heartbeat is better.
+                // If they hide the tab for more than 5 minutes, mark as offline?
+                // For now, just a timestamp update is enough
             } else {
                 updatePresence(true);
             }
         };
 
+        window.addEventListener('beforeunload', handleUnload);
         window.addEventListener('visibilitychange', handleVisibilityChange);
         
         return () => {
             clearInterval(interval);
+            window.removeEventListener('beforeunload', handleUnload);
             window.removeEventListener('visibilitychange', handleVisibilityChange);
             // On unmount (e.g., logout or close)
             updatePresence(false);
