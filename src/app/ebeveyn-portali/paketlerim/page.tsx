@@ -268,18 +268,16 @@ function PaketlerimPageContent() {
         : 0;
 
     return (
-        <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-slate-50 min-h-screen">
-                <div className="flex items-center justify-between">
-                     <div className="flex items-center gap-4">
-                         <Button variant="outline" size="icon" className="h-10 w-10 bg-white border-slate-200" onClick={() => router.push('/ebeveyn-portali')} >
-                            <ArrowLeft className="h-5 w-5 text-slate-600" />
-                        </Button>
-                        <div>
-                            <h2 className="text-3xl font-black tracking-tight text-slate-900">Kurslarım</h2>
-                            <p className="text-slate-500 font-medium">
-                                Satın aldığınız kursları yönetin ve çocuklarınıza atayın.
-                            </p>
-                        </div>
+        <div className="flex-1 w-full max-w-full space-y-4 sm:space-y-8 p-2 sm:p-6 lg:p-8 pt-6 bg-slate-50 min-h-screen">
+                <div className="flex items-center gap-4">
+                    <Button variant="outline" size="icon" className="h-10 w-10 bg-white border-slate-200" onClick={() => router.push('/ebeveyn-portali')} >
+                        <ArrowLeft className="h-5 w-5 text-slate-600" />
+                    </Button>
+                    <div>
+                        <h2 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-slate-900">Kurslarım</h2>
+                        <p className="text-slate-500 font-medium text-sm sm:text-base">
+                            Satın aldığınız kursları yönetin ve çocuklarınıza atayın.
+                        </p>
                     </div>
                 </div>
 
@@ -290,13 +288,13 @@ function PaketlerimPageContent() {
                         
                         {/* ÇOCUKLARIM VE AKTİF KURSLARI */}
                         <Card className="border-none shadow-xl bg-white rounded-[24px] overflow-hidden">
-                            <CardHeader className="bg-slate-50/50 border-b pb-6 px-8 pt-8">
+                            <CardHeader className="bg-slate-50/50 border-b pb-6 px-3 sm:px-6 md:px-8 pt-8">
                                 <CardTitle className='flex items-center gap-3 text-2xl'><User className="text-primary w-6 h-6" /> Çocuklarım ve Kursları</CardTitle>
                                 <CardDescription className="text-sm font-medium mt-1">
                                     Çocuklarınızın aktif ders durumlarını buradan izleyebilirsiniz.
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent className="p-8">
+                            <CardContent className="p-4 sm:p-6 md:p-8">
                                 {children && children.length > 0 ? (
                                     <div className="grid gap-6">
                                         {children.map((child: any) => {
@@ -316,13 +314,13 @@ function PaketlerimPageContent() {
                                                         </div>
                                                     </div>
 
-                                                    <div className="flex-1 w-full sm:w-auto px-0 sm:px-8 border-t sm:border-t-0 sm:border-l pt-4 sm:pt-0 border-slate-100">
+                                                    <div className="flex-1 w-full lg:w-auto px-0 lg:px-8 border-t lg:border-t-0 lg:border-l pt-4 lg:pt-0 border-slate-100">
                                                         {child.assignedPackage && child.remainingLessons > 0 ? (
                                                             <div className="space-y-3">
-                                                                <div className="flex justify-between items-end">
+                                                                <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-end gap-2 sm:gap-0">
                                                                     <div>
                                                                         <p className="text-secondary font-bold text-sm uppercase tracking-wide">Aktif Kurs</p>
-                                                                        <p className="font-black text-slate-800">{child.assignedPackageName}</p>
+                                                                        <p className="font-black text-slate-800 break-words line-clamp-2">{child.assignedPackageName}</p>
                                                                     </div>
                                                                     <div className="text-right">
                                                                         <span className="text-2xl font-black text-primary">{child.remainingLessons}</span>
@@ -330,7 +328,7 @@ function PaketlerimPageContent() {
                                                                     </div>
                                                                 </div>
                                                                 <Progress value={progressPercent} className="h-2 bg-slate-100" />
-                                                                <p className="text-xs font-bold text-slate-400 text-right">{initialLessonsForActivePackage} dersten {child.remainingLessons} ders kaldı</p>
+                                                                <p className="text-xs font-bold text-slate-400 text-left sm:text-right">{initialLessonsForActivePackage} dersten {child.remainingLessons} ders kaldı</p>
                                                                 <div className="pt-2">
                                                                     <Button asChild className="w-full font-bold shadow-md rounded-xl" variant="default">
                                                                         <Link href="/ebeveyn-portali/ders-planla">
@@ -401,33 +399,33 @@ function PaketlerimPageContent() {
                                         <table className="w-full">
                                             <thead>
                                                 <tr className="border-b border-slate-100 bg-slate-50">
-                                                    <th className="text-left font-bold text-slate-500 text-xs py-4 px-6">Tarih</th>
-                                                    <th className="text-left font-bold text-slate-500 text-xs py-4 px-6">Kurs / İçerik</th>
-                                                    <th className="text-right font-bold text-slate-500 text-xs py-4 px-6">Tutar</th>
-                                                    <th className="text-right font-bold text-slate-500 text-xs py-4 px-6">Durum</th>
+                                                    <th className="text-left font-bold text-slate-500 text-[10px] sm:text-xs py-4 px-1.5 sm:px-4 md:px-6">Tarih</th>
+                                                    <th className="text-left font-bold text-slate-500 text-[10px] sm:text-xs py-4 px-1.5 sm:px-4 md:px-6">Kurs / İçerik</th>
+                                                    <th className="text-right font-bold text-slate-500 text-[10px] sm:text-xs py-4 px-1.5 sm:px-4 md:px-6">Tutar</th>
+                                                    <th className="text-right font-bold text-slate-500 text-[10px] sm:text-xs py-4 px-1.5 sm:px-4 md:px-6">Durum</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {transactions.map((tx: any) => (
                                                     <tr key={tx.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors">
-                                                        <td className="py-4 px-6 text-sm font-medium text-slate-600">
+                                                        <td className="py-4 px-1.5 sm:px-4 md:px-6 text-[10px] sm:text-sm font-medium text-slate-600">
                                                             {tx.createdAt ? format(tx.createdAt.toDate(), 'dd MMM yyyy', { locale: tr }) : '-'}
                                                         </td>
-                                                        <td className="py-4 px-6">
+                                                        <td className="py-4 px-1.5 sm:px-4 md:px-6">
                                                             <div className="flex flex-col gap-1">
                                                                 {tx.items?.map((item: any, i: number) => (
-                                                                    <span key={i} className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                                                                        <BookOpen className="w-3.5 h-3.5 text-slate-400" />
+                                                                    <span key={i} className="text-[10px] sm:text-sm font-bold text-slate-800 flex items-center gap-1.5 leading-tight">
+                                                                        <BookOpen className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 shrink-0" />
                                                                         {item.quantity}x {item.name}
                                                                     </span>
                                                                 ))}
                                                             </div>
                                                         </td>
-                                                        <td className="py-4 px-6 text-right font-black text-slate-800">
+                                                        <td className="py-4 px-1.5 sm:px-4 md:px-6 text-right font-black text-slate-800 text-[10px] sm:text-sm whitespace-nowrap">
                                                             {tx.amountGbp !== undefined ? `£${tx.amountGbp.toFixed(2)}` : (tx.amountEur !== undefined ? `€${tx.amountEur.toFixed(2)}` : (tx.amount ? `${tx.amount} €` : '0.00 £'))}
                                                         </td>
-                                                        <td className="py-4 px-6 text-right">
-                                                            <Badge className="bg-emerald-100 text-emerald-700 border-none font-bold uppercase tracking-wider text-[10px]">Başarılı</Badge>
+                                                        <td className="py-4 px-1.5 sm:px-4 md:px-6 text-right">
+                                                            <Badge className="bg-emerald-100 text-emerald-700 border-none font-bold uppercase tracking-tight sm:tracking-wider text-[9px] sm:text-[10px] px-1 sm:px-2">Başarılı</Badge>
                                                         </td>
                                                     </tr>
                                                 ))}

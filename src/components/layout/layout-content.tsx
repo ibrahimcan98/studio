@@ -23,11 +23,11 @@ export function LayoutContent({ children }: { children: React.ReactNode }) {
   const showAIAssistant = !isCocukModu && !isLiveLesson && !isSpecialLayout;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col w-full max-w-[100vw] overflow-x-hidden bg-background relative">
       <PresenceManager />
       {showHeader && <Header />}
       
-      <main className="flex-1">
+      <main className="flex-1 w-full relative">
         {children}
       </main>
       

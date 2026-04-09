@@ -83,7 +83,7 @@ export function PermissionBanner() {
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-lg"
+        className="fixed bottom-6 inset-x-4 lg:inset-x-auto lg:left-1/2 lg:-translate-x-1/2 z-[100] lg:w-full max-w-lg mx-auto"
       >
         <div className="relative overflow-hidden bg-white/80 backdrop-blur-xl border border-primary/20 shadow-2xl rounded-[32px] p-6 flex flex-col sm:flex-row items-center gap-5 ring-1 ring-black/5">
           {/* Background Decorative Element */}

@@ -523,10 +523,10 @@ function EbeveynPortaliContent() {
   if (!user || user.isAnonymous) return null;
 
   return (
-    <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20">
+    <div className="flex-1 w-full max-w-full space-y-4 sm:space-y-8 p-2 sm:p-8 pt-6 bg-muted/20">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
         <div className="flex-1 w-full text-left">
-            <h2 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900">Hoş geldiniz, {user.displayName?.split(' ')[0]}! 👋</h2>
+            <h2 className="text-xl sm:text-3xl md:text-5xl font-black tracking-tight text-slate-900 leading-tight">Hoş geldiniz, {user.displayName?.split(' ')[0]}! 👋</h2>
             <p className="text-muted-foreground font-medium mt-2 text-lg">Türkçe serüveninizde bugün neler var?</p>
         </div>
 
