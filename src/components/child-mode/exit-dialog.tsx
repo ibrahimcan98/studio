@@ -105,7 +105,7 @@ export function ExitDialog({ children, childId }: { children: React.ReactNode, c
             {pin.map((digit, index) => (
               <Input
                 key={index}
-                ref={el => inputRefs.current[index] = el}
+                ref={(el) => { inputRefs.current[index] = el; }}
                 id={`pin-${index}`}
                 type="text"
                 maxLength={1}
