@@ -520,61 +520,61 @@ export default function AdminDerslerPage() {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h2 className="text-3xl font-black tracking-tight text-slate-900">Ders Yönetimi</h2>
-                    <p className="text-slate-500 font-medium">Tüm randevuları izleyin ve yönetin.</p>
+        <div className="space-y-4 sm:space-y-8 p-2 sm:p-8 pt-6 font-sans">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="flex-1">
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-slate-900 leading-tight">Ders Yönetimi</h1>
+                    <p className="text-[11px] sm:text-sm text-slate-500 font-medium mt-1">Tüm randevuları izleyin ve yönetin.</p>
                 </div>
-                <Button className="rounded-xl font-bold gap-2 px-6 h-11 shadow-lg" onClick={() => setIsAssignDialogOpen(true)}>
-                    <Plus className="w-5 h-5" /> Yeni Ders Ata
+                <Button className="rounded-xl font-bold gap-2 px-5 sm:px-6 h-11 shadow-lg w-full sm:w-auto text-xs sm:text-sm" onClick={() => setIsAssignDialogOpen(true)}>
+                    <Plus className="w-4 h-4 sm:w-5 sm:h-5" /> Yeni Ders Ata
                 </Button>
             </div>
 
             <Tabs defaultValue="upcoming" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-6 h-12 bg-white/50 backdrop-blur-sm border-none shadow-sm p-1 rounded-2xl">
-                    <TabsTrigger value="upcoming" className="rounded-xl font-black text-sm data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-                        <Calendar className="w-4 h-4 mr-2" /> 
-                        Yapılmamış / Yaklaşan ({upcomingLessons.length})
+                <TabsList className="grid w-full grid-cols-2 mb-4 sm:mb-6 h-11 sm:h-12 bg-white/50 backdrop-blur-sm border-none shadow-sm p-1 rounded-xl sm:rounded-2xl">
+                    <TabsTrigger value="upcoming" className="rounded-lg sm:rounded-xl font-black text-[10px] sm:text-sm data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                        <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> 
+                        Yaklaşan ({upcomingLessons.length})
                     </TabsTrigger>
-                    <TabsTrigger value="past" className="rounded-xl font-black text-sm data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
-                        <CheckCircle2 className="w-4 h-4 mr-2" /> 
+                    <TabsTrigger value="past" className="rounded-lg sm:rounded-xl font-black text-[10px] sm:text-sm data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
+                        <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> 
                         Tamamlandı ({completedLessons.length})
                     </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="upcoming">
                     <Card className="border-none shadow-xl rounded-3xl overflow-hidden bg-white/80 backdrop-blur-sm">
-                        <CardHeader className="border-b bg-slate-50/50 p-6">
+                        <CardHeader className="border-b bg-slate-50/50 p-4 sm:p-6">
                             <div className="flex flex-col lg:flex-row justify-between gap-4">
-                                <div className="relative flex-1 max-w-sm">
+                                <div className="relative flex-1 w-full lg:max-w-sm">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                     <Input 
-                                        placeholder="Öğrenci, öğretmen veya veli adı..." 
-                                        className="pl-10 rounded-xl border-slate-200 bg-white"
+                                        placeholder="Ara..." 
+                                        className="pl-10 rounded-xl border-slate-200 bg-white h-10 text-xs sm:text-sm"
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                     />
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 w-full sm:w-auto">
                                     <Button 
                                         variant={typeFilter === 'all' ? 'default' : 'outline'} 
                                         onClick={() => setTypeFilter('all')}
-                                        className="rounded-xl font-bold"
+                                        className="rounded-xl font-bold flex-1 sm:flex-none h-9 text-xs"
                                     >
                                         Hepsi
                                     </Button>
                                     <Button 
                                         variant={typeFilter === 'trial' ? 'default' : 'outline'} 
                                         onClick={() => setTypeFilter('trial')}
-                                        className="rounded-xl font-bold"
+                                        className="rounded-xl font-bold flex-1 sm:flex-none h-9 text-xs"
                                     >
                                         Deneme
                                     </Button>
                                     <Button 
                                         variant={typeFilter === 'regular' ? 'default' : 'outline'} 
                                         onClick={() => setTypeFilter('regular')}
-                                        className="rounded-xl font-bold"
+                                        className="rounded-xl font-bold flex-1 sm:flex-none h-9 text-xs"
                                     >
                                         Normal
                                     </Button>
@@ -582,7 +582,17 @@ export default function AdminDerslerPage() {
                             </div>
                         </CardHeader>
                         <CardContent className="p-0">
-                            <div className="overflow-x-auto">
+                            {/* MOBILE LIST */}
+                            <div className="md:hidden divide-y divide-slate-100">
+                                {upcomingLessons.length === 0 ? (
+                                    <div className="p-10 text-center text-slate-400 italic text-xs uppercase tracking-widest font-bold">Yaklaşan ders bulunmuyor.</div>
+                                ) : upcomingLessons.map((lesson, idx) => (
+                                    <LessonCard key={lesson.id || idx} lesson={lesson} currentTime={currentTime} onCancel={() => setLessonToCancel(lesson)} />
+                                ))}
+                            </div>
+
+                            {/* DESKTOP TABLE */}
+                            <div className="hidden md:block">
                                 <Table>
                                     <TableHeader>
                                         <TableRow className="bg-slate-50/50 hover:bg-slate-50/50 border-b">
@@ -595,13 +605,7 @@ export default function AdminDerslerPage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {upcomingLessons.length === 0 ? (
-                                            <TableRow key="empty-upcoming">
-                                                <TableCell colSpan={6} className="h-32 text-center text-slate-400 italic">
-                                                    Planlanmış ders bulunamadı.
-                                                </TableCell>
-                                            </TableRow>
-                                        ) : upcomingLessons.map((lesson, idx) => (
+                                        {upcomingLessons.map((lesson, idx) => (
                                             <LessonRow key={lesson.id || idx} lesson={lesson} currentTime={currentTime} onCancel={() => setLessonToCancel(lesson)} />
                                         ))}
                                     </TableBody>
@@ -614,13 +618,13 @@ export default function AdminDerslerPage() {
                 <TabsContent value="past">
                     <Card className="border-none shadow-xl rounded-3xl overflow-hidden bg-white/80 backdrop-blur-sm">
                         {/* Same Header for past as well */}
-                        <CardHeader className="border-b bg-slate-50/50 p-6">
+                        <CardHeader className="border-b bg-slate-50/50 p-4 sm:p-6">
                             <div className="flex flex-col lg:flex-row justify-between gap-4">
-                                <div className="relative flex-1 max-w-sm">
+                                <div className="relative flex-1 w-full lg:max-w-sm">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                     <Input 
                                         placeholder="Ara..." 
-                                        className="pl-10 rounded-xl border-slate-200 bg-white"
+                                        className="pl-10 rounded-xl border-slate-200 bg-white h-10 text-xs sm:text-sm"
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                     />
@@ -628,7 +632,17 @@ export default function AdminDerslerPage() {
                             </div>
                         </CardHeader>
                         <CardContent className="p-0">
-                            <div className="overflow-x-auto">
+                             {/* MOBILE LIST */}
+                             <div className="md:hidden divide-y divide-slate-100">
+                                {completedLessons.length === 0 ? (
+                                    <div className="p-10 text-center text-slate-400 italic text-xs uppercase tracking-widest font-bold">Tamamlanmış ders bulunmuyor.</div>
+                                ) : completedLessons.map((lesson, idx) => (
+                                    <LessonCard key={lesson.id || idx} lesson={lesson} currentTime={currentTime} onCancel={() => setLessonToCancel(lesson)} />
+                                ))}
+                            </div>
+
+                            {/* DESKTOP TABLE */}
+                            <div className="hidden md:block">
                                 <Table>
                                     <TableHeader>
                                         <TableRow className="bg-slate-50/50 hover:bg-slate-50/50 border-b">
@@ -641,13 +655,7 @@ export default function AdminDerslerPage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {completedLessons.length === 0 ? (
-                                            <TableRow key="empty-past">
-                                                <TableCell colSpan={6} className="h-32 text-center text-slate-400 italic">
-                                                    Tamamlanmış ders bulunamadı.
-                                                </TableCell>
-                                            </TableRow>
-                                        ) : completedLessons.map((lesson, idx) => (
+                                        {completedLessons.map((lesson, idx) => (
                                             <LessonRow key={lesson.id || idx} lesson={lesson} currentTime={currentTime} onCancel={() => setLessonToCancel(lesson)} />
                                         ))}
                                     </TableBody>
@@ -975,6 +983,96 @@ function LessonRow({ lesson, currentTime, onCancel }: { lesson: any, currentTime
         </TableRow>
     );
 }
+
+function LessonCard({ lesson, currentTime, onCancel }: { lesson: any, currentTime: Date, onCancel: () => void }) {
+    const endTime = addMinutes(lesson.startDateTime, lesson.duration);
+    const isStarted = currentTime >= lesson.startDateTime;
+    const isEnded = currentTime >= endTime;
+
+    return (
+        <div className="p-4 bg-white hover:bg-slate-50 transition-colors">
+            <div className="flex justify-between items-start mb-3">
+                <div className="flex flex-col">
+                    <span className="font-bold text-slate-900 text-sm">{format(lesson.startDateTime, 'dd MMMM yyyy', { locale: tr })}</span>
+                    <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-primary font-black text-xs flex items-center gap-1">
+                            <Clock className="w-3 h-3" /> {format(lesson.startDateTime, 'HH:mm')}
+                        </span>
+                        <span className="text-[9px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-400 font-bold uppercase tracking-tighter">
+                            {lesson.duration} DK
+                        </span>
+                    </div>
+                </div>
+                
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-slate-100 rounded-full shrink-0">
+                            <MoreHorizontal className="h-4 w-4 text-slate-400" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="rounded-xl border-none shadow-2xl p-2 w-56">
+                        <DropdownMenuLabel className="text-[10px] font-black text-slate-400 uppercase mb-1">Ders İşlemleri</DropdownMenuLabel>
+                        <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer" asChild>
+                            <a href={`/yonetici/kullanicilar?userId=${lesson.bookedBy}`}>
+                                <UsersIcon className="w-3.5 h-3.5 mr-2" /> Veli Paneli
+                            </a>
+                        </DropdownMenuItem>
+                        {lesson.isLive && (
+                            <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-primary" onClick={() => window.open(lesson.liveLessonUrl)}>
+                                <Video className="w-3.5 h-3.5 mr-2" /> Derse Git (Live)
+                            </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 text-red-500 focus:text-red-500 cursor-pointer" onClick={onCancel}>
+                            <X className="w-3.5 h-3.5 mr-2" /> Dersi İptal Et
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="flex flex-col gap-1">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">ÖĞRENCİ</span>
+                    <div className="flex items-center gap-1.5 font-bold text-slate-700 text-[11px] truncate">
+                        <Baby className="w-3 h-3 text-primary shrink-0" /> {lesson.studentName}
+                    </div>
+                </div>
+                <div className="flex flex-col gap-1">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">ÖĞRETMEN</span>
+                    <div className="flex items-center gap-1.5 font-bold text-slate-700 text-[11px] truncate">
+                        <User className="w-3 h-3 text-slate-400 shrink-0" /> {teacherFirstName(lesson.teacherName)}
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-50">
+                <Badge className={cn(
+                    "rounded-lg font-black text-[8px] uppercase tracking-widest px-2 py-0.5",
+                    lesson.isTrial ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-emerald-50 text-emerald-700 border-emerald-100"
+                )}>
+                    {lesson.courseName}
+                </Badge>
+                
+                {(() => {
+                    if (isEnded) return <Badge variant="outline" className="rounded-lg border-emerald-100 bg-emerald-50 text-emerald-700 font-black px-2 py-0.5 uppercase text-[8px] tracking-widest">OK</Badge>;
+                    if (isStarted) return (
+                        <Badge variant="outline" className="rounded-lg border-red-100 bg-red-50 text-red-600 font-black px-2 py-0.5 uppercase text-[8px] tracking-widest animate-pulse">
+                             CANLI
+                        </Badge>
+                    );
+                    return <Badge variant="outline" className="rounded-lg border-blue-50 bg-blue-50 text-blue-500 font-black px-2 py-0.5 uppercase text-[8px] tracking-widest">YAKLAŞAN</Badge>;
+                })()}
+            </div>
+        </div>
+    );
+}
+
+// Helper to keep teacher name short on cards
+const teacherFirstName = (fullName: string) => {
+    if (!fullName) return '-';
+    const parts = fullName.split(' ');
+    if (parts.length > 1) return `${parts[0]} ${parts[1][0]}.`;
+    return fullName;
+};
 
 // Simple ArrowRight component if not available
 function ArrowRight({ className }: { className?: string }) {

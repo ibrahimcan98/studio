@@ -692,75 +692,77 @@ function UsersPageContent() {
   };
 
   return (
-    <div className="space-y-6 font-sans">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-        <div>
-            <h1 className="text-3xl font-black tracking-tight text-slate-900">Veli Yönetimi</h1>
-            <p className="text-muted-foreground mt-1">Kayıtlı veliler, satın alma geçmişleri ve otomatik etiketler.</p>
+    <div className="space-y-4 sm:space-y-8 p-2 sm:p-8 pt-6 font-sans">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+        <div className="flex-1">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-slate-900 leading-tight">Veli Yönetimi</h1>
+            <p className="text-[11px] sm:text-sm text-muted-foreground mt-1 max-w-[500px]">Kayıtlı veliler, satın alma geçmişleri ve otomatik etiketler.</p>
         </div>
         {selectedUserIds.length > 0 && (
-            <Button onClick={() => setIsBulkTagOpen(true)} className="h-11 rounded-xl font-bold bg-primary hover:bg-primary/90 text-white shadow-sm px-6">
+            <Button onClick={() => setIsBulkTagOpen(true)} className="h-10 sm:h-11 rounded-xl font-bold bg-primary hover:bg-primary/90 text-white shadow-sm px-4 sm:px-6 w-full sm:w-auto text-xs sm:text-sm">
                 <Tags className="w-4 h-4 mr-2" /> Toplu Etiket ({selectedUserIds.length})
             </Button>
         )}
       </div>
 
-      <div className="bg-white p-4 rounded-[24px] shadow-sm border border-slate-100 space-y-4">
-        <div className="flex flex-col lg:flex-row gap-4">
+      <div className="bg-white p-2 sm:p-4 rounded-[20px] sm:rounded-[24px] shadow-sm border border-slate-100 space-y-2 sm:space-y-4">
+        <div className="flex flex-col lg:flex-row gap-2 sm:gap-4">
           <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
               <Input 
                   placeholder="İsim, Şifre veya E-posta Ara..." 
-                  className="pl-10 h-11 rounded-xl border-slate-200 shadow-none font-medium bg-slate-50/50 focus:bg-white transition-colors" 
+                  className="pl-10 h-10 sm:h-11 rounded-xl border-slate-200 shadow-none font-medium bg-slate-50/50 focus:bg-white transition-colors text-xs sm:text-sm" 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
               />
           </div>
           
-          <div className="flex items-center gap-2 bg-slate-50/50 px-3 h-11 rounded-xl border border-slate-200">
-            <ArrowRight className="w-4 h-4 text-slate-400 rotate-90" />
-            <select 
-                className="text-xs font-bold bg-transparent border-none focus:ring-0 text-slate-600 outline-none cursor-pointer pr-8"
-                value={sortType}
-                onChange={(e) => setSortType(e.target.value as any)}
-            >
-                <option value="registration_desc">Kayıt: En Yeni</option>
-                <option value="activity_desc">Etkinlik: En Yeni</option>
-            </select>
+          <div className="grid grid-cols-2 lg:flex gap-2">
+            <div className="flex items-center gap-2 bg-slate-50/50 px-3 h-10 sm:h-11 rounded-xl border border-slate-200 w-full lg:w-auto">
+              <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 rotate-90" />
+              <select 
+                  className="text-[10px] sm:text-xs font-bold bg-transparent border-none focus:ring-0 text-slate-600 outline-none cursor-pointer pr-4 sm:pr-8 w-full"
+                  value={sortType}
+                  onChange={(e) => setSortType(e.target.value as any)}
+              >
+                  <option value="registration_desc">Kayıt: En Yeni</option>
+                  <option value="activity_desc">Etkinlik: En Yeni</option>
+              </select>
+            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="h-10 sm:h-11 rounded-xl border-slate-200 font-bold gap-2 px-3 sm:px-4 text-[10px] sm:text-xs w-full lg:w-auto">
+                  <TagIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  Etiket ({selectedTags.length})
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-2 rounded-2xl shadow-2xl border-none">
+                <div className="p-2 space-y-2">
+                  <div className="flex items-center justify-between pb-2 border-b">
+                      <span className="text-[10px] font-black text-slate-400 uppercase">Etiketleri Seç</span>
+                      <Button variant="ghost" size="sm" className="h-6 text-[10px] font-bold py-0" onClick={() => setSelectedTags([])}>Temizle</Button>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto space-y-1 pt-1">
+                    {allAvailableTags.map(tag => (
+                      <div key={tag} className="flex items-center gap-2 px-2 py-1 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors" onClick={() => {
+                          setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+                      }}>
+                        <Checkbox checked={selectedTags.includes(tag)} />
+                        <Badge variant="secondary" className={cn("text-[9px] px-2 py-0.5 border-none font-bold uppercase tracking-tighter", tagStyles[tag] || 'bg-slate-100 text-slate-500')}>
+                            {tag}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="h-11 rounded-xl border-slate-200 font-bold gap-2 px-4 shrink-0">
-                <TagIcon className="w-4 h-4" />
-                Etiket Filtre ({selectedTags.length})
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-64 p-2 rounded-2xl shadow-2xl border-none">
-              <div className="p-2 space-y-2">
-                <div className="flex items-center justify-between pb-2 border-b">
-                    <span className="text-[10px] font-black text-slate-400 uppercase">Etiketleri Seç</span>
-                    <Button variant="ghost" size="sm" className="h-6 text-[10px] font-bold py-0" onClick={() => setSelectedTags([])}>Temizle</Button>
-                </div>
-                <div className="max-h-64 overflow-y-auto space-y-1 pt-1">
-                  {allAvailableTags.map(tag => (
-                    <div key={tag} className="flex items-center gap-2 px-2 py-1 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors" onClick={() => {
-                        setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
-                    }}>
-                      <Checkbox checked={selectedTags.includes(tag)} />
-                      <Badge variant="secondary" className={cn("text-[9px] px-2 py-0.5 border-none font-bold uppercase tracking-tighter", tagStyles[tag] || 'bg-slate-100 text-slate-500')}>
-                          {tag}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="h-11 rounded-xl border-slate-200 font-bold gap-2 px-4 shrink-0">
-                <Filter className="w-4 h-4" />
+              <Button variant="outline" className="h-10 sm:h-11 rounded-xl border-slate-200 font-bold gap-2 px-3 sm:px-4 shrink-0 text-[10px] sm:text-xs w-full lg:w-auto">
+                <Filter className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 Gelişmiş Filtreler
               </Button>
             </PopoverTrigger>
@@ -843,208 +845,84 @@ function UsersPageContent() {
         )}
       </div>
 
-      <Card className="border-none shadow-xl overflow-hidden rounded-[24px]">
-        <CardHeader className="bg-white border-b pb-6">
-          <CardTitle className="text-lg flex items-center gap-2 text-slate-800">
-            <User className="w-5 h-5 text-primary" /> Veliler ({filteredParents.length})
-          </CardTitle>
+      <Card className="border-none shadow-xl overflow-hidden rounded-[20px] sm:rounded-[24px]">
+        <CardHeader className="bg-white border-b px-4 sm:px-8 py-4 sm:py-6">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm sm:text-base lg:text-lg flex items-center gap-2 text-slate-800">
+                <User className="w-4 h-4 sm:w-5 sm:h-5 text-primary" /> Veliler ({filteredParents.length})
+            </CardTitle>
+            <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-slate-400 hidden sm:inline">Hepsini Seç</span>
+                <Checkbox 
+                    checked={selectedUserIds.length === filteredParents.length && filteredParents.length > 0}
+                    onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                    className="rounded-md border-slate-300 h-5 w-5"
+                />
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
-          {parentsLoading || loadingExtras ? (
-            <div className="flex flex-col justify-center items-center h-64 gap-4">
-              <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Veriler Analiz Ediliyor...</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader className="bg-slate-50/50">
-                <TableRow className="hover:bg-transparent border-slate-100">
-                  <TableHead className="w-[40px] pl-6">
-                      <Checkbox 
-                          checked={selectedUserIds.length > 0 && selectedUserIds.length === filteredParents.length}
-                          onCheckedChange={handleSelectAll}
-                      />
-                  </TableHead>
-                  <TableHead className="font-bold text-slate-500 py-5">Veli Bilgisi</TableHead>
-                  <TableHead className="font-bold text-slate-500">Ülke</TableHead>
-                  <TableHead className="font-bold text-slate-500">Kayıt Tarihi</TableHead>
-                  <TableHead className="font-bold text-slate-500">Son Etkinlik</TableHead>
-                  <TableHead className="font-bold text-slate-500">Etiketler</TableHead>
-                  <TableHead className="w-[80px] text-right pr-6"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredParents.map((parent) => (
-                  <TableRow key={parent.id} className={cn("hover:bg-slate-50/30 transition-colors border-slate-100", selectedUserIds.includes(parent.id) && "bg-slate-50")}>
-                    <TableCell className="pl-6">
-                        <Checkbox 
-                            checked={selectedUserIds.includes(parent.id)}
-                            onCheckedChange={(checked) => {
-                                if (checked) setSelectedUserIds(prev => [...prev, parent.id]);
-                                else setSelectedUserIds(prev => prev.filter(id => id !== parent.id));
-                            }}
-                        />
-                    </TableCell>
-                    <TableCell className="py-5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-bold text-xs shrink-0">
-                            {parent.firstName?.[0]}{parent.lastName?.[0]}
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                            <span className="font-bold text-slate-700 truncate">{parent.firstName} {parent.lastName}</span>
-                            <span className="text-[10px] text-slate-400 font-medium lowercase truncate">{parent.email}</span>
-                            <div className="flex items-center gap-1 group/id">
-                                <span className="text-[9px] font-mono text-slate-300 select-all uppercase">ID: {parent.shortId || parent.id.substring(0, 8).toUpperCase()}</span>
-                                <button 
-                                    onClick={(e) => { 
-                                        e.stopPropagation();
-                                        navigator.clipboard.writeText(parent.id); 
-                                        toast({ title: 'Kopyalandı', description: 'Veli ID kopyalandı.' }); 
-                                    }}
-                                    className="opacity-0 group-hover/id:opacity-100 transition-opacity text-slate-300 hover:text-primary"
-                                    title="ID Kopyala"
-                                >
-                                    <Copy className="w-2.5 h-2.5" />
-                                </button>
-                            </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <div className="flex items-center gap-1.5 text-slate-600 font-semibold text-sm cursor-pointer hover:text-primary transition-colors group">
-                                    <MapPin className="w-3.5 h-3.5 text-slate-300 group-hover:text-primary" />
-                                    {parent.countryName}
-                                </div>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-64 p-3 rounded-2xl shadow-2xl border-none">
-                                <div className="space-y-3">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase">Ülke Değiştir</span>
-                                        <Button 
-                                            variant="ghost" 
-                                            size="sm" 
-                                            className="h-6 text-[10px] font-bold py-0 text-red-500" 
-                                            onClick={() => handleUpdateCountry(parent, "")}
-                                        > Sıfırla (Otomatik) </Button>
-                                    </div>
-                                    <div className="max-h-48 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
-                                        {[
-                                            "🇹🇷 Türkiye", "🇬🇧 İngiltere", "🇳🇱 Hollanda", "🇩🇪 Almanya", 
-                                            "🇦🇪 B.A.E", "🇮🇩 Endonezya", "🇫🇷 Fransa", "🇧🇪 Belçika", 
-                                            "🇦🇹 Avusturya", "🇨🇭 İsviçre", "🇸🇪 İsveç", "🇩🇰 Danimarka", 
-                                            "🇳🇴 Norveç", "🇮🇹 İtalya", "🇪🇸 İspanya", "🇺🇸 ABD", "🇨🇦 Kanada",
-                                            "🇦🇺 Avustralya", "🇦🇿 Azerbaycan", "🇶🇦 Katar", "🇸🇦 Suudi Arabistan",
-                                            "🇭🇷 Hırvatistan", "🇴🇲 Umman"
-                                        ].map(c => (
-                                            <button
-                                                key={c}
-                                                className={cn(
-                                                    "w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-colors",
-                                                    parent.countryName === c ? "bg-primary text-white" : "hover:bg-slate-50 text-slate-600"
-                                                )}
-                                                onClick={() => handleUpdateCountry(parent, c)}
-                                            >
-                                                {c}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <div className="pt-2 border-t mt-1">
-                                        <p className="text-[9px] font-medium text-slate-400 leading-tight">
-                                            Manuel seçim yapıldığında telefon numarasından gelen otomatik bilgi geçersiz kılınır.
-                                        </p>
-                                    </div>
-                                </div>
-                            </PopoverContent>
-                        </Popover>
-                    </TableCell>
-                    <TableCell>
-                        <div className="flex items-center gap-1.5 text-slate-500 text-sm">
-                            <Calendar className="w-3.5 h-3.5 text-slate-300" />
-                            {parent.createdAt ? format(parent.createdAt.toDate(), 'dd MMM yyyy', { locale: tr }) : '-'}
-                        </div>
-                    </TableCell>
-                    <TableCell>
-                        {parent.lastActivityDate ? (
-                            <div className={cn(
-                                "flex items-center gap-1.5 font-bold text-sm",
-                                parent.lastActivityType === 'purchase' ? 'text-emerald-600' : 
-                                parent.lastActivityType === 'lesson' ? 'text-blue-600' : 
-                                parent.lastActivityType === 'login' ? 'text-purple-600' : 'text-slate-500'
-                            )}>
-                                {parent.lastActivityType === 'purchase' ? <ShoppingBag className="w-3.5 h-3.5" /> : 
-                                 parent.lastActivityType === 'lesson' ? <Calendar className="w-3.5 h-3.5" /> : 
-                                 parent.lastActivityType === 'login' ? <Activity className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
-                                {format(parent.lastActivityDate, 'dd MMM yyyy', { locale: tr })}
-                            </div>
-                        ) : (
-                            <span className="text-[10px] font-black text-slate-300 uppercase tracking-tighter">-</span>
-                        )}
-                    </TableCell>
-                    <TableCell>
-                        <div className="flex flex-wrap gap-1.5 max-w-[300px]">
-                            {parent.computedTags?.map((tag) => {
-                                const isManual = parent.manualTags?.includes(tag);
-                                return (
-                                        <Badge key={tag} variant="secondary" className={cn("relative group text-[9px] px-2 py-0.5 border-none font-bold uppercase tracking-tighter overflow-visible", tagStyles[tag] || 'bg-slate-100 text-slate-500')}>
-                                            {tag}
-                                            <button 
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleQuickRemoveTag(parent, tag);
-                                                }}
-                                                className="absolute -top-1 -right-1 w-3 h-3 p-0 bg-white text-slate-400 border border-slate-200 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white hover:border-red-600 transition-all shadow-sm opacity-0 group-hover:opacity-100"
-                                                title="Etiketi Kaldır"
-                                            >
-                                                <X className="w-2 h-2" />
-                                            </button>
-                                        </Badge>
-                                );
-                            })}
-                        </div>
-                    </TableCell>
-                    <TableCell className="text-right pr-8">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-slate-100 rounded-full">
-                                    <MoreHorizontal className="h-4 w-4 text-slate-400" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                             <DropdownMenuContent align="end" className="rounded-xl border-none shadow-2xl p-2 w-48">
-                                <DropdownMenuLabel className="text-[10px] font-black text-slate-400 uppercase mb-1">İşlemler</DropdownMenuLabel>
-                                <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer" onClick={() => { setSelectedParent(parent); setIsDetailOpen(true); }}>
-                                    Profil Detayı
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer" onClick={() => { setSelectedParent(parent); setIsTagsOpen(true); }}>
-                                    Etiketleri Düzenle
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-blue-600 focus:text-blue-600" onClick={() => { setSelectedParentForLessons(parent); setIsAddLessonsOpen(true); setSelectedCourseId('konusma'); setLessonCount(4); }}>
-                                    Ders Ekle
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                    className={cn(
-                                        "rounded-lg font-bold text-xs py-2.5 cursor-pointer",
-                                        parent.isLegacy ? "text-slate-600" : "text-orange-600 focus:text-orange-600"
-                                    )} 
-                                    onClick={() => handleToggleLegacy(parent)}
-                                >
-                                    {parent.isLegacy ? 'Eski Üye Durumunu Kaldır' : 'Eski Üye Olarak İşaretle'}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                    className="rounded-lg font-bold text-xs py-2.5 text-red-500 focus:text-red-500 focus:bg-red-50 cursor-pointer"
-                                    onClick={() => handleDeleteParent(parent)}
-                                >
-                                    Veliyi Sil
-                                </DropdownMenuItem>
-                             </DropdownMenuContent>
-                        </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+            {parentsLoading || loadingExtras ? (
+                <div className="flex flex-col justify-center items-center h-64 gap-4">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Veriler Analiz Ediliyor...</p>
+                </div>
+            ) : (
+                <>
+                    {/* MOBILE CARDS VIEW */}
+                    <div className="md:hidden divide-y divide-slate-100">
+                        {filteredParents.map((parent) => (
+                            <ParentCard 
+                                key={parent.id} 
+                                parent={parent} 
+                                isSelected={selectedUserIds.includes(parent.id)}
+                                onSelect={(checked) => {
+                                    setSelectedUserIds(prev => checked ? [...prev, parent.id] : prev.filter(id => id !== parent.id));
+                                }}
+                                onDetail={() => { setSelectedParent(parent); setIsDetailOpen(true); }}
+                                onAddLessons={() => { setSelectedParentForLessons(parent); setIsAddLessonsOpen(true); }}
+                                onToggleLegacy={() => handleToggleLegacy(parent)}
+                                onDelete={() => handleDeleteParent(parent)}
+                                onQuickRemoveTag={(tag) => handleQuickRemoveTag(parent, tag)}
+                            />
+                        ))}
+                    </div>
+
+                    {/* DESKTOP TABLE VIEW */}
+                    <div className="hidden md:block">
+                        <Table>
+                            <TableHeader className="bg-slate-50/50">
+                                <TableRow className="hover:bg-transparent border-slate-100">
+                                    <TableHead className="w-[50px] pl-8"></TableHead>
+                                    <TableHead className="font-bold text-slate-500 py-5">Veli Bilgisi</TableHead>
+                                    <TableHead className="font-bold text-slate-500">Ülke</TableHead>
+                                    <TableHead className="font-bold text-slate-500">Kayıt Tarihi</TableHead>
+                                    <TableHead className="font-bold text-slate-500">Son Etkinlik</TableHead>
+                                    <TableHead className="font-bold text-slate-500">Etiketler</TableHead>
+                                    <TableHead className="w-[80px] text-right pr-8"></TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {filteredParents.map((parent) => (
+                                    <ParentRow 
+                                        key={parent.id} 
+                                        parent={parent} 
+                                        isSelected={selectedUserIds.includes(parent.id)}
+                                        onSelect={(checked) => {
+                                            setSelectedUserIds(prev => checked ? [...prev, parent.id] : prev.filter(id => id !== parent.id));
+                                        }}
+                                        onDetail={() => { setSelectedParent(parent); setIsDetailOpen(true); }}
+                                        onAddLessons={() => { setSelectedParentForLessons(parent); setIsAddLessonsOpen(true); }}
+                                        onToggleLegacy={() => handleToggleLegacy(parent)}
+                                        onDelete={() => handleDeleteParent(parent)}
+                                        onQuickRemoveTag={(tag) => handleQuickRemoveTag(parent, tag)}
+                                    />
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </>
+            )}
         </CardContent>
       </Card>
 
@@ -1057,65 +935,68 @@ function UsersPageContent() {
             </DialogHeader>
             {selectedParent && (
                 <div className="flex flex-col h-full">
-                    <div className="p-8 bg-slate-900 text-white shrink-0">
-                        <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-6">
-                                <div className="w-20 h-20 rounded-[24px] bg-primary flex items-center justify-center text-3xl font-black shadow-lg shadow-primary/20">
+                    <div className="p-4 sm:p-8 bg-slate-900 text-white shrink-0">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                            <div className="flex items-center gap-4 sm:gap-6">
+                                <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-[18px] sm:rounded-[24px] bg-primary flex items-center justify-center text-xl sm:text-3xl font-black shadow-lg shadow-primary/20">
                                     {selectedParent.firstName?.[0]}{selectedParent.lastName?.[0]}
                                 </div>
-                                <div className="space-y-1">
-                                    <h2 className="text-3xl font-black tracking-tight">{selectedParent.firstName} {selectedParent.lastName}</h2>
-                                    <div className="flex items-center gap-4 text-slate-400 text-sm font-medium">
-                                        <span className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> {selectedParent.email}</span>
-                                        <span className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" /> {selectedParent.phoneNumber}</span>
-                                        <span className="text-[10px] font-mono opacity-50 bg-white/10 px-2 py-0.5 rounded ml-2 select-all uppercase">ID: {selectedParent.shortId || selectedParent.id.substring(0, 8).toUpperCase()}</span>
+                                <div className="space-y-0.5 sm:space-y-1">
+                                    <h2 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight leading-tight">{selectedParent.firstName} {selectedParent.lastName}</h2>
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-slate-400 text-[10px] sm:text-sm font-medium">
+                                        <span className="flex items-center gap-1.5"><Mail className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> {selectedParent.email}</span>
+                                        <span className="flex items-center gap-1.5"><Phone className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> {selectedParent.phoneNumber}</span>
                                     </div>
+                                    <span className="inline-block sm:hidden text-[8px] font-mono opacity-50 bg-white/10 px-1.5 py-0.5 rounded leading-none uppercase">ID: {selectedParent.shortId || selectedParent.id.substring(0, 8).toUpperCase()}</span>
                                 </div>
                             </div>
-                            <Badge className="bg-emerald-500 text-white border-none font-bold px-4 py-1.5 rounded-full uppercase tracking-widest text-[10px]">
-                                {selectedParent.countryName}
-                            </Badge>
+                            <div className="flex items-center gap-2 w-full sm:w-auto self-end sm:self-center">
+                                <span className="hidden sm:inline-block text-[10px] font-mono opacity-50 bg-white/10 px-2 py-0.5 rounded uppercase mr-2 select-all">ID: {selectedParent.shortId || selectedParent.id.substring(0, 8).toUpperCase()}</span>
+                                <Badge className="bg-emerald-500 text-white border-none font-bold px-3 sm:px-4 py-1 sm:py-1.5 rounded-full uppercase tracking-widest text-[8px] sm:text-[10px]">
+                                    {selectedParent.countryName}
+                                </Badge>
+                            </div>
                         </div>
                     </div>
 
                     <Tabs defaultValue="overview" className="flex-1 flex flex-col overflow-hidden">
-                        <div className="bg-slate-900/95 px-8">
-                            <TabsList className="bg-transparent gap-8 h-12 p-0">
-                                <TabsTrigger value="overview" className="data-[state=active]:bg-white data-[state=active]:text-slate-900 rounded-t-xl rounded-b-none h-12 border-none font-bold text-slate-400 px-6">Özet</TabsTrigger>
-                                <TabsTrigger value="children" className="data-[state=active]:bg-white data-[state=active]:text-slate-900 rounded-t-xl rounded-b-none h-12 border-none font-bold text-slate-400 px-6">Çocuklar</TabsTrigger>
-                                <TabsTrigger value="history" className="data-[state=active]:bg-white data-[state=active]:text-slate-900 rounded-t-xl rounded-b-none h-12 border-none font-bold text-slate-400 px-6">Ders Geçmişi</TabsTrigger>
+                        <div className="bg-slate-900/95 px-4 sm:px-8">
+                            <TabsList className="bg-transparent gap-4 sm:gap-8 h-10 sm:h-12 p-0 w-full justify-start overflow-x-auto no-scrollbar">
+                                <TabsTrigger value="overview" className="data-[state=active]:bg-white data-[state=active]:text-slate-900 rounded-t-lg sm:rounded-t-xl rounded-b-none h-10 sm:h-12 border-none font-bold text-slate-400 px-4 sm:px-6 text-xs sm:text-sm whitespace-nowrap">Özet</TabsTrigger>
+                                <TabsTrigger value="children" className="data-[state=active]:bg-white data-[state=active]:text-slate-900 rounded-t-lg sm:rounded-t-xl rounded-b-none h-10 sm:h-12 border-none font-bold text-slate-400 px-4 sm:px-6 text-xs sm:text-sm whitespace-nowrap">Çocuklar</TabsTrigger>
+                                <TabsTrigger value="history" className="data-[state=active]:bg-white data-[state=active]:text-slate-900 rounded-t-lg sm:rounded-t-xl rounded-b-none h-10 sm:h-12 border-none font-bold text-slate-400 px-4 sm:px-6 text-xs sm:text-sm whitespace-nowrap">Dersler</TabsTrigger>
                             </TabsList>
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-8 bg-white custom-scrollbar">
                             <TabsContent value="overview" className="mt-0 space-y-8">
-                                <div className="grid grid-cols-3 gap-6">
-                                    <Card className="bg-slate-50 border-none p-6 space-y-2">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Kayıt Tarihi</p>
-                                        <p className="text-xl font-bold text-slate-800">{selectedParent.createdAt ? format(selectedParent.createdAt.toDate(), 'dd MMMM yyyy', { locale: tr }) : '-'}</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+                                    <Card className="bg-slate-50 border-none p-4 sm:p-6 space-y-1 sm:space-y-2">
+                                        <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Kayıt Tarihi</p>
+                                        <p className="text-lg sm:text-xl font-bold text-slate-800">{selectedParent.createdAt ? format(selectedParent.createdAt.toDate(), 'dd MMMM yyyy', { locale: tr }) : '-'}</p>
                                     </Card>
-                                    <Card className="bg-slate-50 border-none p-6 space-y-2">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Kalan Toplam Ders</p>
-                                        <p className="text-xl font-bold text-slate-800">
+                                    <Card className="bg-slate-50 border-none p-4 sm:p-6 space-y-1 sm:space-y-2">
+                                        <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Kalan Toplam Ders</p>
+                                        <p className="text-lg sm:text-xl font-bold text-slate-800">
                                             {(allChildren.filter(c => c.parentId === selectedParent.id).reduce((acc, c) => acc + (c.remainingLessons || 0), 0)) + (selectedParent.remainingLessons || 0)}
                                         </p>
                                     </Card>
-                                    <Card className="bg-slate-50 border-none p-6 space-y-2">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Havuzdaki Paketler</p>
+                                    <Card className="bg-slate-50 border-none p-4 sm:p-6 space-y-1 sm:space-y-2">
+                                        <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Havuzdaki Paketler</p>
                                         <div className="flex flex-wrap gap-1 mt-1">
                                             {selectedParent.enrolledPackages?.length > 0 ? selectedParent.enrolledPackages.map((p: string, i: number) => (
-                                                <Badge key={i} variant="secondary" className="bg-white border-slate-200 text-slate-600 font-bold text-[10px] uppercase">{p}</Badge>
-                                            )) : <span className="text-sm font-medium text-slate-400">Yok</span>}
+                                                <Badge key={i} variant="secondary" className="bg-white border-slate-200 text-slate-600 font-bold text-[8px] sm:text-[10px] uppercase">{p}</Badge>
+                                            )) : <span className="text-xs sm:text-sm font-medium text-slate-400">Yok</span>}
                                         </div>
                                     </Card>
-                                    <Card className="bg-slate-50 border-none p-6 space-y-2">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Son Etkinlik</p>
+                                    <Card className="bg-slate-50 border-none p-4 sm:p-6 space-y-1 sm:space-y-2">
+                                        <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Son Etkinlik</p>
                                         <div className="flex items-center gap-2 mt-1">
                                             {selectedParent.lastActivityDate ? (
                                                 <>
                                                     {selectedParent.lastActivityType === 'purchase' ? <ShoppingBag className="w-4 h-4 text-emerald-500" /> : 
                                                      selectedParent.lastActivityType === 'lesson' ? <Calendar className="w-4 h-4 text-blue-500" /> : <User className="w-4 h-4 text-slate-400" />}
-                                                    <p className="text-xl font-bold text-slate-800">
+                                                    <p className="text-lg sm:text-xl font-bold text-slate-800">
                                                         {format(selectedParent.lastActivityDate, 'dd MMMM yyyy', { locale: tr })}
                                                     </p>
                                                 </>
@@ -1612,17 +1493,17 @@ function UsersPageContent() {
 
       {/* CHILD PROGRESS DIALOG */}
       <Dialog open={isChildProgressOpen} onOpenChange={setIsChildProgressOpen}>
-        <DialogContent className="max-w-5xl h-[90vh] p-0 overflow-hidden rounded-[32px] border-none shadow-2xl">
-            <DialogHeader className="p-6 border-b bg-slate-900 text-white">
-                <DialogTitle className="text-2xl font-black flex items-center gap-3">
-                    <Baby className="w-6 h-6 text-primary" />
-                    {selectedChildForProgress?.firstName} - İlerleme Detayları
+        <DialogContent className="max-w-5xl h-[95vh] sm:h-[90vh] p-0 overflow-hidden sm:rounded-[32px] border-none shadow-2xl">
+            <DialogHeader className="p-4 sm:p-6 border-b bg-slate-900 text-white">
+                <DialogTitle className="text-lg sm:text-2xl font-black flex items-center gap-3">
+                    <Baby className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                    {selectedChildForProgress?.firstName} - İlerleme
                 </DialogTitle>
-                <DialogDescription className="text-slate-400 font-medium">
-                    Çocuğun tüm akademik gelişimi, CEFR seviyesi ve öğretmen değerlendirmeleri.
+                <DialogDescription className="text-slate-400 font-medium text-[10px] sm:text-sm">
+                    Çocuğun tüm akademik gelişimi ve seviye takibi.
                 </DialogDescription>
             </DialogHeader>
-            <div className="flex-1 overflow-y-auto p-8 bg-slate-50/50">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-50/50 custom-scrollbar">
                 {selectedChildForProgress && (
                     <ProgressPanel 
                         child={selectedChildForProgress} 
@@ -1635,6 +1516,130 @@ function UsersPageContent() {
       </Dialog>
     </div>
   );
+}
+
+function ParentRow({ parent, isSelected, onSelect, onDetail, onAddLessons, onToggleLegacy, onDelete, onQuickRemoveTag }: any) {
+    return (
+        <TableRow className={cn("hover:bg-slate-50/30 transition-colors border-slate-100", isSelected && "bg-slate-50")}>
+            <TableCell className="pl-8">
+                <Checkbox checked={isSelected} onCheckedChange={onSelect} />
+            </TableCell>
+            <TableCell className="py-5">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-bold text-xs shrink-0">
+                        {parent.firstName?.[0]}{parent.lastName?.[0]}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                        <span className="font-bold text-slate-700 truncate">{parent.firstName} {parent.lastName}</span>
+                        <span className="text-[10px] text-slate-400 font-medium lowercase truncate">{parent.email}</span>
+                        <span className="text-[9px] font-mono text-slate-300 uppercase tracking-tighter">ID: {parent.shortId || parent.id.substring(0, 8).toUpperCase()}</span>
+                    </div>
+                </div>
+            </TableCell>
+            <TableCell className="font-semibold text-slate-600 text-sm whitespace-nowrap">{parent.countryName}</TableCell>
+            <TableCell className="text-slate-500 text-xs">
+                {parent.createdAt ? format(parent.createdAt.toDate(), 'dd MMM yyyy', { locale: tr }) : '-'}
+            </TableCell>
+            <TableCell>
+                {parent.lastActivityDate ? (
+                    <div className={cn(
+                        "flex items-center gap-1.5 font-bold text-xs",
+                        parent.lastActivityType === 'purchase' ? 'text-emerald-600' : 
+                        parent.lastActivityType === 'lesson' ? 'text-blue-600' : 
+                        parent.lastActivityType === 'login' ? 'text-purple-600' : 'text-slate-500'
+                    )}>
+                        {format(parent.lastActivityDate, 'dd MMM yyyy', { locale: tr })}
+                    </div>
+                ) : '-'}
+            </TableCell>
+            <TableCell>
+                <div className="flex flex-wrap gap-1 max-w-[200px]">
+                    {parent.computedTags?.slice(0, 3).map((tag: any) => (
+                        <Badge key={tag} variant="secondary" className={cn("text-[8px] px-1.5 py-0 border-none font-bold uppercase tracking-tighter", tagStyles[tag] || 'bg-slate-100 text-slate-500')}>
+                            {tag}
+                        </Badge>
+                    ))}
+                    {parent.computedTags?.length > 3 && <span className="text-[9px] text-slate-300 font-black">+{parent.computedTags.length - 3}</span>}
+                </div>
+            </TableCell>
+            <TableCell className="text-right pr-8">
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-slate-100 rounded-full">
+                            <MoreHorizontal className="h-4 w-4 text-slate-400" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="rounded-xl border-none shadow-2xl p-2 w-48">
+                        <DropdownMenuLabel className="text-[10px] font-black text-slate-400 uppercase mb-1">İşlemler</DropdownMenuLabel>
+                        <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer" onClick={onDetail}>Profil Detayı</DropdownMenuItem>
+                        <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-blue-600" onClick={onAddLessons}>Ders Ekle</DropdownMenuItem>
+                        <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-red-500" onClick={onDelete}>Veliyi Sil</DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </TableCell>
+        </TableRow>
+    );
+}
+
+function ParentCard({ parent, isSelected, onSelect, onDetail, onAddLessons, onToggleLegacy, onDelete, onQuickRemoveTag }: any) {
+    return (
+        <div className={cn("p-4 bg-white transition-colors flex gap-3", isSelected && "bg-blue-50/30")}>
+            <div className="pt-1">
+                <Checkbox checked={isSelected} onCheckedChange={onSelect} className="rounded-md" />
+            </div>
+            
+            <div className="flex-1 min-w-0 flex flex-col gap-2">
+                <div className="flex justify-between items-start">
+                    <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                             <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-bold text-[10px] shrink-0">
+                                {parent.firstName?.[0]}{parent.lastName?.[0]}
+                            </div>
+                            <span className="font-bold text-slate-900 text-sm truncate leading-none">{parent.firstName} {parent.lastName}</span>
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-medium truncate mt-1">{parent.email}</span>
+                    </div>
+                    
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-slate-100 rounded-full">
+                                <MoreHorizontal className="h-4 w-4 text-slate-400" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="rounded-xl border-none shadow-2xl p-2 w-48">
+                            <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer" onClick={onDetail}>Profil Detayı</DropdownMenuItem>
+                            <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer" onClick={onAddLessons}>Paket İşlemleri</DropdownMenuItem>
+                            <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 text-red-500 cursor-pointer" onClick={onDelete}>Kalıcı Olarak Sil</DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 items-center">
+                    <Badge variant="outline" className="text-[9px] border-slate-100 text-slate-400 font-bold tracking-tighter uppercase px-1.5 py-0 h-4">
+                        {parent.countryName}
+                    </Badge>
+                    {parent.computedTags?.slice(0, 3).map((tag: any) => (
+                        <Badge key={tag} className={cn("text-[8px] px-1.5 py-0 border-none font-black uppercase tracking-tighter h-4", tagStyles[tag] || 'bg-slate-100 text-slate-400')}>
+                            {tag}
+                        </Badge>
+                    ))}
+                </div>
+
+                <div className="flex items-center justify-between pt-1 border-t border-slate-50 mt-1">
+                    <div className="flex flex-col">
+                        <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Kayıt</span>
+                        <span className="text-[10px] font-bold text-slate-500">{parent.createdAt ? format(parent.createdAt.toDate(), 'dd.MM.yy') : '-'}</span>
+                    </div>
+                    <div className="flex flex-col text-right">
+                        <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Etkinlik</span>
+                        <span className={cn("text-[10px] font-bold", parent.lastActivityType === 'purchase' ? 'text-emerald-500' : 'text-slate-500')}>
+                             {parent.lastActivityDate ? format(parent.lastActivityDate, 'dd.MM.yy') : '-'}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 }
 
 export const dynamic = 'force-dynamic';

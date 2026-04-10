@@ -277,16 +277,16 @@ export default function AdminTeachersPage() {
   };
 
   return (
-    <div className="space-y-8 font-sans">
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">Öğretmen Yönetimi</h1>
-          <p className="text-muted-foreground mt-1">Platformdaki öğretmenleri yetkilendirin, düzenleyin veya tüm verilerini silin.</p>
+    <div className="space-y-4 sm:space-y-8 p-2 sm:p-8 pt-6 font-sans">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div className="flex-1">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-slate-900 leading-tight">Öğretmen Yönetimi</h1>
+          <p className="text-[11px] sm:text-sm text-muted-foreground mt-1 max-w-[500px]">Platformdaki öğretmenleri yetkilendirin, düzenleyin veya tüm verilerini silin.</p>
         </div>
         <Dialog open={isAddOpen} onOpenChange={(o) => { setIsAddOpen(o); if(!o) resetForm(); }}>
           <DialogTrigger asChild>
-            <Button className="rounded-xl h-12 px-6 font-bold shadow-lg shadow-primary/20">
-              <Plus className="w-5 h-5 mr-2" /> Yeni Öğretmen Yetkilendir
+            <Button className="rounded-xl h-11 sm:h-12 px-5 sm:px-6 font-bold shadow-lg shadow-primary/20 w-full sm:w-auto text-xs sm:text-sm">
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" /> Yeni Öğretmen Yetkilendir
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl rounded-[24px]">
@@ -352,101 +352,162 @@ export default function AdminTeachersPage() {
       </div>
 
       <Card className="border-none shadow-xl overflow-hidden rounded-[24px]">
-        <CardHeader className="bg-white border-b pb-6">
-          <CardTitle className="text-lg flex items-center gap-2 text-slate-800">
-            <Presentation className="w-5 h-5 text-primary" /> Aktif Öğretmen Listesi ({teachers?.length || 0})
+        <CardHeader className="bg-white border-b pb-4 sm:pb-6 px-4 sm:px-8">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-slate-800">
+            <Presentation className="w-4 h-4 sm:w-5 sm:h-5 text-primary" /> Aktif Öğretmen Listesi ({teachers?.length || 0})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex flex-col justify-center items-center h-64 gap-4">
               <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Veriler Yükleniyor...</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Veriler Yükleniyor...</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader className="bg-slate-50/50">
-                <TableRow className="hover:bg-transparent border-slate-100">
-                  <TableHead className="font-bold text-slate-500 py-5 pl-8">Öğretmen Bilgisi</TableHead>
-                  <TableHead className="font-bold text-slate-500">Google Meet</TableHead>
-                  <TableHead className="font-bold text-slate-500">Profil Durumu</TableHead>
-                  <TableHead className="font-bold text-slate-500">Rol</TableHead>
-                  <TableHead className="w-[80px] text-right pr-8"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {teachers?.map((teacher) => (
-                  <TableRow key={teacher.id} className="hover:bg-slate-50/30 transition-colors border-slate-100">
-                    <TableCell className="py-5 pl-8">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10 ring-2 ring-primary/10">
-                          <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
-                            {teacher.firstName?.[0]}{teacher.lastName?.[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col min-w-0">
-                          <span className="font-bold text-slate-700 truncate">{teacher.firstName} {teacher.lastName}</span>
-                          <span className="text-[10px] text-slate-400 font-medium lowercase truncate">{teacher.email}</span>
-                          <span className="text-[9px] font-mono text-slate-300 uppercase select-all">ID: {teacher.id.substring(0,8)}</span>
+            <>
+                {/* MOBILE LIST VIEW */}
+                <div className="md:hidden divide-y divide-slate-100">
+                    {teachers?.map((teacher) => (
+                        <div key={teacher.id} className="p-4 bg-white hover:bg-slate-50 transition-colors">
+                            <div className="flex justify-between items-start mb-3">
+                                <div className="flex items-center gap-3">
+                                    <Avatar className="h-9 w-9 ring-2 ring-primary/10">
+                                        <AvatarFallback className="bg-primary/10 text-primary font-bold text-[10px]">
+                                            {teacher.firstName?.[0]}{teacher.lastName?.[0]}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="font-bold text-slate-700 text-sm truncate">{teacher.firstName} {teacher.lastName}</span>
+                                        <span className="text-[9px] text-slate-400 font-medium truncate">{teacher.email}</span>
+                                    </div>
+                                </div>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-slate-100 rounded-full shrink-0">
+                                            <MoreHorizontal className="h-4 w-4 text-slate-400" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="rounded-xl border-none shadow-2xl p-2 w-56">
+                                        <DropdownMenuLabel className="text-[10px] font-black text-slate-400 uppercase mb-1">Yönetim</DropdownMenuLabel>
+                                        <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer" onClick={() => openEdit(teacher)}>
+                                            Profili Düzenle
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-emerald-600 focus:text-emerald-700" onClick={() => { setSelectedTeacherForCalendar(teacher); setIsCalendarOpen(true); }}>
+                                            <CalendarIcon className="w-3.5 h-3.5 mr-2" /> Takvim Yönetimi
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-indigo-600 focus:text-indigo-700" onClick={() => { setSelectedTeacherForStats(teacher); setIsStatsOpen(true); }}>
+                                            <Presentation className="w-3.5 h-3.5 mr-2" /> İstatistikler & Geçmiş
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 text-red-500 focus:text-red-500 cursor-pointer" onClick={() => handleDeleteTeacher(teacher.id)}>
+                                            <Trash2 className="w-3.5 h-3.5 mr-2" /> Yetkiyi Kaldır
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 mt-2 pt-2 border-t border-slate-50">
+                                <Badge variant="secondary" className="bg-indigo-50 text-indigo-600 font-black text-[8px] uppercase tracking-widest px-1.5 py-0">TEACHER</Badge>
+                                {teacher.isPassive ? (
+                                    <Badge className="bg-slate-100 text-slate-500 border-slate-200 font-black text-[8px] uppercase tracking-widest px-1.5 py-0">PASİF</Badge>
+                                ) : teacher.bio ? (
+                                    <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100 font-black text-[8px] uppercase tracking-widest px-1.5 py-0">AKTİF</Badge>
+                                ) : (
+                                    <Badge variant="outline" className="text-orange-500 border-orange-200 font-black text-[8px] uppercase tracking-widest px-1.5 py-0">TASLAK</Badge>
+                                )}
+                                {teacher.googleMeetLink && (
+                                    <a href={teacher.googleMeetLink} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-blue-600 font-bold text-[9px] ml-auto hover:underline uppercase tracking-tight">
+                                        <ExternalLink className="w-2.5 h-2.5" /> Google Meet
+                                    </a>
+                                )}
+                            </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {teacher.googleMeetLink ? (
-                        <a href={teacher.googleMeetLink} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-blue-600 font-bold text-xs hover:underline">
-                          <ExternalLink className="w-3.5 h-3.5" /> Linke Git
-                        </a>
-                      ) : (
-                        <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">YOK</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {teacher.isPassive ? (
-                        <Badge className="bg-slate-100 text-slate-500 border-slate-200 font-black text-[9px] uppercase tracking-widest">PASİF (DOLU)</Badge>
-                      ) : teacher.bio ? (
-                        <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100 font-black text-[9px] uppercase tracking-widest">AKTİF</Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-orange-500 border-orange-200 font-black text-[9px] uppercase tracking-widest">TASLAK</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                        <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 font-black text-[9px] uppercase tracking-widest">TEACHER</Badge>
-                    </TableCell>
-                    <TableCell className="text-right pr-8">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-slate-100 rounded-full">
-                            <MoreHorizontal className="h-4 w-4 text-slate-400" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="rounded-xl border-none shadow-2xl p-2 w-56">
-                          <DropdownMenuLabel className="text-[10px] font-black text-slate-400 uppercase mb-1">Yönetim</DropdownMenuLabel>
-                          <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer" onClick={() => openEdit(teacher)}>
-                            Profili Düzenle
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-emerald-600 focus:text-emerald-700" onClick={() => { setSelectedTeacherForCalendar(teacher); setIsCalendarOpen(true); }}>
-                            <CalendarIcon className="w-3.5 h-3.5 mr-2" /> Takvim Yönetimi (Müsaitlik)
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-indigo-600 focus:text-indigo-700" onClick={() => { setSelectedTeacherForStats(teacher); setIsStatsOpen(true); }}>
-                            <Presentation className="w-3.5 h-3.5 mr-2" /> İstatistikler & Geçmiş
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 text-red-500 focus:text-red-500 cursor-pointer" onClick={() => handleDeleteTeacher(teacher.id)}>
-                            <Trash2 className="w-3.5 h-3.5 mr-2" /> Yetkiyi ve Verileri Kaldır
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {(!teachers || teachers.length === 0) && !isLoading && (
-                    <TableRow>
-                        <TableCell colSpan={5} className="py-20 text-center text-slate-400 font-bold italic text-sm">
-                            Henüz yetkilendirilmiş bir öğretmen bulunmuyor.
-                        </TableCell>
-                    </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                    ))}
+                    {(!teachers || teachers.length === 0) && (
+                        <div className="py-20 text-center text-slate-400 font-bold italic text-[11px] uppercase tracking-wider">
+                            Henüz kayıtlı öğretmen yok.
+                        </div>
+                    )}
+                </div>
+
+                {/* DESKTOP TABLE VIEW */}
+                <div className="hidden md:block">
+                    <Table>
+                    <TableHeader className="bg-slate-50/50">
+                        <TableRow className="hover:bg-transparent border-slate-100">
+                        <TableHead className="font-bold text-slate-500 py-5 pl-8">Öğretmen Bilgisi</TableHead>
+                        <TableHead className="font-bold text-slate-500">Google Meet</TableHead>
+                        <TableHead className="font-bold text-slate-500">Profil Durumu</TableHead>
+                        <TableHead className="font-bold text-slate-500">Rol</TableHead>
+                        <TableHead className="w-[80px] text-right pr-8"></TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {teachers?.map((teacher) => (
+                        <TableRow key={teacher.id} className="hover:bg-slate-50/30 transition-colors border-slate-100">
+                            <TableCell className="py-5 pl-8">
+                            <div className="flex items-center gap-3">
+                                <Avatar className="h-10 w-10 ring-2 ring-primary/10">
+                                <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
+                                    {teacher.firstName?.[0]}{teacher.lastName?.[0]}
+                                </AvatarFallback>
+                                </Avatar>
+                                <div className="flex flex-col min-w-0">
+                                <span className="font-bold text-slate-700 truncate">{teacher.firstName} {teacher.lastName}</span>
+                                <span className="text-[10px] text-slate-400 font-medium lowercase truncate">{teacher.email}</span>
+                                <span className="text-[9px] font-mono text-slate-300 uppercase select-all">ID: {teacher.id.substring(0,8)}</span>
+                                </div>
+                            </div>
+                            </TableCell>
+                            <TableCell>
+                            {teacher.googleMeetLink ? (
+                                <a href={teacher.googleMeetLink} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-blue-600 font-bold text-xs hover:underline">
+                                <ExternalLink className="w-3.5 h-3.5" /> Linke Git
+                                </a>
+                            ) : (
+                                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">YOK</span>
+                            )}
+                            </TableCell>
+                            <TableCell>
+                            {teacher.isPassive ? (
+                                <Badge className="bg-slate-100 text-slate-500 border-slate-200 font-black text-[9px] uppercase tracking-widest">PASİF (DOLU)</Badge>
+                            ) : teacher.bio ? (
+                                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100 font-black text-[9px] uppercase tracking-widest">AKTİF</Badge>
+                            ) : (
+                                <Badge variant="outline" className="text-orange-500 border-orange-200 font-black text-[9px] uppercase tracking-widest">TASLAK</Badge>
+                            )}
+                            </TableCell>
+                            <TableCell>
+                                <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 font-black text-[9px] uppercase tracking-widest">TEACHER</Badge>
+                            </TableCell>
+                            <TableCell className="text-right pr-8">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-slate-100 rounded-full">
+                                    <MoreHorizontal className="h-4 w-4 text-slate-400" />
+                                </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="rounded-xl border-none shadow-2xl p-2 w-56">
+                                <DropdownMenuLabel className="text-[10px] font-black text-slate-400 uppercase mb-1">Yönetim</DropdownMenuLabel>
+                                <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer" onClick={() => openEdit(teacher)}>
+                                    Profili Düzenle
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-emerald-600 focus:text-emerald-700" onClick={() => { setSelectedTeacherForCalendar(teacher); setIsCalendarOpen(true); }}>
+                                    <CalendarIcon className="w-3.5 h-3.5 mr-2" /> Takvim Yönetimi (Müsaitlik)
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-indigo-600 focus:text-indigo-700" onClick={() => { setSelectedTeacherForStats(teacher); setIsStatsOpen(true); }}>
+                                    <Presentation className="w-3.5 h-3.5 mr-2" /> İstatistikler & Geçmiş
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 text-red-500 focus:text-red-500 cursor-pointer" onClick={() => handleDeleteTeacher(teacher.id)}>
+                                    <Trash2 className="w-3.5 h-3.5 mr-2" /> Yetkiyi ve Verileri Kaldır
+                                </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                            </TableCell>
+                        </TableRow>
+                        ))}
+                    </TableBody>
+                    </Table>
+                </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -576,22 +637,22 @@ function TeacherStatsDialog({ isOpen, onOpenChange, teacher }: { isOpen: boolean
             </DialogHeader>
         </div>
 
-        <div className="p-8 space-y-8">
+        <div className="p-4 sm:p-8 space-y-6 sm:space-y-8">
             {/* Quick Stats Grid */}
-            <div className="grid grid-cols-2 gap-4">
-                <div className="bg-slate-50 p-6 rounded-[24px] border border-slate-100 shadow-sm relative overflow-hidden group">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="bg-slate-50 p-4 sm:p-6 rounded-[24px] border border-slate-100 shadow-sm relative overflow-hidden group">
                     <div className="absolute right-[-10px] bottom-[-10px] bg-primary/5 p-4 rounded-full group-hover:scale-110 transition-transform">
                         <CheckCircle2 className="w-12 h-12 text-primary/20" />
                     </div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Toplam Tamamlanan Ders</p>
-                    <p className="text-4xl font-black text-slate-800 tracking-tighter">{isLoading ? '...' : stats.completedCount}</p>
+                    <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Toplam Tamamlanan Ders</p>
+                    <p className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tighter">{isLoading ? '...' : stats.completedCount}</p>
                 </div>
                 <div className="bg-slate-50 p-6 rounded-[24px] border border-slate-100 shadow-sm relative overflow-hidden group">
                     <div className="absolute right-[-10px] bottom-[-10px] bg-indigo-500/5 p-4 rounded-full group-hover:scale-110 transition-transform">
                         <User className="w-12 h-12 text-indigo-500/20" />
                     </div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Hizmet Verilen Öğrenci</p>
-                    <p className="text-4xl font-black text-slate-800 tracking-tighter">{isLoading ? '...' : stats.studentCount}</p>
+                    <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Hizmet Verilen Öğrenci</p>
+                    <p className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tighter">{isLoading ? '...' : stats.studentCount}</p>
                 </div>
             </div>
 

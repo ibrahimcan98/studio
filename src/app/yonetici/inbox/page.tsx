@@ -34,6 +34,7 @@ export default function InboxPage() {
     const [selectedConvId, setSelectedConvId] = useState<string | null>(null);
     const [replyText, setInputText] = useState('');
     const [showArchived, setShowArchived] = useState(false);
+    const [activeMobileView, setActiveMobileView] = useState<'list' | 'chat' | 'profile'>('list');
 
     // Conversations List
     const convQuery = useMemoFirebase(() => {
@@ -112,14 +113,23 @@ export default function InboxPage() {
         // Durumu güncelle ve seçimi temizle
         updateDoc(convRef, { status });
         setSelectedConvId(null);
+        setActiveMobileView('list');
+    };
+
+    const handleSelectConversation = (id: string) => {
+        setSelectedConvId(id);
+        setActiveMobileView('chat');
     };
 
     if (isConvLoading) return <div className="flex h-96 items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
     return (
-        <div className="flex h-[calc(100vh-160px)] gap-4 font-sans">
+        <div className="flex h-[calc(100vh-140px)] sm:h-[calc(100vh-160px)] gap-2 sm:gap-4 font-sans max-w-full overflow-hidden">
             {/* Sidebar List */}
-            <Card className="w-80 flex flex-col overflow-hidden border-none shadow-md">
+            <Card className={cn(
+                "w-full md:w-80 flex flex-col overflow-hidden border-none shadow-md",
+                activeMobileView !== 'list' ? 'hidden md:flex' : 'flex'
+            )}>
                 <div className="p-4 border-b bg-white space-y-3">
                     <div className="flex items-center justify-between">
                         <h3 className="font-bold text-sm">Mesajlar</h3>
@@ -144,7 +154,7 @@ export default function InboxPage() {
                             conversations.map(conv => (
                                 <div 
                                     key={conv.id}
-                                    onClick={() => setSelectedConvId(conv.id)}
+                                    onClick={() => handleSelectConversation(conv.id)}
                                     className={cn(
                                         "p-4 cursor-pointer hover:bg-slate-50 transition-colors relative",
                                         selectedConvId === conv.id ? "bg-primary/5 border-l-4 border-primary" : "",
@@ -183,27 +193,48 @@ export default function InboxPage() {
             </Card>
 
             {/* Chat Area */}
-            <Card className="flex-1 flex flex-col overflow-hidden border-none shadow-md bg-white">
+            <Card className={cn(
+                "flex-1 flex flex-col overflow-hidden border-none shadow-md bg-white",
+                activeMobileView !== 'chat' ? 'hidden md:flex' : 'flex'
+            )}>
                 {selectedConv ? (
                     <>
-                        <div className="p-4 border-b flex justify-between items-center bg-white">
-                            <div className="flex items-center gap-3">
-                                <Avatar><AvatarFallback>{selectedConv.createdBy?.name?.[0] || '?'}</AvatarFallback></Avatar>
+                        <div className="p-3 sm:p-4 border-b flex justify-between items-center bg-white sticky top-0 z-10">
+                            <div className="flex items-center gap-2 sm:gap-3">
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="md:hidden h-8 w-8 -ml-1"
+                                    onClick={() => setActiveMobileView('list')}
+                                >
+                                    <Search className="w-4 h-4 rotate-180" /> {/* Reuse icon as back arrow */}
+                                </Button>
+                                <Avatar className="h-8 w-8 sm:h-10 sm:w-10"><AvatarFallback>{selectedConv.createdBy?.name?.[0] || '?'}</AvatarFallback></Avatar>
                                 <div>
-                                    <h2 className="font-bold text-sm">{selectedConv.createdBy?.name || 'Anonim'}</h2>
-                                    <p className="text-[10px] text-muted-foreground">{selectedConv.createdBy?.email || 'E-posta yok'}</p>
+                                    <h2 className="font-bold text-[13px] sm:text-sm truncate max-w-[120px] sm:max-w-none">{selectedConv.createdBy?.name || 'Anonim'}</h2>
+                                    <p className="text-[9px] sm:text-[10px] text-muted-foreground truncate max-w-[120px] sm:max-w-none">{selectedConv.createdBy?.email || 'E-posta yok'}</p>
                                 </div>
                             </div>
-                            <div className="flex gap-2">
-                                {selectedConv.status !== 'closed' ? (
-                                    <Button variant="outline" size="sm" className="text-xs h-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => toggleStatus('closed')}>
-                                        <CheckCircle2 className="w-3 h-3 mr-1" /> Konuşmayı Kapat
-                                    </Button>
-                                ) : (
-                                    <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => toggleStatus('open')}>
-                                        Tekrar Aç
-                                    </Button>
-                                )}
+                            <div className="flex gap-1 sm:gap-2">
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="lg:hidden h-8 w-8"
+                                    onClick={() => setActiveMobileView(activeMobileView === 'profile' ? 'chat' : 'profile')}
+                                >
+                                    <User className={cn("w-4 h-4", activeMobileView === 'profile' && "text-primary")} />
+                                </Button>
+                                <div className="hidden sm:flex self-center">
+                                    {selectedConv.status !== 'closed' ? (
+                                        <Button variant="outline" size="sm" className="text-[10px] sm:text-xs h-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => toggleStatus('closed')}>
+                                            <CheckCircle2 className="w-3 h-3 sm:mr-1" /> <span className="hidden sm:inline">Kapat</span>
+                                        </Button>
+                                    ) : (
+                                        <Button variant="outline" size="sm" className="text-[10px] sm:text-xs h-8" onClick={() => toggleStatus('open')}>
+                                            Aç
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                         </div>
                         
@@ -261,8 +292,21 @@ export default function InboxPage() {
 
             {/* Right Panel: Details */}
             {selectedConv && (
-                <Card className="w-72 border-none shadow-md bg-white p-6 overflow-y-auto">
-                    <h3 className="font-bold text-xs uppercase tracking-widest text-slate-400 mb-6">Müşteri Profili</h3>
+                <Card className={cn(
+                    "w-full lg:w-72 border-none shadow-md bg-white p-4 sm:p-6 overflow-y-auto",
+                    activeMobileView !== 'profile' ? 'hidden lg:flex flex-col' : 'flex flex-col absolute inset-0 z-20 lg:relative'
+                )}>
+                    <div className="flex items-center justify-between mb-6 lg:mb-4">
+                        <h3 className="font-bold text-[10px] sm:text-xs uppercase tracking-widest text-slate-400">Müşteri Profili</h3>
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="lg:hidden h-8 w-8"
+                            onClick={() => setActiveMobileView('chat')}
+                        >
+                            <Loader2 className="w-4 h-4 rotate-45" /> {/* Close-like icon */}
+                        </Button>
+                    </div>
                     
                     <div className="space-y-6">
                         <div className="flex items-start gap-3">

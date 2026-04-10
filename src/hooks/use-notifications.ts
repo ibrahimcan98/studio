@@ -43,6 +43,17 @@ export function useNotifications() {
 
     try {
       console.log('Requesting permission...');
+      
+      // Check if Notification is available in the browser
+      if (typeof window === 'undefined' || !('Notification' in window)) {
+        toast({ 
+            variant: 'destructive', 
+            title: 'Desteklenmiyor', 
+            description: 'Tarayıcınız anlık bildirimleri desteklemiyor. Lütfen tarayıcı ayarlarını kontrol edin veya uygulamayı ana ekrana ekleyip tekrar deneyin.' 
+        });
+        return;
+      }
+
       const status = await Notification.requestPermission();
       setPermission(status);
 
