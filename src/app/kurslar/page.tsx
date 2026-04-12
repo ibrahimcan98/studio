@@ -4,6 +4,16 @@ import { Button } from "@/components/ui/button";
 import Footer from "@/components/layout/footer";
 import { getExchangeRates } from '@/ai/flows/exchange-rate-flow';
 import { KurslarClientPage } from './kurslar-client';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Türkçe Kursları ve Paketler',
+  description: 'Çocuklar için başlangıçtan akademik seviyeye kadar farklı ihtiyaçlara uygun online Türkçe kurs paketlerimizi inceleyin.',
+  openGraph: {
+    title: 'Türkçe Kursları ve Paketler | Türk Çocuk Akademisi',
+    description: 'Uzman eğitmenlerle online Türkçe eğitimi. Size en uygun paketi seçin.',
+  }
+};
 
 
 export const dynamic = 'force-dynamic';
