@@ -304,7 +304,7 @@ export default function AdminTeachersPage() {
               </div>
               <div className="space-y-2 col-span-2">
                 <Label>E-posta Adresi (Gerekirse)</Label>
-                <Input value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="ornek@turkcocukakademisii.com" />
+                <Input value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="ornek@turkcocukakademisi.com" />
               </div>
               {!formData.isPassive && (
                 <div className="space-y-2 col-span-2">

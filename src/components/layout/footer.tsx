@@ -25,7 +25,7 @@ export default function Footer() {
             <h4 className="font-semibold text-lg mb-4">İletişim</h4>
             <ul className="space-y-3">
               <li className="text-muted-foreground">
-                <a href="mailto:iletisim@turkcocukakademisii.com" className="hover:text-foreground transition-colors">iletisim@turkcocukakademisii.com</a>
+                <a href="mailto:iletisim@turkcocukakademisi.com" className="hover:text-foreground transition-colors">iletisim@turkcocukakademisi.com</a>
               </li>
               <li className="text-muted-foreground">
                 <a href="tel:+905058029734" className="hover:text-foreground transition-colors">+90 505 802 97 34</a>

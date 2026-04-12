@@ -75,7 +75,7 @@ export default function RegisterPage() {
       
       const adminEmails = [
         'iletisim@turkcocukakademisi.com',
-        'tubakodak@turkcocukakademisii.com'
+        'tubakodak@turkcocukakademisi.com'
       ];
       const isAdmin = adminEmails.map(e => e.toLowerCase()).includes(cleanEmail.toLowerCase());
       const role = isAdmin ? 'admin' : (isPreAuthorizedTeacher ? 'teacher' : 'parent');

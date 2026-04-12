@@ -20,7 +20,7 @@ const BUTTON_STYLE = `
   text-align: center;
 `;
 
-const LOGO_URL = "https://turkcocukakademisii.com/logo.png";
+const LOGO_URL = "https://turkcocukakademisi.com/logo.png";
 
 const generateGoogleCalendarUrl = (data: { studentName: string; teacherName: string; startTime?: string; courseName?: string; duration?: number }) => {
   if (!data.startTime) return null;

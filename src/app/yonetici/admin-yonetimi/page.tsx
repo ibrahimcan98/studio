@@ -79,7 +79,7 @@ export default function AdminManagementPage() {
     const { data: admins, isLoading } = useCollection(adminsQuery);
 
     // Ultra Super Admin Check
-    const isUltraAdmin = user?.email === 'tubakodak@turkcocukakademisii.com' || user?.email === 'ibrahim-can-98@hotmail.com';
+    const isUltraAdmin = user?.email === 'tubakodak@turkcocukakademisi.com' || user?.email === 'ibrahim-can-98@hotmail.com';
 
     if (!isUltraAdmin && !isLoading) {
         return (

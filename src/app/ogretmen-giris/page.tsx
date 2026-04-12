@@ -121,7 +121,7 @@ export default function OgretmenGirisPage() {
                     <form onSubmit={handleLogin} className="space-y-6">
                       <div className="space-y-2">
                         <Label htmlFor="email">Email</Label>
-                        <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={isSubmitting} placeholder="ornek@turkcocukakademisii.com" />
+                        <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={isSubmitting} placeholder="ornek@turkcocukakademisi.com" />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="password">Şifre</Label>
