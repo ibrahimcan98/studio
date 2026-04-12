@@ -4,7 +4,7 @@
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getMessaging, Messaging } from 'firebase/messaging';
+import { getMessaging, Messaging, isSupported } from 'firebase/messaging';
 import { 
   initializeFirestore,
   getFirestore, 
@@ -47,7 +47,35 @@ export {
 // Singleton initialization
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const messaging = typeof window !== 'undefined' ? getMessaging(app) : null;
+
+// Safe messaging initialization (prevents crash in restricted browsers like Instagram/iOS)
+export const getSafeMessaging = async () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const supported = await isSupported();
+    if (supported) {
+      return getMessaging(app);
+    }
+    return null;
+  } catch (e) {
+    console.warn('Messaging is not supported in this environment:', e);
+    return null;
+  }
+};
+
+// For backward compatibility but it will be null or messaging depending on support
+// Note: Some legacy components might still expect 'messaging' to be available immediately.
+// We initialize it as null and hooks should use it only after checking.
+export let messaging: Messaging | null = null;
+if (typeof window !== 'undefined') {
+  isSupported().then(supported => {
+    if (supported) {
+      messaging = getMessaging(app);
+    }
+  }).catch(() => {
+    messaging = null;
+  });
+}
 
 // Use initializeFirestore with long polling to avoid connection issues in virtual environments
 // We use a singleton pattern to ensure initializeFirestore is only called once

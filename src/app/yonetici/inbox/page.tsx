@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, query, doc, updateDoc, serverTimestamp, setDoc, limit, where } from 'firebase/firestore';
 import { 
     Search, 
@@ -16,7 +16,9 @@ import {
     MessageCircle,
     Headphones,
     Loader2,
-    Archive
+    Archive,
+    Baby,
+    GraduationCap
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -83,6 +85,18 @@ export default function InboxPage() {
             return timeA - timeB;
         });
     }, [rawMessages]);
+
+    // Live Parent Data
+    const parentUserRef = useMemoFirebase(() => 
+        (db && selectedConv?.createdBy?.uid) ? doc(db, 'users', selectedConv.createdBy.uid) : null,
+    [db, selectedConv?.createdBy?.uid]);
+    const { data: parentProfile } = useDoc(parentUserRef);
+
+    // Parent's Children
+    const childrenQuery = useMemoFirebase(() => 
+        (db && selectedConv?.createdBy?.uid) ? collection(db, 'users', selectedConv.createdBy.uid, 'children') : null,
+    [db, selectedConv?.createdBy?.uid]);
+    const { data: children } = useCollection(childrenQuery);
 
     const handleSendReply = () => {
         if (!db || !selectedConvId || !replyText.trim() || !user || !selectedConv) return;
@@ -331,6 +345,25 @@ export default function InboxPage() {
                             </div>
                         </div>
                         <Separator />
+                        
+                        {children && children.length > 0 && (
+                            <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase mb-3 flex items-center gap-1">
+                                    <Baby className="w-3 h-3" /> Öğrenciler
+                                </p>
+                                <div className="space-y-2">
+                                    {children.map((child: any) => (
+                                        <div key={child.id} className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                                            <div className="bg-primary/10 p-1 rounded">
+                                                <GraduationCap className="w-3 h-3 text-primary" />
+                                            </div>
+                                            <span className="text-xs font-medium text-slate-700">{child.firstName} {child.lastName || ''}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         <div>
                             <p className="text-[10px] font-bold text-slate-400 uppercase mb-3 flex items-center gap-1">
                                 <Headphones className="w-3 h-3" /> Destek Ekibi
@@ -342,7 +375,7 @@ export default function InboxPage() {
                                 <TagIcon className="w-3 h-3" /> Etiketler
                             </p>
                             <div className="flex flex-wrap gap-1">
-                                {selectedConv.tags?.map((tag: string) => (
+                                {(parentProfile?.tags || selectedConv.tags)?.map((tag: string) => (
                                     <Badge key={tag} variant="secondary" className="text-[10px]">{tag}</Badge>
                                 ))}
                                 <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] border border-dashed text-slate-400">+</Button>

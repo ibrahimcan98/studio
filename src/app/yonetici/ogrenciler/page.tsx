@@ -18,7 +18,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, Baby, User, Calendar, BookOpen, GraduationCap, MapPin, Search, Filter, X, ChevronDown, ShoppingBag, Copy, Plus, Package } from 'lucide-react';
+import { Loader2, Baby, User, Calendar, BookOpen, GraduationCap, MapPin, Search, Filter, X, ChevronDown, ShoppingBag, Copy, Plus, Package, MoreHorizontal, Trash2 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -317,230 +323,332 @@ export default function AdminStudentsPage() {
   };
 
   return (
-    <div className="space-y-6 font-sans">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+    <div className="space-y-4 sm:space-y-8 p-2 sm:p-8 pt-6 font-sans">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-            <h1 className="text-3xl font-black tracking-tight text-slate-900">Öğrenci Yönetimi</h1>
-            <p className="text-muted-foreground mt-1">Platformdaki tüm kayıtlı çocukların gelişim ve paket durumları.</p>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-slate-900 leading-tight">Öğrenci Yönetimi</h1>
+            <p className="text-[11px] sm:text-sm text-slate-500 font-medium mt-1">Tüm kayıtlı öğrencileri ve paket durumlarını yönetin.</p>
         </div>
       </div>
 
-      <div className="bg-white p-4 rounded-[24px] shadow-sm border border-slate-100 space-y-4">
-        <div className="flex flex-col lg:flex-row gap-4">
+      {/* FILTER BAR - Responsive */}
+      <div className="bg-white/70 backdrop-blur-md p-3 sm:p-5 rounded-[20px] sm:rounded-[32px] shadow-xl shadow-slate-200/50 border border-white space-y-3 sm:space-y-5">
+        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4">
           <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
               <Input 
-                  placeholder="Öğrenci veya Veli Ara..." 
-                  className="pl-10 h-11 rounded-xl border-slate-200 shadow-none font-medium bg-slate-50/50 focus:bg-white transition-colors" 
+                  placeholder="Öğrenci, Veli veya ID Ara..." 
+                  className="pl-11 h-11 sm:h-12 rounded-xl sm:rounded-2xl border-slate-200/60 shadow-inner bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all font-medium text-[13px] sm:text-sm" 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
               />
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-2 xs:flex flex-wrap items-center gap-2 sm:gap-3">
               <Select value={levelFilter} onValueChange={setLevelFilter}>
-                  <SelectTrigger className="w-[140px] h-11 rounded-xl border-slate-200 font-bold bg-white">
+                  <SelectTrigger className="flex-1 xs:w-[130px] h-11 sm:h-12 rounded-xl sm:rounded-2xl border-slate-200/60 font-bold bg-white text-[11px] sm:text-xs">
                       <SelectValue placeholder="Seviye" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl border-none shadow-2xl">
-                      <SelectItem value="all" className="font-bold">Tüm Seviyeler</SelectItem>
+                  <SelectContent className="rounded-2xl border-none shadow-2xl">
+                      <SelectItem value="all" className="font-bold text-xs">Tüm Seviyeler</SelectItem>
                       {['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].map(level => (
-                          <SelectItem key={level} value={level.toLowerCase()} className="font-bold uppercase">{level}</SelectItem>
+                          <SelectItem key={level} value={level.toLowerCase()} className="font-bold uppercase text-xs">{level}</SelectItem>
                       ))}
                   </SelectContent>
               </Select>
 
               <Select value={packageFilter} onValueChange={setPackageFilter}>
-                  <SelectTrigger className="w-[160px] h-11 rounded-xl border-slate-200 font-bold bg-white">
+                  <SelectTrigger className="flex-1 xs:w-[150px] h-11 sm:h-12 rounded-xl sm:rounded-2xl border-slate-200/60 font-bold bg-white text-[11px] sm:text-xs">
                       <SelectValue placeholder="Paket Durumu" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl border-none shadow-2xl">
-                      <SelectItem value="all" className="font-bold">Tüm Paketler</SelectItem>
-                      <SelectItem value="active" className="font-bold">Aktif Paketli</SelectItem>
-                      <SelectItem value="expiring" className="font-bold">Bitmek Üzere (≤3)</SelectItem>
-                      <SelectItem value="none" className="font-bold">Paketsiz / Biten</SelectItem>
+                  <SelectContent className="rounded-2xl border-none shadow-2xl">
+                      <SelectItem value="all" className="font-bold text-xs">Hepsi</SelectItem>
+                      <SelectItem value="active" className="font-bold text-xs text-blue-600">Aktifler</SelectItem>
+                      <SelectItem value="expiring" className="font-bold text-xs text-amber-600">Bitenler (≤3)</SelectItem>
+                      <SelectItem value="none" className="font-bold text-xs text-red-600">Bakiyesi 0</SelectItem>
                   </SelectContent>
               </Select>
 
               <Popover>
                   <PopoverTrigger asChild>
-                      <Button variant="outline" className="h-11 rounded-xl border-slate-200 font-bold gap-2 px-4">
-                          <Filter className="w-4 h-4" />
-                          Yaş: {minAge || 'Min'} - {maxAge || 'Max'}
+                      <Button variant="outline" className="flex-1 xs:w-auto h-11 sm:h-12 rounded-xl sm:rounded-2xl border-slate-200/60 font-bold gap-2 px-3 sm:px-4 text-[11px] sm:text-xs bg-white">
+                          <Filter className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400" />
+                          Yaş: {minAge || 'M'} - {maxAge || 'M'}
                       </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-64 p-6 rounded-[24px] shadow-2xl border-none space-y-4">
+                  <PopoverContent className="w-64 p-6 rounded-[28px] shadow-2xl border-none space-y-5 bg-white/95 backdrop-blur-sm">
                       <div className="space-y-4">
                           <div className="flex items-center gap-2">
-                              <Calendar className="w-4 h-4 text-primary" />
-                              <span className="text-xs font-black text-slate-900 uppercase tracking-tighter">Yaş Aralığı</span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                              <div className="space-y-1">
-                                  <Label className="text-[9px] text-slate-400 uppercase font-black">En Az</Label>
-                                  <Input type="number" placeholder="Min" value={minAge} onChange={e => setMinAge(e.target.value)} className="h-9 text-xs rounded-lg" />
+                              <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                                <Calendar className="w-4 h-4 text-primary" />
                               </div>
-                              <div className="space-y-1">
-                                  <Label className="text-[9px] text-slate-400 uppercase font-black">En Çok</Label>
-                                  <Input type="number" placeholder="Max" value={maxAge} onChange={e => setMaxAge(e.target.value)} className="h-9 text-xs rounded-lg" />
+                              <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest px-1 border-l-2 border-primary">Yaş Aralığı</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-1.5">
+                                  <Label className="text-[10px] text-slate-400 uppercase font-black px-1">En Az</Label>
+                                  <Input type="number" placeholder="Min" value={minAge} onChange={e => setMinAge(e.target.value)} className="h-10 text-xs rounded-xl bg-slate-50 border-slate-100" />
+                              </div>
+                              <div className="space-y-1.5">
+                                  <Label className="text-[10px] text-slate-400 uppercase font-black px-1">En Çok</Label>
+                                  <Input type="number" placeholder="Max" value={maxAge} onChange={e => setMaxAge(e.target.value)} className="h-10 text-xs rounded-xl bg-slate-50 border-slate-100" />
                               </div>
                           </div>
                       </div>
-                      <Button variant="secondary" className="w-full rounded-xl h-10 font-bold text-xs" onClick={() => { setMinAge(''); setMaxAge(''); }}>Sıfırla</Button>
+                      <Button variant="secondary" className="w-full rounded-xl h-10 font-bold text-[10px] uppercase tracking-widest" onClick={() => { setMinAge(''); setMaxAge(''); }}>Sıfırla</Button>
                   </PopoverContent>
               </Popover>
 
               {(searchQuery || levelFilter !== 'all' || packageFilter !== 'all' || minAge || maxAge) && (
-                  <Button variant="ghost" className="h-11 rounded-xl font-bold text-red-500 gap-2 hover:bg-red-50" onClick={() => {
+                  <Button variant="ghost" className="h-11 sm:h-12 rounded-xl sm:rounded-2xl font-black text-red-500 gap-2 hover:bg-red-50 hover:text-red-600 transition-all text-[11px] sm:text-xs" onClick={() => {
                       setSearchQuery(''); setLevelFilter('all'); setPackageFilter('all'); setMinAge(''); setMaxAge('');
                   }}>
-                      <X className="w-4 h-4" /> Tümünü Temizle
+                      <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Temizle
                   </Button>
               )}
           </div>
         </div>
       </div>
 
-      <Card className="border-none shadow-xl overflow-hidden rounded-[24px]">
-        <CardHeader className="bg-white border-b">
-          <CardTitle className="text-lg flex items-center gap-2 text-slate-800">
-            <Baby className="w-5 h-5 text-primary" /> Kayıtlı Öğrenciler ({students.length})
-          </CardTitle>
-          <CardDescription>
-            Velilerin oluşturduğu tüm çocuk profilleri ve akademik seviyeleri.
-          </CardDescription>
+      <Card className="border-none shadow-2xl overflow-hidden rounded-[28px] sm:rounded-[40px] bg-white/80 backdrop-blur-md">
+        <CardHeader className="bg-white/50 border-b border-slate-100 p-5 sm:p-8">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1 sm:space-y-2">
+                <CardTitle className="text-xl sm:text-2xl font-black flex items-center gap-3 text-slate-800">
+                    <Baby className="w-6 h-6 sm:w-7 sm:h-7 text-primary" /> Kayıtlı Öğrenciler 
+                    <Badge variant="secondary" className="rounded-lg font-black bg-slate-100 text-slate-500 text-[10px] sm:text-xs">
+                        {filteredStudents.length}
+                    </Badge>
+                </CardTitle>
+                <CardDescription className="text-xs sm:text-sm font-medium">
+                    Velilerin oluşturduğu tüm çocuk profilleri ve akademik seviyeleri.
+                </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
+            <div className="flex flex-col justify-center items-center h-64 sm:h-96 gap-4">
+              <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary opacity-20" />
+              <p className="text-xs sm:text-sm font-bold text-slate-400 animate-pulse uppercase tracking-widest">Öğrenciler yükleniyor...</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader className="bg-slate-50/50">
-                <TableRow className="hover:bg-transparent border-slate-100">
-                  <TableHead className="font-bold text-slate-500 py-5 pl-8">Öğrenci</TableHead>
-                  <TableHead className="font-bold text-slate-500">Yaş / Ülke</TableHead>
-                  <TableHead className="font-bold text-slate-500">Veli Bilgisi</TableHead>
-                  <TableHead className="font-bold text-slate-500">Paket Durumu</TableHead>
-                  <TableHead className="font-bold text-slate-500">Akademik Seviye</TableHead>
-                  <TableHead className="font-bold text-slate-500">Rozet</TableHead>
-                  <TableHead className="font-bold text-slate-500 text-right pr-8">İşlemler</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredStudents.length > 0 ? (
-                  filteredStudents.map((student) => (
-                    <TableRow key={student.id} className="hover:bg-slate-50/30 transition-colors border-slate-100">
-                      <TableCell className="py-5 pl-8">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-xs shrink-0">
-                                {student.firstName?.substring(0,2).toUpperCase() || '??'}
-                            </div>
-                            <div className="flex flex-col min-w-0">
-                                <span className="font-bold text-slate-700 truncate">{student.firstName || 'İsimsiz'}</span>
-                                <div className="flex items-center gap-1 group/id">
-                                    <span className="text-[9px] font-mono text-slate-300 select-all uppercase">ID: {student.id.substring(0, 8).toUpperCase()}</span>
-                                    <button 
-                                        onClick={() => { 
-                                            navigator.clipboard.writeText(student.id); 
-                                            toast({ title: 'Kopyalandı', description: 'Öğrenci ID kopyalandı.' }); 
-                                        }}
-                                        className="opacity-0 group-hover/id:opacity-100 transition-opacity text-slate-300 hover:text-primary"
-                                        title="ID Kopyala"
-                                    >
-                                        <Copy className="w-2.5 h-2.5" />
-                                    </button>
+            <div className="min-h-[400px]">
+                {/* CARD VIEW - Mobile (xs, sm) */}
+                <div className="md:hidden divide-y divide-slate-100">
+                    {filteredStudents.length > 0 ? (
+                        filteredStudents.map((student) => (
+                            <div key={student.id} className="p-4 sm:p-6 space-y-4 hover:bg-slate-50/50 transition-colors">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex items-center gap-3 sm:gap-4">
+                                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-primary flex items-center justify-center text-white font-black text-sm sm:text-base shadow-lg shadow-primary/20">
+                                            {student.firstName?.substring(0,2).toUpperCase() || '??'}
+                                        </div>
+                                        <div className="space-y-0.5 sm:space-y-1 min-w-0">
+                                            <h3 className="font-black text-slate-900 text-base sm:text-lg truncate">{student.firstName || 'İsimsiz'}</h3>
+                                            <div className="flex items-center gap-2">
+                                                <Badge variant="secondary" className="text-[9px] sm:text-[10px] bg-slate-100 text-slate-400 border-none font-mono">
+                                                    #{student.id.substring(0, 6).toUpperCase()}
+                                                </Badge>
+                                                <span className="text-[10px] sm:text-xs text-slate-500 font-bold flex items-center gap-1">
+                                                    <MapPin className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> {student.countryOfResidence?.split(',')[0]}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-slate-100/50">
+                                                <MoreHorizontal className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="rounded-2xl border-none shadow-2xl p-2 w-48">
+                                            <DropdownMenuItem onClick={() => { setSelectedStudentForPackage(student); setIsAddPackageOpen(true); }} className="rounded-xl font-bold text-xs py-2.5 gap-2">
+                                                <Plus className="w-4 h-4 text-blue-500" /> Paket Tanımla
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleDeleteStudent(student)} className="rounded-xl font-bold text-xs py-2.5 gap-2 text-red-500 focus:text-red-500">
+                                                <X className="w-4 h-4" /> Öğrenciyi Sil
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                                    <div className="p-3 bg-slate-50 rounded-xl space-y-1">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Kayıtlı Veli</p>
+                                        <p className="text-[11px] sm:text-xs font-bold text-slate-700 truncate">{student.parentName}</p>
+                                        <p className="text-[10px] text-slate-400 truncate">{student.parentEmail}</p>
+                                    </div>
+                                    <div className="p-3 bg-slate-50 rounded-xl space-y-1">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Paket Durumu</p>
+                                        {student.assignedPackage ? (
+                                            <>
+                                                <p className="text-[11px] sm:text-xs font-black text-blue-600 uppercase truncate">
+                                                    {student.assignedPackageName || student.assignedPackage}
+                                                </p>
+                                                <p className="text-[10px] font-bold text-slate-500 uppercase">{student.remainingLessons} DERS KALDI</p>
+                                            </>
+                                        ) : (
+                                            <p className="text-[11px] sm:text-xs font-bold text-slate-400 italic">Paket Tanımlanmamış</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">CEFR:</span>
+                                        {student.cefrProfile?.speaking ? (
+                                            <Badge className="bg-emerald-500 text-white border-none font-black text-[10px] h-5 px-2">
+                                                {student.cefrProfile.speaking.toUpperCase()}
+                                            </Badge>
+                                        ) : <span className="text-[10px] text-slate-300 italic">Girilmemiş</span>}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 font-black text-[9px] sm:text-[10px] px-2 py-0.5">
+                                            {(student.badges || []).length} ROZET
+                                        </Badge>
+                                        <span className="text-[10px] sm:text-xs font-black text-slate-700">{getAge(student.dateOfBirth ?? '')} YASINDA</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                            <span className="text-sm font-semibold text-slate-600">{getAge(student.dateOfBirth ?? '') || '-'} Yaş</span>
-                            <span className="text-[10px] text-slate-400 flex items-center gap-1 font-medium">
-                                <MapPin className="w-2.5 h-3 text-slate-300" />
-                                {student.countryOfResidence?.split(',')[0] || 'Belirtilmedi'}
-                            </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col min-w-0">
-                            <span className="text-sm font-bold text-slate-600 flex items-center gap-1 truncate">
-                                <User className="w-3 h-3 text-slate-400" /> {student.parentName}
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-medium lowercase truncate">{student.parentEmail}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {student.assignedPackage ? (
-                            <div className="flex flex-col gap-1">
-                                <Badge variant="secondary" className="w-fit text-[10px] bg-blue-50 text-blue-700 border-blue-100 font-bold uppercase tracking-tighter">
-                                    {student.assignedPackageName || student.assignedPackage}
-                                </Badge>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                        {student.remainingLessons} DERS KALDI
-                                    </span>
-                                    <button 
-                                        onClick={() => { setSelectedStudentForPackage(student); setIsAddPackageOpen(true); }}
-                                        className="text-[9px] font-bold text-blue-600 hover:text-blue-800 underline uppercase transition-colors"
-                                    >
-                                        Ekle
-                                    </button>
-                                </div>
-                            </div>
-                        ) : (
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="h-7 text-[9px] font-black uppercase tracking-widest border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg px-3 transition-all"
-                                onClick={() => { setSelectedStudentForPackage(student); setIsAddPackageOpen(true); }}
-                            >
-                                <Plus className="w-3 h-3 mr-1" /> Paket Ata
-                            </Button>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                            <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-1">
-                                <GraduationCap className="w-3 h-3" /> CEFR
-                            </span>
-                            <div className="flex gap-1">
-                                {student.cefrProfile?.speaking ? (
-                                    <Badge className="text-[9px] h-4 px-1.5 bg-emerald-500 text-white border-none font-black">
-                                        {student.cefrProfile.speaking.toUpperCase()}
-                                    </Badge>
-                                ) : <span className="text-[10px] text-slate-300 font-medium italic">Değerlendirilmedi</span>}
-                            </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className="bg-amber-100 text-amber-700 border-none font-black text-[10px] uppercase tracking-widest">
-                            {(student.badges || []).length} ROZET
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right pr-8">
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-red-500 hover:bg-red-50"
-                            onClick={() => handleDeleteStudent(student)}
-                        >
-                            <X className="w-4 h-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center text-muted-foreground italic text-sm">
-                      Arama kriterlerinize uygun öğrenci bulunamadı.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                        ))
+                    ) : (
+                        <div className="p-16 text-center text-slate-400 italic font-bold text-xs uppercase tracking-widest">Öğrenci bulunamadı.</div>
+                    )}
+                </div>
+
+                {/* TABLE VIEW - Desktop (md, lg, xl) */}
+                <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                        <TableHeader className="bg-slate-50/30">
+                            <TableRow className="hover:bg-transparent border-slate-100">
+                            <TableHead className="font-black text-slate-500 py-6 pl-10 text-[11px] uppercase tracking-widest">Öğrenci</TableHead>
+                            <TableHead className="font-black text-slate-500 text-[11px] uppercase tracking-widest">Yaş / Ülke</TableHead>
+                            <TableHead className="font-black text-slate-500 text-[11px] uppercase tracking-widest items-center gap-1.5 flex py-6">Veli Bilgisi</TableHead>
+                            <TableHead className="font-black text-slate-500 text-[11px] uppercase tracking-widest">Paket Durumu</TableHead>
+                            <TableHead className="font-black text-slate-500 text-[11px] uppercase tracking-widest">Seviye</TableHead>
+                            <TableHead className="font-black text-slate-500 text-[11px] uppercase tracking-widest">İşlemler</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {filteredStudents.length > 0 ? (
+                            filteredStudents.map((student) => (
+                                <TableRow key={student.id} className="hover:bg-slate-50/50 transition-colors border-slate-100 group">
+                                <TableCell className="py-6 pl-10">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-11 h-11 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center justify-center text-primary font-black text-sm shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-transform">
+                                            {student.firstName?.substring(0,2).toUpperCase() || '??'}
+                                        </div>
+                                        <div className="flex flex-col min-w-0">
+                                            <span className="font-black text-slate-800 tracking-tight text-sm truncate">{student.firstName || 'İsimsiz'}</span>
+                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                                <span className="text-[10px] font-mono text-slate-300 font-bold uppercase tracking-tighter">ID: {student.id.substring(0, 8).toUpperCase()}</span>
+                                                <button 
+                                                    onClick={() => { 
+                                                        navigator.clipboard.writeText(student.id); 
+                                                        toast({ title: 'Kopyalandı', description: 'Öğrenci ID kopyalandı.' }); 
+                                                    }}
+                                                    className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-primary"
+                                                >
+                                                    <Copy className="w-3 h-3" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex flex-col gap-0.5">
+                                        <span className="text-sm font-black text-slate-700">{getAge(student.dateOfBirth ?? '') || '-'} Yaşında</span>
+                                        <span className="text-[10px] text-slate-400 flex items-center gap-1 font-bold uppercase tracking-wider">
+                                            <MapPin className="w-2.5 h-3 text-slate-300" />
+                                            {student.countryOfResidence?.split(',')[0]}
+                                        </span>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex flex-col min-w-0 pr-4">
+                                        <span className="text-[13px] font-bold text-slate-800 truncate">{student.parentName}</span>
+                                        <span className="text-[10px] text-slate-400 font-bold lowercase truncate max-w-[180px]">{student.parentEmail}</span>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    {student.assignedPackage ? (
+                                        <div className="flex flex-col gap-1.5">
+                                            <Badge variant="secondary" className="w-fit text-[9px] bg-blue-50 text-blue-700 border-blue-100 font-black uppercase tracking-tighter">
+                                                {student.assignedPackageName || student.assignedPackage}
+                                            </Badge>
+                                            <div className="flex items-center gap-2">
+                                                <span className={cn(
+                                                    "text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full",
+                                                    (student.remainingLessons || 0) <= 3 ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-500"
+                                                )}>
+                                                    {student.remainingLessons} DERS
+                                                </span>
+                                                <button 
+                                                    onClick={() => { setSelectedStudentForPackage(student); setIsAddPackageOpen(true); }}
+                                                    className="text-[9px] font-black text-blue-600 hover:text-blue-800 underline uppercase tracking-widest"
+                                                >
+                                                    Yükle
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <Button 
+                                            variant="outline" 
+                                            className="h-8 text-[9px] font-black uppercase tracking-widest border-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl px-4 transition-all shadow-sm"
+                                            onClick={() => { setSelectedStudentForPackage(student); setIsAddPackageOpen(true); }}
+                                        >
+                                            <Package className="w-3.5 h-3.5 mr-2" /> Paket Ata
+                                        </Button>
+                                    )}
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex flex-col gap-1.5">
+                                        {student.cefrProfile?.speaking ? (
+                                            <Badge className="w-fit text-[10px] h-6 px-3 bg-slate-900 text-white border-none font-black shadow-lg shadow-slate-200">
+                                                {student.cefrProfile.speaking.toUpperCase()}
+                                            </Badge>
+                                        ) : <span className="text-[11px] text-slate-300 font-bold italic tracking-tight">Girilmemiş</span>}
+                                        <Badge variant="outline" className="w-fit bg-amber-50 text-amber-700 border-amber-200 font-black text-[9px] uppercase">
+                                            {(student.badges || []).length} ROZET
+                                        </Badge>
+                                    </div>
+                                </TableCell>
+                                <TableCell className="pr-10">
+                                    <div className="flex justify-end items-center gap-1">
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-9 w-9 rounded-xl hover:bg-blue-50 hover:text-blue-600 text-slate-400 transition-colors"
+                                            onClick={() => { setSelectedStudentForPackage(student); setIsAddPackageOpen(true); }}
+                                            title="Paket Ekle"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                        </Button>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-9 w-9 rounded-xl hover:bg-red-50 hover:text-red-500 text-slate-400 transition-colors"
+                                            onClick={() => handleDeleteStudent(student)}
+                                            title="Sil"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                </TableCell>
+                                </TableRow>
+                            ))
+                            ) : (
+                            <TableRow>
+                                <TableCell colSpan={7} className="h-48 text-center text-slate-400 italic font-black text-xs uppercase tracking-widest">
+                                    Arama kriterlerinize uygun öğrenci bulunamadı.
+                                </TableCell>
+                            </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+            </div>
           )}
         </CardContent>
       </Card>

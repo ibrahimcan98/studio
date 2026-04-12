@@ -37,7 +37,8 @@ export function LessonQuickChat({ lessonId, teacherId, parentId, userRole }: Les
     const { user } = useUser();
     const db = useFirestore();
     const [isSending, setIsSending] = useState(false);
-    const scrollRef = useRef<HTMLDivElement>(null);
+    const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const lastMessageCount = useRef<number | null>(null);
 
     const chatQuery = useMemoFirebase(() => {
         if (!db || !lessonId) return null;
@@ -51,8 +52,39 @@ export function LessonQuickChat({ lessonId, teacherId, parentId, userRole }: Les
     const { data: messages, isLoading } = useCollection(chatQuery);
 
     useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollIntoView({ behavior: 'smooth' });
+        if (!messages) return;
+        
+        // CASE 1: Initial data load (e.g. 5 messages loaded on mount/tab switch)
+        // We just set the counter and DO NOT scroll to prevent global page jump
+        if (lastMessageCount.current === null) {
+            lastMessageCount.current = messages.length;
+            
+            // Optional: Instant scroll for the first load ONLY in the internal viewport
+            // without using logic that triggers global browser focus/scroll
+            const timer = setTimeout(() => {
+                const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+                if (viewport) {
+                    viewport.scrollTop = viewport.scrollHeight;
+                }
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+        
+        // CASE 2: Actual new message arrived during the session
+        if (messages.length > lastMessageCount.current) {
+            lastMessageCount.current = messages.length;
+            
+            const timer = setTimeout(() => {
+                const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+                if (viewport) {
+                    // Smooth scroll for new messages
+                    viewport.scrollTo({
+                        top: viewport.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                }
+            }, 50);
+            return () => clearTimeout(timer);
         }
     }, [messages]);
 
@@ -97,8 +129,8 @@ export function LessonQuickChat({ lessonId, teacherId, parentId, userRole }: Les
                 {isLoading && <Loader2 className="w-3 h-3 animate-spin text-slate-400" />}
             </div>
 
-            <ScrollArea className="flex-1 p-3 h-[200px]">
-                <div className="space-y-3">
+            <ScrollArea ref={scrollAreaRef} className="flex-1 p-3 h-[200px]">
+                <div className="space-y-3 pb-2">
                     {messages && messages.length > 0 ? (
                         messages.map((msg) => {
                             const isMe = msg.senderId === user?.uid;
@@ -126,10 +158,9 @@ export function LessonQuickChat({ lessonId, teacherId, parentId, userRole }: Les
                     ) : (
                         <div className="h-32 flex flex-col items-center justify-center text-center px-4">
                             <Clock className="w-8 h-8 text-slate-200 mb-2" />
-                            <p className="text-[10px] text-slate-400 font-medium">Henüz mesaj yok. Aşağıdaki butonlarla hızlıca bilgi verebilirsiniz.</p>
+                            <p className="text-[10px] text-slate-400 font-medium font-sans">Henüz mesaj yok. Aşağıdaki butonlarla hızlıca bilgi verebilirsiniz.</p>
                         </div>
                     )}
-                    <div ref={scrollRef} />
                 </div>
             </ScrollArea>
 

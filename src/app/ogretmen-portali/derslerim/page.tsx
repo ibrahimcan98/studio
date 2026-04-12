@@ -477,7 +477,13 @@ function OgretmenDerslerimPageContent() {
     return (
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen">
             <h2 className="text-3xl font-bold tracking-tight">Derslerim</h2>
-            <Tabs defaultValue="upcoming" className="w-full">
+            <Tabs 
+                defaultValue="upcoming" 
+                className="w-full"
+                onValueChange={() => {
+                    setTimeout(() => window.scrollTo({ top: 0, behavior: 'instant' }), 0);
+                }}
+            >
                 <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="upcoming"><Calendar className="mr-2 h-4 w-4" />Yaklaşan ({upcomingLessons.length})</TabsTrigger>
                     <TabsTrigger value="past"><History className="mr-2 h-4 w-4" />Geçmiş ({pastLessons.length})</TabsTrigger>

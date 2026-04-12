@@ -123,7 +123,7 @@ export function AIAssistant() {
             if (!customInput) setInput('');
 
             const msgRef = doc(collection(db, 'messages'));
-            setDoc(msgRef, {
+            await setDoc(msgRef, {
                 conversationId: currentConversationId,
                 text: textToSend,
                 senderType: user && !user.isAnonymous ? 'parent' : 'anonymous',
@@ -132,11 +132,32 @@ export function AIAssistant() {
             });
 
             const convRef = doc(db, 'conversations', currentConversationId);
-            updateDoc(convRef, {
+            await updateDoc(convRef, {
                 lastMessageAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
                 lastMessage: textToSend
             });
+
+            // Notify Admins
+            try {
+                fetch('/api/notify/admin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: '💬 Yeni Mesaj',
+                        body: `${user?.displayName || 'Bir veli'} mesaj gönderdi: "${textToSend.substring(0, 50)}${textToSend.length > 50 ? '...' : ''}"`,
+                        link: `/yonetici/inbox?id=${currentConversationId}`,
+                        logData: {
+                            icon: '💬',
+                            event: 'Gelen Mesaj',
+                            details: {
+                                "Veli": user?.displayName || 'Anonim Veli',
+                                "Mesaj": textToSend
+                            }
+                        }
+                    })
+                });
+            } catch (e) { console.error("Admin notify error:", e); }
         }
     };
 
@@ -174,6 +195,28 @@ export function AIAssistant() {
             senderUid: user?.uid || null,
             createdAt: serverTimestamp()
         });
+
+        // Notify Admins of New Conversation
+        try {
+            fetch('/api/notify/admin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: '🚀 Yeni Canlı Destek',
+                    body: `${formData.name} bir destek talebi başlattı: "${formData.message.substring(0, 50)}${formData.message.length > 50 ? '...' : ''}"`,
+                    link: `/yonetici/inbox?id=${convRef.id}`,
+                    logData: {
+                        icon: '🚀',
+                        event: 'Canlı Destek Başlatıldı',
+                        details: {
+                            "Veli": formData.name,
+                            "Konu": formData.topic,
+                            "Mesaj": formData.message
+                        }
+                    }
+                })
+            });
+        } catch (e) { console.error("Admin notify error:", e); }
 
         setCurrentConversationId(convRef.id);
         localStorage.setItem('tca_conversation_id', convRef.id);

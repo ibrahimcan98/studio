@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { getCountryFromPhone, cn } from '@/lib/utils';
-import { Loader2, Phone, Search, History, Clock, PhoneOff, UserCheck, CalendarClock, UserCog, User, MapPin, Hash, PhoneCall, Copy, MoreHorizontal, ShoppingBag, Baby, FileText, Tag as TagIcon, Mail, Calendar, Activity, Trash2, Edit2 } from 'lucide-react';
+import { Loader2, Phone, Search, History, Clock, PhoneOff, UserCheck, CalendarClock, UserCog, User, MapPin, Hash, PhoneCall, Copy, MoreHorizontal, ShoppingBag, Baby, FileText, Tag as TagIcon, Mail, Calendar, Activity, Trash2, Edit2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { 
@@ -66,6 +66,7 @@ export default function AramalarPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [logToDelete, setLogToDelete] = useState<any | null>(null);
   const [isUpdatingLog, setIsUpdatingLog] = useState(false);
+  const [activeMobileView, setActiveMobileView] = useState<'list' | 'details'>('list');
 
   const parentsQuery = useMemoFirebase(() => {
     if (!db) return null;
@@ -272,19 +273,42 @@ export default function AramalarPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-100px)] overflow-hidden font-sans">
-        <div className="flex items-center justify-between pb-4">
-            <div>
-                <h1 className="text-3xl font-black tracking-tight text-slate-900">Telemarketing / Aramalar</h1>
-                <p className="text-muted-foreground mt-1 text-sm font-medium">Velileri arayın, etiketleri görün ve arama geçmişini kaydedin.</p>
+    <div className="flex flex-col h-[calc(100vh-80px)] sm:h-[calc(100vh-100px)] overflow-hidden font-sans">
+        {/* RESPONSIVE HEADER */}
+        <div className={cn(
+            "flex items-center justify-between pb-4 sm:pb-6",
+            activeMobileView === 'details' && "md:flex"
+        )}>
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3">
+                    {activeMobileView === 'details' && (
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="md:hidden shrink-0 h-9 w-9 bg-white shadow-sm border rounded-xl"
+                            onClick={() => setActiveMobileView('list')}
+                        >
+                            <ChevronLeft className="w-5 h-5" />
+                        </Button>
+                    )}
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-slate-900 truncate">
+                        {activeMobileView === 'details' && selectedParent ? `Arama: ${selectedParent.firstName}` : 'Telemarketing / Aramalar'}
+                    </h1>
+                </div>
+                {activeMobileView === 'list' && (
+                    <p className="hidden sm:block text-muted-foreground mt-1 text-sm font-medium">Velileri arayın, etiketleri görün ve arama geçmişini kaydedin.</p>
+                )}
             </div>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-6 flex-1 min-h-0 bg-slate-50 p-2 rounded-3xl border border-slate-200/60 shadow-inner">
+        <div className="flex flex-col md:flex-row gap-4 sm:gap-6 flex-1 min-h-0 bg-slate-50 p-1 sm:p-2 rounded-[24px] sm:rounded-3xl border border-slate-200/60 shadow-inner overflow-hidden">
             
             {/* SOL PANEL (List) */}
-            <div className="w-full md:w-1/3 max-w-sm flex flex-col bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden shrink-0 h-full">
-                <div className="p-4 border-b bg-slate-50/50">
+            <div className={cn(
+                "w-full md:w-80 lg:w-96 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden shrink-0 h-full transition-all",
+                activeMobileView === 'details' && "hidden md:flex"
+            )}>
+                <div className="p-3 sm:p-4 border-b bg-slate-50/50">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                         <Input 
@@ -295,7 +319,7 @@ export default function AramalarPage() {
                         />
                     </div>
                 </div>
-                <div className="flex-1 overflow-y-auto p-3 space-y-2 relative">
+                <div className="flex-1 overflow-y-auto p-2 sm:p-3 space-y-2 relative scrollbar-thin">
                     {parentsLoading ? (
                         <div className="absolute inset-0 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary opacity-30"/></div>
                     ) : filteredParents.length > 0 ? (
@@ -305,38 +329,50 @@ export default function AramalarPage() {
                             return (
                                 <button 
                                     key={parent.id} 
-                                    onClick={() => setSelectedParent(parent)}
+                                    onClick={() => {
+                                        setSelectedParent(parent);
+                                        setActiveMobileView('details');
+                                    }}
                                     className={cn(
-                                        "w-full text-left p-3 rounded-xl transition-all border flex flex-col gap-2",
+                                        "w-full text-left p-3 sm:p-4 rounded-xl transition-all border flex flex-col gap-2 relative group",
                                         isSelected 
                                             ? "bg-primary/5 border-primary/30 shadow-sm ring-1 ring-primary/10" 
                                             : "bg-white border-slate-100 hover:border-slate-300 hover:bg-slate-50"
                                     )}
                                 >
                                     <div className="flex justify-between items-start">
-                                        <span className={cn("font-bold text-sm", isSelected ? "text-primary" : "text-slate-700")}>
-                                            {parent.firstName} {parent.lastName}
-                                        </span>
-                                        <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md font-medium font-mono">
-                                            {parent.id.substring(0,6).toUpperCase()}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-xs font-medium">
-                                        <span className="text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded flex items-center gap-1">
-                                            <Hash className="w-3 h-3" /> {parent.phoneNumber || '-'}
-                                        </span>
-                                        <span className="text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded flex items-center gap-1 truncate max-w-[100px]">
-                                            <MapPin className="w-3 h-3" /> {country}
-                                        </span>
-                                    </div>
-                                    {parent.lastCallStatus && (
-                                        <div className="mt-1 flex items-center gap-1.5 text-[10px] font-medium border-t border-slate-100 pt-1.5 overflow-hidden">
-                                            <span className={cn("px-1.5 py-0.5 rounded font-black max-w-[90px] truncate shrink-0", parent.lastCallStatus.color)}>
-                                                {parent.lastCallStatus.status}
+                                        <div className="min-w-0 flex-1">
+                                            <span className={cn("font-bold text-sm sm:text-base truncate block", isSelected ? "text-primary" : "text-slate-700")}>
+                                                {parent.firstName} {parent.lastName}
                                             </span>
-                                            {parent.lastCallStatus.note && (
-                                                <span className="text-slate-400 truncate opacity-80">{parent.lastCallStatus.note}</span>
-                                            )}
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <Badge variant="secondary" className="text-[9px] bg-slate-100 text-slate-500 border-none font-mono tracking-tighter">
+                                                    {parent.id.substring(0,8).toUpperCase()}
+                                                </Badge>
+                                                <span className="text-[10px] sm:text-xs text-slate-400 font-medium truncate flex items-center gap-1">
+                                                    <MapPin className="w-2.5 h-2.5" /> {country}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <ChevronRight className={cn("w-4 h-4 text-slate-300 md:hidden transition-transform", isSelected && "text-primary translate-x-1")} />
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-2 overflow-hidden">
+                                        <span className="text-[11px] text-slate-500 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-lg flex items-center gap-1 whitespace-nowrap">
+                                            <Phone className="w-3 h-3" /> {parent.phoneNumber || '-'}
+                                        </span>
+                                    </div>
+
+                                    {parent.lastCallStatus && (
+                                        <div className="mt-1 flex flex-col gap-1.5 border-t border-slate-100 pt-2">
+                                            <div className="flex items-center gap-1.5">
+                                                <span className={cn("px-2 py-0.5 rounded-full font-black text-[9px] uppercase tracking-wider shrink-0", parent.lastCallStatus.color)}>
+                                                    {parent.lastCallStatus.status}
+                                                </span>
+                                                {parent.lastCallStatus.note && (
+                                                    <span className="text-[10px] text-slate-400 truncate italic font-medium">"{parent.lastCallStatus.note}"</span>
+                                                )}
+                                            </div>
                                         </div>
                                     )}
                                 </button>
@@ -349,41 +385,47 @@ export default function AramalarPage() {
             </div>
 
             {/* SAĞ PANEL (Details & Actions) */}
-            <div className="flex-1 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden h-full">
+            <div className={cn(
+                "flex-1 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden h-full relative",
+                activeMobileView === 'list' && "hidden md:flex"
+            )}>
                 {selectedParent ? (
-                    <div className="flex flex-col h-full relative">
-                        {loadingExtras && <div className="absolute top-4 right-4"><Loader2 className="w-5 h-5 animate-spin text-primary opacity-50"/></div>}
+                    <div className="flex flex-col h-full overflow-hidden">
+                        {loadingExtras && (
+                            <div className="absolute top-2 sm:top-4 right-2 sm:right-4 z-50 bg-white/50 backdrop-blur-sm p-1 rounded-full border">
+                                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-primary opacity-50"/>
+                            </div>
+                        )}
                         
-                        {/* DARK PROFILE HEADER */}
-                        <div className="p-8 bg-slate-900 text-white shrink-0">
-                            <div className="flex flex-col lg:flex-row items-start justify-between gap-6">
-                                <div className="flex items-center gap-6">
-                                    <div className="w-20 h-20 rounded-[24px] bg-primary flex items-center justify-center text-3xl font-black shadow-lg shadow-primary/20 shrink-0">
+                        {/* PROFILE HEADER (Responsive heights) */}
+                        <div className="p-4 sm:p-6 lg:p-8 bg-slate-900 text-white shrink-0 scrollbar-hide">
+                            <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 sm:gap-6">
+                                <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-6 w-full">
+                                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-[20px] sm:rounded-[24px] bg-primary flex items-center justify-center text-2xl sm:text-3xl font-black shadow-lg shadow-primary/20 shrink-0">
                                         {selectedParent.firstName?.[0] || 'V'}{selectedParent.lastName?.[0] || 'P'}
                                     </div>
-                                    <div className="space-y-1">
-                                        <h2 className="text-3xl font-black tracking-tight">{selectedParent.firstName} {selectedParent.lastName}</h2>
-                                        <div className="flex items-center flex-wrap gap-4 text-slate-400 text-sm font-medium">
-                                            <span className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> {selectedParent.email}</span>
-                                            <span className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" /> {selectedParent.phoneNumber || '-'}</span>
-                                            <span className="text-[10px] font-mono opacity-50 bg-white/10 px-2 py-0.5 rounded ml-2 select-all uppercase">ID: {selectedParent.id.substring(0, 8).toUpperCase()}</span>
+                                    <div className="space-y-1 sm:space-y-2 min-w-0 flex-1">
+                                        <h2 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight truncate">{selectedParent.firstName} {selectedParent.lastName}</h2>
+                                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-4 text-slate-400 text-[11px] sm:text-sm font-medium">
+                                            <span className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 shrink-0" /> <span className="truncate max-w-[150px] sm:max-w-none">{selectedParent.email}</span></span>
+                                            <span className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 shrink-0" /> {selectedParent.phoneNumber || '-'}</span>
                                             <button 
-                                                className="ml-2 py-1 px-2 border border-slate-700 bg-slate-800 rounded text-slate-300 hover:text-white transition-colors flex items-center gap-1 text-[10px] font-bold"
+                                                className="hidden sm:flex items-center gap-1.5 py-1 px-2 border border-slate-700 bg-slate-800 rounded text-slate-300 hover:text-white transition-colors text-[10px] font-bold"
                                                 onClick={() => {
                                                     navigator.clipboard.writeText(selectedParent.phoneNumber || '');
                                                     toast({title: 'Kopyalandı', description: 'Numara panoya kopyalandı.'});
                                                 }}
-                                            ><Copy className="w-3 h-3" /> Numarayı Kopyala</button>
+                                            ><Copy className="w-3 h-3" /> Kopyala</button>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex flex-col items-end gap-3 shrink-0">
-                                     <Badge className="bg-emerald-500 text-white border-none font-bold px-4 py-1.5 rounded-full uppercase tracking-widest text-[10px]">
+                                <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 sm:gap-3 shrink-0">
+                                     <Badge className="bg-emerald-500 text-white border-none font-bold px-3 py-1 sm:px-4 sm:py-1.5 rounded-full uppercase tracking-widest text-[9px] sm:text-[10px]">
                                         {getCountryFromPhone(selectedParent.phoneNumber)}
                                     </Badge>
-                                    <div className="flex flex-wrap gap-1 justify-end">
+                                    <div className="flex flex-wrap gap-1 justify-center sm:justify-end max-w-[150px] sm:max-w-none">
                                         {tags.map(t => (
-                                            <Badge key={t} className="px-2 py-0.5 text-[9px] font-black uppercase bg-white/10 text-slate-200 border-none">
+                                            <Badge key={t} className="px-1.5 py-0.5 text-[8px] sm:text-[9px] font-black uppercase bg-white/10 text-slate-200 border-none">
                                                 {t}
                                             </Badge>
                                         ))}
@@ -392,115 +434,114 @@ export default function AramalarPage() {
                             </div>
                         </div>
 
-                        {/* CRM ACTIONS BAR (Pinned below header) */}
-                        <div className="bg-slate-50 border-b p-4 px-6 flex flex-col xl:flex-row items-center justify-between gap-4 shrink-0 shadow-sm z-10">
-                            <span className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                                <PhoneCall className="w-4 h-4 text-primary" /> Anlık Arama Sonucu Durum Girişi
-                            </span>
-                            <div className="flex items-center gap-2 w-full xl:w-auto">
-                                <Input 
-                                    placeholder="Veli için arama notu bırakın..." 
-                                    className="h-10 text-xs bg-white rounded-xl min-w-[250px] font-medium"
-                                    value={callNote}
-                                    onChange={(e) => setCallNote(e.target.value)}
-                                />
-                                <Button disabled={isSavingCall} onClick={() => handleCallAction('Açmadı', 'bg-red-50 text-red-600 border-red-200', 'PhoneOff')} variant="outline" className="h-10 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 shadow-sm rounded-xl font-bold px-4 text-xs"><PhoneOff className="w-4 h-4 mr-2"/> Açmadı</Button>
-                                <Button disabled={isSavingCall} onClick={() => handleCallAction('Açtı', 'bg-emerald-50 text-emerald-600 border-emerald-200', 'UserCheck')} variant="outline" className="h-10 border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 shadow-sm rounded-xl font-bold px-4 text-xs"><UserCheck className="w-4 h-4 mr-2"/> Açtı</Button>
-                                <Button disabled={isSavingCall} onClick={() => handleCallAction('Müsait Değil', 'bg-amber-50 text-amber-600 border-amber-200', 'Clock')} variant="outline" className="h-10 border-amber-200 text-amber-600 hover:bg-amber-50 hover:text-amber-700 shadow-sm rounded-xl font-bold px-4 text-xs"><Clock className="w-4 h-4 mr-2"/> Müsait Değil</Button>
-                                <Button disabled={isSavingCall} onClick={() => handleCallAction('Daha Sonra Ara', 'bg-blue-50 text-blue-600 border-blue-200', 'CalendarClock')} variant="outline" className="h-10 border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 shadow-sm rounded-xl font-bold px-4 text-xs"><CalendarClock className="w-4 h-4 mr-2"/> Tekrar Ara</Button>
+                        {/* CRM ACTIONS BAR (Mobile Optimized - Horizontal Scroll on small) */}
+                        <div className="bg-slate-50 border-b p-3 sm:p-4 px-4 sm:px-6 shrink-0 shadow-sm z-10 overflow-hidden">
+                            <div className="flex flex-col xl:flex-row items-center justify-between gap-3">
+                                <span className="hidden sm:flex text-xs font-black text-slate-500 uppercase tracking-widest items-center gap-2">
+                                    <PhoneCall className="w-4 h-4 text-primary" /> Arama Sonucu
+                                </span>
+                                <div className="flex flex-col sm:flex-row items-center gap-2 w-full xl:w-auto">
+                                    <Input 
+                                        placeholder="Arama notu bırakın..." 
+                                        className="h-9 sm:h-10 text-[11px] sm:text-xs bg-white rounded-xl flex-1 sm:min-w-[200px] font-medium"
+                                        value={callNote}
+                                        onChange={(e) => setCallNote(e.target.value)}
+                                    />
+                                    <div className="grid grid-cols-2 xs:flex items-center gap-2 w-full sm:w-auto">
+                                        <Button disabled={isSavingCall} onClick={() => handleCallAction('Açmadı', 'bg-red-50 text-red-600 border-red-200', 'PhoneOff')} variant="outline" className="h-9 sm:h-10 border-red-200 text-red-600 rounded-xl font-bold flex-1 sm:px-3 text-[10px] sm:text-xs px-1"><PhoneOff className="w-3.5 h-3.5 mr-1.5"/> Açmadı</Button>
+                                        <Button disabled={isSavingCall} onClick={() => handleCallAction('Açtı', 'bg-emerald-50 text-emerald-600 border-emerald-200', 'UserCheck')} variant="outline" className="h-9 sm:h-10 border-emerald-200 text-emerald-600 rounded-xl font-bold flex-1 sm:px-3 text-[10px] sm:text-xs px-1"><UserCheck className="w-3.5 h-3.5 mr-1.5"/> Açtı</Button>
+                                        <Button disabled={isSavingCall} onClick={() => handleCallAction('Müsait Değil', 'bg-amber-50 text-amber-600 border-amber-200', 'Clock')} variant="outline" className="h-9 sm:h-10 border-amber-200 text-amber-600 rounded-xl font-bold flex-1 sm:px-3 text-[10px] sm:text-xs px-1"><Clock className="w-3.5 h-3.5 mr-1.5"/> Müsait</Button>
+                                        <Button disabled={isSavingCall} onClick={() => handleCallAction('Tekrar Ara', 'bg-blue-50 text-blue-600 border-blue-200', 'CalendarClock')} variant="outline" className="h-9 sm:h-10 border-blue-200 text-blue-600 rounded-xl font-bold flex-1 sm:px-3 text-[10px] sm:text-xs px-1"><CalendarClock className="w-3.5 h-3.5 mr-1.5"/> Tekrar</Button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
                         {/* TABS & CONTENT */}
                         <Tabs defaultValue="calls" className="flex-1 flex flex-col min-h-0 bg-white">
-                            <div className="bg-slate-100 px-6 shrink-0 border-b">
-                                <TabsList className="bg-transparent gap-8 h-12 p-0">
-                                    <TabsTrigger value="calls" className="data-[state=active]:bg-white data-[state=active]:text-slate-900 rounded-t-xl rounded-b-none h-12 border-none font-bold text-slate-500 px-6">Arama Geçmişi ({callLogs.length})</TabsTrigger>
-                                    <TabsTrigger value="overview" className="data-[state=active]:bg-white data-[state=active]:text-slate-900 rounded-t-xl rounded-b-none h-12 border-none font-bold text-slate-500 px-6">Özet</TabsTrigger>
-                                    <TabsTrigger value="children" className="data-[state=active]:bg-white data-[state=active]:text-slate-900 rounded-t-xl rounded-b-none h-12 border-none font-bold text-slate-500 px-6">Çocuklar</TabsTrigger>
-                                    <TabsTrigger value="history" className="data-[state=active]:bg-white data-[state=active]:text-slate-900 rounded-t-xl rounded-b-none h-12 border-none font-bold text-slate-500 px-6">Ders Geçmişi</TabsTrigger>
+                            <div className="bg-slate-100 px-2 sm:px-6 shrink-0 border-b overflow-x-auto scrollbar-hide">
+                                <TabsList className="bg-transparent gap-2 sm:gap-6 h-12 sm:h-14 p-0">
+                                    <TabsTrigger value="calls" className="data-[state=active]:bg-white data-[state=active]:text-slate-900 rounded-t-xl rounded-b-none h-full border-none font-bold text-slate-500 px-3 sm:px-6 text-[11px] sm:text-sm whitespace-nowrap">Geçmiş ({callLogs.length})</TabsTrigger>
+                                    <TabsTrigger value="overview" className="data-[state=active]:bg-white data-[state=active]:text-slate-900 rounded-t-xl rounded-b-none h-full border-none font-bold text-slate-500 px-3 sm:px-6 text-[11px] sm:text-sm whitespace-nowrap">Özet</TabsTrigger>
+                                    <TabsTrigger value="children" className="data-[state=active]:bg-white data-[state=active]:text-slate-900 rounded-t-xl rounded-b-none h-full border-none font-bold text-slate-500 px-3 sm:px-6 text-[11px] sm:text-sm whitespace-nowrap">Çocuklar</TabsTrigger>
+                                    <TabsTrigger value="history" className="data-[state=active]:bg-white data-[state=active]:text-slate-900 rounded-t-xl rounded-b-none h-full border-none font-bold text-slate-500 px-3 sm:px-6 text-[11px] sm:text-sm whitespace-nowrap">Dersler</TabsTrigger>
                                 </TabsList>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
+                            <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50 scrollbar-thin">
                                 
                                 {/* TAB: OVERVIEW */}
-                                <TabsContent value="overview" className="m-0 space-y-8">
-                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                                        <Card className="bg-white border border-slate-100 shadow-sm p-6 space-y-2">
+                                <TabsContent value="overview" className="m-0 space-y-4 sm:space-y-6">
+                                    <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                                        <Card className="bg-white border-slate-100 shadow-sm p-4 sm:p-5 space-y-1 sm:space-y-2">
                                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Kayıt Tarihi</p>
-                                            <p className="text-xl font-bold text-slate-800">{selectedParent.createdAt ? format(selectedParent.createdAt.toDate?.() || new Date(selectedParent.createdAt), 'dd MMMM yyyy', { locale: tr }) : '-'}</p>
+                                            <p className="text-base sm:text-lg font-bold text-slate-800">{selectedParent.createdAt ? format(selectedParent.createdAt.toDate?.() || new Date(selectedParent.createdAt), 'dd MMMM yyyy', { locale: tr }) : '-'}</p>
                                         </Card>
-                                        <Card className="bg-white border border-slate-100 shadow-sm p-6 space-y-2">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Kalan Toplam Ders</p>
-                                            <p className="text-xl font-bold text-slate-800">
+                                        <Card className="bg-white border-slate-100 shadow-sm p-4 sm:p-5 space-y-1 sm:space-y-2">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Kalan Ders</p>
+                                            <p className="text-base sm:text-lg font-bold text-slate-800">
                                                 {(parentChildren?.reduce((acc, c) => acc + (c.remainingLessons || 0), 0) || 0) + (selectedParent.remainingLessons || 0)}
                                             </p>
                                         </Card>
-                                        <Card className="bg-white border border-slate-100 shadow-sm p-6 space-y-2">
+                                        <Card className="bg-white border-slate-100 shadow-sm p-4 sm:p-5 space-y-1 sm:space-y-2">
                                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Havuzdaki Paketler</p>
                                             <div className="flex flex-wrap gap-1 mt-1">
                                                 {selectedParent.enrolledPackages?.length > 0 ? selectedParent.enrolledPackages.map((p: string, i: number) => (
-                                                    <Badge key={i} variant="secondary" className="bg-slate-100 border-slate-200 text-slate-600 font-bold text-[10px] uppercase">{p}</Badge>
-                                                )) : <span className="text-sm font-medium text-slate-400">Yok</span>}
+                                                    <Badge key={i} variant="secondary" className="bg-slate-100 border-slate-200 text-slate-600 font-bold text-[9px] sm:text-[10px] uppercase truncate max-w-full">{p}</Badge>
+                                                )) : <span className="text-xs sm:text-sm font-medium text-slate-400 italic">Yok</span>}
                                             </div>
                                         </Card>
-                                        <Card className="bg-white border border-slate-100 shadow-sm p-6 space-y-2">
+                                        <Card className="bg-white border-slate-100 shadow-sm p-4 sm:p-5 space-y-1 sm:space-y-2">
                                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Son Görüldü</p>
                                             <div className="flex items-center gap-2 mt-1">
                                                 {selectedParent.lastActivityDate ? (
                                                     <>
-                                                        <Activity className="w-4 h-4 text-primary" />
-                                                        <p className="text-xl font-bold text-slate-800">
-                                                            {format(selectedParent.lastActivityDate.toDate?.() || new Date(selectedParent.lastActivityDate), 'dd MMMM yyyy', { locale: tr })}
+                                                        <Activity className="w-3.5 h-3.5 text-primary shrink-0" />
+                                                        <p className="text-base sm:text-lg font-bold text-slate-800">
+                                                            {format(selectedParent.lastActivityDate.toDate?.() || new Date(selectedParent.lastActivityDate), 'dd MMM yyyy', { locale: tr })}
                                                         </p>
                                                     </>
-                                                ) : <span className="text-sm font-medium text-slate-400">Bilinmiyor</span>}
+                                                ) : <span className="text-xs sm:text-sm font-medium text-slate-400 italic">Bilinmiyor</span>}
                                             </div>
                                         </Card>
                                     </div>
                                 </TabsContent>
 
                                 {/* TAB: CHILDREN */}
-                                <TabsContent value="children" className="m-0 space-y-6">
+                                <TabsContent value="children" className="m-0 space-y-4 sm:space-y-6">
                                     {parentChildren.length > 0 ? (
-                                        <div className="grid gap-4">
+                                        <div className="grid gap-3 sm:gap-4">
                                             {parentChildren.map((child, i) => (
-                                                <Card key={i} className="p-6 border-slate-100 shadow-sm flex items-center justify-between">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-xl">👶</div>
-                                                        <div>
-                                                            <p className="font-bold text-slate-800 text-lg">{child.firstName}</p>
+                                                <Card key={i} className="p-4 sm:p-6 border-slate-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+                                                    <div className="flex items-center gap-4 w-full sm:w-auto">
+                                                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-100 flex items-center justify-center text-xl shrink-0">👶</div>
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="font-bold text-slate-800 text-base sm:text-lg truncate">{child.firstName}</p>
                                                             <div className="flex items-center gap-2">
-                                                                <p className="text-xs text-slate-500 font-medium">{child.dateOfBirth ? `${differenceInDays(new Date(), new Date(child.dateOfBirth)) / 365 | 0} Yaş` : '-'}</p>
-                                                                {child.id && <span className="text-[9px] font-mono text-slate-300 bg-slate-50 px-1 rounded select-all uppercase">ID: {child.id.substring(0, 8).toUpperCase()}</span>}
+                                                                <p className="text-[10px] sm:text-xs text-slate-500 font-medium">{child.dateOfBirth ? `${differenceInDays(new Date(), new Date(child.dateOfBirth)) / 365 | 0} Yaş` : '-'}</p>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div className="flex gap-6 items-center">
+                                                    <div className="flex w-full sm:w-auto gap-4 items-center justify-between sm:justify-end">
                                                         <div className="text-right">
-                                                            <p className="text-[10px] font-black text-slate-400 uppercase">Kalan Ders</p>
-                                                            <p className="font-bold text-slate-800">{child.remainingLessons || 0}</p>
+                                                            <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase">Kredisi</p>
+                                                            <p className="font-bold text-slate-800 text-sm sm:text-base">{child.remainingLessons || 0}</p>
                                                         </div>
-                                                        <div className="text-right">
-                                                            <p className="text-[10px] font-black text-slate-400 uppercase">Paket</p>
-                                                            <Badge className="bg-primary/10 text-primary border-none text-[10px] font-black">{typeof child.assignedPackage === 'string' ? child.assignedPackage.substring(0,20) : 'YOK'}</Badge>
-                                                        </div>
-                                                        <Button variant="outline" size="sm" className="h-8 text-xs font-bold" onClick={() => {
+                                                        <Button variant="outline" size="sm" className="h-8 sm:h-9 text-[10px] sm:text-xs font-bold" onClick={() => {
                                                             setSelectedChildForProgress(child);
                                                             setIsChildProgressOpen(true);
                                                         }}>
-                                                            <FileText className="w-3 h-3 mr-1.5" />
-                                                            Detaylı İlerleme
+                                                            <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5" />
+                                                            İlerleme
                                                         </Button>
                                                     </div>
                                                 </Card>
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="py-12 text-center space-y-4 bg-white rounded-2xl border border-dashed border-slate-200">
-                                            <Baby className="w-12 h-12 mx-auto text-slate-200" />
-                                            <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">Henüz çocuk eklenmemiş</p>
+                                        <div className="py-10 text-center space-y-3 bg-white rounded-2xl border border-dashed border-slate-200">
+                                            <Baby className="w-10 h-10 mx-auto text-slate-200" />
+                                            <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Henüz çocuk eklenmemiş</p>
                                         </div>
                                     )}
                                 </TabsContent>
@@ -508,28 +549,28 @@ export default function AramalarPage() {
                                 {/* TAB: LESSONS */}
                                 <TabsContent value="history" className="m-0 h-full">
                                     {parentSlots.length > 0 ? (
-                                        <div className="divide-y border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-sm">
-                                            {parentSlots.sort((a,b) => b.startTime.seconds - a.startTime.seconds).map((slot, i) => (
-                                                <div key={i} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", slot.packageCode === 'FREE_TRIAL' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600')}>
-                                                            <Calendar className="w-5 h-5" />
+                                        <div className="divide-y border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-sm overflow-x-hidden">
+                                            {parentSlots.sort((a,b) => (b.startTime.seconds || 0) - (a.startTime.seconds || 0)).map((slot, i) => (
+                                                <div key={i} className="p-3 sm:p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                                                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                                                        <div className={cn("w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0", slot.packageCode === 'FREE_TRIAL' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600')}>
+                                                            <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
                                                         </div>
-                                                        <div>
-                                                            <p className="font-bold text-sm text-slate-800">{slot.packageCode === 'FREE_TRIAL' ? 'Deneme Dersi' : `Paket Dersi (${slot.packageCode})`}</p>
-                                                            <p className="text-xs text-slate-500 font-medium">{format(slot.startTime.toDate(), 'dd MMMM yyyy, HH:mm', { locale: tr })}</p>
+                                                        <div className="min-w-0">
+                                                            <p className="font-bold text-xs sm:text-sm text-slate-800 truncate">{slot.packageCode === 'FREE_TRIAL' ? 'Deneme Dersi' : `Paket Dersi (${slot.packageCode})`}</p>
+                                                            <p className="text-[10px] sm:text-xs text-slate-500 font-medium truncate">{format(slot.startTime.toDate(), 'dd MMM yyyy, HH:mm', { locale: tr })}</p>
                                                         </div>
                                                     </div>
-                                                    <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-widest text-slate-400 border-slate-200">
-                                                        {isBefore(slot.startTime.toDate(), new Date()) ? 'Tamamlandı' : 'Yaklaşan'}
+                                                    <Badge variant="outline" className="text-[8px] sm:text-[9px] font-bold uppercase tracking-tighter text-slate-400 border-slate-200 shrink-0 ml-2">
+                                                        {isBefore(slot.startTime.toDate(), new Date()) ? 'Bitti' : 'Gelecek'}
                                                     </Badge>
                                                 </div>
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-2xl border border-dashed border-slate-200 h-48">
+                                        <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-2xl border border-dashed border-slate-200">
                                             <History className="w-8 h-8 text-slate-300 mb-3" />
-                                            <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Ders kaydı bulunamadı</p>
+                                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Kayıt bulunamadı</p>
                                         </div>
                                     )}
                                 </TabsContent>
@@ -537,28 +578,31 @@ export default function AramalarPage() {
                                 {/* TAB: CALLS */}
                                 <TabsContent value="calls" className="m-0 h-full">
                                     {callLogs.length > 0 ? (
-                                        <div className="space-y-3">
+                                        <div className="space-y-3 sm:space-y-4">
                                             {callLogs.map((log) => (
-                                                <div key={log.id} className="flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-white shadow-sm hover:border-slate-300 transition-colors">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className={cn("p-2.5 rounded-xl border flex shrink-0", log.color)}>
+                                                <div key={log.id} className="flex items-start sm:items-center justify-between p-3 sm:p-4 rounded-xl border border-slate-200 bg-white shadow-sm hover:border-slate-300 transition-colors gap-3">
+                                                    <div className="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                                                        <div className={cn("p-2 sm:p-2.5 rounded-xl border flex shrink-0", log.color)}>
                                                             {getStatusIcon(log.icon)}
                                                         </div>
-                                                        <div className="flex flex-col items-start gap-1">
-                                                            <span className="font-bold text-[14px] text-slate-800">{log.status}</span>
-                                                            <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1.5"><User className="w-3 h-3"/> Temsilci: {log.adminEmail}</span>
+                                                        <div className="flex flex-col items-start gap-1 min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-bold text-[13px] sm:text-[14px] text-slate-800">{log.status}</span>
+                                                                <span className="hidden sm:inline text-[10px] text-slate-400 font-medium truncate italic max-w-[150px]">Temsilci: {log.adminEmail}</span>
+                                                            </div>
                                                             {log.note && (
-                                                                <span className="text-[12px] font-bold text-slate-600 bg-slate-50 px-3 py-1.5 mt-1 rounded-lg border border-slate-100 break-words max-w-lg shadow-inner">
-                                                                    Not: {log.note}
+                                                                <span className="text-[11px] sm:text-[12px] font-medium text-slate-600 bg-slate-50 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-slate-100 line-clamp-2 md:line-clamp-none">
+                                                                    {log.note}
                                                                 </span>
                                                             )}
+                                                            <span className="sm:hidden text-[9px] text-slate-400 italic">Temsilci: {log.adminEmail}</span>
                                                         </div>
                                                     </div>
-                                                    <div className="text-right flex items-center gap-3 shrink-0">
-                                                        <Badge variant="outline" className="text-[10px] bg-slate-50 text-slate-500 font-bold px-2 py-1 uppercase tracking-widest border-slate-200">
-                                                            {log.createdAt?.toDate().toLocaleDateString('tr-TR')} {log.createdAt?.toDate().toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'})}
-                                                        </Badge>
-                                                        
+                                                    <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-4 shrink-0">
+                                                        <div className="text-right hidden sm:block">
+                                                            <p className="text-[9px] text-slate-400 font-bold uppercase">{log.createdAt?.toDate().toLocaleDateString('tr-TR')}</p>
+                                                            <p className="text-[9px] text-slate-400 italic font-medium">{log.createdAt?.toDate().toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'})}</p>
+                                                        </div>
                                                         <DropdownMenu>
                                                             <DropdownMenuTrigger asChild>
                                                                 <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-slate-100 rounded-full">
@@ -574,7 +618,7 @@ export default function AramalarPage() {
                                                                         setIsEditOpen(true);
                                                                     }}
                                                                 >
-                                                                    <Edit2 className="w-3.5 h-3.5 text-blue-500" /> Notu Düzenle
+                                                                    <Edit2 className="w-3.5 h-3.5 text-blue-500" /> Düzenle
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuItem 
                                                                     className="rounded-lg font-bold text-xs py-2.5 text-red-500 focus:text-red-500 cursor-pointer flex items-center gap-2"
@@ -583,7 +627,7 @@ export default function AramalarPage() {
                                                                         setIsDeleteDialogOpen(true);
                                                                     }}
                                                                 >
-                                                                    <Trash2 className="w-3.5 h-3.5" /> Kaydı Sil
+                                                                    <Trash2 className="w-3.5 h-3.5" /> Sil
                                                                 </DropdownMenuItem>
                                                             </DropdownMenuContent>
                                                         </DropdownMenu>
@@ -592,9 +636,9 @@ export default function AramalarPage() {
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-2xl border border-dashed border-slate-200 h-48">
+                                        <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-2xl border border-dashed border-slate-200">
                                             <PhoneCall className="w-8 h-8 text-slate-300 mb-3" />
-                                            <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Arama kaydı bulunamadı.</p>
+                                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest text-center">Arama kaydı bulunamadı.</p>
                                         </div>
                                     )}
                                 </TabsContent>
@@ -603,11 +647,11 @@ export default function AramalarPage() {
                     </div>
                 ) : (
                     <div className="flex-1 flex flex-col items-center justify-center p-10 text-center text-slate-500">
-                        <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
-                            <UserCog className="w-10 h-10 text-slate-300" />
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
+                            <UserCog className="w-8 h-8 sm:w-10 sm:h-10 text-slate-300" />
                         </div>
-                        <h3 className="text-xl font-black text-slate-700">Veli Seçin</h3>
-                        <p className="text-sm font-medium text-slate-400 max-w-sm mt-2">Detayları, etiketleri ve arama geçmişini görüntülemek, ayrıca yeni çağrı kaydı girmek için sol menüden bir veli seçin.</p>
+                        <h3 className="text-lg sm:text-xl font-black text-slate-700">Bir Veli Seçin</h3>
+                        <p className="text-[11px] sm:text-sm font-medium text-slate-400 max-w-sm mt-2">Detayları, etiketleri ve arama geçmişini görüntülemek ve yeni çağrı kaydı girmek için listeden bir veli seçin.</p>
                     </div>
                 )}
             </div>

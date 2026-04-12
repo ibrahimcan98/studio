@@ -54,6 +54,19 @@ export function useNotifications() {
         return;
       }
 
+      // If already denied, guide the user
+      if (Notification.permission === 'denied') {
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+          toast({ 
+              variant: 'destructive', 
+              title: 'İzin Reddedildi', 
+              description: isIOS 
+                ? 'Bildirim izni daha önce reddedilmiş. Etkinleştirmek için: Ayarlar > Bildirimler > Türk Çocuk Akademisi kısmından izin verin.' 
+                : 'Bildirim izni tarayıcı ayarlarınızdan engellenmiş. Lütfen adres çubuğundaki kilit simgesine tıklayarak izin verin.' 
+          });
+          return;
+      }
+
       const status = await Notification.requestPermission();
       setPermission(status);
 
@@ -73,8 +86,15 @@ export function useNotifications() {
         } else {
           toast({ variant: 'destructive', title: 'Token Alınamadı', description: 'Cihaz kimliği oluşturulamadı.' });
         }
-      } else {
-        toast({ variant: 'destructive', title: 'İzin Verilmedi', description: 'Bildirim izni reddedildi.' });
+      } else if (status === 'denied') {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        toast({ 
+            variant: 'destructive', 
+            title: 'İzin Verilmedi', 
+            description: isIOS 
+                ? 'Bildirim izni verilmedi. Eğer uyarı çıkmadıysa, lütfen iPhone Ayarlarından bildirimleri kontrol edin.' 
+                : 'Bildirim izni reddedildi.' 
+        });
       }
     } catch (error: any) {
       console.error('An error occurred while retrieving token:', error);
@@ -84,18 +104,30 @@ export function useNotifications() {
 
   // Listen for foreground messages
   useEffect(() => {
-    if (!messaging) return;
+    let unsubscribe: (() => void) | undefined;
 
-    const unsubscribe = onMessage(messaging, (payload) => {
-      console.log('Foreground message received:', payload);
-      toast({
-        title: payload.notification?.title || 'Yeni Bildirim',
-        description: payload.notification?.body || '',
-      });
-    });
+    const setupListener = async () => {
+      if (!messaging) return;
+      
+      try {
+        unsubscribe = onMessage(messaging, (payload) => {
+          console.log('Foreground message received:', payload);
+          toast({
+            title: payload.notification?.title || 'Yeni Bildirim',
+            description: payload.notification?.body || '',
+          });
+        });
+      } catch (e) {
+        console.warn('Failed to setup foreground message listener:', e);
+      }
+    };
 
-    return () => unsubscribe();
-  }, [toast]);
+    setupListener();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [toast]); 
 
   // Automatically request/refresh token if user is logged in and permission is already granted
   useEffect(() => {
