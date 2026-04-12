@@ -211,19 +211,58 @@ export default function SepetPage() {
 
             if (payableTotalGbp <= 0) {
                // Full balance coverage, skip Stripe
-               await updateDoc(userDocRef, {
-                   walletBalanceGbp: increment(-balanceUsedGbp),
-                   remainingLessons: increment(totalLessonsToAdd),
-                   enrolledPackages: arrayUnion(...newPackages)
-               });
+               const childrenRef = collection(db, "users", user.uid, "children");
+               const childrenSnap = await getDocs(childrenRef);
+               const children = childrenSnap.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
+               const isSingleChild = children.length === 1;
+
+               const batch = writeBatch(db);
+
+               if (isSingleChild) {
+                   const child = children[0];
+                   const childDocRef = doc(db, "users", user.uid, "children", child.id);
+                   const firstPackage = newPackages[0]; // Use first package for naming
+                   const lessonsText = firstPackage.replace(/\D/g, '');
+                   const prefix = firstPackage.replace(/[0-9]/g, '');
+                   
+                   const courseNames: { [key: string]: string } = {
+                       'B': 'Başlangıç Kursu (Pre A1)',
+                       'K': 'Konuşma Kursu (A1)',
+                       'A': 'Akademik Kurs (A2)',
+                       'G': 'Gelişim Kursu (B1)',
+                       'GCSE': 'GCSE Türkçe Kursu'
+                   };
+                   const courseName = courseNames[prefix] || 'Standart Kurs';
+
+                   batch.update(childDocRef, {
+                       remainingLessons: increment(totalLessonsToAdd),
+                       assignedPackage: `${prefix}${totalLessonsToAdd / newPackages.length}`, // Approximation for multi-package display
+                       assignedPackageName: courseName,
+                       updatedAt: serverTimestamp()
+                   });
+
+                   batch.update(userDocRef, {
+                       walletBalanceGbp: increment(-balanceUsedGbp),
+                       remainingLessons: increment(totalLessonsToAdd),
+                       // enrolledPackages left unchanged (no items in pool)
+                   });
+               } else {
+                   batch.update(userDocRef, {
+                       walletBalanceGbp: increment(-balanceUsedGbp),
+                       remainingLessons: increment(totalLessonsToAdd),
+                       enrolledPackages: arrayUnion(...newPackages)
+                   });
+               }
                
                if (referrerId) {
                    const referrerRef = doc(db, 'users', referrerId);
-                   await updateDoc(referrerRef, { walletBalanceEur: increment(30) });
+                   batch.update(referrerRef, { walletBalanceEur: increment(30) });
                }
 
+               await batch.commit();
+
                clearCart();
-               toast({ title: 'Tebrikler!', description: 'Siparişiniz bakiyeniz kullanılarak tamamlandı.', className: 'bg-green-500 text-white' });
+               toast({ title: 'Tebrikler!', description: isSingleChild ? `Siparişiniz ${children[0].firstName} hesabına otomatik olarak tanımlandı.` : 'Siparişiniz bakiyeniz kullanılarak tamamlandı.', className: 'bg-green-500 text-white' });
                router.push('/ebeveyn-portali/dersler');
                return;
             }

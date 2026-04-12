@@ -173,7 +173,7 @@ function UsersPageContent() {
   const [isAddingLessons, setIsAddingLessons] = useState(false);
   
   // Sorting State
-  const [sortType, setSortType] = useState<'registration_desc' | 'activity_desc'>('registration_desc');
+  const [sortType, setSortType] = useState<'registration_desc' | 'lessons_desc' | 'lessons_asc'>('registration_desc');
 
   // Custom Confirm States
   const [isConfirmRemoveOpen, setIsConfirmRemoveOpen] = useState(false);
@@ -255,11 +255,23 @@ function UsersPageContent() {
         const hasFinishedTrial = parentSlots.some(s => s.packageCode === 'FREE_TRIAL' && isBefore(s.startTime.toDate(), new Date()));
         if (hasFinishedTrial) tags.add('trialdone');
 
+        const totalRemainingLessons = (parentChildren.reduce((acc, c) => acc + (c.remainingLessons || 0), 0)) + (parent.remainingLessons || 0);
+
+        const allPackageCodes = [
+            ...(parent.enrolledPackages || []),
+            ...parentChildren.map(c => c.assignedPackage),
+            ...parentChildren.map(c => c.finishedPackage)
+        ].filter(Boolean);
+
         const hasActivePackage = parentChildren.some(c => c.assignedPackage && (c.remainingLessons || 0) > 0) || ((parent.enrolledPackages || []).length > 0);
         if (hasActivePackage) tags.add('active');
 
-        const packageFinished = parentChildren.some(c => c.finishedPackage && !c.assignedPackage);
-        if (packageFinished) tags.add('package finished');
+        const hasHistory = allPackageCodes.length > 0;
+        const packageFinishedField = parentChildren.some(c => c.finishedPackage && !c.assignedPackage);
+        
+        if (totalRemainingLessons === 0 && (hasHistory || packageFinishedField)) {
+            tags.add('package finished');
+        }
 
         if (!hasActivePackage && parent.createdAt) {
             const regDate = parent.createdAt.toDate();
@@ -268,11 +280,6 @@ function UsersPageContent() {
             }
         }
 
-        const allPackageCodes = [
-            ...(parent.enrolledPackages || []),
-            ...parentChildren.map(c => c.assignedPackage),
-            ...parentChildren.map(c => c.finishedPackage)
-        ].filter(Boolean);
 
         allPackageCodes.forEach(code => {
             if (code.includes('B')) tags.add('bk');
@@ -330,7 +337,9 @@ function UsersPageContent() {
             hiddenTags: hiddenTags,
             lastPurchaseDate,
             lastActivityDate,
-            lastActivityType
+            lastActivityType,
+            lastLessonDate,
+            totalRemainingLessons
         } as ParentData;
     });
   }, [parents, allChildren, allSlots, loadingExtras]);
@@ -405,10 +414,10 @@ function UsersPageContent() {
             const timeA = a.createdAt?.toMillis?.() || 0;
             const timeB = b.createdAt?.toMillis?.() || 0;
             return timeB - timeA;
-        } else if (sortType === 'activity_desc') {
-            const timeA = a.lastActivityDate?.getTime() || 0;
-            const timeB = b.lastActivityDate?.getTime() || 0;
-            return timeB - timeA;
+        } else if (sortType === 'lessons_desc') {
+            return (b.totalRemainingLessons || 0) - (a.totalRemainingLessons || 0);
+        } else if (sortType === 'lessons_asc') {
+            return (a.totalRemainingLessons || 0) - (b.totalRemainingLessons || 0);
         }
         return 0;
     });
@@ -508,7 +517,10 @@ function UsersPageContent() {
             });
 
         } else {
-            // CASE: MANUAL ADD TO PARENT POOL
+            // CASE: MANUAL ADD (Check for single child auto-assignment)
+            const parentChildren = allChildren.filter(c => c.parentId === selectedParentForLessons.id);
+            const isSingleChild = parentChildren.length === 1;
+
             const prefixes: { [key: string]: string } = {
                 'baslangic': 'B', 'konusma': 'K', 'akademik': 'A', 'gelisim': 'G', 'gcse': 'GCSE'
             };
@@ -523,18 +535,49 @@ function UsersPageContent() {
             const courseName = courseNames[selectedCourseId] || 'Hediye Kurs';
             const packageCode = `${prefix}${lessonCount}`;
 
-            batch.update(parentRef, {
-                remainingLessons: (selectedParentForLessons.remainingLessons || 0) + lessonCount,
-                enrolledPackages: [...(selectedParentForLessons.enrolledPackages || []), packageCode]
-            });
+            if (isSingleChild) {
+                const child = parentChildren[0];
+                const childRef = doc(db, 'users', selectedParentForLessons.id, 'children', child.id);
+                
+                batch.update(childRef, {
+                    remainingLessons: (child.remainingLessons || 0) + lessonCount,
+                    assignedPackage: packageCode,
+                    assignedPackageName: courseName,
+                    updatedAt: new Date()
+                });
 
-            // Log activity for manual add
+                batch.update(parentRef, {
+                    remainingLessons: (selectedParentForLessons.remainingLessons || 0) + lessonCount,
+                });
+
+                // TX for child
+                const txRef = doc(collection(db, 'transactions'));
+                batch.set(txRef, {
+                    userId: selectedParentForLessons.id,
+                    childId: child.id,
+                    childName: child.firstName,
+                    status: 'completed',
+                    amountGbp: 0,
+                    description: `🎁 [${child.firstName}] İçin Otomatik Paket Atama (Manuel Ekleme)`,
+                    items: [{ name: courseName, quantity: 1, price: 0 }],
+                    assignedLessons: lessonCount,
+                    createdAt: new Date(),
+                });
+            } else {
+                batch.update(parentRef, {
+                    remainingLessons: (selectedParentForLessons.remainingLessons || 0) + lessonCount,
+                    enrolledPackages: [...(selectedParentForLessons.enrolledPackages || []), packageCode]
+                });
+            }
+
+            // Log activity
             const activityRef = doc(collection(db, 'activity-log'));
             batch.set(activityRef, {
-                event: '🎁 Manuel Ders Ekleme',
+                event: isSingleChild ? '🎁 Öğrenciye Manuel Ders Ekleme' : '🎁 Veliye Manuel Ders Ekleme',
                 icon: '🎫',
                 details: {
                     'Veli': `${selectedParentForLessons.firstName} ${selectedParentForLessons.lastName}`,
+                    'Hedef': isSingleChild ? parentChildren[0].firstName : 'Havuz',
                     'Paket': packageCode,
                     'Tip': 'Yönetici Tanımlı'
                 },
@@ -726,7 +769,8 @@ function UsersPageContent() {
                   onChange={(e) => setSortType(e.target.value as any)}
               >
                   <option value="registration_desc">Kayıt: En Yeni</option>
-                  <option value="activity_desc">Etkinlik: En Yeni</option>
+                  <option value="lessons_desc">Ders: En Çok</option>
+                  <option value="lessons_asc">Ders: En Az</option>
               </select>
             </div>
             <Popover>
@@ -881,6 +925,7 @@ function UsersPageContent() {
                                 }}
                                 onDetail={() => { setSelectedParent(parent); setIsDetailOpen(true); }}
                                 onAddLessons={() => { setSelectedParentForLessons(parent); setIsAddLessonsOpen(true); }}
+                                onManageTags={() => { setSelectedParent(parent); setIsTagsOpen(true); }}
                                 onToggleLegacy={() => handleToggleLegacy(parent)}
                                 onDelete={() => handleDeleteParent(parent)}
                                 onQuickRemoveTag={(tag) => handleQuickRemoveTag(parent, tag)}
@@ -897,7 +942,7 @@ function UsersPageContent() {
                                     <TableHead className="font-bold text-slate-500 py-5">Veli Bilgisi</TableHead>
                                     <TableHead className="font-bold text-slate-500">Ülke</TableHead>
                                     <TableHead className="font-bold text-slate-500">Kayıt Tarihi</TableHead>
-                                    <TableHead className="font-bold text-slate-500">Son Etkinlik</TableHead>
+                                    <TableHead className="font-bold text-slate-500">Kalan Ders</TableHead>
                                     <TableHead className="font-bold text-slate-500">Etiketler</TableHead>
                                     <TableHead className="w-[80px] text-right pr-8"></TableHead>
                                 </TableRow>
@@ -913,6 +958,7 @@ function UsersPageContent() {
                                         }}
                                         onDetail={() => { setSelectedParent(parent); setIsDetailOpen(true); }}
                                         onAddLessons={() => { setSelectedParentForLessons(parent); setIsAddLessonsOpen(true); }}
+                                        onManageTags={() => { setSelectedParent(parent); setIsTagsOpen(true); }}
                                         onToggleLegacy={() => handleToggleLegacy(parent)}
                                         onDelete={() => handleDeleteParent(parent)}
                                         onQuickRemoveTag={(tag) => handleQuickRemoveTag(parent, tag)}
@@ -1518,7 +1564,7 @@ function UsersPageContent() {
   );
 }
 
-function ParentRow({ parent, isSelected, onSelect, onDetail, onAddLessons, onToggleLegacy, onDelete, onQuickRemoveTag }: any) {
+function ParentRow({ parent, isSelected, onSelect, onDetail, onAddLessons, onManageTags, onToggleLegacy, onDelete, onQuickRemoveTag }: any) {
     return (
         <TableRow className={cn("hover:bg-slate-50/30 transition-colors border-slate-100", isSelected && "bg-slate-50")}>
             <TableCell className="pl-8">
@@ -1541,25 +1587,28 @@ function ParentRow({ parent, isSelected, onSelect, onDetail, onAddLessons, onTog
                 {parent.createdAt ? format(parent.createdAt.toDate(), 'dd MMM yyyy', { locale: tr }) : '-'}
             </TableCell>
             <TableCell>
-                {parent.lastActivityDate ? (
+                <div className="flex flex-col gap-1">
                     <div className={cn(
-                        "flex items-center gap-1.5 font-bold text-xs",
-                        parent.lastActivityType === 'purchase' ? 'text-emerald-600' : 
-                        parent.lastActivityType === 'lesson' ? 'text-blue-600' : 
-                        parent.lastActivityType === 'login' ? 'text-purple-600' : 'text-slate-500'
+                        "inline-flex items-center w-fit px-2.5 py-0.5 rounded-full text-xs font-black",
+                        parent.totalRemainingLessons > 0 ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-slate-50 text-slate-400 border border-slate-100"
                     )}>
-                        {format(parent.lastActivityDate, 'dd MMM yyyy', { locale: tr })}
+                        {parent.totalRemainingLessons || 0} Ders
                     </div>
-                ) : '-'}
+                    {parent.totalRemainingLessons === 0 && parent.lastLessonDate && (
+                        <span className="text-[10px] text-slate-400 font-bold ml-1">
+                            Son: {format(parent.lastLessonDate, 'dd MMM', { locale: tr })}
+                        </span>
+                    )}
+                </div>
             </TableCell>
             <TableCell>
                 <div className="flex flex-wrap gap-1 max-w-[200px]">
-                    {parent.computedTags?.slice(0, 3).map((tag: any) => (
+                    {parent.computedTags?.slice(0, 5).map((tag: any) => (
                         <Badge key={tag} variant="secondary" className={cn("text-[8px] px-1.5 py-0 border-none font-bold uppercase tracking-tighter", tagStyles[tag] || 'bg-slate-100 text-slate-500')}>
                             {tag}
                         </Badge>
                     ))}
-                    {parent.computedTags?.length > 3 && <span className="text-[9px] text-slate-300 font-black">+{parent.computedTags.length - 3}</span>}
+                    {parent.computedTags?.length > 5 && <span className="text-[9px] text-slate-300 font-black">+{parent.computedTags.length - 5}</span>}
                 </div>
             </TableCell>
             <TableCell className="text-right pr-8">
@@ -1571,9 +1620,22 @@ function ParentRow({ parent, isSelected, onSelect, onDetail, onAddLessons, onTog
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="rounded-xl border-none shadow-2xl p-2 w-48">
                         <DropdownMenuLabel className="text-[10px] font-black text-slate-400 uppercase mb-1">İşlemler</DropdownMenuLabel>
-                        <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer" onClick={onDetail}>Profil Detayı</DropdownMenuItem>
-                        <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-blue-600" onClick={onAddLessons}>Ders Ekle</DropdownMenuItem>
-                        <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-red-500" onClick={onDelete}>Veliyi Sil</DropdownMenuItem>
+                        <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer" onClick={onDetail}>
+                            <User className="w-3.5 h-3.5 mr-2 opacity-50" /> Profil Detayı
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-blue-600" onClick={onAddLessons}>
+                            <Plus className="w-3.5 h-3.5 mr-2" /> Ders Ekle
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-emerald-600" onClick={onManageTags}>
+                            <Tags className="w-3.5 h-3.5 mr-2" /> Etiketleri Yönet
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-orange-600" onClick={onToggleLegacy}>
+                            <ArrowRight className="w-3.5 h-3.5 mr-2 rotate-[-45deg]" /> {parent.isLegacy ? 'Eski Üye Durumunu Kaldır' : 'Eski Üye Yap'}
+                        </DropdownMenuItem>
+                        <div className="my-1 border-t border-slate-100" />
+                        <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-red-500 hover:bg-red-50" onClick={onDelete}>
+                            <X className="w-3.5 h-3.5 mr-2" /> Veliyi Sil
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             </TableCell>
@@ -1581,7 +1643,7 @@ function ParentRow({ parent, isSelected, onSelect, onDetail, onAddLessons, onTog
     );
 }
 
-function ParentCard({ parent, isSelected, onSelect, onDetail, onAddLessons, onToggleLegacy, onDelete, onQuickRemoveTag }: any) {
+function ParentCard({ parent, isSelected, onSelect, onDetail, onAddLessons, onManageTags, onToggleLegacy, onDelete, onQuickRemoveTag }: any) {
     return (
         <div className={cn("p-4 bg-white transition-colors flex gap-3", isSelected && "bg-blue-50/30")}>
             <div className="pt-1">
@@ -1607,9 +1669,17 @@ function ParentCard({ parent, isSelected, onSelect, onDetail, onAddLessons, onTo
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="rounded-xl border-none shadow-2xl p-2 w-48">
+                            <DropdownMenuLabel className="text-[10px] font-black text-slate-400 uppercase mb-1">İşlemler</DropdownMenuLabel>
                             <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer" onClick={onDetail}>Profil Detayı</DropdownMenuItem>
                             <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer" onClick={onAddLessons}>Paket İşlemleri</DropdownMenuItem>
-                            <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 text-red-500 cursor-pointer" onClick={onDelete}>Kalıcı Olarak Sil</DropdownMenuItem>
+                            <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-emerald-600" onClick={onManageTags}>Etiketleri Yönet</DropdownMenuItem>
+                            <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-orange-600" onClick={onToggleLegacy}>
+                                {parent.isLegacy ? 'Normal Üye Yap' : 'Eski Üye Yap'}
+                            </DropdownMenuItem>
+                            <div className="my-1 border-t border-slate-100" />
+                            <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 text-red-500 cursor-pointer" onClick={onDelete}>
+                                <X className="w-3.5 h-3.5 mr-2" /> Veliyi Sil
+                            </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
@@ -1618,11 +1688,12 @@ function ParentCard({ parent, isSelected, onSelect, onDetail, onAddLessons, onTo
                     <Badge variant="outline" className="text-[9px] border-slate-100 text-slate-400 font-bold tracking-tighter uppercase px-1.5 py-0 h-4">
                         {parent.countryName}
                     </Badge>
-                    {parent.computedTags?.slice(0, 3).map((tag: any) => (
+                    {parent.computedTags?.slice(0, 5).map((tag: any) => (
                         <Badge key={tag} className={cn("text-[8px] px-1.5 py-0 border-none font-black uppercase tracking-tighter h-4", tagStyles[tag] || 'bg-slate-100 text-slate-400')}>
                             {tag}
                         </Badge>
                     ))}
+                    {parent.computedTags?.length > 5 && <span className="text-[9px] text-slate-300 font-black">+{parent.computedTags.length - 5}</span>}
                 </div>
 
                 <div className="flex items-center justify-between pt-1 border-t border-slate-50 mt-1">
@@ -1630,11 +1701,18 @@ function ParentCard({ parent, isSelected, onSelect, onDetail, onAddLessons, onTo
                         <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Kayıt</span>
                         <span className="text-[10px] font-bold text-slate-500">{parent.createdAt ? format(parent.createdAt.toDate(), 'dd.MM.yy') : '-'}</span>
                     </div>
-                    <div className="flex flex-col text-right">
-                        <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Etkinlik</span>
-                        <span className={cn("text-[10px] font-bold", parent.lastActivityType === 'purchase' ? 'text-emerald-500' : 'text-slate-500')}>
-                             {parent.lastActivityDate ? format(parent.lastActivityDate, 'dd.MM.yy') : '-'}
-                        </span>
+                    <div className="flex flex-col text-right items-end gap-0.5">
+                        <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Kalan Ders</span>
+                        <div className="flex flex-col items-end leading-none">
+                            <span className={cn("text-[10px] font-black", parent.totalRemainingLessons > 0 ? "text-emerald-600" : "text-slate-400")}>
+                                {parent.totalRemainingLessons || 0} Ders
+                            </span>
+                            {parent.totalRemainingLessons === 0 && parent.lastLessonDate && (
+                                <span className="text-[9px] text-slate-400 font-bold mt-0.5">
+                                    Son: {format(parent.lastLessonDate, 'dd MMM', { locale: tr })}
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
