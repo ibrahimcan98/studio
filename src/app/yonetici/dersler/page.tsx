@@ -33,7 +33,8 @@ import {
     Baby,
     Users as UsersIcon,
     AlertTriangle,
-    BookOpen
+    BookOpen,
+    MessageSquare
 } from 'lucide-react';
 import { 
     Card, 
@@ -187,6 +188,10 @@ export default function AdminDerslerPage() {
     // Tiered Selection States
     const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
     const [selectedHour, setSelectedHour] = useState<number | null>(null);
+
+    // Feedback States
+    const [selectedFeedback, setSelectedFeedback] = useState<any>(null);
+    const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
 
     const teachers = useMemo(() => {
         return users?.filter(u => u.role === 'teacher') || [];
@@ -587,7 +592,16 @@ export default function AdminDerslerPage() {
                                 {upcomingLessons.length === 0 ? (
                                     <div className="p-10 text-center text-slate-400 italic text-xs uppercase tracking-widest font-bold">Yaklaşan ders bulunmuyor.</div>
                                 ) : upcomingLessons.map((lesson, idx) => (
-                                    <LessonCard key={lesson.id || idx} lesson={lesson} currentTime={currentTime} onCancel={() => setLessonToCancel(lesson)} />
+                                    <LessonCard 
+                                        key={lesson.id || idx} 
+                                        lesson={lesson} 
+                                        currentTime={currentTime} 
+                                        onCancel={() => setLessonToCancel(lesson)} 
+                                        onShowFeedback={(fb) => {
+                                            setSelectedFeedback(fb);
+                                            setIsFeedbackDialogOpen(true);
+                                        }}
+                                    />
                                 ))}
                             </div>
 
@@ -606,7 +620,16 @@ export default function AdminDerslerPage() {
                                     </TableHeader>
                                     <TableBody>
                                         {upcomingLessons.map((lesson, idx) => (
-                                            <LessonRow key={lesson.id || idx} lesson={lesson} currentTime={currentTime} onCancel={() => setLessonToCancel(lesson)} />
+                                            <LessonRow 
+                                                key={lesson.id || idx} 
+                                                lesson={lesson} 
+                                                currentTime={currentTime} 
+                                                onCancel={() => setLessonToCancel(lesson)}
+                                                onShowFeedback={(fb) => {
+                                                    setSelectedFeedback(fb);
+                                                    setIsFeedbackDialogOpen(true);
+                                                }}
+                                            />
                                         ))}
                                     </TableBody>
                                 </Table>
@@ -633,11 +656,20 @@ export default function AdminDerslerPage() {
                         </CardHeader>
                         <CardContent className="p-0">
                              {/* MOBILE LIST */}
-                             <div className="md:hidden divide-y divide-slate-100">
+                                    <div className="md:hidden divide-y divide-slate-100">
                                 {completedLessons.length === 0 ? (
                                     <div className="p-10 text-center text-slate-400 italic text-xs uppercase tracking-widest font-bold">Tamamlanmış ders bulunmuyor.</div>
                                 ) : completedLessons.map((lesson, idx) => (
-                                    <LessonCard key={lesson.id || idx} lesson={lesson} currentTime={currentTime} onCancel={() => setLessonToCancel(lesson)} />
+                                    <LessonCard 
+                                        key={lesson.id || idx} 
+                                        lesson={lesson} 
+                                        currentTime={currentTime} 
+                                        onCancel={() => setLessonToCancel(lesson)} 
+                                        onShowFeedback={(fb) => {
+                                            setSelectedFeedback(fb);
+                                            setIsFeedbackDialogOpen(true);
+                                        }}
+                                    />
                                 ))}
                             </div>
 
@@ -650,13 +682,22 @@ export default function AdminDerslerPage() {
                                             <TableHead className="font-black text-slate-800 p-6">Öğrenci / Veli</TableHead>
                                             <TableHead className="font-black text-slate-800 p-6">Öğretmen</TableHead>
                                             <TableHead className="font-black text-slate-800 p-6">Ders Türü</TableHead>
-                                            <TableHead className="font-black text-slate-800 p-6">Durum</TableHead>
+                                            <TableHead className="font-black text-slate-800 p-6">Geri Bildirim</TableHead>
                                             <TableHead className="p-6 text-right">İşlem</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {completedLessons.map((lesson, idx) => (
-                                            <LessonRow key={lesson.id || idx} lesson={lesson} currentTime={currentTime} onCancel={() => setLessonToCancel(lesson)} />
+                                            <LessonRow 
+                                                key={lesson.id || idx} 
+                                                lesson={lesson} 
+                                                currentTime={currentTime} 
+                                                onCancel={() => setLessonToCancel(lesson)} 
+                                                onShowFeedback={(fb) => {
+                                                    setSelectedFeedback(fb);
+                                                    setIsFeedbackDialogOpen(true);
+                                                }}
+                                            />
                                         ))}
                                     </TableBody>
                                 </Table>
@@ -865,7 +906,6 @@ export default function AdminDerslerPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Cancel AlertDialog */}
             <AlertDialog open={!!lessonToCancel} onOpenChange={(open) => !open && setLessonToCancel(null)}>
                 <AlertDialogContent className="rounded-[32px] border-none shadow-2xl p-8">
                     <AlertDialogHeader>
@@ -886,11 +926,40 @@ export default function AdminDerslerPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Feedback Content Dialog */}
+            <Dialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen}>
+                <DialogContent className="max-w-lg rounded-[32px] border-none shadow-2xl p-8">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-black text-slate-900 flex items-center gap-3">
+                            <MessageSquare className="w-6 h-6 text-primary" />
+                            Ders Geri Bildirimi
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-500 font-medium">
+                            {selectedFeedback?.createdAt && format(selectedFeedback.createdAt.toDate ? selectedFeedback.createdAt.toDate() : new Date(selectedFeedback.createdAt), 'dd MMMM yyyy, HH:mm', { locale: tr })}
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="py-6">
+                        <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
+                            <p className="text-slate-800 leading-relaxed font-medium whitespace-pre-wrap">
+                                {selectedFeedback?.text || "Geri bildirim içeriği bulunamadı."}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <DialogFooter>
+                        <Button onClick={() => setIsFeedbackDialogOpen(false)} className="w-full rounded-xl h-12 font-bold">
+                            Kapat
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
 
-function LessonRow({ lesson, currentTime, onCancel }: { lesson: any, currentTime: Date, onCancel: () => void }) {
+function LessonRow({ lesson, currentTime, onCancel, onShowFeedback }: { lesson: any, currentTime: Date, onCancel: () => void, onShowFeedback: (feedback: any) => void }) {
     const endTime = addMinutes(lesson.startDateTime, lesson.duration);
     const isStarted = currentTime >= lesson.startDateTime;
     const isEnded = currentTime >= endTime;
@@ -932,7 +1001,22 @@ function LessonRow({ lesson, currentTime, onCancel }: { lesson: any, currentTime
             </TableCell>
             <TableCell className="p-6">
                 {(() => {
-                    if (isEnded) return <Badge variant="outline" className="rounded-xl border-emerald-200 bg-emerald-50 text-emerald-700 font-black px-3 py-1 uppercase text-[10px] tracking-widest">Tamamlandı</Badge>;
+                    if (isEnded) {
+                        const feedback = lesson.feedback;
+                        if (feedback) {
+                            return (
+                                <Badge 
+                                    variant="outline" 
+                                    className="rounded-xl border-emerald-200 bg-emerald-50 text-emerald-700 font-black px-3 py-1 uppercase text-[10px] tracking-widest cursor-pointer hover:bg-emerald-100 transition-colors flex items-center gap-1.5"
+                                    onClick={() => onShowFeedback(feedback)}
+                                >
+                                    <MessageSquare className="w-3 h-3" />
+                                    Geri Bildirim Yazıldı
+                                </Badge>
+                            );
+                        }
+                        return <Badge variant="outline" className="rounded-xl border-orange-200 bg-orange-50 text-orange-600 font-black px-3 py-1 uppercase text-[10px] tracking-widest">Geri Bildirim Yazılmadı</Badge>;
+                    }
                     if (isStarted) return (
                         <Badge variant="outline" className="rounded-xl border-red-100 bg-red-50 text-red-600 font-black px-3 py-1 uppercase text-[10px] tracking-widest animate-pulse flex items-center gap-1.5">
                              <div className="w-1.5 h-1.5 rounded-full bg-red-600 animate-ping" />
@@ -984,7 +1068,7 @@ function LessonRow({ lesson, currentTime, onCancel }: { lesson: any, currentTime
     );
 }
 
-function LessonCard({ lesson, currentTime, onCancel }: { lesson: any, currentTime: Date, onCancel: () => void }) {
+function LessonCard({ lesson, currentTime, onCancel, onShowFeedback }: { lesson: any, currentTime: Date, onCancel: () => void, onShowFeedback: (feedback: any) => void }) {
     const endTime = addMinutes(lesson.startDateTime, lesson.duration);
     const isStarted = currentTime >= lesson.startDateTime;
     const isEnded = currentTime >= endTime;
@@ -1053,7 +1137,21 @@ function LessonCard({ lesson, currentTime, onCancel }: { lesson: any, currentTim
                 </Badge>
                 
                 {(() => {
-                    if (isEnded) return <Badge variant="outline" className="rounded-lg border-emerald-100 bg-emerald-50 text-emerald-700 font-black px-2 py-0.5 uppercase text-[8px] tracking-widest">OK</Badge>;
+                    if (isEnded) {
+                        const feedback = lesson.feedback;
+                        if (feedback) {
+                            return (
+                                <Badge 
+                                    variant="outline" 
+                                    className="rounded-lg border-emerald-100 bg-emerald-50 text-emerald-700 font-black px-2 py-0.5 uppercase text-[8px] tracking-widest cursor-pointer"
+                                    onClick={() => onShowFeedback(feedback)}
+                                >
+                                    FB OK
+                                </Badge>
+                            );
+                        }
+                        return <Badge variant="outline" className="rounded-lg border-orange-100 bg-orange-50 text-orange-600 font-black px-2 py-0.5 uppercase text-[8px] tracking-widest">FB YOK</Badge>;
+                    }
                     if (isStarted) return (
                         <Badge variant="outline" className="rounded-lg border-red-100 bg-red-50 text-red-600 font-black px-2 py-0.5 uppercase text-[8px] tracking-widest animate-pulse">
                              CANLI
