@@ -40,6 +40,7 @@ export function getCountryFromPhone(phone: string | undefined | null) {
   if (cleanPhone.startsWith("+7")) return "🇷🇺/🇰🇿 Rusya/Kazakistan";
   if (cleanPhone.startsWith("+385")) return "🇭🇷 Hırvatistan";
   if (cleanPhone.startsWith("+968")) return "🇴🇲 Umman";
+  if (cleanPhone.startsWith("+56")) return "🇨🇱 Şili";
 
   // Provide a generic fallback with the first 4 characters of the area code
   return "🌍 Diğer (" + cleanPhone.substring(0, 4) + "..)";
