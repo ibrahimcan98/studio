@@ -140,7 +140,6 @@ function PaketlerimPageContent() {
                             });
 
                             batch.update(userDocRef, {
-                                remainingLessons: increment(txData.totalLessonsToAdd || 0),
                                 // enrolledPackages: arrayUnion(...(txData.newPackages || [])), // SKIPPED for single child
                             });
                         } else {

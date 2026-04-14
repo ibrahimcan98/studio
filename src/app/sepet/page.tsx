@@ -243,7 +243,6 @@ export default function SepetPage() {
 
                    batch.update(userDocRef, {
                        walletBalanceGbp: increment(-balanceUsedGbp),
-                       remainingLessons: increment(totalLessonsToAdd),
                        // enrolledPackages left unchanged (no items in pool)
                    });
                } else {

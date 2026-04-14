@@ -546,9 +546,7 @@ function UsersPageContent() {
                     updatedAt: new Date()
                 });
 
-                batch.update(parentRef, {
-                    remainingLessons: (selectedParentForLessons.remainingLessons || 0) + lessonCount,
-                });
+
 
                 // TX for child
                 const txRef = doc(collection(db, 'transactions'));
@@ -658,6 +656,31 @@ function UsersPageContent() {
     } catch (e) {
         console.error("Error updating country:", e);
         toast({ variant: 'destructive', title: 'Hata', description: 'Ülke kaydedilemedi.' });
+    }
+  };
+
+  const handleSyncLessons = async (parent: ParentData) => {
+    if (!db) return;
+    const parentChildren = allChildren.filter(c => c.parentId === parent.id);
+    if (parentChildren.length !== 1) {
+        toast({ title: 'İşlem İptal Edildi', description: 'Bu özellik sadece tek çocuklu aileler için geçerlidir.', variant: 'outline' });
+        return;
+    }
+
+    if (!window.confirm(`${parent.firstName} isimli velinin havuzundaki ${parent.remainingLessons} dersi 0'layıp çocuk ile eşitlemek istiyor musunuz?`)) return;
+
+    try {
+        const parentRef = doc(db, 'users', parent.id);
+        await updateDoc(parentRef, { remainingLessons: 0 });
+        toast({ title: 'Dersler Eşitlendi', description: 'Veli havuzu sıfırlandı, toplam ders sayısı doğru görünecektir.', className: 'bg-green-500 text-white' });
+        refetchParents();
+        fetchData();
+        if (selectedParent?.id === parent.id) {
+            setSelectedParent(prev => prev ? { ...prev, remainingLessons: 0 } : null);
+        }
+    } catch (e) {
+        console.error("Error syncing lessons:", e);
+        toast({ variant: 'destructive', title: 'Hata', description: 'Eşitleme başarısız oldu.' });
     }
   };
 
@@ -1050,6 +1073,27 @@ function UsersPageContent() {
                                         </div>
                                     </Card>
                                 </div>
+
+                                {allChildren.filter(c => c.parentId === selectedParent.id).length === 1 && selectedParent.remainingLessons > 0 && (
+                                    <div className="p-6 bg-red-50 border border-red-100 rounded-[20px] space-y-3">
+                                        <div className="flex items-center gap-3 text-red-700">
+                                            <Activity className="w-5 h-5" />
+                                            <h4 className="font-black uppercase tracking-tight text-sm">Veri Tutarsızlığı Tespit Edildi</h4>
+                                        </div>
+                                        <p className="text-xs font-medium text-red-600 leading-relaxed">
+                                            Bu velinin sadece bir çocuğu var ancak veli havuzunda <strong>{selectedParent.remainingLessons} ders</strong> bulunuyor. 
+                                            Bu durum genellikle derslerin hem çocuğa hem veliye aynı anda eklenmesinden (çift sayılma) kaynaklanır.
+                                        </p>
+                                        <Button 
+                                            variant="destructive" 
+                                            size="sm" 
+                                            className="h-9 rounded-xl font-bold shadow-sm"
+                                            onClick={() => handleSyncLessons(selectedParent)}
+                                        >
+                                            <Activity className="w-3.5 h-3.5 mr-2" /> Dersleri Eşitle (Havuzu Sıfırla)
+                                        </Button>
+                                    </div>
+                                )}
 
                                 <div className="space-y-4">
                                     <h3 className="font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
