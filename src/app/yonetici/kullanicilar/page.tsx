@@ -12,7 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { getCountryFromPhone } from '@/lib/utils';
+import { getCountryFromPhone, COUNTRIES } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -44,7 +44,8 @@ import {
     Plus,
     ArrowRight,
     Filter,
-    Clock
+    Clock,
+    Edit2
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -952,6 +953,7 @@ function UsersPageContent() {
                                 onToggleLegacy={() => handleToggleLegacy(parent)}
                                 onDelete={() => handleDeleteParent(parent)}
                                 onQuickRemoveTag={(tag) => handleQuickRemoveTag(parent, tag)}
+                                onUpdateCountry={(newCountry: string) => handleUpdateCountry(parent, newCountry)}
                             />
                         ))}
                     </div>
@@ -985,6 +987,7 @@ function UsersPageContent() {
                                         onToggleLegacy={() => handleToggleLegacy(parent)}
                                         onDelete={() => handleDeleteParent(parent)}
                                         onQuickRemoveTag={(tag) => handleQuickRemoveTag(parent, tag)}
+                                        onUpdateCountry={(newCountry: string) => handleUpdateCountry(parent, newCountry)}
                                     />
                                 ))}
                             </TableBody>
@@ -1608,7 +1611,7 @@ function UsersPageContent() {
   );
 }
 
-function ParentRow({ parent, isSelected, onSelect, onDetail, onAddLessons, onManageTags, onToggleLegacy, onDelete, onQuickRemoveTag }: any) {
+function ParentRow({ parent, isSelected, onSelect, onDetail, onAddLessons, onManageTags, onToggleLegacy, onDelete, onQuickRemoveTag, onUpdateCountry }: any) {
     return (
         <TableRow className={cn("hover:bg-slate-50/30 transition-colors border-slate-100", isSelected && "bg-slate-50")}>
             <TableCell className="pl-8">
@@ -1626,7 +1629,36 @@ function ParentRow({ parent, isSelected, onSelect, onDetail, onAddLessons, onMan
                     </div>
                 </div>
             </TableCell>
-            <TableCell className="font-semibold text-slate-600 text-sm whitespace-nowrap">{parent.countryName}</TableCell>
+            <TableCell className="font-semibold text-slate-600 text-sm whitespace-nowrap group">
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <div 
+                            className="flex items-center gap-2 cursor-pointer hover:text-blue-600 transition-colors w-fit"
+                            title="Ülkeyi düzenlemek için tıklayın"
+                        >
+                            {parent.countryName}
+                            <Edit2 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="max-h-64 overflow-y-auto w-48 rounded-xl border-none shadow-2xl p-2 z-[100]">
+                        <DropdownMenuLabel className="text-[10px] uppercase font-black text-slate-400">Ülke Seçin</DropdownMenuLabel>
+                        {COUNTRIES.map(c => (
+                            <DropdownMenuItem key={c} onClick={() => onUpdateCountry(c)} className="rounded-lg font-bold text-xs py-2 cursor-pointer hover:bg-slate-50">
+                                {c}
+                            </DropdownMenuItem>
+                        ))}
+                        <div className="my-1 border-t border-slate-100" />
+                        <DropdownMenuItem className="rounded-lg font-bold text-xs py-2 cursor-pointer text-blue-600 hover:bg-blue-50" onClick={() => {
+                            const newCountry = window.prompt(`${parent.firstName} için yeni ülke bilgisini girin:`, parent.countryName);
+                            if (newCountry !== null && newCountry.trim() !== '') {
+                                onUpdateCountry(newCountry.trim());
+                            }
+                        }}>
+                            Yazarak Ekle...
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </TableCell>
             <TableCell className="text-slate-500 text-xs">
                 {parent.createdAt ? format(parent.createdAt.toDate(), 'dd MMM yyyy', { locale: tr }) : '-'}
             </TableCell>
@@ -1687,7 +1719,7 @@ function ParentRow({ parent, isSelected, onSelect, onDetail, onAddLessons, onMan
     );
 }
 
-function ParentCard({ parent, isSelected, onSelect, onDetail, onAddLessons, onManageTags, onToggleLegacy, onDelete, onQuickRemoveTag }: any) {
+function ParentCard({ parent, isSelected, onSelect, onDetail, onAddLessons, onManageTags, onToggleLegacy, onDelete, onQuickRemoveTag, onUpdateCountry }: any) {
     return (
         <div className={cn("p-4 bg-white transition-colors flex gap-3", isSelected && "bg-blue-50/30")}>
             <div className="pt-1">
@@ -1729,9 +1761,33 @@ function ParentCard({ parent, isSelected, onSelect, onDetail, onAddLessons, onMa
                 </div>
 
                 <div className="flex flex-wrap gap-1.5 items-center">
-                    <Badge variant="outline" className="text-[9px] border-slate-100 text-slate-400 font-bold tracking-tighter uppercase px-1.5 py-0 h-4">
-                        {parent.countryName}
-                    </Badge>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <div className="flex items-center gap-1 group cursor-pointer w-fit">
+                                <Badge variant="outline" className="text-[9px] border-slate-100 text-slate-400 font-bold tracking-tighter uppercase px-1.5 py-0 h-4 hover:border-blue-200 hover:text-blue-600 transition-colors">
+                                    {parent.countryName}
+                                </Badge>
+                                <Edit2 className="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="max-h-64 overflow-y-auto w-48 rounded-xl border-none shadow-2xl p-2 z-[100]">
+                            <DropdownMenuLabel className="text-[10px] uppercase font-black text-slate-400">Ülke Seçin</DropdownMenuLabel>
+                            {COUNTRIES.map(c => (
+                                <DropdownMenuItem key={c} onClick={() => onUpdateCountry(c)} className="rounded-lg font-bold text-xs py-2 cursor-pointer hover:bg-slate-50">
+                                    {c}
+                                </DropdownMenuItem>
+                            ))}
+                            <div className="my-1 border-t border-slate-100" />
+                            <DropdownMenuItem className="rounded-lg font-bold text-xs py-2 cursor-pointer text-blue-600 hover:bg-blue-50" onClick={() => {
+                                const newCountry = window.prompt(`${parent.firstName} için yeni ülke bilgisini girin:`, parent.countryName);
+                                if (newCountry !== null && newCountry.trim() !== '') {
+                                    onUpdateCountry(newCountry.trim());
+                                }
+                            }}>
+                                Yazarak Ekle...
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                     {parent.computedTags?.slice(0, 5).map((tag: any) => (
                         <Badge key={tag} className={cn("text-[8px] px-1.5 py-0 border-none font-black uppercase tracking-tighter h-4", tagStyles[tag] || 'bg-slate-100 text-slate-400')}>
                             {tag}

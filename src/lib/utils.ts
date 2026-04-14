@@ -5,6 +5,39 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export const COUNTRIES = [
+  "🇹🇷 Türkiye",
+  "🇩🇪 Almanya",
+  "🇬🇧 İngiltere",
+  "🇺🇸 ABD",
+  "🇨🇦 Kanada",
+  "🇮🇩 Endonezya",
+  "🇮🇪 İrlanda",
+  "🇫🇷 Fransa",
+  "🇳🇱 Hollanda",
+  "🇧🇪 Belçika",
+  "🇦🇹 Avusturya",
+  "🇨🇭 İsviçre",
+  "🇸🇪 İsveç",
+  "🇩🇰 Danimarka",
+  "🇳🇴 Norveç",
+  "🇫🇮 Finlandiya",
+  "🇮🇹 İtalya",
+  "🇪🇸 İspanya",
+  "🇬🇷 Yunanistan",
+  "🇧🇬 Bulgaristan",
+  "🇦🇺 Avustralya",
+  "🇦🇪 B.A.E",
+  "🇶🇦 Katar",
+  "🇸🇦 Suudi Arabistan",
+  "🇦🇿 Azerbaycan",
+  "🇷🇺 Rusya",
+  "🇰🇿 Kazakistan",
+  "🇭🇷 Hırvatistan",
+  "🇴🇲 Umman",
+  "🇨🇱 Şili",
+];
+
 export function getCountryFromPhone(phone: string | undefined | null) {
   let cleanPhone = (phone || "").replace(/[\s-()]/g, "");
   if (cleanPhone.startsWith('00')) cleanPhone = '+' + cleanPhone.substring(2);
