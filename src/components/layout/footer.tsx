@@ -1,6 +1,7 @@
 "use client";
 import Link from 'next/link';
 import { Logo } from '@/components/logo';
+import { Instagram, Facebook } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -31,6 +32,26 @@ export default function Footer() {
                 <a href="tel:+905058029734" className="hover:text-foreground transition-colors">+90 505 802 97 34</a>
               </li>
             </ul>
+            <div className="flex items-center justify-start gap-6 pt-4">
+              <a 
+                href="https://www.instagram.com/turkcocukakademisi/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-[#E4405F] transition-all duration-300 hover:scale-110"
+                aria-label="Instagram"
+              >
+                <Instagram className="w-6 h-6" />
+              </a>
+              <a 
+                href="https://www.facebook.com/profile.php?id=100088408140323" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-[#1877F2] transition-all duration-300 hover:scale-110"
+                aria-label="Facebook"
+              >
+                <Facebook className="w-6 h-6" />
+              </a>
+            </div>
           </div>
         </div>
         <div className="mt-12 border-t pt-8">

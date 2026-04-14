@@ -16,7 +16,12 @@ export const metadata: Metadata = {
     template: '%s | Türk Çocuk Akademisi'
   },
   description: 'Yurt dışında yaşayan çocuklar için oyun tabanlı, eğlenceli ve interaktif Türkçe öğrenim platformu. Uzman eğitmenlerle online dersler ve modern eğitim materyalleri.',
-  keywords: ['türkçe öğrenimi', 'yurt dışı türkçe kursu', 'çocuklar için türkçe', 'online türkçe dersi', 'türk çocuk akademisi', 'interaktif türkçe eğitimi'],
+  keywords: [
+    'türkçe öğrenimi', 'yurt dışı türkçe kursu', 'çocuklar için türkçe', 'online türkçe dersi', 
+    'türk çocuk akademisi', 'interaktif türkçe eğitimi', 'türkçe öğrenen çocuklar', 
+    'avrupa türkçe kursu', 'almanya türkçe dersi', 'ingiltere türkçe dersi', 
+    'amerika türkçe dersi', 'uzaktan türkçe eğitimi'
+  ],
   authors: [{ name: 'Türk Çocuk Akademisi' }],
   creator: 'Türk Çocuk Akademisi',
   publisher: 'Türk Çocuk Akademisi',
@@ -36,11 +41,20 @@ export const metadata: Metadata = {
     siteName: 'Türk Çocuk Akademisi',
     locale: 'tr_TR',
     type: 'website',
+    images: [
+      {
+        url: '/anasayfa.png',
+        width: 1200,
+        height: 630,
+        alt: 'Türk Çocuk Akademisi - Çocuklar İçin Türkçe Eğitimi',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Türk Çocuk Akademisi | Çocuklar İçin Türkçe Kursu',
     description: 'Yurt dışındaki çocuklar için oyunlarla Türkçe öğrenimi!',
+    images: ['/anasayfa.png'],
   },
   icons: {
     icon: '/favicon.ico',
@@ -76,6 +90,44 @@ export default function RootLayout({
           </LayoutContent>
         </Providers>
         <Toaster />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              "name": "Türk Çocuk Akademisi",
+              "url": "https://turkcocukakademisi.com",
+              "logo": "https://turkcocukakademisi.com/logo.png",
+              "sameAs": [
+                "https://www.facebook.com/profile.php?id=100088408140323",
+                "https://www.instagram.com/turkcocukakademisi/"
+              ],
+              "contactPoint": {
+                "@type": "ContactPoint",
+                "telephone": "+90-505-802-9734",
+                "contactType": "customer service",
+                "email": "iletisim@turkcocukakademisi.com"
+              }
+            })
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "name": "Türk Çocuk Akademisi",
+              "url": "https://turkcocukakademisi.com",
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://turkcocukakademisi.com/search?q={search_term_string}",
+                "query-input": "required name=search_term_string"
+              }
+            })
+          }}
+        />
       </body>
     </html>
   );
