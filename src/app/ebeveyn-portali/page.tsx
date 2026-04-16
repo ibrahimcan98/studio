@@ -268,6 +268,8 @@ function EbeveynPortaliContent() {
   const [refundChildId, setRefundChildId] = useState<string | null>(null);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [unseenCancellations, setUnseenCancellations] = useState<any[]>([]);
+  const [selectedReportChild, setSelectedReportChild] = useState<any | null>(null);
+  const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
 
   useEffect(() => {
     if (slots && slots.length > 0) {
@@ -481,7 +483,8 @@ function EbeveynPortaliContent() {
                 title: `🎓 ${child.firstName} Seviyesi:`,
                 text: `Güncel seviye: ${child.cefrProfile.speaking.toUpperCase()}`,
                 fullText: `${child.firstName} akademik olarak ${child.cefrProfile.speaking.toUpperCase()} seviyesinde ilerliyor.`,
-                path: '/ebeveyn-portali'
+                path: '/ebeveyn-portali',
+                childId: child.id // Add childId for direct access
             });
         }
     });
@@ -531,7 +534,7 @@ function EbeveynPortaliContent() {
         </div>
 
         <div className="w-full lg:w-1/4 shrink-0">
-            <Dialog>
+            <Dialog open={isNotificationsModalOpen} onOpenChange={setIsNotificationsModalOpen}>
                 <DialogTrigger asChild>
                     <Card className="border-primary/20 shadow-sm bg-white overflow-hidden flex flex-col cursor-pointer group hover:border-primary transition-colors min-h-[100px] justify-center text-left">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 shrink-0">
@@ -567,7 +570,22 @@ function EbeveynPortaliContent() {
                     </DialogHeader>
                     <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-4 py-4">
                         {notifications.length > 0 ? notifications.map((notif) => (
-                            <div key={notif.id} className="p-4 rounded-xl border bg-card hover:bg-accent transition-colors cursor-pointer" onClick={() => router.push(notif.path)}>
+                            <div 
+                                key={notif.id} 
+                                className="p-4 rounded-xl border bg-card hover:bg-accent transition-colors cursor-pointer" 
+                                onClick={() => {
+                                    if (notif.type === 'level' && notif.childId) {
+                                        const child = children?.find(c => c.id === notif.childId);
+                                        if (child) {
+                                            setSelectedReportChild(child);
+                                            setIsNotificationsModalOpen(false);
+                                            return;
+                                        }
+                                    }
+                                    router.push(notif.path);
+                                    setIsNotificationsModalOpen(false);
+                                }}
+                            >
                                 <div className="flex items-start gap-4">
                                     <div className={cn("p-2 rounded-lg", notif.color)}>{notif.icon}</div>
                                     <div className="space-y-1 flex-1">
@@ -575,7 +593,23 @@ function EbeveynPortaliContent() {
                                             <p className="text-sm font-bold leading-none">{notif.title}</p>
                                         </div>
                                         <p className="text-sm text-muted-foreground leading-relaxed mt-2">{notif.fullText || notif.text}</p>
-                                        <Button variant="link" className="p-0 h-auto text-xs font-bold text-primary" onClick={(e) => { e.stopPropagation(); router.push(notif.path); }}>
+                                        <Button 
+                                            variant="link" 
+                                            className="p-0 h-auto text-xs font-bold text-primary" 
+                                            onClick={(e) => { 
+                                                e.stopPropagation(); 
+                                                if (notif.type === 'level' && notif.childId) {
+                                                    const child = children?.find(c => c.id === notif.childId);
+                                                    if (child) {
+                                                        setSelectedReportChild(child);
+                                                        setIsNotificationsModalOpen(false);
+                                                        return;
+                                                    }
+                                                }
+                                                router.push(notif.path); 
+                                                setIsNotificationsModalOpen(false);
+                                            }}
+                                        >
                                             Detayı Gör <ArrowRight className="ml-1 h-3 w-3" />
                                         </Button>
                                     </div>
@@ -592,6 +626,18 @@ function EbeveynPortaliContent() {
             </Dialog>
         </div>
       </div>
+
+      <Dialog open={!!selectedReportChild} onOpenChange={(open) => !open && setSelectedReportChild(null)}>
+        <DialogContent className="max-w-5xl h-[90vh]">
+            <DialogHeader>
+                <DialogTitle className="text-3xl font-bold font-headline">{selectedReportChild?.firstName} İlerleme Paneli</DialogTitle>
+                <DialogDescription>Öğrencinin güncel seviyesi ve öğretmen geri bildirimleri.</DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto min-h-0 pt-4">
+                {selectedReportChild && <ProgressPanel child={selectedReportChild} isEditable={false} authorRole="parent" />}
+            </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
            <Card className="p-6 bg-gradient-to-br from-green-100 to-teal-100 border-green-200 hover:shadow-lg transition-all cursor-pointer group rounded-2xl" onClick={() => router.push('/ebeveyn-portali/paketlerim')}>

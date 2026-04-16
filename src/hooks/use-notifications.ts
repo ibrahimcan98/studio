@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { getToken, onMessage } from 'firebase/messaging';
-import { messaging, db } from '@/firebase';
+import { getToken, onMessage, isSupported } from 'firebase/messaging';
+import { messaging as messagingInstance, db, getSafeMessaging } from '@/firebase';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { useUser } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
@@ -14,11 +14,13 @@ export function useNotifications() {
   const { toast } = useToast();
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [token, setToken] = useState<string | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
       setPermission(Notification.permission);
     }
+    setIsInitializing(false);
   }, []);
 
   const saveTokenToFirestore = useCallback(async (newToken: string) => {
@@ -35,9 +37,30 @@ export function useNotifications() {
     }
   }, [user]);
 
-  const requestPermission = useCallback(async () => {
+  const requestPermission = useCallback(async (isManual: boolean = false) => {
+    let messaging = messagingInstance;
+    
+    // If instance is not ready yet, try to get it safely (awaits isSupported)
     if (!messaging) {
-      toast({ variant: 'destructive', title: 'Hata', description: 'Messaging servisi başlatılamadı.' });
+        messaging = await getSafeMessaging();
+    }
+
+    if (!messaging) {
+      const supported = await isSupported();
+      if (!supported) {
+          if (isManual) {
+            toast({ 
+                variant: 'destructive', 
+                title: 'Desteklenmiyor', 
+                description: 'Cihazınız veya tarayıcınız anlık bildirimleri desteklemiyor. (Instagram/Facebook uygulama içi tarayıcıları desteklememektedir)' 
+            });
+          }
+          return;
+      }
+      
+      if (isManual) {
+        toast({ variant: 'destructive', title: 'Hata', description: 'Messaging servisi şu an başlatılamadı. Lütfen sayfayı yenileyip tekrar deneyin.' });
+      }
       return;
     }
 
@@ -46,24 +69,28 @@ export function useNotifications() {
       
       // Check if Notification is available in the browser
       if (typeof window === 'undefined' || !('Notification' in window)) {
-        toast({ 
-            variant: 'destructive', 
-            title: 'Desteklenmiyor', 
-            description: 'Tarayıcınız anlık bildirimleri desteklemiyor. Lütfen tarayıcı ayarlarını kontrol edin veya uygulamayı ana ekrana ekleyip tekrar deneyin.' 
-        });
+        if (isManual) {
+            toast({ 
+                variant: 'destructive', 
+                title: 'Desteklenmiyor', 
+                description: 'Tarayıcınız anlık bildirimleri desteklemiyor. Lütfen tarayıcı ayarlarını kontrol edin veya uygulamayı ana ekrana ekleyip tekrar deneyin.' 
+            });
+        }
         return;
       }
 
       // If already denied, guide the user
       if (Notification.permission === 'denied') {
-          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-          toast({ 
-              variant: 'destructive', 
-              title: 'İzin Reddedildi', 
-              description: isIOS 
-                ? 'Bildirim izni daha önce reddedilmiş. Etkinleştirmek için: Ayarlar > Bildirimler > Türk Çocuk Akademisi kısmından izin verin.' 
-                : 'Bildirim izni tarayıcı ayarlarınızdan engellenmiş. Lütfen adres çubuğundaki kilit simgesine tıklayarak izin verin.' 
-          });
+          if (isManual) {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            toast({ 
+                variant: 'destructive', 
+                title: 'İzin Reddedildi', 
+                description: isIOS 
+                    ? 'Bildirim izni daha önce reddedilmiş. Etkinleştirmek için: Ayarlar > Bildirimler > Türk Çocuk Akademisi kısmından izin verin.' 
+                    : 'Bildirim izni tarayıcı ayarlarınızdan engellenmiş. Lütfen adres çubuğundaki kilit simgesine tıklayarak izin verin.' 
+            });
+          }
           return;
       }
 
@@ -81,12 +108,16 @@ export function useNotifications() {
           setToken(currentToken);
           if (user) {
             await saveTokenToFirestore(currentToken);
-            toast({ title: 'Başarılı', description: 'Bildirimler başarıyla aktif edildi!' });
+            if (isManual) {
+                toast({ title: 'Başarılı', description: 'Bildirimler başarıyla aktif edildi!' });
+            }
           }
         } else {
-          toast({ variant: 'destructive', title: 'Token Alınamadı', description: 'Cihaz kimliği oluşturulamadı.' });
+          if (isManual) {
+            toast({ variant: 'destructive', title: 'Token Alınamadı', description: 'Cihaz kimliği oluşturulamadı.' });
+          }
         }
-      } else if (status === 'denied') {
+      } else if (status === 'denied' && isManual) {
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
         toast({ 
             variant: 'destructive', 
@@ -98,7 +129,9 @@ export function useNotifications() {
       }
     } catch (error: any) {
       console.error('An error occurred while retrieving token:', error);
-      toast({ variant: 'destructive', title: 'FCM Hatası', description: error.message || 'Bilinmeyen bir hata oluştu.' });
+      if (isManual) {
+        toast({ variant: 'destructive', title: 'FCM Hatası', description: error.message || 'Bilinmeyen bir hata oluştu.' });
+      }
     }
   }, [saveTokenToFirestore, user, toast]);
 
@@ -107,6 +140,7 @@ export function useNotifications() {
     let unsubscribe: (() => void) | undefined;
 
     const setupListener = async () => {
+      const messaging = await getSafeMessaging();
       if (!messaging) return;
       
       try {
@@ -131,14 +165,14 @@ export function useNotifications() {
 
   // Automatically request/refresh token if user is logged in and permission is already granted
   useEffect(() => {
-    if (user && permission === 'granted' && !token) {
-      requestPermission();
+    if (user && permission === 'granted' && !token && !isInitializing) {
+      requestPermission(false);
     }
-  }, [user, permission, token, requestPermission]);
+  }, [user, permission, token, requestPermission, isInitializing]);
 
   return {
     permission,
     token,
-    requestPermission
+    requestPermission: () => requestPermission(true)
   };
 }
