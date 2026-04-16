@@ -95,10 +95,16 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",
-              "@type": "Organization",
+              "@type": "EducationalOrganization",
               "name": "Türk Çocuk Akademisi",
               "url": "https://turkcocukakademisi.com",
               "logo": "https://turkcocukakademisi.com/logo.png",
+              "description": "Yurt dışındaki çocuklar için interaktif ve oyun tabanlı Türkçe eğitim platformu.",
+              "foundingDate": "2023",
+              "address": {
+                "@type": "PostalAddress",
+                "addressCountry": "TR"
+              },
               "sameAs": [
                 "https://www.facebook.com/profile.php?id=100088408140323",
                 "https://www.instagram.com/turkcocukakademisi/"
@@ -107,7 +113,17 @@ export default function RootLayout({
                 "@type": "ContactPoint",
                 "telephone": "+90-505-802-9734",
                 "contactType": "customer service",
-                "email": "iletisim@turkcocukakademisi.com"
+                "email": "iletisim@turkcocukakademisi.com",
+                "availableLanguage": ["Turkish", "English"]
+              },
+              "serviceArea": {
+                "@type": "GeoCircle",
+                "geoMidpoint": {
+                  "@type": "GeoCoordinates",
+                  "latitude": 41.0082,
+                  "longitude": 28.9784
+                },
+                "geoRadius": "10000"
               }
             })
           }}
@@ -120,6 +136,7 @@ export default function RootLayout({
               "@type": "WebSite",
               "name": "Türk Çocuk Akademisi",
               "url": "https://turkcocukakademisi.com",
+              "alternateName": "TCA",
               "potentialAction": {
                 "@type": "SearchAction",
                 "target": "https://turkcocukakademisi.com/search?q={search_term_string}",
