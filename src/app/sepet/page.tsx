@@ -14,7 +14,7 @@ import { useCart, currencyDetails } from '@/context/cart-context';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { useUser, useFirestore, useMemoFirebase, useDoc, useCollection } from '@/firebase';
-import { doc, updateDoc, arrayUnion, increment, collection, addDoc, serverTimestamp, query, where, getDocs, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, increment, collection, addDoc, serverTimestamp, query, where, getDocs, getDoc, writeBatch } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
 const getCourseCode = (courseId: string) => {
