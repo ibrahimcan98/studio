@@ -20,41 +20,16 @@ export async function POST(req: Request) {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const session = await stripe.checkout.sessions.retrieve(session_id);
 
+    // Fulfillment now handled by Webhook. 
+    // This endpoint only checks the current state for UI feedback.
     if (session.payment_status === 'paid') {
-      if (session.metadata?.fulfilled === 'true') {
-        return NextResponse.json({ 
-            success: true, 
-            fulfilled: true, 
-            transactionId: session.metadata.transactionId 
-        });
-      } else {
-        await stripe.checkout.sessions.update(session_id, {
-          metadata: { ...session.metadata, fulfilled: 'true' }
-        });
-
-        // Admin notification: new package purchased
-        const currencySymbol = session.currency === 'gbp' ? '£' : (session.currency === 'eur' ? '€' : (session.currency?.toUpperCase() || ''));
-        const amount = session.amount_total ? `${currencySymbol}${(session.amount_total / 100).toFixed(2)}` : '-';
-        const customerEmail = session.customer_email || '-';
-        await sendAdminNotification({
-            event: '📦 Paket Satın Alındı',
-            details: { 'Müşteri': customerEmail, 'Tutar': amount }
-        });
-        await addDoc(collection(db, 'activity-log'), {
-            event: '📦 Paket Satın Alındı',
-            icon: '📦',
-            details: { 'Müşteri': customerEmail, 'Tutar': amount },
-            createdAt: Timestamp.fromDate(new Date()),
-        });
-
-        return NextResponse.json({ 
-            success: true, 
-            fulfilled: false, 
-            transactionId: session.metadata?.transactionId 
-        });
-      }
+      return NextResponse.json({ 
+          success: true, 
+          status: session.payment_status,
+          fulfilled: session.metadata?.fulfilled === 'true'
+      });
     } else {
-      return NextResponse.json({ error: 'Payment not successful' }, { status: 400 });
+      return NextResponse.json({ error: 'Payment not successful', status: session.payment_status }, { status: 400 });
     }
   } catch (err: any) {
     console.error("Verification error:", err.message);

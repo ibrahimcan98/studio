@@ -100,65 +100,12 @@ function PaketlerimPageContent() {
 
                 const data = await res.json();
                 
-                if (data.success && !data.fulfilled && data.transactionId) {
-                    const txRef = doc(db, 'transactions', data.transactionId);
-                    const txSnap = await getDoc(txRef);
-                    
-                    if (txSnap.exists() && txSnap.data().status === 'pending') {
-                        const txData = txSnap.data();
-                        
-                        // Check for automatic assignment to single child
-                        const childrenRef = collection(db, 'users', user.uid, 'children');
-                        const childrenSnap = await getDocs(childrenRef);
-                        const childrenList = childrenSnap.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
-                        const isSingleChild = childrenList.length === 1;
-
-                        const batch = writeBatch(db);
-                        
-                        if (isSingleChild) {
-                            const child = childrenList[0];
-                            const childRef = doc(db, 'users', user.uid, 'children', child.id);
-                            
-                            const newPackages = txData.newPackages || [];
-                            const firstPackage = newPackages[0];
-                            const prefix = firstPackage ? firstPackage.replace(/[0-9]/g, '') : 'B';
-                            
-                            const courseNames: { [key: string]: string } = {
-                                'B': 'Başlangıç Kursu (Pre A1)',
-                                'K': 'Konuşma Kursu (A1)',
-                                'A': 'Akademik Kurs (A2)',
-                                'G': 'Gelişim Kursu (B1)',
-                                'GCSE': 'GCSE Türkçe Kursu'
-                            };
-                            const courseName = courseNames[prefix] || 'Standart Kurs';
-
-                            batch.update(childRef, {
-                                remainingLessons: increment(txData.totalLessonsToAdd || 0),
-                                assignedPackage: firstPackage || 'B4',
-                                assignedPackageName: courseName,
-                                updatedAt: serverTimestamp()
-                            });
-
-                            batch.update(userDocRef, {
-                                // enrolledPackages: arrayUnion(...(txData.newPackages || [])), // SKIPPED for single child
-                            });
-                        } else {
-                            batch.update(userDocRef, {
-                                enrolledPackages: arrayUnion(...(txData.newPackages || [])),
-                                remainingLessons: increment(txData.totalLessonsToAdd || 0),
-                            });
-                        }
-
-                        if (txData.referrerId) {
-                            const referrerRef = doc(db, 'users', txData.referrerId);
-                            batch.update(referrerRef, { academyPoints: increment(25) });
-                        }
-
-                        batch.update(txRef, { status: 'completed' });
-                        await batch.commit();
-
-                        toast({ title: 'Ödeme Başarılı!', description: isSingleChild ? `Kurslarınız ${childrenList[0].firstName} hesabına otomatik olarak tanımlandı.` : 'Kurslarınız başarıyla hesabınıza eklendi.', className: 'bg-green-500 text-white font-bold' });
-                    }
+                if (data.success) {
+                    toast({ 
+                        title: 'Ödeme Alındı!', 
+                        description: 'Ödemeniz başarıyla alındı. Kurslarınız birkaç saniye içinde hesabınıza tanımlanacaktır.', 
+                        className: 'bg-green-500 text-white font-bold' 
+                    });
                 }
             } catch (error) {
                 console.error("Verification error:", error);
