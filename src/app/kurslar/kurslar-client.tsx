@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
 
 type KurslarClientPageProps = {
     exchangeRates: { [key: string]: number };
@@ -24,6 +25,7 @@ export function KurslarClientPage({
     exchangeRates: initialRates,
 }: KurslarClientPageProps) {
 
+    const router = useRouter();
     const { toast } = useToast();
     const { addToCart, selectedCurrency, setSelectedCurrency, exchangeRates } = useCart();
     

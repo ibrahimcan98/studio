@@ -334,62 +334,6 @@ export default function SepetPage() {
                                                 <div className="flex-1">
                                                     <h3 className="font-semibold text-lg">{item.name}</h3>
                                                     <p className="text-sm text-muted-foreground">{item.description}</p>
-                                                    {(() => {
-                                                        const lessonsCount = parseInt(item.description.split(' ')[0]) || 0;
-                                                        if (lessonsCount > 0) {
-                                                            let itemBasePriceEur = item.price;
-                                                            let hasDiscount = false;
-                                                            
-                                                            const [courseId] = item.id.split('-');
-                                                            let maxItemPct = 0;
-                                                            
-                                                            // Helper to check if a coupon matches an item
-                                                            const isCouponMatching = (c: any) => {
-                                                                const c_ids = Array.isArray(c.applicableCourseIds) ? c.applicableCourseIds : (c.applicableCourseId ? [c.applicableCourseId] : []);
-                                                                const courseMatches = c_ids.length === 0 || c_ids.includes(courseId);
-                                                                
-                                                                const c_pkgs = Array.isArray(c.applicablePackages) 
-                                                                    ? c.applicablePackages.map((p: any) => Number(p)) 
-                                                                    : (c.applicablePackage ? [Number(c.applicablePackage)] : []);
-                                                                    
-                                                                const packageMatches = c_pkgs.length === 0 || c_pkgs.includes(Number(lessonsCount));
-
-                                                                return courseMatches && packageMatches;
-                                                            };
-                                                            
-                                                            // 1. Check Standard Coupon (Manual)
-                                                            if (appliedCouponData && isCouponMatching(appliedCouponData)) {
-                                                                maxItemPct = Math.max(maxItemPct, appliedCouponData.discountPct);
-                                                            }
-                                                            
-                                                            // 2. Check Public Coupons (Automatic)
-                                                            if (publicCoupons && publicCoupons.length > 0) {
-                                                                const matchingPublic = publicCoupons.filter((c: any) => isCouponMatching(c));
-                                                                if (matchingPublic.length > 0) {
-                                                                    const bestPublicPct = Math.max(...matchingPublic.map((c: any) => c.discountPct || 0));
-                                                                    maxItemPct = Math.max(maxItemPct, bestPublicPct);
-                                                                }
-                                                            }
-                                                            
-                                                            if (maxItemPct > 0) {
-                                                                itemBasePriceEur *= (1 - maxItemPct);
-                                                                hasDiscount = true;
-                                                            }
-                                                            
-                                                            // Global referral 5% (Additive)
-                                                            if (appliedReferralCode) {
-                                                                itemBasePriceEur *= 0.95;
-                                                                hasDiscount = true;
-                                                            }
-                                                            
-                                                            return (
-                                                                <Badge variant="outline" className={`mt-2 font-medium ${hasDiscount ? 'text-green-600 border-green-200 bg-green-50' : 'text-slate-500'}`}>
-                                                                    Ders başı: {symbol}{formatPrice(itemBasePriceEur / lessonsCount)}
-                                                                </Badge>
-                                                            );
-                                                        }
-                                                        return null;
-                                                    })()}
                                                     <div className="flex items-center gap-2 mt-3">
                                                         <Label htmlFor={`quantity-${item.id}`}>Miktar:</Label>
                                                         <div className="flex items-center gap-1 border rounded-md">
