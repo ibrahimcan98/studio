@@ -72,7 +72,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
   ];
 
   const navItems = useMemo(() => {
-    const isUltraAdmin = user?.email === 'tubakodak@turkcocukakademisi.com';
+    const isUltraAdmin = user?.email === 'tubakodak@turkcocukakademisi.com' || user?.email === 'ibrahimcanonder_98@hotmail.com';
 
     // Core filtering based on permissions
     let items = allNavItems;
@@ -80,6 +80,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     if (userData?.permissions) {
       items = allNavItems.filter((item: any) => 
         item.id === 'dashboard' || 
+        item.id === 'admin-yonetimi' || // Ensure it potentially stays if we are ultra admin
         userData.permissions.includes(item.id)
       );
     }
