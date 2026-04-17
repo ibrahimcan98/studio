@@ -5,7 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { sendAdminNotification, sendUserPaymentReceipt } from '@/lib/notify';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-02-24-preview' as any,
+  apiVersion: '2024-06-20',
 });
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
