@@ -72,7 +72,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
   ];
 
   const navItems = useMemo(() => {
-    const isUltraAdmin = user?.email === 'tubakodak@turkcocukakademisi.com' || user?.email === 'ibrahimcanonder_98@hotmail.com';
+    const isUltraAdmin = user?.email === 'tubakodak@turkcocukakademisi.com';
 
     // Core filtering based on permissions
     let items = allNavItems;
