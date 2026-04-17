@@ -155,6 +155,12 @@ export default function SalesPage() {
                             {t.assignedLessons} Derslik Paket
                         </span>
                     )}
+                    {t.totalLessonsToAdd && !t.assignedLessons && (
+                        <span className="text-[10px] font-bold text-primary flex items-center gap-1.5">
+                            <ArrowUpRight className="w-3 h-3" />
+                            {t.totalLessonsToAdd} Ders
+                        </span>
+                    )}
                   </div>
                   <span className="text-[9px] font-bold text-slate-400 flex items-center gap-1">
                     <CalendarIcon className="w-2.5 h-2.5" />
@@ -222,7 +228,13 @@ export default function SalesPage() {
                                     {t.assignedLessons} Derslik Paket
                                 </span>
                             )}
-                            {!t.items && !t.assignedLessons && t.type === 'premium' && (
+                            {t.totalLessonsToAdd && !t.assignedLessons && (
+                                <span className="text-xs font-bold text-primary flex items-center gap-1.5">
+                                    <ArrowUpRight className="w-3.5 h-3.5" />
+                                    {t.totalLessonsToAdd} Ders
+                                </span>
+                            )}
+                            {!t.items && !t.assignedLessons && !t.totalLessonsToAdd && t.type === 'premium' && (
                                 <span className="text-xs font-semibold text-slate-600">1 Aylık Abonelik</span>
                             )}
                             {t.description && (
