@@ -228,8 +228,19 @@ function PaketlerimPageContent() {
         });
 
         toast({
-            title: "Sepete Eklendi",
+            title: "✅ Sepete Eklendi!",
             description: `${course.title} (${pkg.lessons} ders) sepetinize eklendi.`,
+            className: "bg-green-600 text-white border-none shadow-2xl",
+            action: (
+                <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="bg-white text-green-600 hover:bg-slate-100 font-bold border-none"
+                    onClick={() => router.push('/sepet')}
+                >
+                    Sepete Git
+                </Button>
+            ),
         });
     };
     

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { db } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { sendAdminNotification } from '@/lib/notify';
+import { sendAdminNotification, sendUserPaymentReceipt } from '@/lib/notify';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-02-24-preview' as any,
@@ -47,6 +47,7 @@ export async function POST(req: Request) {
         if (txDoc.exists && txDoc.data()?.status === 'pending') {
             const txData = txDoc.data()!;
             const userId = txData.userId;
+            const userName = txData.userName || 'Değerli Velimiz';
             const newPackages = txData.newPackages || [];
             const totalLessonsToAdd = txData.totalLessonsToAdd || 0;
 
@@ -104,12 +105,13 @@ export async function POST(req: Request) {
 
             await batch.commit();
 
-            // Admin Notification
+            // Notifications
             const currencySymbol = session.currency === 'gbp' ? '£' : (session.currency === 'eur' ? '€' : (session.currency?.toUpperCase() || ''));
             const amountFormatted = session.amount_total ? `${currencySymbol}${(session.amount_total / 100).toFixed(2)}` : '-';
             const customerEmail = session.customer_email || '-';
             const packageList = newPackages.join(', ');
 
+            // 1. Send Admin Notification
             await sendAdminNotification({
                 event: '📦 Paket Satın Alındı (Otomatik)',
                 details: { 
@@ -119,6 +121,13 @@ export async function POST(req: Request) {
                     'Toplam Ders': totalLessonsToAdd,
                     'İşlem': transactionId 
                 }
+            });
+
+            // 2. Send User Receipt Email
+            await sendUserPaymentReceipt(customerEmail, {
+                name: userName,
+                amount: amountFormatted,
+                packageInfo: `${totalLessonsToAdd} Derslik Paket (${packageList})`
             });
 
             await db.collection('activity-log').add({
