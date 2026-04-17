@@ -194,7 +194,9 @@ export default function SepetPage() {
                 userId: user.uid,
                 userName: user.displayName,
                 userEmail: user.email,
+                amount: payableTotalGbp * rate,
                 amountGbp: payableTotalGbp,
+                currency: selectedCurrency,
                 balanceUsedGbp: balanceUsedGbp,
                 type: 'package',
                 createdAt: serverTimestamp(),
@@ -205,7 +207,8 @@ export default function SepetPage() {
                 items: cartItems.map(item => ({
                     name: item.name,
                     quantity: item.quantity,
-                    priceGbp: item.price
+                    priceOriginalGbp: item.price,
+                    priceFinal: (item.price * (1 - (discountAmount + balanceUsedGbp)/cartTotal)) * rate
                 }))
             });
 

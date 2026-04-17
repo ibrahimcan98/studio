@@ -423,7 +423,18 @@ function PaketlerimPageContent() {
                                                             </div>
                                                         </td>
                                                         <td className="py-4 px-1.5 sm:px-4 md:px-6 text-right font-black text-slate-800 text-[10px] sm:text-sm whitespace-nowrap">
-                                                            {tx.amountGbp !== undefined ? `£${tx.amountGbp.toFixed(2)}` : (tx.amountEur !== undefined ? `€${tx.amountEur.toFixed(2)}` : (tx.amount ? `${tx.amount} €` : '0.00 £'))}
+                                                            <div className="flex flex-col items-end gap-1">
+                                                                <span>
+                                                                    {tx.currency === 'EUR' || tx.amountEur !== undefined ? '€' : 
+                                                                     tx.currency === 'USD' ? '$' : '£'}
+                                                                    {(tx.amount !== undefined ? tx.amount : (tx.amountGbp || tx.amountEur || tx.amount || 0)).toFixed(2)}
+                                                                </span>
+                                                                {(tx.amount === 0 || tx.amountGbp === 0) && (
+                                                                    <Badge variant="secondary" className="bg-green-50 text-green-600 border-green-100 text-[8px] sm:text-[9px] px-1 shadow-none">
+                                                                        ÜCRETSİZ
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
                                                         </td>
                                                         <td className="py-4 px-1.5 sm:px-4 md:px-6 text-right">
                                                             <Badge className="bg-emerald-100 text-emerald-700 border-none font-bold uppercase tracking-tight sm:tracking-wider text-[9px] sm:text-[10px] px-1 sm:px-2">Başarılı</Badge>
