@@ -408,11 +408,18 @@ function PaketlerimPageContent() {
                                                         <td className="py-4 px-1.5 sm:px-4 md:px-6">
                                                             <div className="flex flex-col gap-1">
                                                                 {tx.items?.map((item: any, i: number) => (
-                                                                    <span key={i} className="text-[10px] sm:text-sm font-bold text-slate-800 flex items-center gap-1.5 leading-tight">
-                                                                        <BookOpen className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 shrink-0" />
-                                                                        {item.quantity}x {item.name}
-                                                                    </span>
+                                                                    <div key={i} className="flex flex-col">
+                                                                        <span className="text-[10px] sm:text-sm font-bold text-slate-800 flex items-center gap-1.5 leading-tight">
+                                                                            <BookOpen className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 shrink-0" />
+                                                                            {item.quantity}x {item.name}
+                                                                        </span>
+                                                                    </div>
                                                                 ))}
+                                                                {tx.totalLessonsToAdd && (
+                                                                    <Badge variant="secondary" className="w-fit bg-indigo-50 text-indigo-700 border-none text-[9px] font-black mt-1">
+                                                                        {tx.totalLessonsToAdd} TOPLAM DERS
+                                                                    </Badge>
+                                                                )}
                                                             </div>
                                                         </td>
                                                         <td className="py-4 px-1.5 sm:px-4 md:px-6 text-right font-black text-slate-800 text-[10px] sm:text-sm whitespace-nowrap">
