@@ -108,16 +108,28 @@ export async function POST(req: Request) {
             const currencySymbol = session.currency === 'gbp' ? '£' : (session.currency === 'eur' ? '€' : (session.currency?.toUpperCase() || ''));
             const amountFormatted = session.amount_total ? `${currencySymbol}${(session.amount_total / 100).toFixed(2)}` : '-';
             const customerEmail = session.customer_email || '-';
+            const packageList = newPackages.join(', ');
 
             await sendAdminNotification({
                 event: '📦 Paket Satın Alındı (Otomatik)',
-                details: { 'Müşteri': customerEmail, 'Tutar': amountFormatted, 'İşlem': transactionId }
+                details: { 
+                    'Müşteri': customerEmail, 
+                    'Tutar': amountFormatted, 
+                    'Paketler': packageList,
+                    'Toplam Ders': totalLessonsToAdd,
+                    'İşlem': transactionId 
+                }
             });
 
             await db.collection('activity-log').add({
                 event: '📦 Paket Satın Alındı',
                 icon: '📦',
-                details: { 'Müşteri': customerEmail, 'Tutar': amountFormatted },
+                details: { 
+                    'Müşteri': customerEmail, 
+                    'Tutar': amountFormatted,
+                    'Paket': packageList,
+                    'Ders Sayısı': totalLessonsToAdd
+                },
                 createdAt: FieldValue.serverTimestamp(),
             });
 
