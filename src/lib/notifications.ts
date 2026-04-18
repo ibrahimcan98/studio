@@ -79,7 +79,7 @@ export async function notifyAdmin(title: string, body: string, link?: string) {
   try {
     const adminEmails = [
       'iletisim@turkcocukakademisi.com',
-      'tubakodak@turkcocukakademisi.com'
+      'tubakodak@turkcocukakademisii.com'
     ];
     
     // Fetch users with these emails

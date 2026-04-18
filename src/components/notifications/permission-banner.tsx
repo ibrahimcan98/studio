@@ -24,7 +24,7 @@ export function PermissionBanner() {
 
   const PRIMARY_ADMIN_EMAILS = [
     'iletisim@turkcocukakademisi.com',
-    'tubakodak@turkcocukakademisi.com'
+    'tubakodak@turkcocukakademisii.com'
   ];
   const isPrimaryAdmin = user?.email && PRIMARY_ADMIN_EMAILS.includes(user.email.toLowerCase());
 
