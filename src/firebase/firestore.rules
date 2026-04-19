@@ -9,48 +9,37 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && (
-        request.auth.token.email == 'admin@hotmail.com' ||
-        request.auth.uid == 'HjYBaEgRUsQ4DUIvBlFfrx7ND6p1'
-      );
+      return isSignedIn() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // 1. DESTEK SİSTEMİ
-    match /conversations/{id} {
-      allow read, write: if true;
-    }
-
-    match /messages/{id} {
-      allow read, write: if true;
-    }
-
-    // 2. KULLANICI VE ÇOCUK VERİLERİ
-    match /users/{userId} {
-      // Kullanıcı kendi verisini okuyabilir ve yazabilir
+    // 1. KULLANICI VE SAHİPLİK KURALLARI (EN ÜSTTE)
+    // Bu kural, kullanıcının kendi dokümanı ve tüm alt koleksiyonları (bildirimler, çocuk verileri vb.) için tam yetki sağlar.
+    match /users/{userId}/{allPaths=**} {
       allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // 2. ÖZEL KULLANICI KURALLARI (Kapsam dışı veya ek izinler)
+    match /users/{userId} {
+      // Adminler tüm kullanıcı verilerini listeleyebilir
+      allow get, list: if isAdmin();
       
-      // Admin her şeyi yapabilir
-      allow list, get: if isAdmin();
-      
-      // Velilerin öğretmenleri görmesi için (Ders Planlama Önizlemesi)
-      // Belge yoksa (resource == null) veya rolü 'teacher' ise okumaya izin ver
-      allow get: if isSignedIn() && (resource == null || resource.data.role == 'teacher');
-      
-      // Takip verileri için güncelleme izni
-      allow update: if (isSignedIn() && request.auth.uid == userId) || 
-                    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isOnline', 'lastActiveAt', 'currentPath', 'onlineSince']));
+      // Kayıt sırasında email/kullanıcı kontrolü için kısıtlı okuma
+      allow get, list: if isSignedIn();
 
       match /children/{childId} {
-        allow read, write: if isSignedIn() && request.auth.uid == userId;
+        // Öğretmenler ve Adminler çocuk verilerini görebilir
         allow read: if isAdmin() || (isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'teacher']);
+        
+        // Öğretmenler gelişim raporlarını güncelleyebilir
+        allow update: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
       }
     }
 
     // 3. DERS SLOTLARI
     match /lesson-slots/{slotId} {
-        // Okuma izni listelemeyi de kapsar. 
-        // Güvenlik için veliler sadece kendilerine ait veya boş slotları görebilir
-        allow get, list: if true;
+        allow read: if true;
         allow create: if isSignedIn();
         allow update, delete: if isSignedIn();
         
@@ -61,8 +50,9 @@ service cloud.firestore {
     
     // 4. İŞLEMLER VE GENEL VERİLER
     match /transactions/{id} {
-      allow read: if isAdmin();
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
     }
 
     match /courses/{courseId} {
@@ -76,7 +66,30 @@ service cloud.firestore {
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
-    // 5. GLOBAL ADMIN ERİŞİMİ
+    match /coupons/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /activity-log/{id} {
+      allow create: if true;
+      allow read: if isAdmin();
+    }
+
+    match /notifications-log/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    // 5. DESTEK SİSTEMİ (Chat vb.)
+    match /conversations/{id} {
+      allow read, write: if true;
+    }
+
+    match /messages/{id} {
+      allow read, write: if true;
+    }
+
+    // 6. GLOBAL ADMIN ERİŞİMİ
     match /{document=**} {
       allow read, write: if isAdmin();
     }

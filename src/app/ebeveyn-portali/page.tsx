@@ -265,11 +265,28 @@ function EbeveynPortaliContent() {
   const slotsQuery = useMemoFirebase(() => (db && user?.uid) ? query(collection(db, 'lesson-slots'), where('bookedBy', '==', user.uid)) : null, [db, user?.uid]);
   const { data: slots, isLoading: slotsLoading } = useCollection(slotsQuery);
 
+  const parseDate = (val: any) => {
+    if (!val) return new Date();
+    if (typeof val.toDate === 'function') return val.toDate();
+    if (val instanceof Date) return val;
+    // Handle potential serialized Firestore timestamp object {seconds, nanoseconds}
+    if (val.seconds !== undefined) return new Date(val.seconds * 1000);
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? new Date() : d;
+  };
+
   const [refundChildId, setRefundChildId] = useState<string | null>(null);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [unseenCancellations, setUnseenCancellations] = useState<any[]>([]);
   const [selectedReportChild, setSelectedReportChild] = useState<any | null>(null);
   const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
+  const [activeManualNotif, setActiveManualNotif] = useState<any | null>(null);
+
+  // Note: Manual announcement Firestore checking removed as requested.
+
+  const handleMarkAsRead = async (notif: any) => {
+      setActiveManualNotif(null);
+  };
 
   useEffect(() => {
     if (slots && slots.length > 0) {
@@ -282,7 +299,6 @@ function EbeveynPortaliContent() {
            return isNaN(d.getTime()) ? new Date() : d;
        };
 
-       // Group consecutive or same-session slots
        const groups: any[] = [];
        const sortedUnseen = [...unseen].sort((a, b) => {
            const dateA = parseDate(a.startTime);
@@ -351,7 +367,6 @@ function EbeveynPortaliContent() {
         setRefundChildId(id);
         const timer = setTimeout(() => {
             setRefundChildId(null);
-            // Optional: clean URL
             router.replace('/ebeveyn-portali');
         }, 5000);
         return () => clearTimeout(timer);
@@ -370,16 +385,7 @@ function EbeveynPortaliContent() {
     if (!slots || !childrenWithEffect) return [];
     const list: any[] = [];
     const now = new Date();
-    
-    const parseDate = (val: any) => {
-        if (!val) return new Date();
-        if (val.toDate) return val.toDate();
-        if (val instanceof Date) return val;
-        const d = new Date(val);
-        return isNaN(d.getTime()) ? new Date() : d;
-    };
 
-    // 1. Sıradaki Ders (Gelecek)
     const nextLesson = slots
       .filter(s => {
           if (s.status === 'cancelled') return false;
@@ -407,11 +413,11 @@ function EbeveynPortaliContent() {
         title: '⏰ Sıradaki Ders:', 
         text: `${datePrefix}${format(date, 'HH:mm')}`, 
         fullText: `${format(date, 'dd MMMM yyyy EEEE HH:mm', { locale: tr })} tarihinde dersiniz bulunuyor.`,
-        path: '/ebeveyn-portali/dersler' 
+        path: '/ebeveyn-portali/dersler',
+        createdAt: date
       });
     }
 
-    // 2. Yeni Tamamlanan Ders (Geçmiş 24 saat)
     const lastCompleted = slots
       .filter(s => {
           const startTime = s.startTime.toDate ? s.startTime.toDate() : new Date(s.startTime);
@@ -433,11 +439,11 @@ function EbeveynPortaliContent() {
             title: '✅ Ders Tamamlandı:',
             text: `${format(date, 'dd MMMM', { locale: tr })} dersi başarıyla işlendi.`,
             fullText: 'Çocuğunuzun bugünkü performansı sisteme kaydedildi.',
-            path: '/ebeveyn-portali/dersler?tab=past'
+            path: '/ebeveyn-portali/dersler?tab=past',
+            createdAt: date
         });
     }
 
-    // 3. İptal Edilen Dersler (Son 48 saat) - Gruplandırılmış
     const cancelledMap = new Map();
     slots
       .filter(s => {
@@ -468,11 +474,11 @@ function EbeveynPortaliContent() {
             title: '⚠️ Ders İptal Edildi:',
             text: `${format(date, 'dd MMMM', { locale: tr })} dersi öğretmen tarafından iptal edildi.`,
             fullText: cl.cancelReason ? `Mazeret: "${cl.cancelReason}" (Krediniz iade edilmiştir.)` : 'Öğretmeniniz dersi iptal etti. Krediniz iade edilmiştir.',
-            path: '/ebeveyn-portali/dersler?tab=past'
+            path: '/ebeveyn-portali/dersler?tab=past',
+            createdAt: date
         });
     });
 
-    // 4. Seviye Bilgisi
     childrenWithEffect.forEach(child => {
         if (child.cefrProfile?.speaking) {
             list.push({
@@ -484,12 +490,17 @@ function EbeveynPortaliContent() {
                 text: `Güncel seviye: ${child.cefrProfile.speaking.toUpperCase()}`,
                 fullText: `${child.firstName} akademik olarak ${child.cefrProfile.speaking.toUpperCase()} seviyesinde ilerliyor.`,
                 path: '/ebeveyn-portali',
-                childId: child.id // Add childId for direct access
+                childId: child.id,
+                createdAt: new Date()
             });
         }
     });
 
-    return list;
+    return list.sort((a, b) => {
+        const aTime = a.createdAt?.getTime?.() || 0;
+        const bTime = b.createdAt?.getTime?.() || 0;
+        return bTime - aTime;
+    });
   }, [slots, childrenWithEffect]);
 
   const firstThreeChildIds = useMemo(() => {
@@ -758,6 +769,44 @@ function EbeveynPortaliContent() {
                         className="w-full h-14 rounded-2xl text-base font-bold bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-600/20"
                     >
                         Anladım, Kredimi Kontrol Ettim
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Manual Announcement Popup */}
+        <AlertDialog open={!!activeManualNotif}>
+            <AlertDialogContent className="max-w-md rounded-[32px] p-8 text-center border-none shadow-2xl bg-white overflow-hidden relative">
+                <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl" />
+                <AlertDialogHeader className="items-center relative z-10">
+                    <div className="w-20 h-20 bg-primary/10 rounded-[24px] flex items-center justify-center mb-6">
+                        <Megaphone className="w-10 h-10 text-primary animate-bounce" />
+                    </div>
+                    <AlertDialogTitle className="text-3xl font-black text-slate-900 tracking-tight leading-tight">
+                        {activeManualNotif?.title}
+                    </AlertDialogTitle>
+                    <AlertDialogDescription className="text-lg font-medium text-slate-500 mt-4 leading-relaxed">
+                        {activeManualNotif?.body}
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                
+                <AlertDialogFooter className="mt-8 flex flex-col sm:flex-row gap-3 relative z-10">
+                    <Button 
+                        variant="ghost" 
+                        onClick={() => handleMarkAsRead(activeManualNotif)}
+                        className="flex-1 h-14 rounded-2xl font-bold text-slate-400 hover:bg-slate-50"
+                    >
+                        Daha Sonra
+                    </Button>
+                    <AlertDialogAction 
+                        onClick={() => {
+                            const path = activeManualNotif?.redirectPath || '/ebeveyn-portali';
+                            handleMarkAsRead(activeManualNotif);
+                            if (path) router.push(path);
+                        }}
+                        className="flex-[2] h-14 rounded-2xl text-base font-black bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20"
+                    >
+                        Detayı Gör
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>

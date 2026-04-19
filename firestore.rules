@@ -14,38 +14,26 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // 1. DESTEK SİSTEMİ
-    match /conversations/{id} {
-      allow read, write: if true;
+    // 1. KULLANICI VE SAHİPLİK KURALLARI (EN ÜSTTE)
+    // Bu kural, kullanıcının kendi dokümanı ve tüm alt koleksiyonları (bildirimler, çocuk verileri vb.) için tam yetki sağlar.
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
     }
 
-    match /messages/{id} {
-      allow read, write: if true;
-    }
-
-    // 2. KULLANICI VE ÇOCUK VERİLERİ
+    // 2. ÖZEL KULLANICI KURALLARI (Kapsam dışı veya ek izinler)
     match /users/{userId} {
-      // 1. Kendi verisini okuyabilir ve yazabilir
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow read, update, delete: if isSignedIn() && request.auth.uid == userId;
-      
-      // 2. Takip verileri ve academyPoints için (PresenceManager ve Puan Sistemi)
-      // Doc mevcut değilken update hata vermemeli ('not-found' dönmeli, 'permission-denied' değil)
-      allow update: if (isSignedIn() && request.auth.uid == userId) || 
-                    (isSignedIn() && resource != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isOnline', 'lastActiveAt', 'currentPath', 'status', 'onlineSince', 'academyPoints']));
-
-      // 3. Admin Erişimi
+      // Adminler tüm kullanıcı verilerini listeleyebilir
       allow get, list: if isAdmin();
       
-      // 4. Slug ve Diğer Kullanıcı Kontrolleri (Kayıt sırasında email/slug check için)
+      // Kayıt sırasında email/kullanıcı kontrolü için kısıtlı okuma
       allow get, list: if isSignedIn();
-      
+
       match /children/{childId} {
-        allow read, write: if isSignedIn() && request.auth.uid == userId;
-        allow read: if isAdmin() || (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'teacher']);
+        // Öğretmenler ve Adminler çocuk verilerini görebilir
+        allow read: if isAdmin() || (isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'teacher']);
         
-        // Öğretmenler gelişim ve geri bildirim verilerini güncelleyebilir
-        allow update: if isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+        // Öğretmenler gelişim raporlarını güncelleyebilir
+        allow update: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
       }
     }
 
@@ -78,16 +66,9 @@ service cloud.firestore {
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
-    // 5. KUPONLAR VE ÖZEL ERİŞİM
     match /coupons/{id} {
       allow read: if true;
       allow write: if isAdmin();
-    }
-
-    match /loyalty-requests/{id} {
-      allow read: if isAdmin();
-      allow create: if isSignedIn();
-      allow update, delete: if isAdmin();
     }
 
     match /activity-log/{id} {
@@ -95,6 +76,20 @@ service cloud.firestore {
       allow read: if isAdmin();
     }
 
+    match /notifications-log/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    // 5. DESTEK SİSTEMİ (Chat vb.)
+    match /conversations/{id} {
+      allow read, write: if true;
+    }
+
+    match /messages/{id} {
+      allow read, write: if true;
+    }
+
+    // 6. GLOBAL ADMIN ERİŞİMİ
     match /{document=**} {
       allow read, write: if isAdmin();
     }

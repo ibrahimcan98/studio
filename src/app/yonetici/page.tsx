@@ -1,8 +1,8 @@
 
 'use client';
-
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, limit, collectionGroup } from 'firebase/firestore';
+import Link from 'next/link';
 import { 
   TrendingUp, 
   Globe2, 
@@ -11,7 +11,12 @@ import {
   CalendarCheck,
   Loader2,
   Clock,
-  Baby
+  Baby,
+  ChevronLeft, 
+  ChevronRight, 
+  Trash2,
+  Bell,
+  PhoneCall
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,10 +25,8 @@ import { useMemo, useState } from 'react';
 import { addMonths, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { writeBatch, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { NotificationSender } from '@/components/admin/notification-sender';
 
 function GrowthCard({ title, value, subValue, icon: Icon, color }: any) {
   return (
@@ -177,8 +180,26 @@ export default function AdminDashboard() {
 
       <div className="grid gap-6 lg:grid-cols-3 items-start">
         <div className="lg:col-span-1 space-y-6">
-          <NotificationSender />
-          
+          <Card className="border-none shadow-md overflow-hidden bg-gradient-to-br from-primary/5 to-transparent">
+            <CardHeader className="border-b pb-4">
+              <CardTitle className="text-lg font-bold flex items-center gap-2 text-primary">
+                  <Activity className="h-5 w-5" /> Hızlı Erişim
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-3">
+               <Button variant="outline" className="w-full justify-start rounded-xl font-bold gap-2" asChild>
+                  <Link href="/yonetici/bildirimler">
+                    <Bell className="h-4 w-4" /> Bildirim Paneli
+                  </Link>
+               </Button>
+               <Button variant="outline" className="w-full justify-start rounded-xl font-bold gap-2" asChild>
+                  <Link href="/yonetici/aramalar">
+                    <PhoneCall className="h-4 w-4" /> Aramalar & CRM
+                  </Link>
+               </Button>
+            </CardContent>
+          </Card>
+
           <Card className="border-none shadow-md overflow-hidden">
             <CardHeader className="bg-white border-b pb-4">
               <CardTitle className="text-lg font-bold flex items-center gap-2">

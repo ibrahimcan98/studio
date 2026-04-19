@@ -20,7 +20,8 @@ import {
   Ticket,
   Calendar,
   Menu,
-  PhoneCall
+  PhoneCall,
+  Megaphone
 } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
@@ -58,6 +59,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
 
   const allNavItems = [
     { id: 'dashboard', href: '/yonetici', label: 'Genel Bakış', icon: Home },
+    { id: 'bildirimler', href: '/yonetici/bildirimler', label: 'Bildirim Paneli', icon: Megaphone },
     { id: 'canli-takip', href: '/yonetici/canli-takip', label: 'Canlı İzle', icon: Activity },
     { id: 'inbox', href: '/yonetici/inbox', label: 'Mesajlar', icon: Inbox },
     { id: 'satislar', href: '/yonetici/satislar', label: 'Satışlar', icon: CreditCard },
