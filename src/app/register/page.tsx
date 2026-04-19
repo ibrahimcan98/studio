@@ -120,8 +120,17 @@ export default function RegisterPage() {
             body: JSON.stringify({
               title: '🆕 Yeni Veli Kaydoldu!',
               body: `${name} (${cleanEmail}) aramıza katıldı.`,
-              link: `/yonetici/kullanicilar?userId=${newUser.uid}`
-            }),
+              link: `/yonetici/kullanicilar?userId=${newUser.uid}`,
+              logData: {
+                icon: '🆕',
+                event: 'Yeni Veli Kaydı',
+                details: {
+                  'Veli': name,
+                  'E-posta': cleanEmail,
+                  'Kanal': 'Web Kayıt'
+                }
+              }
+            })
           });
         } catch (notifyError) {
           console.error("Admin notification failed:", notifyError);

@@ -129,6 +129,7 @@ function TeacherPreviewDialog({ teacherId, isOpen, onOpenChange }: { teacherId: 
 export default function DersPlanlaPage() {
     const router = useRouter();
     const { user, loading: userLoading } = useUser();
+    const emailVerified = user?.emailVerified;
     const db = useFirestore();
     const { toast } = useToast();
 
@@ -254,6 +255,7 @@ export default function DersPlanlaPage() {
     const trialStatusMessage = useMemo(() => {
         if (!selectedChildData || !userData) return null;
         if (userData.isLegacy) return "Eski üye hesabında deneme dersi hakkı bulunmamaktadır.";
+        if (!selectedChildData.hasUsedFreeTrial && !emailVerified) return "Deneme dersi planlayabilmek için e-posta adresinizi doğrulamanız gerekmektedir.";
         if (selectedChildData.hasUsedFreeTrial) return "Bu öğrenci için deneme dersi hakkı daha önce kullanıldı.";
         if ((userData.freeTrialsUsed || 0) >= MAX_FREE_TRIALS) return "Bu hesap için toplam deneme dersi limitine (3) ulaşıldı.";
         if (!isEligibleByAdditionOrder) return "Deneme dersi hakkı sadece hesaba eklenen ilk 3 öğrenci için geçerlidir.";
@@ -284,7 +286,29 @@ export default function DersPlanlaPage() {
         } else {
             setSelectedPackage('');
         }
-    }, [selectedChildData, userData, rescheduleId, oldLessonData]);
+    }, [selectedChildData, userData, rescheduleId, oldLessonData, emailVerified]);
+
+    const handleResendVerification = async () => {
+        if (!user?.email) return;
+        try {
+            const res = await fetch('/api/auth/send-link', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: user.email, type: 'verification' }),
+            });
+            if (res.ok) {
+                toast({ 
+                    title: 'Başarılı', 
+                    description: 'Doğrulama e-postası tekrar gönderildi. Lütfen gelen kutunuzu kontrol edin.',
+                    className: 'bg-green-500 text-white font-bold'
+                });
+            } else {
+                throw new Error('E-posta gönderilemedi.');
+            }
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Hata', description: 'E-posta gönderilemedi. Lütfen daha sonra tekrar deneyin.' });
+        }
+    };
 
     const lessonSlotsRef = useMemoFirebase(() => (db && selectedTeacherId) ? query(collection(db, 'lesson-slots'), where('teacherId', '==', selectedTeacherId)) : null, [db, selectedTeacherId]);
     const { data: allTeacherSlots, isLoading: areSlotsLoading } = useCollection(lessonSlotsRef);
@@ -408,9 +432,9 @@ export default function DersPlanlaPage() {
                 event: rescheduleId ? '🔄 Ders Değiştirildi' : '📅 Ders Planlandı',
                 icon: rescheduleId ? '🔄' : '📅',
                 details: {
-                    'Öğrenci': childName,
-                    'Ders Saati': lessonTime,
                     'Ders Türü': selectedPackage || '-',
+                    'Öğrenci': childName,
+                    'Ders Zamanı': lessonTime
                 },
                 createdAt: Timestamp.fromDate(new Date())
             }).catch(console.error);
@@ -490,14 +514,27 @@ export default function DersPlanlaPage() {
                 }
             }
 
-            // Admin notification (Push)
+            // Admin notification (Push + Email if trial)
+            const isTrial = bookingMode === 'free';
             fetch('/api/notify/admin', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    title: rescheduleId ? '🔄 Ders Değiştirildi' : '📅 Ders Planlandı',
+                    title: isTrial ? (rescheduleId ? '🚨 Deneme Dersi Değiştirildi' : '🚨 Deneme Dersi Planlandı') : (rescheduleId ? '🔄 Ders Değiştirildi' : '📅 Ders Planlandı'),
                     body: `${childName} için ${lessonTime} saatine ders ${rescheduleId ? 'taşındı' : 'planlandı'}.`,
-                    link: '/yonetici/dersler'
+                    link: '/yonetici/dersler',
+                    sendEmail: isTrial, // Only send email for trial lessons
+                    logData: {
+                        icon: isTrial ? '🚨' : (rescheduleId ? '🔄' : '📅'),
+                        event: isTrial ? 'Deneme Dersi İşlemi' : 'Ders İşlemi',
+                        details: {
+                            studentName: childName,
+                            teacherName: teacherFullName,
+                            date: formatInTimeZone(startTime, 'Europe/Istanbul', 'dd MMMM yyyy', { locale: tr }),
+                            time: formatInTimeZone(startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr }),
+                            isTrial: isTrial
+                        }
+                    }
                 })
             }).catch(console.error);
 
@@ -508,8 +545,8 @@ export default function DersPlanlaPage() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         userId: user.uid,
-                        title: '🪫 Paketiniz Azalıyor!',
-                        body: `${childName} için sadece 2 dersiniz kaldı. Devamlılık için yeni bir paket almayı unutmayın.`,
+                        title: '🎈 Maceraya Ara Vermeyelim!',
+                        body: `${childName}'in heyecan dolu derslerine ara vermeden devam etmesi için kredi almayı unutmayın! Sizi bekliyoruz. ✨`,
                         link: '/ebeveyn-portali/paket-al'
                     })
                 }).catch(console.error);
@@ -522,9 +559,9 @@ export default function DersPlanlaPage() {
                 body: JSON.stringify({
                     event: rescheduleId ? '🔄 Ders Değiştirildi' : '📅 Ders Planlandı',
                     details: {
-                        'Öğrenci': childName,
-                        'Ders Saati': lessonTime,
                         'Ders Türü': selectedPackage || '-',
+                        'Öğrenci': childName,
+                        'Ders Zamanı': lessonTime
                     }
                 })
             }).catch(console.error);
@@ -538,6 +575,7 @@ export default function DersPlanlaPage() {
     if (userLoading || !selectedTimeZone) return <div className="flex h-screen items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
 
     const isPackageMissing = selectedChildId && !selectedPackage && !rescheduleId;
+    const isTrialLocked = bookingMode === 'free' && !emailVerified && !rescheduleId;
 
     return (
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 bg-muted/20 min-h-screen font-sans text-slate-900">
@@ -583,6 +621,41 @@ export default function DersPlanlaPage() {
                                     Şu an <strong>{format(oldLessonData.startTime, 'dd MMMM HH:mm', { locale: tr })}</strong> tarihindeki dersinizi değiştiriyorsunuz. 
                                     Lütfen aşağıdan yeni bir saat seçin. Değişiklik onaylandığında eski dersiniz iptal edilecektir.
                                 </AlertDescription>
+                            </div>
+                        </div>
+                    </Alert>
+                </div>
+            )}
+            
+            {/* Verification Alert for Trials */}
+            {bookingMode === 'free' && !emailVerified && !rescheduleId && (
+                <div className="max-w-6xl mx-auto">
+                    <Alert className="bg-amber-50 border-amber-200 rounded-[32px] p-8 shadow-md ring-1 ring-amber-100">
+                        <div className="flex flex-col md:flex-row items-center gap-6">
+                            <div className="bg-amber-100 p-4 rounded-3xl shadow-inner">
+                                <AlertTriangle className="h-8 w-8 text-amber-600" />
+                            </div>
+                            <div className="flex-1 text-center md:text-left space-y-2">
+                                <AlertTitle className="text-2xl font-black text-amber-800 tracking-tight">E-POSTA DOĞRULAMASI GEREKLİ</AlertTitle>
+                                <AlertDescription className="text-amber-700/80 font-bold text-lg leading-snug">
+                                    Deneme dersi planlayabilmek için e-posta adresinizi doğrulamanız gerekmektedir. 
+                                    Lütfen <span className="text-amber-900 underline decoration-2 underline-offset-4">{user?.email}</span> adresine gönderdiğimiz bağlantıya tıklayın.
+                                </AlertDescription>
+                            </div>
+                            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                                <Button 
+                                    onClick={handleResendVerification}
+                                    variant="outline"
+                                    className="w-full h-14 px-6 rounded-2xl border-2 border-amber-200 bg-white text-amber-800 font-black hover:bg-amber-100 hover:border-amber-300 transition-all shadow-xl shadow-amber-200/20"
+                                >
+                                    Tekrar Gönder
+                                </Button>
+                                <Button 
+                                    onClick={() => window.location.reload()}
+                                    className="w-full h-14 px-6 rounded-2xl bg-amber-600 text-white font-black hover:bg-amber-700 transition-all shadow-xl shadow-amber-600/20"
+                                >
+                                    Doğruladım, Yenile
+                                </Button>
                             </div>
                         </div>
                     </Alert>
@@ -791,8 +864,8 @@ export default function DersPlanlaPage() {
                                                             let isClickable = false;
 
                                                             if (slot?.status === 'available') {
-                                                                if (isPast) {
-                                                                    bgColor = "bg-slate-200/40 cursor-not-allowed border-slate-300/10";
+                                                                if (isPast || isTrialLocked) {
+                                                                    bgColor = (isTrialLocked && !isPast) ? "bg-amber-100/50 cursor-not-allowed border-amber-200/20" : "bg-slate-200/40 cursor-not-allowed border-slate-300/10";
                                                                 } else {
                                                                     bgColor = "bg-emerald-500/80 hover:bg-emerald-500 cursor-pointer shadow-[inset_0_0_0_1.5px_rgba(255,255,255,0.15)]";
                                                                     isClickable = true;
@@ -877,7 +950,11 @@ export default function DersPlanlaPage() {
                     </AlertDialogHeader>
                     <AlertDialogFooter className="mt-8 flex-col sm:flex-row gap-3">
                         <AlertDialogCancel className="rounded-xl h-14 font-bold text-base border-2 border-slate-100 flex-1 hover:bg-slate-50">Vazgeç</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleBookLesson} disabled={isBooking} className="rounded-xl h-14 bg-primary font-bold text-base flex-1 shadow-lg shadow-primary/20 hover:scale-105 transition-transform">
+                        <AlertDialogAction 
+                            onClick={handleBookLesson} 
+                            disabled={isBooking || (bookingMode === 'free' && !emailVerified && !rescheduleId)} 
+                            className="rounded-xl h-14 bg-primary font-bold text-base flex-1 shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
+                        >
                             {isBooking ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : "Dersi Planla"}
                         </AlertDialogAction>
                     </AlertDialogFooter>

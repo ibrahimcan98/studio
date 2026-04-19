@@ -1116,41 +1116,45 @@ function UsersPageContent() {
                                 {allChildren.filter(c => c.parentId === selectedParent.id).length > 0 ? (
                                     <div className="grid gap-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2 py-1">
                                         {allChildren.filter(c => c.parentId === selectedParent.id).map(child => (
-                                            <Card key={child.id} className="p-6 border-slate-100 shadow-sm flex items-center justify-between">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-xl">👶</div>
-                                                    <div>
-                                                        <p className="font-bold text-slate-800 text-lg">{child.firstName}</p>
+                                            <Card key={child.id} className="p-4 sm:p-6 border-slate-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+                                                <div className="flex items-center gap-4 w-full sm:w-auto">
+                                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-100 flex items-center justify-center text-xl shrink-0">👶</div>
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="font-bold text-slate-800 text-base sm:text-lg truncate">{child.firstName}</p>
                                                         <div className="flex items-center gap-2">
-                                                            <p className="text-xs text-slate-500 font-medium">{child.dateOfBirth ? `${differenceInYears(new Date(), new Date(child.dateOfBirth))} Yaş` : '-'}</p>
-                                                            <span className="text-[9px] font-mono text-slate-300 bg-slate-50 px-1 rounded select-all uppercase">ID: {child.id.substring(0, 8).toUpperCase()}</span>
+                                                            <p className="text-[10px] sm:text-xs text-slate-500 font-medium whitespace-nowrap">{child.dateOfBirth ? `${differenceInYears(new Date(), new Date(child.dateOfBirth))} Yaş` : '-'}</p>
+                                                            <span className="text-[9px] font-mono text-slate-300 bg-slate-50 px-1 rounded select-all uppercase truncate">ID: {child.id.substring(0, 8).toUpperCase()}</span>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="flex gap-4 items-center">
-                                                    <div className="text-right">
-                                                        <p className="text-[10px] font-black text-slate-400 uppercase">Kalan Ders</p>
-                                                        <p className="font-bold text-slate-800">{child.remainingLessons || 0}</p>
+                                                <div className="flex w-full sm:w-auto gap-4 items-center justify-between sm:justify-end">
+                                                    <div className="flex gap-4 items-center">
+                                                        <div className="text-right">
+                                                            <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase leading-tight">Kalan Ders</p>
+                                                            <p className="font-bold text-slate-800 text-sm sm:text-base leading-none mt-1">{child.remainingLessons || 0}</p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase leading-tight">Seviye</p>
+                                                            <Badge className="bg-primary/10 text-primary border-none text-[9px] sm:text-[10px] font-black h-5 mt-1">{child.level?.toUpperCase() || 'YOK'}</Badge>
+                                                        </div>
                                                     </div>
-                                                    <div className="text-right">
-                                                        <p className="text-[10px] font-black text-slate-400 uppercase">Seviye</p>
-                                                        <Badge className="bg-primary/10 text-primary border-none text-[10px] font-black">{child.level?.toUpperCase() || 'YOK'}</Badge>
+                                                    <div className="flex gap-2">
+                                                        <Button variant="outline" size="icon" className="h-9 w-9 sm:w-auto sm:px-3 sm:gap-2 border-slate-200" onClick={() => {
+                                                            setSelectedChildForProgress(child);
+                                                            setIsChildProgressOpen(true);
+                                                        }}>
+                                                            <FileText className="w-4 h-4" />
+                                                            <span className="hidden sm:inline">İlerleme</span>
+                                                        </Button>
+                                                        <Button variant="outline" size="icon" className="h-9 w-9 sm:w-auto sm:px-3 sm:gap-2 text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => {
+                                                            setSelectedParentForLessons(selectedParent);
+                                                            setSelectedChildForPackage(child);
+                                                            setIsAddLessonsOpen(true);
+                                                        }}>
+                                                            <Plus className="w-4 h-4" />
+                                                            <span className="hidden sm:inline">Paket</span>
+                                                        </Button>
                                                     </div>
-                                                    <Button variant="outline" size="sm" className="h-8 text-xs font-bold" onClick={() => {
-                                                        setSelectedChildForProgress(child);
-                                                        setIsChildProgressOpen(true);
-                                                    }}>
-                                                        <FileText className="w-3 h-3 mr-1" />
-                                                        Detaylı İlerleme
-                                                    </Button>
-                                                    <Button variant="outline" size="sm" className="h-8 text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => {
-                                                        setSelectedParentForLessons(selectedParent);
-                                                        setSelectedChildForPackage(child);
-                                                        setIsAddLessonsOpen(true);
-                                                    }}>
-                                                        <Plus className="w-3 h-3 mr-1" />
-                                                        Paket Ata
-                                                    </Button>
                                                 </div>
                                             </Card>
                                         ))}

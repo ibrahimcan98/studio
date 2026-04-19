@@ -180,14 +180,27 @@ function CancellationButtons({ lesson, timeZone }: { lesson: any, timeZone: stri
                 }
             }
 
-            // Admin notification (Push)
+            // Admin notification (Push + Email if trial)
+            const isTrial = lesson.packageCode === 'FREE_TRIAL';
             fetch('/api/notify/admin', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    title: '❌ Ders İptal Edildi',
+                    title: isTrial ? '🚨 Deneme Dersi İptal Edildi' : '❌ Ders İptal Edildi',
                     body: `${lesson.childName || 'Öğrenci'} için ${lessonTimeFormatted} saatindeki ders veli tarafından iptal edildi.`,
-                    link: '/yonetici/dersler'
+                    link: '/yonetici/dersler',
+                    sendEmail: isTrial,
+                    logData: {
+                        icon: '❌',
+                        event: isTrial ? 'Deneme Dersi İptali' : 'Ders İptali',
+                        details: {
+                            studentName: lesson.childName || 'Öğrenci',
+                            teacherName: teacherData?.firstName + ' ' + teacherData?.lastName || 'Öğretmen',
+                            date: formatInTimeZone(startTime, 'Europe/Istanbul', 'dd MMMM yyyy', { locale: tr }),
+                            time: formatInTimeZone(startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr }),
+                            isTrial: isTrial
+                        }
+                    }
                 })
             }).catch(console.error);
 

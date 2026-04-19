@@ -271,7 +271,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
                   <div className="h-10 w-10 rounded-full bg-slate-900 flex items-center justify-center text-white font-bold text-sm ring-4 ring-slate-100">{user.email?.[0].toUpperCase()}</div>
                 </div>
             </header>
-            <main className="flex-1 p-4 sm:p-10 bg-slate-50/50">{children}</main>
+            <main className="flex-1 p-2 sm:p-6 lg:p-10 bg-slate-50/50">{children}</main>
         </div>
       </div>
     </TooltipProvider>

@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { db } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { sendAdminNotification, sendUserPaymentReceipt } from '@/lib/notify';
+import { sendAdminNotification, sendUserPaymentReceipt, sendAdminEmail } from '@/lib/notify';
+import { getAdminPurchaseTemplate } from '@/lib/email-templates';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-06-20',
@@ -112,10 +113,16 @@ export async function POST(req: Request) {
                 const customerEmail = session.customer_email || '-';
                 const packageList = newPackages.join(', ');
 
-                await sendAdminNotification({
-                    event: '📦 Paket Satın Alındı (Otomatik)',
-                    details: { 'Müşteri': customerEmail, 'Tutar': amountFormatted, 'Paketler': packageList, 'Ders Sayısı': String(totalLessonsToAdd) }
-                });
+                await sendAdminEmail(
+                    '💰 Yeni Satın Alım!',
+                    getAdminPurchaseTemplate({
+                        customerName: userName,
+                        email: customerEmail,
+                        packageName: packageList,
+                        amount: (session.amount_total! / 100).toFixed(2),
+                        currency: session.currency?.toUpperCase() || ''
+                    })
+                );
                 await sendUserPaymentReceipt(customerEmail, { name: userName, amount: amountFormatted, packageInfo: `${totalLessonsToAdd} Derslik Paket` });
             } catch (notifyErr: any) {
                 console.error('[Webhook] Notification failed but DB was updated:', notifyErr.message);

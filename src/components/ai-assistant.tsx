@@ -205,6 +205,7 @@ export function AIAssistant() {
                     title: '🚀 Yeni Canlı Destek',
                     body: `${formData.name} bir destek talebi başlattı: "${formData.message.substring(0, 50)}${formData.message.length > 50 ? '...' : ''}"`,
                     link: `/yonetici/inbox?id=${convRef.id}`,
+                    sendEmail: true,
                     logData: {
                         icon: '🚀',
                         event: 'Canlı Destek Başlatıldı',

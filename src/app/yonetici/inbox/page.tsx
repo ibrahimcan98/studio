@@ -18,7 +18,9 @@ import {
     Loader2,
     Archive,
     Baby,
-    GraduationCap
+    GraduationCap,
+    ArrowLeft,
+    X
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -208,8 +210,9 @@ export default function InboxPage() {
 
             {/* Chat Area */}
             <Card className={cn(
-                "flex-1 flex flex-col overflow-hidden border-none shadow-md bg-white",
-                activeMobileView !== 'chat' ? 'hidden md:flex' : 'flex'
+                "flex-1 flex flex-col overflow-hidden border-none shadow-md bg-white min-w-0 transition-all",
+                activeMobileView === 'list' ? 'hidden md:flex' : 
+                activeMobileView === 'profile' ? 'hidden lg:flex' : 'flex'
             )}>
                 {selectedConv ? (
                     <>
@@ -218,10 +221,10 @@ export default function InboxPage() {
                                 <Button 
                                     variant="ghost" 
                                     size="icon" 
-                                    className="md:hidden h-8 w-8 -ml-1"
+                                    className="md:hidden h-9 w-9 -ml-1 bg-slate-50 rounded-xl"
                                     onClick={() => setActiveMobileView('list')}
                                 >
-                                    <Search className="w-4 h-4 rotate-180" /> {/* Reuse icon as back arrow */}
+                                    <ArrowLeft className="w-5 h-5 text-slate-600" />
                                 </Button>
                                 <Avatar className="h-8 w-8 sm:h-10 sm:w-10"><AvatarFallback>{selectedConv.createdBy?.name?.[0] || '?'}</AvatarFallback></Avatar>
                                 <div>
@@ -233,7 +236,7 @@ export default function InboxPage() {
                                 <Button 
                                     variant="ghost" 
                                     size="icon" 
-                                    className="lg:hidden h-8 w-8"
+                                    className="h-8 w-8"
                                     onClick={() => setActiveMobileView(activeMobileView === 'profile' ? 'chat' : 'profile')}
                                 >
                                     <User className={cn("w-4 h-4", activeMobileView === 'profile' && "text-primary")} />
@@ -307,22 +310,32 @@ export default function InboxPage() {
             {/* Right Panel: Details */}
             {selectedConv && (
                 <Card className={cn(
-                    "w-full lg:w-72 border-none shadow-md bg-white p-4 sm:p-6 overflow-y-auto",
-                    activeMobileView !== 'profile' ? 'hidden lg:flex flex-col' : 'flex flex-col absolute inset-0 z-20 lg:relative'
+                    "w-full lg:w-80 border-none shadow-xl bg-white overflow-y-auto transition-all duration-300",
+                    activeMobileView === 'profile' ? 'flex flex-col absolute lg:relative inset-0 z-[60] lg:z-10' : 'hidden'
                 )}>
-                    <div className="flex items-center justify-between mb-6 lg:mb-4">
-                        <h3 className="font-bold text-[10px] sm:text-xs uppercase tracking-widest text-slate-400">Müşteri Profili</h3>
+                    <div className="sticky top-0 bg-white z-[70] p-4 sm:p-6 pb-2 sm:pb-3 border-b flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-9 w-9 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors"
+                                onClick={() => setActiveMobileView('chat')}
+                            >
+                                <ArrowLeft className="w-5 h-5" />
+                            </Button>
+                            <h3 className="font-black text-xs uppercase tracking-widest text-slate-500">Müşteri Profili</h3>
+                        </div>
                         <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="lg:hidden h-8 w-8"
+                            className="h-9 w-9 bg-slate-50 hover:bg-slate-100 rounded-xl"
                             onClick={() => setActiveMobileView('chat')}
                         >
-                            <Loader2 className="w-4 h-4 rotate-45" /> {/* Close-like icon */}
+                            <X className="w-5 h-5" />
                         </Button>
                     </div>
                     
-                    <div className="space-y-6">
+                    <div className="p-4 sm:p-6 space-y-8 pt-6">
                         <div className="flex items-start gap-3">
                             <User className="w-4 h-4 text-slate-400 mt-0.5" />
                             <div>

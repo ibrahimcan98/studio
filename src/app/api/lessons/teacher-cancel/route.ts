@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { notifyAdmin } from '@/lib/notifications';
+import { sendAdminNotification } from '@/lib/notify';
 
 export async function POST(req: Request) {
   try {
@@ -73,17 +74,32 @@ export async function POST(req: Request) {
         ? `${teacherData.firstName} ${teacherData.lastName}` 
         : 'Eğitmen';
 
-    await db.collection('activity-log').add({
-      event: '❌ Ders İptal Edildi (Öğretmen)',
-      icon: '❌',
-      details: {
-        'Öğrenci': studentName,
-        'Eğitmen': teacherFullName,
-        'Mazeret': cancelReason,
-        'Ders Saati': startTime || '-'
-      },
-      createdAt: FieldValue.serverTimestamp()
-    });
+    // 4. Admin Notification (Professional Email if trial, always Push)
+    const isTrial = packageCode === 'FREE_TRIAL';
+    const notifyTitle = isTrial ? '🚨 Deneme Dersi İptal Edildi (Öğretmen)' : '❌ Ders İptal Edildi (Öğretmen)';
+    const notifyBody = `${studentName} için ${startTime} saatindeki ders öğretmen (${teacherFullName}) tarafından iptal edildi.`;
+
+    // Send Admin Notification via the internal helper (which handles Push and professional Email)
+    try {
+        // Send email via notify helper if trial
+        if (isTrial) {
+             await sendAdminNotification({
+                event: notifyTitle,
+                details: {
+                    'İşlem': 'İptal (Öğretmen)',
+                    'Öğrenci': studentName,
+                    'Eğitmen': teacherFullName,
+                    'Ders Zamanı': startTime || '-',
+                    'Mazeret': cancelReason
+                }
+            });
+        }
+        
+        // Always send push
+        await notifyAdmin(notifyTitle, notifyBody, '/yonetici/dersler');
+    } catch (e) {
+        console.error('Admin notify error in teacher-cancel:', e);
+    }
 
     return NextResponse.json({ 
         success: true, 

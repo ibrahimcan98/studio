@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { collection, query, where, getDocs, getDoc, doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/firebase/server'; 
 import { sendPushNotification } from '@/lib/notifications';
+import { resend, FROM_EMAIL } from '@/lib/resend';
+import { getFeedbackReminderTemplate } from '@/lib/email-templates';
 
 const CRON_SECRET = process.env.CRON_SECRET || 'dev_secret_123';
 
@@ -15,9 +17,9 @@ export async function GET(request: Request) {
 
     try {
         const now = new Date();
-        // Lessons that started between 24 hours ago and 12 hours ago
-        const windowStart = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        const windowEnd = new Date(now.getTime() - 12 * 60 * 60 * 1000);
+        // Lessons that started between 48 hours ago and 24 hours ago
+        const windowStart = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+        const windowEnd = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
         console.log(`Checking for missing feedback between ${windowStart.toISOString()} and ${windowEnd.toISOString()}`);
 
@@ -56,9 +58,26 @@ export async function GET(request: Request) {
             await sendPushNotification(
                 teacherId,
                 '📝 Geri Bildirim Hatırlatması',
-                `Merhaba ${teacherName}, ${childName} ile yaptığınız dersin üzerinden 12 saat geçti. Lütfen gelişim raporunu tamamlamayı unutmayın.`,
+                `Merhaba ${teacherName}, ${childName} ile yaptığınız dersin üzerinden 24 saat geçti. Lütfen gelişim raporunu tamamlamayı unutmayın.`,
                 '/ogretmen-portali/derslerim'
             );
+
+            // Send Email Notification to Teacher
+            if (teacherData?.email) {
+                try {
+                    await resend.emails.send({
+                        from: `Türk Çocuk Akademisi <${FROM_EMAIL}>`,
+                        to: teacherData.email,
+                        subject: '📝 Geri Bildirim Hatırlatması',
+                        html: getFeedbackReminderTemplate({
+                            teacherName: teacherName,
+                            studentName: childName
+                        })
+                    });
+                } catch (emailError) {
+                    console.error('Feedback Reminder Email Error:', emailError);
+                }
+            }
 
             // Mark as sent
             await updateDoc(doc(db, 'lesson-slots', lessonId), {

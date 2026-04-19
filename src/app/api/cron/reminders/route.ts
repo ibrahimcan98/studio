@@ -4,6 +4,8 @@ import { db } from '@/firebase/server';
 import { sendPushNotification } from '@/lib/notifications';
 import { formatInTimeZone } from 'date-fns-tz';
 import { tr } from 'date-fns/locale';
+import { resend, FROM_EMAIL } from '@/lib/resend';
+import { getLessonReminderTemplate } from '@/lib/email-templates';
 
 // Secret key to prevent unauthorized access to the cron route
 const CRON_SECRET = process.env.CRON_SECRET || 'dev_secret_123';
@@ -56,15 +58,40 @@ export async function GET(request: Request) {
             const childDoc = await getDoc(doc(db, 'users', parentId, 'children', childId));
             const childName = childDoc.data()?.firstName || 'Öğrenci';
 
+            // Fetch Teacher Info for Meet Link
+            const teacherDoc = await getDoc(doc(db, 'users', lesson.teacherId));
+            const teacherData = teacherDoc.data();
+            const teacherName = teacherData?.firstName || 'Öğretmen';
+            const googleMeetLink = teacherData?.googleMeetLink;
+
             const formattedTime = formatInTimeZone(startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr });
 
             // Send Push Notification to Parent
             await sendPushNotification(
                 parentId,
                 '⏰ Dersiniz Başlıyor!',
-                `Merhaba ${parentName}, ${childName}'nin dersi 10 dakika içinde (${formattedTime}) başlayacaktır. İyi dersler! 📚`,
+                `Merhaba ${parentName}, ${childName}'nin dersi 10 dakika içinde (${formattedTime}) başlayacaktır. İyi dersler! 🚀`,
                 '/ebeveyn-portali/derslerim'
             );
+
+            // Send Email Notification to Parent
+            if (parentData?.email) {
+                try {
+                    await resend.emails.send({
+                        from: `Türk Çocuk Akademisi <${FROM_EMAIL}>`,
+                        to: parentData.email,
+                        subject: '⏰ Dersiniz Başlıyor!',
+                        html: getLessonReminderTemplate({
+                            studentName: childName,
+                            teacherName: teacherName,
+                            time: formattedTime,
+                            meetingLink: googleMeetLink
+                        })
+                    });
+                } catch (emailError) {
+                    console.error('Reminder Email Error:', emailError);
+                }
+            }
 
             // Mark as sent
             await updateDoc(doc(db, 'lesson-slots', lessonId), {

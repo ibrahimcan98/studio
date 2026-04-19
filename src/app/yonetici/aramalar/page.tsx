@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { getCountryFromPhone, cn } from '@/lib/utils';
-import { Loader2, Phone, Search, History, Clock, PhoneOff, UserCheck, CalendarClock, UserCog, User, MapPin, Hash, PhoneCall, Copy, MoreHorizontal, ShoppingBag, Baby, FileText, Tag as TagIcon, Mail, Calendar, Activity, Trash2, Edit2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Phone, Search, History, Clock, PhoneOff, UserCheck, CalendarClock, UserCog, User, MapPin, Hash, PhoneCall, Copy, MoreHorizontal, ShoppingBag, Baby, FileText, Tag as TagIcon, Mail, Calendar, Activity, Trash2, Edit2, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { formatInTimeZone } from 'date-fns-tz';
@@ -404,22 +404,26 @@ export default function AramalarPage() {
         )}>
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3">
-                    {activeMobileView === 'details' && (
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="md:hidden shrink-0 h-9 w-9 bg-white shadow-sm border rounded-xl"
-                            onClick={() => setActiveMobileView('list')}
-                        >
-                            <ChevronLeft className="w-5 h-5" />
-                        </Button>
-                    )}
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="shrink-0 h-9 w-9 bg-white shadow-sm border rounded-xl hover:bg-slate-50 transition-colors"
+                        onClick={() => {
+                            if (activeMobileView === 'details') {
+                                setActiveMobileView('list');
+                            } else {
+                                router.push('/yonetici');
+                            }
+                        }}
+                    >
+                        <ArrowLeft className="w-5 h-5 text-slate-600" />
+                    </Button>
                     <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-slate-900 truncate">
                         {activeMobileView === 'details' && selectedParent ? `Arama: ${selectedParent.firstName}` : 'Telemarketing / Aramalar'}
                     </h1>
                 </div>
                 {activeMobileView === 'list' && (
-                    <p className="hidden sm:block text-muted-foreground mt-1 text-sm font-medium">Velileri arayın, etiketleri görün ve arama geçmişini kaydedin.</p>
+                    <p className="hidden sm:block text-muted-foreground mt-1 text-sm font-medium ml-12">Velileri arayın, etiketleri görün ve arama geçmişini kaydedin.</p>
                 )}
             </div>
         </div>
@@ -568,14 +572,27 @@ export default function AramalarPage() {
                         )}
                         
                         {/* PROFILE HEADER (Responsive heights) */}
-                        <div className="p-4 sm:p-6 lg:p-8 bg-slate-900 text-white shrink-0 scrollbar-hide">
-                            <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 sm:gap-6">
-                                <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-6 w-full">
-                                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-[20px] sm:rounded-[24px] bg-primary flex items-center justify-center text-2xl sm:text-3xl font-black shadow-lg shadow-primary/20 shrink-0">
-                                        {selectedParent.firstName?.[0] || 'V'}{selectedParent.lastName?.[0] || 'P'}
+                        <div className="p-4 sm:p-6 lg:p-10 bg-slate-900 text-white shrink-0 scrollbar-hide relative overflow-hidden">
+                            {/* Background decoration */}
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
+                            
+                            <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6 relative z-10">
+                                <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-8 w-full">
+                                    <div className="flex flex-col items-center sm:items-start gap-4">
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-10 w-10 bg-white/10 hover:bg-white/20 text-white rounded-2xl mb-2 transition-all group"
+                                            onClick={() => setActiveMobileView('list')}
+                                        >
+                                            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                                        </Button>
+                                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-[24px] sm:rounded-[32px] bg-primary flex items-center justify-center text-3xl sm:text-4xl font-black shadow-2xl shadow-primary/20 shrink-0 border-4 border-white/10">
+                                            {selectedParent.firstName?.[0] || 'V'}{selectedParent.lastName?.[0] || 'P'}
+                                        </div>
                                     </div>
-                                    <div className="space-y-1 sm:space-y-2 min-w-0 flex-1">
-                                        <h2 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight truncate">{selectedParent.firstName} {selectedParent.lastName}</h2>
+                                    <div className="space-y-2 sm:space-y-3 min-w-0 flex-1 pt-1 sm:pt-12">
+                                        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight truncate leading-tight">{selectedParent.firstName} {selectedParent.lastName}</h2>
                                         <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-4 text-slate-400 text-[11px] sm:text-sm font-medium">
                                             <span className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 shrink-0" /> <span className="truncate max-w-[150px] sm:max-w-none">{selectedParent.email}</span></span>
                                             <span className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 shrink-0" /> {selectedParent.phoneNumber || '-'}</span>
@@ -608,7 +625,7 @@ export default function AramalarPage() {
                         <div className="bg-slate-50 border-b p-3 sm:p-4 px-4 sm:px-6 shrink-0 shadow-sm z-10 overflow-hidden">
                             <div className="flex flex-col xl:flex-row items-center justify-between gap-3">
                                 <span className="hidden sm:flex text-xs font-black text-slate-500 uppercase tracking-widest items-center gap-2">
-                                    <PhoneCall className="w-4 h-4 text-primary" /> Arama Sonucu
+                                    <PhoneCall className="w-4 h-4 text-primary" /> Son Arama Durumu
                                 </span>
                                 <div className="flex flex-col sm:flex-row items-center gap-2 w-full xl:w-auto">
                                     <Input 
@@ -641,8 +658,8 @@ export default function AramalarPage() {
                             <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50 scrollbar-thin">
                                 
                                 {/* TAB: OVERVIEW */}
-                                <TabsContent value="overview" className="m-0 space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                    <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                                <TabsContent value="overview" className="m-0 space-y-4 sm:space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                                         <Card className="bg-white border-slate-100 shadow-sm p-4 sm:p-5 hover:shadow-md transition-shadow group">
                                             <div className="flex items-center gap-3 mb-2">
                                                 <div className="p-2 rounded-lg bg-blue-50 text-blue-500 group-hover:scale-110 transition-transform">
@@ -712,15 +729,15 @@ export default function AramalarPage() {
                                                     </div>
                                                     <div className="flex w-full sm:w-auto gap-4 items-center justify-between sm:justify-end">
                                                         <div className="text-right">
-                                                            <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase">Kredisi</p>
-                                                            <p className="font-bold text-slate-800 text-sm sm:text-base">{child.remainingLessons || 0}</p>
+                                                            <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase leading-tight">Kredisi</p>
+                                                            <p className="font-bold text-slate-800 text-sm sm:text-base leading-none mt-1">{child.remainingLessons || 0}</p>
                                                         </div>
-                                                        <Button variant="outline" size="sm" className="h-8 sm:h-9 text-[10px] sm:text-xs font-bold" onClick={() => {
+                                                        <Button variant="outline" size="icon" className="h-9 w-9 sm:w-auto sm:px-3 sm:gap-2 border-slate-200" onClick={() => {
                                                             setSelectedChildForProgress(child);
                                                             setIsChildProgressOpen(true);
                                                         }}>
-                                                            <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5" />
-                                                            İlerleme
+                                                            <FileText className="w-4 h-4" />
+                                                            <span className="hidden sm:inline">İlerleme</span>
                                                         </Button>
                                                     </div>
                                                 </Card>
@@ -762,8 +779,8 @@ export default function AramalarPage() {
                                         </div>
                                     ) : (
                                         <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-2xl border border-dashed border-slate-200">
-                                            <History className="w-8 h-8 text-slate-300 mb-3" />
-                                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Kayıt bulunamadı</p>
+                                            <Calendar className="w-8 h-8 text-slate-300 mb-3" />
+                                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Ders kaydı bulunamadı</p>
                                         </div>
                                     )}
                                 </TabsContent>

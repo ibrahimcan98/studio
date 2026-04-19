@@ -473,10 +473,9 @@ export default function AdminDerslerPage() {
                 event: '👨‍💼 Manuel Ders Atandı',
                 icon: '👨‍💼',
                 details: {
+                    'Ders Türü': packageCode,
                     'Öğrenci': childInfo?.firstName || '-',
-                    'Ders': packageCode,
-                    'Veli ID': parentId,
-                    'Süre': `${details.duration} dk`
+                    'Ders Zamanı': `${format(startTime, 'dd.MM.yyyy HH:mm', { locale: tr })} (${details.duration} dk)`
                 },
                 createdAt: Timestamp.now()
             });
