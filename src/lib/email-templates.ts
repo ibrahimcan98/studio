@@ -272,4 +272,27 @@ export const getAdminLessonActionTemplate = (data: { action: 'Planlandı' | 'İp
   `);
 };
 
+export const getPaymentReceiptTemplate = (data: { studentName: string; packageName: string; amount: string }) => {
+  return getBaseTemplate(`
+    <div style="text-align: center; margin-bottom: 20px;">
+      <h2 style="color: #059669; font-size: 24px; margin: 0;">Ödemeniz Alındı! 🎓</h2>
+      <p style="color: #64748b; margin-top: 5px;">Maceraya hoş geldiniz, dersleriniz başarıyla yüklendi.</p>
+    </div>
+    
+    <p>Merhaba <strong>${data.studentName.split(' ')[0]}</strong>,</p>
+    <p>Türk Çocuk Akademisi üzerinden yaptığınız satın alma işlemi başarıyla gerçekleşti. Paketiniz hesabınıza tanımlanmıştır.</p>
+    
+    <div style="background-color: #f0fdf4; padding: 24px; border-radius: 20px; border: 1px solid #dcfce7; margin: 24px 0;">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr><td style="padding: 6px 0; color: #166534; font-size: 14px;">Satın Alınan</td><td style="text-align: right; color: #166534; font-weight: 700;">${data.packageName}</td></tr>
+        <tr><td style="padding: 6px 0; color: #166534; font-size: 14px; border-top: 1px dashed #bbf7d0; padding-top: 12px; margin-top: 12px;">Toplam Tutar</td><td style="text-align: right; color: #166534; font-weight: 800; font-size: 18px; border-top: 1px dashed #bbf7d0; padding-top: 12px; margin-top: 12px;">${data.amount}</td></tr>
+      </table>
+    </div>
+    
+    <p style="text-align: center; font-size: 14px; color: #64748b;">Hemen derslerinizi planlamaya başlayabilirsiniz.</p>
+    
+    ${getButtonHtml('Ders Planla', 'https://turkcocukakademisi.com/ebeveyn-portali/ders-planla', '#059669')}
+  `);
+};
+
 
