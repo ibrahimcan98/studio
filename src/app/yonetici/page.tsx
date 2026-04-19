@@ -114,11 +114,8 @@ export default function AdminDashboard() {
 
     const countries: any = {};
     parents.forEach(p => {
-        const pTime = p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt?.seconds * 1000 || 0);
-        if (isWithinInterval(pTime, { start: monthStart, end: monthEnd })) {
-            const country = p.manualCountry || getCountryFromPhone(p.phoneNumber);
-            countries[country] = (countries[country] || 0) + 1;
-        }
+        const country = p.manualCountry || getCountryFromPhone(p.phoneNumber);
+        countries[country] = (countries[country] || 0) + 1;
     });
 
     return { activeStudents: newStudents, totalPaidLessons, totalFreeTrials, conversionRate, countries };

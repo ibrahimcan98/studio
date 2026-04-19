@@ -186,65 +186,80 @@ export default function AramalarPage() {
         return list;
     }, [parents, searchQuery, allChildrenLessons, allLatestLessons]);
 
-  // Load extras when a parent is selected
+  // Load extras when a parent is selected (Real-time)
   useEffect(() => {
     if (!db || !selectedParent) return;
 
     setLoadingExtras(true);
-    let unsubCallLogs: any = null;
+    
+    // Subscribe to Children
+    const childrenRef = collection(db, 'users', selectedParent.id, 'children');
+    const unsubChildren = onSnapshot(childrenRef, (snap) => {
+        setParentChildren(snap.docs.map(d => ({ id: d.id, ...d.data() } as any)));
+    });
 
-    const fetchDetails = async () => {
-        try {
-            // Fetch Tags
-            const newTags = new Set<string>(['registered']);
-            const childSnap = await getDocs(collection(db, 'users', selectedParent.id, 'children'));
-            const children = childSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
-            setParentChildren(children);
-            
-            const slotSnap = await getDocs(query(collection(db, 'lesson-slots'), where('bookedBy', '==', selectedParent.id)));
-            const slots = slotSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
-            setParentSlots(slots);
+    // Subscribe to Lesson Slots
+    const slotsQuery = query(collection(db, 'lesson-slots'), where('bookedBy', '==', selectedParent.id));
+    const unsubSlots = onSnapshot(slotsQuery, (snap) => {
+        setParentSlots(snap.docs.map(d => ({ id: d.id, ...d.data() } as any)));
+    });
 
-            const hasTrial = slots.some(s => s.packageCode === 'FREE_TRIAL');
-            if (hasTrial) newTags.add('trial');
-            
-            const hasFinishedTrial = slots.some(s => s.packageCode === 'FREE_TRIAL' && isBefore(s.startTime.toDate(), new Date()));
-            if (hasFinishedTrial) newTags.add('trialdone');
-
-            const hasActivePackage = children.some(c => c.assignedPackage && c.remainingLessons > 0) || (selectedParent.enrolledPackages?.length > 0);
-            if (hasActivePackage) newTags.add('active');
-
-            const packageFinished = children.some(c => c.finishedPackage && !c.assignedPackage);
-            if (packageFinished) newTags.add('package finished');
-
-            if (!hasActivePackage && selectedParent.createdAt) {
-                const regDate = selectedParent.createdAt.toDate();
-                if (differenceInDays(new Date(), regDate) > 30) {
-                    newTags.add('churn');
-                }
-            }
-
-            setTags(Array.from(newTags));
-
-            // Subscribe to Call Logs
-            const logsQuery = query(collection(db, 'users', selectedParent.id, 'call-logs'), orderBy('createdAt', 'desc'));
-            unsubCallLogs = onSnapshot(logsQuery, (snap) => {
-                setCallLogs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-                setLoadingExtras(false);
-            });
-
-        } catch (e) {
-            console.error("Error fetching parent details:", e);
-            setLoadingExtras(false);
-        }
-    };
-
-    fetchDetails();
+    // Subscribe to Call Logs
+    const logsQuery = query(collection(db, 'users', selectedParent.id, 'call-logs'), orderBy('createdAt', 'desc'));
+    const unsubCallLogs = onSnapshot(logsQuery, (snap) => {
+        setCallLogs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setLoadingExtras(false);
+    }, (error) => {
+        console.error("Error watching call logs:", error);
+        setLoadingExtras(false);
+    });
 
     return () => {
-        if (unsubCallLogs) unsubCallLogs();
+        unsubChildren();
+        unsubSlots();
+        unsubCallLogs();
     };
   }, [selectedParent?.id, db]);
+
+  // Reactive Tag Calculation
+  useEffect(() => {
+    if (!selectedParent) return;
+
+    const newTags = new Set<string>(['registered']);
+    const children = parentChildren;
+    const slots = parentSlots;
+
+    const hasTrial = slots.some(s => s.packageCode === 'FREE_TRIAL');
+    if (hasTrial) newTags.add('trial');
+    
+    const hasFinishedTrial = slots.some(s => s.packageCode === 'FREE_TRIAL' && isBefore(s.startTime.toDate(), new Date()));
+    if (hasFinishedTrial) newTags.add('trialdone');
+
+    const hasActivePackage = children.some(c => c.assignedPackage && c.remainingLessons > 0) || (selectedParent.enrolledPackages?.length > 0);
+    if (hasActivePackage) newTags.add('active');
+
+    const packageFinished = children.some(c => c.finishedPackage && !c.assignedPackage);
+    if (packageFinished) newTags.add('package finished');
+    
+    // New Tags Logic
+    if (selectedParent.emailVerified) newTags.add('mail onaylı');
+    
+    if (children.length === 0 && selectedParent.createdAt) {
+        const regDate = selectedParent.createdAt.toDate();
+        if (differenceInDays(new Date(), regDate) >= 1) {
+            newTags.add('çocuk eklemedi');
+        }
+    }
+
+    if (!hasActivePackage && selectedParent.createdAt) {
+        const regDate = selectedParent.createdAt.toDate();
+        if (differenceInDays(new Date(), regDate) > 30) {
+            newTags.add('churn');
+        }
+    }
+
+    setTags(Array.from(newTags));
+  }, [parentChildren, parentSlots, selectedParent?.id]);
 
   const handleCallAction = async (statusLabel: string, colorClass: string, iconName: string) => {
     if (!db || !selectedParent || !user) return;

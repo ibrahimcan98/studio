@@ -289,6 +289,13 @@ function EbeveynPortaliContent() {
   };
 
   useEffect(() => {
+    if (user && user.emailVerified && userData && userData.emailVerified !== true) {
+      const userRef = doc(db!, 'users', user.uid);
+      updateDoc(userRef, { emailVerified: true }).catch(console.error);
+    }
+  }, [user, userData, db]);
+
+  useEffect(() => {
     if (slots && slots.length > 0) {
        const unseen = slots.filter(s => s.status === 'cancelled' && s.cancelledBy === 'teacher' && s.parentSeenCancellation === false);
        

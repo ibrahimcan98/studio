@@ -2,7 +2,7 @@
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where, getDocs, getDoc, collectionGroup, doc, updateDoc, writeBatch, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDoc, collectionGroup, doc, updateDoc, writeBatch, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -115,6 +115,8 @@ const tagStyles: { [key: string]: string } = {
     problem: 'bg-black text-white',
     discountlover: 'bg-amber-100 text-amber-900',
     'eski uye': 'bg-orange-600 text-white font-bold',
+    'mail onaylı': 'bg-emerald-500 text-white font-bold',
+    'çocuk eklemedi': 'bg-rose-100 text-rose-700 font-bold',
 };
 
 const SUGGESTED_TAGS = [
@@ -188,23 +190,40 @@ function UsersPageContent() {
 
   const { data: parents, isLoading: parentsLoading, refetch: refetchParents } = useCollection(parentsQuery);
 
-  const fetchData = async () => {
+  useEffect(() => {
     if (!db) return;
     setLoadingExtras(true);
-    try {
-        const childSnap = await getDocs(query(collectionGroup(db, 'children')));
-        setAllChildren(childSnap.docs.map(doc => ({ ...doc.data(), id: doc.id, parentId: doc.ref.parent.parent?.id })));
-
-        const slotSnap = await getDocs(query(collection(db, 'lesson-slots'), where('status', '==', 'booked')));
-        setAllSlots(slotSnap.docs.map(doc => ({ ...doc.data(), id: doc.id })));
-    } catch (e) {
-        console.error("Error fetching admin extras:", e);
-    } finally {
+    
+    // Watch all children
+    const childrenQuery = query(collectionGroup(db, 'children'));
+    const unsubChildren = onSnapshot(childrenQuery, (snap) => {
+        setAllChildren(snap.docs.map(doc => {
+            const data = doc.data();
+            return { 
+                ...data, 
+                id: doc.id, 
+                parentId: data.userId || doc.ref.parent.parent?.id 
+            };
+        }));
         setLoadingExtras(false);
-    }
-  };
+    }, (err) => {
+        console.error("Error watching children:", err);
+        setLoadingExtras(false);
+    });
 
-  useEffect(() => { fetchData(); }, [db]);
+    // Watch all booked slots
+    const slotsQuery = query(collection(db, 'lesson-slots'), where('status', '==', 'booked'));
+    const unsubSlots = onSnapshot(slotsQuery, (snap) => {
+        setAllSlots(snap.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+    }, (err) => {
+        console.error("Error watching slots:", err);
+    });
+
+    return () => {
+        unsubChildren();
+        unsubSlots();
+    };
+  }, [db]);
     
   const getCourseDetailsFromPackageCode = (code?: string) => {
     if (!code) return null;
@@ -298,6 +317,16 @@ function UsersPageContent() {
         });
 
         if (parent.isLegacy && !hiddenTags.includes('eski uye')) tags.add('eski uye');
+        
+        // New Tags Logic
+        if (parent.emailVerified && !hiddenTags.includes('mail onaylı')) tags.add('mail onaylı');
+        
+        if (parentChildren.length === 0 && parent.createdAt) {
+            const regDate = parent.createdAt.toDate();
+            if (differenceInDays(new Date(), regDate) >= 1 && !hiddenTags.includes('çocuk eklemedi')) {
+                tags.add('çocuk eklemedi');
+            }
+        }
 
         const lastPurchaseDate = parentSlots
             .filter(s => s.packageCode !== 'FREE_TRIAL')
