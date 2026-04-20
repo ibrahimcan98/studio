@@ -94,6 +94,7 @@ export default function RegisterPage() {
         role: role,
         lives: 5,
         livesLastUpdatedAt: serverTimestamp(),
+        emailVerified: false,
         createdAt: serverTimestamp()
       };
 

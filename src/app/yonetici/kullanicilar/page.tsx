@@ -116,6 +116,7 @@ const tagStyles: { [key: string]: string } = {
     discountlover: 'bg-amber-100 text-amber-900',
     'eski uye': 'bg-orange-600 text-white font-bold',
     'mail onaylı': 'bg-emerald-500 text-white font-bold',
+    'mail onaysız': 'bg-orange-100 text-orange-700 font-bold',
     'çocuk eklemedi': 'bg-rose-100 text-rose-700 font-bold',
 };
 
@@ -319,7 +320,11 @@ function UsersPageContent() {
         if (parent.isLegacy && !hiddenTags.includes('eski uye')) tags.add('eski uye');
         
         // New Tags Logic
-        if (parent.emailVerified && !hiddenTags.includes('mail onaylı')) tags.add('mail onaylı');
+        if (parent.emailVerified && !hiddenTags.includes('mail onaylı')) {
+            tags.add('mail onaylı');
+        } else if (!parent.emailVerified && !hiddenTags.includes('mail onaysız')) {
+            tags.add('mail onaysız');
+        }
         
         if (parentChildren.length === 0 && parent.createdAt) {
             const regDate = parent.createdAt.toDate();

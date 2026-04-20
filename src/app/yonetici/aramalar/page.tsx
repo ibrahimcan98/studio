@@ -242,7 +242,11 @@ export default function AramalarPage() {
     if (packageFinished) newTags.add('package finished');
     
     // New Tags Logic
-    if (selectedParent.emailVerified) newTags.add('mail onaylı');
+    if (selectedParent.emailVerified) {
+        newTags.add('mail onaylı');
+    } else {
+        newTags.add('mail onaysız');
+    }
     
     if (children.length === 0 && selectedParent.createdAt) {
         const regDate = selectedParent.createdAt.toDate();
