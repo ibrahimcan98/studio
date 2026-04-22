@@ -128,9 +128,14 @@ export function useNotifications() {
         });
       }
     } catch (error: any) {
-      console.error('An error occurred while retrieving token:', error);
+      console.warn('FCM registration skipped or failed:', error.message);
+      // Only show error toast if user explicitly clicked "Enable Notifications"
       if (isManual) {
-        toast({ variant: 'destructive', title: 'FCM Hatası', description: error.message || 'Bilinmeyen bir hata oluştu.' });
+        toast({ 
+          variant: 'destructive', 
+          title: 'Bildirim Servisi', 
+          description: 'Şu an bildirimler aktif edilemedi. Lütfen daha sonra tekrar deneyin.' 
+        });
       }
     }
   }, [saveTokenToFirestore, user, toast]);
