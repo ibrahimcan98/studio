@@ -8,7 +8,7 @@ import { useNotifications } from '@/hooks/use-notifications';
 import { useEffect } from 'react';
 
 import { PermissionBanner } from '@/components/notifications/permission-banner';
-import { EmailVerificationBanner } from '@/components/auth/email-verification-banner';
+import { EmailVerificationModal } from '@/components/auth/email-verification-modal';
 
 export function LayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -29,7 +29,7 @@ export function LayoutContent({ children }: { children: React.ReactNode }) {
       {showHeader && <Header />}
       
       <main className="flex-1 w-full relative">
-        <EmailVerificationBanner />
+        <EmailVerificationModal />
         {children}
       </main>
       
