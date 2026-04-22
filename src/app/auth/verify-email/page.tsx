@@ -79,13 +79,6 @@ function VerifyEmailContent() {
     return () => clearTimeout(timer);
   }, [countdown]);
 
-  // Auto-send OTP on first load
-  useEffect(() => {
-    if (user && !user.emailVerified && !isSending && countdown === 0) {
-      handleSendOtp();
-    }
-  }, [user]);
-
   const handleOtpChange = (index: number, value: string) => {
     if (value.length > 1) {
       // If user types/pastes multiple chars in one go (not via onPaste)
@@ -157,7 +150,7 @@ function VerifyEmailContent() {
 
       if (!response.ok) throw new Error('OTP gönderilemedi.');
 
-      setCountdown(60);
+      setCountdown(15);
       toast({
         title: 'Kod Gönderildi',
         description: '6 haneli doğrulama kodu e-posta adresinize gönderildi.',

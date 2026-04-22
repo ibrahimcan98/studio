@@ -105,6 +105,16 @@ export default function LoginPage() {
 
       toast({ title: 'Başarılı!', description: 'Giriş yaptınız. Yönlendiriliyorsunuz...' });
       const target = loggedUser.emailVerified ? '/ebeveyn-portali' : '/auth/verify-email';
+      
+      // If not verified, trigger OTP send before redirecting
+      if (!loggedUser.emailVerified) {
+          fetch('/api/auth/send-otp', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: loggedUser.email, userId: loggedUser.uid }),
+          }).catch(err => console.error("Login OTP send failed:", err));
+      }
+      
       router.push(target);
     } catch (error: any) {
        let msg = 'Giriş yapılamadı.';
