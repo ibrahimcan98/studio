@@ -71,7 +71,7 @@ export default function VerifyEmailPage() {
       const response = await fetch('/api/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email, userId: user.id }),
+        body: JSON.stringify({ email: user.email, userId: user.uid }),
       });
 
       if (!response.ok) throw new Error('OTP gönderilemedi.');
@@ -95,14 +95,14 @@ export default function VerifyEmailPage() {
 
   const handleVerify = async () => {
     const fullOtp = otp.join('');
-    if (fullOtp.length < 6 || !user?.id) return;
+    if (fullOtp.length < 6 || !user?.uid) return;
 
     setIsVerifying(true);
     try {
       const response = await fetch('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, otp: fullOtp }),
+        body: JSON.stringify({ userId: user.uid, otp: fullOtp }),
       });
 
       const data = await response.json();
