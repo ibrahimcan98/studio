@@ -269,6 +269,10 @@ function VerifyEmailContent() {
                 </button>
               )}
             </div>
+
+            <p className="text-[10px] text-slate-400 text-center mt-2 italic">
+              E-posta gelmediyse lütfen <strong className="text-slate-500 underline">SPAM</strong> klasörünü kontrol edin.
+            </p>
           </div>
           
           <button 
