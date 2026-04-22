@@ -28,7 +28,13 @@ function EmailOnayContent() {
             try {
                 await applyActionCode(auth, oobCode);
                 setStatus('success');
-                setMessage('E-posta adresiniz başarıyla doğrulandı. Artık tüm özellikleri kullanabilirsiniz.');
+                
+                // If user is not logged in (e.g. opened from mobile email app)
+                if (!auth.currentUser) {
+                    setMessage('E-posta adresiniz başarıyla doğrulandı. Devam etmek için giriş yapın.');
+                } else {
+                    setMessage('E-posta adresiniz başarıyla doğrulandı. Portala yönlendiriliyorsunuz...');
+                }
             } catch (error: any) {
                 console.error("Verification error:", error);
                 setStatus('error');
@@ -48,14 +54,14 @@ function EmailOnayContent() {
     useEffect(() => {
         if (status === 'success') {
             const timer = setTimeout(() => {
-                router.push('/ebeveyn-portali');
-            }, 3000);
+                router.push(auth.currentUser ? '/ebeveyn-portali' : '/login');
+            }, 3500);
             return () => clearTimeout(timer);
         }
     }, [status, router]);
 
     const handleRedirect = () => {
-        router.push('/ebeveyn-portali');
+        router.push(auth.currentUser ? '/ebeveyn-portali' : '/login');
     };
 
     if (status === 'loading') {
@@ -106,7 +112,7 @@ function EmailOnayContent() {
                 </CardHeader>
                 <CardContent>
                     <Button onClick={handleRedirect} className="w-full h-12 rounded-xl bg-primary text-white font-bold hover:scale-105 transition-transform">
-                        Ebeveyn Portalı'na Git
+                        {auth.currentUser ? "Ebeveyn Portalı'na Git" : "Giriş Yap"}
                         <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                 </CardContent>
