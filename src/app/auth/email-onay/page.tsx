@@ -45,8 +45,17 @@ function EmailOnayContent() {
         handleVerification();
     }, [searchParams]);
 
+    useEffect(() => {
+        if (status === 'success') {
+            const timer = setTimeout(() => {
+                router.push('/ebeveyn-portali');
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [status, router]);
+
     const handleRedirect = () => {
-        router.push('/ebeveyn-portali/ayarlar');
+        router.push('/ebeveyn-portali');
     };
 
     if (status === 'loading') {
@@ -72,8 +81,8 @@ function EmailOnayContent() {
                     <CardDescription className="pt-2 text-red-600 font-medium">{message}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <Button onClick={() => router.push('/ebeveyn-portali/ayarlar')} variant="outline" className="w-full">
-                        Ayarlara Dön
+                    <Button onClick={() => router.push('/ebeveyn-portali')} variant="outline" className="w-full">
+                        Panele Dön
                     </Button>
                     <Button onClick={() => router.push('/')} className="w-full">
                         Ana Sayfaya Git
@@ -97,7 +106,7 @@ function EmailOnayContent() {
                 </CardHeader>
                 <CardContent>
                     <Button onClick={handleRedirect} className="w-full h-12 rounded-xl bg-primary text-white font-bold hover:scale-105 transition-transform">
-                        Ayarlara Dön
+                        Ebeveyn Portalı'na Git
                         <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                 </CardContent>
