@@ -49,15 +49,18 @@ export default function LoginPage() {
                     } else if (userData.role === 'teacher') {
                         router.replace('/ogretmen-portali/takvim');
                     } else {
-                        router.replace('/ebeveyn-portali');
+                        const target = user.emailVerified ? '/ebeveyn-portali' : '/auth/verify-email';
+                        router.replace(target);
                     }
                 } else {
                     // Eğer doküman yoksa ama Auth girişi başarılıysa (Örn: Taslak öğretmen)
                     // Önce ogretmen-giris sayfasına yönlendirelim ki migration tetiklensin
-                    router.replace('/ebeveyn-portali');
+                    const target = user.emailVerified ? '/ebeveyn-portali' : '/auth/verify-email';
+                    router.replace(target);
                 }
             } catch (e) {
-                router.replace('/ebeveyn-portali');
+                const target = user.emailVerified ? '/ebeveyn-portali' : '/auth/verify-email';
+                router.replace(target);
             }
         };
         checkRoleAndRedirect();
@@ -92,16 +95,17 @@ export default function LoginPage() {
                 router.push('/yonetici');
                 return;
            }
-      } else {
           // Eğer bir kullanıcı Auth'ta var ama Firestore'da yoksa, bu bir "Ön-Yetkilendirilmiş" öğretmen olabilir.
           // ogretmen-giris sayfası bunu migrate edecektir.
           toast({ title: 'Hoş Geldiniz', description: 'Giriş yapılıyor...' });
-          router.push('/ebeveyn-portali');
+          const target = loggedUser.emailVerified ? '/ebeveyn-portali' : '/auth/verify-email';
+          router.push(target);
           return;
       }
 
       toast({ title: 'Başarılı!', description: 'Giriş yaptınız. Yönlendiriliyorsunuz...' });
-      router.push('/ebeveyn-portali');
+      const target = loggedUser.emailVerified ? '/ebeveyn-portali' : '/auth/verify-email';
+      router.push(target);
     } catch (error: any) {
        let msg = 'Giriş yapılamadı.';
        if (error.code === 'auth/user-not-found') msg = 'Kayıtlı kullanıcı bulunamadı.';

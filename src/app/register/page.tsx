@@ -50,7 +50,8 @@ export default function RegisterPage() {
     if (!loading && user && !user.isAnonymous && isMounted && !isSubmitting) {
       // Sadece sayfa ilk açıldığında halihazırda login olanları yönlendirir.
       // isSubmitting true iken (kayıt esnasında) erken yönlendirmeyi önler.
-      router.push('/ebeveyn-portali');
+      const target = user.emailVerified ? '/ebeveyn-portali' : '/auth/verify-email';
+      router.push(target);
     }
   }, [user, loading, router, isMounted, isSubmitting]);
 
@@ -159,7 +160,11 @@ export default function RegisterPage() {
       // eğer aynı sekmede daha önce test yapıldıysa kalan flag'i temizliyoruz.
       sessionStorage.removeItem('seenWelcomeTrial');
 
-      router.push(targetPath);
+      if (role === 'parent') {
+          router.push('/auth/verify-email');
+      } else {
+          router.push(targetPath);
+      }
 
     } catch (error: any) {
       let errorMessage = 'Kayıt olurken bir hata oluştu.';

@@ -8,7 +8,8 @@ import { useNotifications } from '@/hooks/use-notifications';
 import { useEffect } from 'react';
 
 import { PermissionBanner } from '@/components/notifications/permission-banner';
-import { EmailVerificationBanner } from '@/components/auth/email-verification-banner';
+import { useUser } from '@/firebase';
+import { useRouter } from 'next/navigation';
 
 export function LayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -20,6 +21,16 @@ export function LayoutContent({ children }: { children: React.ReactNode }) {
   // Initialize notifications
   const { permission, requestPermission } = useNotifications();
 
+  const { user, loading } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    // If user is logged in, not verified, and trying to access parent portal, redirect to verification page
+    if (!loading && user && !user.emailVerified && pathname?.startsWith('/ebeveyn-portali')) {
+      router.replace('/auth/verify-email');
+    }
+  }, [user, loading, pathname, router]);
+
   const showHeader = !isCocukModu && !isLiveLesson && !isSpecialLayout;
   const showAIAssistant = !isCocukModu && !isLiveLesson && !isSpecialLayout;
 
@@ -29,7 +40,6 @@ export function LayoutContent({ children }: { children: React.ReactNode }) {
       {showHeader && <Header />}
       
       <main className="flex-1 w-full relative">
-        <EmailVerificationBanner />
         {children}
       </main>
       
