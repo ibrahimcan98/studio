@@ -359,14 +359,31 @@ function EbeveynPortaliContent() {
   };
 
   useEffect(() => {
-    if (!childrenLoading && children && children.length === 0 && !userData?.isLegacy) {
-        const hasSeen = sessionStorage.getItem('seenWelcomeTrial');
-        if (!hasSeen) {
-            setShowWelcomeModal(true);
-            sessionStorage.setItem('seenWelcomeTrial', 'true');
+    const checkWelcomeModal = () => {
+        if (!user || childrenLoading || userData?.isLegacy) return;
+
+        const emailNotVerified = !user.emailVerified;
+        const emailModalDismissed = sessionStorage.getItem('emailVerificationDismissed');
+        
+        // Wait for email modal to be dismissed if email is not verified
+        if (emailNotVerified && !emailModalDismissed) {
+            return;
         }
-    }
-  }, [childrenLoading, children, userData?.isLegacy]);
+
+        if (children && children.length === 0) {
+            const hasSeen = sessionStorage.getItem('seenWelcomeTrial');
+            if (!hasSeen) {
+                setShowWelcomeModal(true);
+                sessionStorage.setItem('seenWelcomeTrial', 'true');
+            }
+        }
+    };
+
+    checkWelcomeModal();
+
+    window.addEventListener('emailVerificationDismissed', checkWelcomeModal);
+    return () => window.removeEventListener('emailVerificationDismissed', checkWelcomeModal);
+  }, [childrenLoading, children, userData?.isLegacy, user]);
 
   useEffect(() => {
     if (searchParams.get('cancelled') === 'true') {

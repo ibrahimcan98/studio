@@ -30,7 +30,7 @@ export function EmailVerificationModal() {
   const shouldShow = user && !user.emailVerified && !isVerifiedLocally && !isCocukModu && !isAuthPage;
 
   useEffect(() => {
-    if (shouldShow) {
+    if (shouldShow && !sessionStorage.getItem('emailVerificationDismissed')) {
       setIsOpen(true);
     } else {
       setIsOpen(false);
@@ -110,9 +110,17 @@ export function EmailVerificationModal() {
     }
   };
 
+  const handleOpenChange = (val: boolean) => {
+    setIsOpen(val);
+    if (!val) {
+      sessionStorage.setItem('emailVerificationDismissed', 'true');
+      window.dispatchEvent(new Event('emailVerificationDismissed'));
+    }
+  };
+
   // The modal is dismissible by the user setting open to false
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md bg-gradient-to-br from-orange-50 to-white border-orange-200 shadow-xl overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1 bg-orange-500"></div>
         <DialogHeader className="flex flex-col items-center text-center pt-4">
