@@ -16,7 +16,7 @@ const getButtonHtml = (text: string, url: string, color = "#0ea5e9") => `
   <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:separate;line-height:100%;margin: 24px auto;">
     <tr>
       <td align="center" bgcolor="${color}" role="presentation" style="border:none;border-radius:12px;cursor:auto;background:${color};" valign="middle">
-        <a href="${url}" style="display:inline-block;background:${color};color:#ffffff;font-family:inherit;font-size:16px;font-weight:700;line-height:120%;margin:0;text-decoration:none;text-transform:none;padding:14px 32px;border-radius:12px;" target="_blank">
+        <a href="${url}" style="display:inline-block;background:${color};color:#ffffff;font-family:inherit;font-size:16px;font-weight:700;line-height:120%;margin:0;text-decoration:none;text-transform:none;padding:14px 32px;border-radius:12px;">
           ${text}
         </a>
       </td>
