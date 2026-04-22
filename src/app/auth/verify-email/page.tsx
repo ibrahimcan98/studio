@@ -146,7 +146,7 @@ function VerifyEmailContent() {
   };
 
   const handleSendOtp = async () => {
-    if (!user?.email || !user?.id) return;
+    if (!user?.email || !user?.uid) return;
     setIsSending(true);
     try {
       const response = await fetch('/api/auth/send-otp', {
