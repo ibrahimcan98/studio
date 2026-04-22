@@ -25,8 +25,15 @@ service cloud.firestore {
 
     // 1. KULLANICI KURALLARI
     match /users/{userId} {
-      // Bir kullanıcı sadece kendi dökümanını okuyabilir
-      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin() || isTeacher());
+      // Bir kullanıcı kendi dökümanını, adminleri veya öğretmenleri okuyabilir.
+      // Ayrıca kayıt aşamasında pre-auth (ön kayıt) kontrolü için dökümanın yokluğunu (resource == null) veya öğretmen ön kayıt dökümanını okuyabilmelidir.
+      allow get: if isSignedIn() && (
+        request.auth.uid == userId || 
+        isAdmin() || 
+        isTeacher() ||
+        resource == null ||
+        (resource != null && resource.data.role == 'teacher')
+      );
       
       // Kayıt sırasında email kontrolü vb. için listeleme (Sadece Admin)
       allow list: if isAdmin();

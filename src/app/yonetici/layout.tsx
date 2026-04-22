@@ -110,9 +110,9 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
 
   // UNREAD MESSAGES NOTIFICATION
   const unreadQuery = useMemoFirebase(() => {
-    if (!db) return null;
+    if (!db || userData?.role !== 'admin') return null;
     return query(collection(db, 'conversations'), where('status', '==', 'open'));
-  }, [db]);
+  }, [db, userData?.role]);
   const { data: unreadConvs } = useCollection(unreadQuery);
   const unreadCount = unreadConvs?.length || 0;
   const prevUnreadCount = useRef(0);
