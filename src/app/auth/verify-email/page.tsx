@@ -1,17 +1,29 @@
 'use client';
 
 import { useUser, auth as clientAuth } from '@/firebase';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, Loader2, CheckCircle, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { ShieldCheck, Mail, Loader2, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { useSearchParams } from 'next/navigation';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db as firestoreDb } from '@/firebase';
 
 export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>}>
+      <VerifyEmailContent />
+    </Suspense>
+  );
+}
+
+function VerifyEmailContent() {
   const { user, loading } = useUser();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -26,6 +38,38 @@ export default function VerifyEmailPage() {
       router.replace('/ebeveyn-portali');
     }
   }, [user, loading, router]);
+
+  // Real-time Firestore Sync (Detect verification from other tabs)
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const unsub = onSnapshot(doc(firestoreDb, 'users', user.uid), (doc) => {
+      if (doc.exists() && doc.data()?.emailVerified === true) {
+        toast({
+          title: 'Doğrulandı!',
+          description: 'E-posta adresiniz diğer sekmede doğrulandı. Yönlendiriliyorsunuz...',
+          className: 'bg-emerald-500 text-white',
+        });
+        setTimeout(() => router.replace('/ebeveyn-portali'), 1500);
+      }
+    });
+
+    return () => unsub();
+  }, [user?.uid, router]);
+
+  // Check for 'code' in URL and auto-fill
+  useEffect(() => {
+    const codeFromUrl = searchParams.get('code');
+    if (codeFromUrl && codeFromUrl.length === 6 && /^\d+$/.test(codeFromUrl)) {
+      const newOtp = codeFromUrl.split('');
+      setOtp(newOtp);
+      // Auto verify if code is in URL
+      setTimeout(() => {
+        const verifyBtn = document.getElementById('verify-button');
+        verifyBtn?.click();
+      }, 500);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     let timer: any;
@@ -43,7 +87,19 @@ export default function VerifyEmailPage() {
   }, [user]);
 
   const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) value = value[value.length - 1];
+    if (value.length > 1) {
+      // If user types/pastes multiple chars in one go (not via onPaste)
+      const digits = value.split('').filter(c => /^\d$/.test(c));
+      const newOtp = [...otp];
+      digits.forEach((d, i) => {
+        if (index + i < 6) newOtp[index + i] = d;
+      });
+      setOtp(newOtp);
+      const nextIdx = Math.min(index + digits.length, 5);
+      document.getElementById(`otp-${nextIdx}`)?.focus();
+      return;
+    }
+
     if (!/^\d*$/.test(value)) return;
 
     const newOtp = [...otp];
@@ -54,6 +110,31 @@ export default function VerifyEmailPage() {
     if (value && index < 5) {
       const nextInput = document.getElementById(`otp-${index + 1}`);
       nextInput?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!pastedData) return;
+
+    const newOtp = [...otp];
+    pastedData.split('').forEach((char, idx) => {
+      newOtp[idx] = char;
+    });
+    setOtp(newOtp);
+
+    // Focus last filled input or the verify button
+    const lastIdx = Math.min(pastedData.length, 5);
+    document.getElementById(`otp-${lastIdx}`)?.focus();
+    
+    // Auto verify if 6 digits pasted
+    if (pastedData.length === 6) {
+      // Small delay to ensure state update
+      setTimeout(() => {
+        const verifyBtn = document.getElementById('verify-button');
+        verifyBtn?.click();
+      }, 100);
     }
   };
 
@@ -153,7 +234,7 @@ export default function VerifyEmailPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-8 pb-10">
-          <div className="flex justify-between gap-2 max-w-[300px] mx-auto">
+          <div className="flex justify-between gap-2 max-w-[300px] mx-auto" onPaste={handlePaste}>
             {otp.map((digit, idx) => (
               <Input
                 key={idx}
@@ -163,14 +244,15 @@ export default function VerifyEmailPage() {
                 value={digit}
                 onChange={(e) => handleOtpChange(idx, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(idx, e)}
-                className="w-12 h-14 text-center text-2xl font-bold border-2 focus:border-orange-500 focus:ring-orange-500 rounded-xl"
-                maxLength={1}
+                className="w-12 h-14 text-center text-2xl font-bold border-2 focus:border-orange-500 focus:ring-orange-500 rounded-xl transition-all"
+                maxLength={6} // Allow pasting long strings which we handle in onChange/onPaste
               />
             ))}
           </div>
 
           <div className="space-y-4">
             <Button 
+              id="verify-button"
               onClick={handleVerify} 
               disabled={isVerifying || otp.join('').length < 6}
               className="w-full h-12 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-lg shadow-lg"
