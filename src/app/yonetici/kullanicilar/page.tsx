@@ -624,7 +624,6 @@ function UsersPageContent() {
         await batch.commit();
         toast({ title: selectedChildForPackage ? 'Transfer Başarılı' : 'Dersler Eklendi', className: 'bg-green-500 text-white' });
         setIsAddLessonsOpen(false);
-        fetchData();
         refetchParents();
 
     } catch (e) {
@@ -732,7 +731,6 @@ function UsersPageContent() {
         await updateDoc(parentRef, { remainingLessons: 0 });
         toast({ title: 'Dersler Eşitlendi', description: 'Veli havuzu sıfırlandı, toplam ders sayısı doğru görünecektir.', className: 'bg-green-500 text-white' });
         refetchParents();
-        fetchData();
         if (selectedParent?.id === parent.id) {
             setSelectedParent(prev => prev ? { ...prev, remainingLessons: 0 } : null);
         }
