@@ -40,6 +40,9 @@ service cloud.firestore {
          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'remainingLessons', 'enrolledPackages', 'isLegacy', 'credits'])) ||
         isAdmin()
       );
+      
+      // Kullanıcı dökümanı silme (Sadece Admin)
+      allow delete: if isAdmin();
 
       // Alt koleksiyonlar (Çocuklar, Bildirimler vb.)
       match /children/{childId} {
