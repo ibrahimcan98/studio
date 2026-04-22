@@ -270,8 +270,8 @@ function VerifyEmailContent() {
               )}
             </div>
 
-            <p className="text-[10px] text-slate-400 text-center mt-2 italic">
-              E-posta gelmediyse lütfen <strong className="text-slate-500 underline">SPAM</strong> klasörünü kontrol edin.
+            <p className="text-sm text-slate-500 text-center mt-4">
+              E-posta gelmediyse lütfen <strong className="text-red-600 font-extrabold underline">SPAM</strong> klasörünü kontrol edin.
             </p>
           </div>
           
