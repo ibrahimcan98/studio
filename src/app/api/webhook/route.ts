@@ -106,6 +106,27 @@ export async function POST(req: Request) {
 
             await batch.commit();
 
+            // 3. Add to Operational Flow (Call Logs) so admin can see it in CRM
+            try {
+                const purchaseLog = {
+                    status: 'Paket Alındı',
+                    color: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+                    icon: 'ShoppingBag',
+                    note: `[Sistem] ${totalLessonsToAdd} Derslik Paket Satın Alındı (${newPackages.join(', ')})`,
+                    createdAt: FieldValue.serverTimestamp(),
+                    adminId: 'system_stripe',
+                    adminEmail: 'stripe@webhook.com',
+                };
+                
+                await db.collection('users').doc(userId).collection('call-logs').add(purchaseLog);
+                await db.collection('users').doc(userId).update({ 
+                    lastCallStatus: purchaseLog 
+                });
+                console.log(`[Webhook] Operational log added for ${userId}`);
+            } catch (logErr: any) {
+                console.error('[Webhook] Failed to add operational log:', logErr.message);
+            }
+
             // Notifications (wrapped in try-catch to not block DB success)
             try {
                 const currencySymbol = session.currency === 'gbp' ? '£' : (session.currency === 'eur' ? '€' : (session.currency?.toUpperCase() || ''));
