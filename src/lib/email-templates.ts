@@ -95,22 +95,18 @@ export const getVerificationTemplate = (link: string) => getBaseTemplate(`
 `);
 
 export const getOTPTemplate = (code: string) => {
-  const verifyUrl = `https://turkcocukakademisi.com/auth/verify-email?code=${code}`;
-  
   return getBaseTemplate(`
   <h2 style="color: #0f172a; font-size: 22px; margin-top: 0; text-align: center;">Doğrulama Kodunuz</h2>
-  <p style="text-align: center;">Akademiye giriş yapmak için aşağıdaki 6 haneli doğrulama kodunu kullanın veya butona tıklayın:</p>
+  <p style="text-align: center;">Akademiye giriş yapmak için aşağıdaki 6 haneli doğrulama kodunu kullanın:</p>
   
-  <div style="margin: 30px 0; text-align: center;">
-    <div style="display: inline-block; background-color: #f1f5f9; padding: 20px 40px; border-radius: 16px; font-size: 36px; font-weight: 800; letter-spacing: 10px; color: #0ea5e9; border: 2px solid #e2e8f0; cursor: pointer;">
+  <div style="margin: 40px 0; text-align: center;">
+    <div style="display: inline-block; background-color: #f1f5f9; padding: 25px 45px; border-radius: 20px; font-size: 42px; font-weight: 800; letter-spacing: 12px; color: #0ea5e9; border: 2px solid #e2e8f0;">
       ${code}
     </div>
-    <p style="font-size: 11px; color: #94a3b8; margin-top: 8px;">(Kodu seçip kopyalayabilirsiniz)</p>
+    <p style="font-size: 11px; color: #94a3b8; margin-top: 12px;">(Kodu seçip kopyalayabilirsiniz)</p>
   </div>
 
-  ${getButtonHtml('Doğrula ve Giriş Yap', verifyUrl, '#0ea5e9')}
-
-  <p style="text-align: center; font-size: 14px; color: #64748b; margin-top: 24px;">Bu kod 10 dakika süreyle geçerlidir.</p>
+  <p style="text-align: center; font-size: 14px; color: #64748b; margin-top: 30px;">Bu kod 10 dakika süreyle geçerlidir.</p>
   <p style="text-align: center; font-size: 14px; color: #64748b; margin-top: 20px;">Eğer bu işlemi siz yapmadıysanız, lütfen bu e-postayı dikkate almayın.</p>
 `);
 };
