@@ -149,6 +149,40 @@ export async function POST(req: Request) {
                 console.error('[Webhook] Notification failed but DB was updated:', notifyErr.message);
             }
 
+            // 4. Add to Global Operational Flow (Admin Dashboard Activity)
+            try {
+                const currencySymbol = session.currency === 'gbp' ? '£' : (session.currency === 'eur' ? '€' : (session.currency?.toUpperCase() || ''));
+                const amountFormatted = session.amount_total ? `${currencySymbol}${(session.amount_total / 100).toFixed(2)}` : '-';
+                const customerEmail = session.customer_email || '-';
+                const packageList = newPackages.join(', ');
+
+                // Call internal notify API to add to "Operasyonel Akış"
+                // We use a relative URL if possible, or fetch the full URL
+                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+                await fetch(`${baseUrl}/api/notify/admin`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: '💰 Yeni Satış!',
+                        body: `${userName} ${amountFormatted} değerinde paket satın aldı.`,
+                        link: `/yonetici/aramalar?userId=${userId}`,
+                        logData: {
+                            icon: '💰',
+                            event: 'Yeni Paket Satışı',
+                            details: {
+                                'Veli': userName,
+                                'Paket': packageList,
+                                'Tutar': amountFormatted,
+                                'E-posta': customerEmail
+                            }
+                        }
+                    })
+                });
+                console.log(`[Webhook] Global operational log triggered for ${userId}`);
+            } catch (globalLogErr: any) {
+                console.error('[Webhook] Failed to add global operational log:', globalLogErr.message);
+            }
+
             console.log(`[Webhook] Success: ${transactionId}`);
         }
     } catch (fulfillErr: any) {
