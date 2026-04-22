@@ -362,14 +362,6 @@ function EbeveynPortaliContent() {
     const checkWelcomeModal = () => {
         if (!user || childrenLoading || userData?.isLegacy) return;
 
-        const emailNotVerified = !user.emailVerified;
-        const emailModalDismissed = sessionStorage.getItem('emailVerificationDismissed');
-        
-        // Wait for email modal to be dismissed if email is not verified
-        if (emailNotVerified && !emailModalDismissed) {
-            return;
-        }
-
         if (children && children.length === 0) {
             const hasSeen = sessionStorage.getItem('seenWelcomeTrial');
             if (!hasSeen) {
@@ -380,9 +372,6 @@ function EbeveynPortaliContent() {
     };
 
     checkWelcomeModal();
-
-    window.addEventListener('emailVerificationDismissed', checkWelcomeModal);
-    return () => window.removeEventListener('emailVerificationDismissed', checkWelcomeModal);
   }, [childrenLoading, children, userData?.isLegacy, user]);
 
   useEffect(() => {
