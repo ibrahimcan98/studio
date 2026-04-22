@@ -34,6 +34,14 @@ function EmailOnayContent() {
                     setMessage('E-posta adresiniz başarıyla doğrulandı. Devam etmek için giriş yapın.');
                 } else {
                     setMessage('E-posta adresiniz başarıyla doğrulandı. Portala yönlendiriliyorsunuz...');
+                    // Update Firestore to trigger real-time updates across tabs
+                    try {
+                        const { doc, updateDoc } = await import('firebase/firestore');
+                        const { db } = await import('@/firebase');
+                        await updateDoc(doc(db, 'users', auth.currentUser.uid), { emailVerified: true });
+                    } catch (e) {
+                        console.error("Failed to update firestore on verification:", e);
+                    }
                 }
             } catch (error: any) {
                 console.error("Verification error:", error);

@@ -20,6 +20,43 @@ export function EmailVerificationBanner() {
   
   const shouldShow = user && !user.emailVerified && !isVerifiedLocally && !isCocukModu && !isAuthPage;
 
+  // Gerçek zamanlı olarak Firestore'u dinleyip başka sekmede onaylanırsa banner'ı gizleriz
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    // Yalnızca onaylanmamışsa dinlemeye başla
+    if (user.emailVerified || isVerifiedLocally) return;
+
+    let unsubscribe: () => void;
+    
+    const setupListener = async () => {
+      try {
+        const { doc, onSnapshot } = await import('firebase/firestore');
+        const { db } = await import('@/firebase');
+        
+        unsubscribe = onSnapshot(doc(db, 'users', user.id), (docSnap) => {
+          if (docSnap.exists() && docSnap.data().emailVerified === true) {
+            setIsVerifiedLocally(true);
+            // İsteğe bağlı: Ekranda otomatik kaybolduğuna dair bir toast gösterebiliriz
+            toast({
+              title: 'Harika!',
+              description: 'E-posta adresiniz başarıyla onaylandı.',
+              className: 'bg-emerald-500 text-white',
+            });
+          }
+        });
+      } catch (err) {
+        console.error("Failed to setup realtime listener for email verification:", err);
+      }
+    };
+
+    setupListener();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [user?.id, user?.emailVerified, isVerifiedLocally, toast]);
+
   if (!shouldShow) return null;
 
   const handleSendVerification = async () => {
