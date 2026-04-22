@@ -112,8 +112,11 @@ export function EmailVerificationBanner() {
           </div>
           <div>
             <h3 className="font-bold text-sm sm:text-base leading-tight">E-posta Onayı Gerekli</h3>
-            <p className="text-xs sm:text-sm text-orange-50 font-medium">
+            <p className="text-xs sm:text-sm text-orange-50 font-medium mt-1">
               Hesabınızın güvenliği ve bildirimler için adresinizi doğrulayın.
+              <span className="block sm:inline sm:ml-1 font-bold text-white bg-orange-600/30 px-2 py-0.5 rounded-md mt-1 sm:mt-0 w-fit">
+                (E-posta gelmediyse Spam klasörüne bakmayı unutmayın)
+              </span>
             </p>
           </div>
         </div>
