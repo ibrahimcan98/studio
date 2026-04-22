@@ -108,10 +108,10 @@ export default function AyarlarPage() {
             // Re-authentication successful, now update email and send verification via Resend
             await updateEmail(auth.currentUser, email);
             
-            await fetch('/api/auth/send-link', {
+            await fetch('/api/auth/send-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: email, type: 'verification' }),
+                body: JSON.stringify({ email: email, userId: authUser.uid }),
             });
 
             if (userDocRef) {
@@ -160,10 +160,10 @@ export default function AyarlarPage() {
         if (!auth.currentUser) return;
         setIsResendingVerification(true);
         try {
-            await fetch('/api/auth/send-link', {
+            await fetch('/api/auth/send-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: auth.currentUser.email, type: 'verification' }),
+                body: JSON.stringify({ email: auth.currentUser.email, userId: auth.currentUser.uid }),
             });
             toast({
                 title: 'Doğrulama E-postası Gönderildi',

@@ -141,13 +141,13 @@ export default function RegisterPage() {
 
       // Then, try to send verification email (but don't fail registration if it fails)
       try {
-        await fetch('/api/auth/send-link', {
+        await fetch('/api/auth/send-otp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: newUser.email, type: 'verification' }),
+          body: JSON.stringify({ email: newUser.email, userId: newUser.uid }),
         });
       } catch (verificationError: any) {
-        console.error("Verification email failed to send via Resend:", verificationError);
+        console.error("Verification OTP failed to send via Resend:", verificationError);
       }
 
       toast({
