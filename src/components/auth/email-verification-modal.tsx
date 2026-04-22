@@ -40,11 +40,10 @@ export function EmailVerificationModal() {
   if (!shouldShow) return null;
 
   const handleSendVerification = async () => {
-    if (!user?.email) return;
+    if (!user?.email || !auth.currentUser) return;
     setIsSending(true);
     try {
-      // Firebase auth sendEmailVerification yerine, kendi Resend API endpointimizi kullanıyoruz
-      // Böylece doğru link ile ve bizim tasarımımızla mail gidiyor
+      // Önce Resend API'yi deneriz (Özel tasarım için)
       const response = await fetch('/api/auth/send-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -52,7 +51,7 @@ export function EmailVerificationModal() {
       });
 
       if (!response.ok) {
-        throw new Error('Mail gönderilemedi.');
+        throw new Error('API failed');
       }
 
       toast({
@@ -61,12 +60,26 @@ export function EmailVerificationModal() {
         className: 'bg-green-500 text-white',
       });
     } catch (error: any) {
-      console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'Hata',
-        description: 'E-posta gönderilirken bir sorun oluştu. Daha sonra tekrar deneyin.',
-      });
+      console.warn("Resend API failed, falling back to Firebase Client SDK:", error);
+      // Fallback: Firebase Client SDK üzerinden gönder
+      try {
+        const { sendEmailVerification } = await import('firebase/auth');
+        await sendEmailVerification(auth.currentUser, {
+           url: `${window.location.origin}/auth/email-onay`
+        });
+        toast({
+          title: 'Doğrulama E-postası Gönderildi',
+          description: 'Lütfen gelen kutunuzu (ve gerekiyorsa spam klasörünü) kontrol edin.',
+          className: 'bg-green-500 text-white',
+        });
+      } catch (fbError) {
+        console.error("Firebase fallback failed:", fbError);
+        toast({
+          variant: 'destructive',
+          title: 'Hata',
+          description: 'E-posta gönderilirken bir sorun oluştu. Daha sonra tekrar deneyin.',
+        });
+      }
     } finally {
       setIsSending(false);
     }
