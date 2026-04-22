@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, getDocs, getDoc, collectionGroup, doc, updateDoc, writeBatch, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -125,6 +125,7 @@ const SUGGESTED_TAGS = [
 ];
 
 function UsersPageContent() {
+  const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
   const searchParams = useSearchParams();
@@ -549,6 +550,7 @@ function UsersPageContent() {
                     'Kaynak Paket': selectedPackageFromPool
                 },
                 createdAt: new Date(),
+                adminEmail: user?.email
             });
 
         } else {
@@ -615,6 +617,7 @@ function UsersPageContent() {
                     'Tip': 'Yönetici Tanımlı'
                 },
                 createdAt: new Date(),
+                adminEmail: user?.email
             });
         }
 
@@ -642,6 +645,16 @@ function UsersPageContent() {
             title: newStatus ? 'Eski Üye Yapıldı' : 'Eski Üye Durumu Kaldırıldı', 
             className: newStatus ? 'bg-orange-600 text-white' : 'bg-slate-800 text-white' 
         });
+        await addDoc(collection(db, 'activity-log'), {
+            event: newStatus ? '🟠 Veli Eski Üye Yapıldı' : '⚪ Veli Eski Üye Durumu Kaldırıldı',
+            icon: '🏷️',
+            details: {
+                'Veli': `${parent.firstName} ${parent.lastName}`,
+                'Email': parent.email
+            },
+            createdAt: new Date(),
+            adminEmail: user?.email
+        });
         refetchParents();
     } catch (e) {
         console.error("Error toggling legacy status:", e);
@@ -660,6 +673,16 @@ function UsersPageContent() {
             title: 'Veli Silindi', 
             description: `${parent.firstName} ${parent.lastName} sistemden başarıyla silindi.`,
             className: 'bg-red-600 text-white border-red-700' 
+        });
+        await addDoc(collection(db, 'activity-log'), {
+            event: '🔴 Veli Kalıcı Olarak Silindi',
+            icon: '🗑️',
+            details: {
+                'Veli': `${parent.firstName} ${parent.lastName}`,
+                'Email': parent.email
+            },
+            createdAt: new Date(),
+            adminEmail: user?.email
         });
         refetchParents();
     } catch (e) {

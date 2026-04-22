@@ -3,6 +3,7 @@
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 import { getAuth } from 'firebase/auth';
 import { getMessaging, Messaging, isSupported } from 'firebase/messaging';
 import { 
@@ -47,6 +48,19 @@ export {
 // Singleton initialization
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+
+// App Check initialization
+if (typeof window !== 'undefined' && (firebaseConfig as any).recaptchaSiteKey) {
+  // LocalHost için debug token desteği (Geliştirme sırasında hata almamak için)
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+    (window as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  }
+  
+  initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider((firebaseConfig as any).recaptchaSiteKey),
+    isTokenAutoRefreshEnabled: true,
+  });
+}
 
 // Safe messaging initialization (prevents crash in restricted browsers like Instagram/iOS)
 export const getSafeMessaging = async () => {

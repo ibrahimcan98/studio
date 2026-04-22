@@ -15,6 +15,7 @@ import {
   Baby,
   CreditCard,
   Activity,
+  History,
   Presentation,
   Trophy,
   Ticket,
@@ -70,6 +71,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     { id: 'ogrenciler', href: '/yonetici/ogrenciler', label: 'Öğrenciler', icon: Baby },
     { id: 'indirimler', href: '/yonetici/indirimler', label: 'İndirimler', icon: Ticket },
     { id: 'puan-merkezi', href: '/yonetici/puan-merkezi', label: 'Puan Merkezi', icon: Trophy },
+    { id: 'denetim-kaydi', href: '/yonetici/denetim-kaydi', label: 'Denetim Kaydı', icon: History },
     { id: 'admin-yonetimi', href: '/yonetici/admin-yonetimi', label: 'Admin Yönetimi', icon: ShieldAlert },
   ];
 
@@ -87,9 +89,9 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
       );
     }
 
-    // FINAL STRICT CHECK: Only Ultra Admin sees Admin Management
+    // FINAL STRICT CHECK: Only Ultra Admin sees Admin Management & Audit Logs
     return items.filter((item: any) => {
-        if (item.id === 'admin-yonetimi') return isUltraAdmin;
+        if (item.id === 'admin-yonetimi' || item.id === 'denetim-kaydi') return isUltraAdmin;
         return true;
     });
   }, [userData?.permissions, user?.email]);

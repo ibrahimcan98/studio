@@ -1,20 +1,39 @@
 rules_version = '2';
 
 function isTeacher(userId) {
-  return get(/databases/(default)/documents/users/$(userId)).data.role == 'teacher';
+  return firestore.get(/databases/(default)/documents/users/$(userId)).data.role == 'teacher';
+}
+
+function isAdmin() {
+  return request.auth != null && 
+    firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
 }
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Allow public read access to all files
-    match /{allPaths=**} {
-      allow read;
+    
+    // 1. ÖĞRETMEN PROFİLLERİ (Halka Açık)
+    match /teacher-profiles/{userId}/{allPaths=**} {
+      // Herkes öğretmen resimlerini görebilmeli (Landing ve Kurslar sayfasında kullanıldığı için)
+      allow read: if true;
+      
+      // Sadece öğretmen kendi klasörüne yazabilir
+      allow write: if request.auth != null && request.auth.uid == userId && isTeacher(userId);
     }
 
-    // Allow authenticated teachers to write ONLY to their own profile folder.
-    // This rule now verifies that the user has the 'teacher' role in Firestore.
-    match /teacher-profiles/{userId}/{allPaths=**} {
-      allow write: if request.auth != null && request.auth.uid == userId && isTeacher(userId);
+    // 2. KULLANICI ÖZEL DOSYALARI (Gelecek için hazırlık)
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+    }
+
+    // 3. GENEL VARLIKLAR (Logolar, İkonlar vb.)
+    match /public-assets/{allPaths=**} {
+      allow read: if true;
+    }
+
+    // 4. GLOBAL ADMIN VE KAPALILIK KURALI
+    match /{allPaths=**} {
+      allow read, write: if isAdmin();
     }
   }
 }

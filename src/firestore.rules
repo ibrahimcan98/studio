@@ -8,56 +8,116 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
     function isAdmin() {
       return isSignedIn() && (
-        request.auth.token.email == 'admin@hotmail.com' ||
-        request.auth.uid == 'HjYBaEgRUsQ4DUIvBlFfrx7ND6p1'
+        getUserData().role == 'admin' ||
+        request.auth.uid in ['HjYBaEgRUsQ4DUIvBlFfrx7ND6p1'] // Bootstrap admin
       );
     }
-
-    // 1. DESTEK SİSTEMİ
-    match /conversations/{id} {
-      allow read, write: if true;
+    
+    function isTeacher() {
+      return isSignedIn() && getUserData().role == 'teacher';
     }
 
-    match /messages/{id} {
-      allow read, write: if true;
-    }
-
-    // 2. KULLANICI VE ÇOCUK VERİLERİ
+    // 1. KULLANICI KURALLARI
     match /users/{userId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      // Bir kullanıcı sadece kendi dökümanını okuyabilir
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin() || isTeacher());
       
-      // Admin her şeyi yapabilir
-      allow list, get: if isAdmin();
+      // Kayıt sırasında email kontrolü vb. için listeleme (Sadece Admin)
+      allow list: if isAdmin();
       
-      // Velilerin öğretmenleri görebilmesi için (Ders Planlama Önizlemesi)
-      allow get: if isSignedIn() && (resource == null || resource.data.role == 'teacher');
+      // Kullanıcı dökümanı oluşturma
+      allow create: if isSignedIn() && request.auth.uid == userId;
       
-      allow update: if (isSignedIn() && request.auth.uid == userId) || 
-                    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isOnline', 'lastActiveAt', 'currentPath', 'onlineSince']));
+      // GÜNCELLEME KORUMASI: Kullanıcı kendi rolünü, kredisini veya kayıt durumunu DEĞİŞTİREMEZ.
+      allow update: if isSignedIn() && (
+        (request.auth.uid == userId && 
+         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'remainingLessons', 'enrolledPackages', 'isLegacy', 'credits'])) ||
+        isAdmin()
+      );
 
+      // Alt koleksiyonlar (Çocuklar, Bildirimler vb.)
       match /children/{childId} {
-        allow read, write: if isSignedIn() && request.auth.uid == userId;
-        allow read: if isAdmin() || (isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'teacher']);
+        allow read: if isAdmin() || isTeacher() || (isSignedIn() && request.auth.uid == userId);
+        allow write: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      }
+      
+      match /notifications/{notifId} {
+        allow read, write: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      }
+
+      match /stats/{statId} {
+        allow read: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+        allow write: if isAdmin();
       }
     }
 
-    // 3. DERS SLOTLARI
+    // 2. DERS SLOTLARI (Rezervasyon Sistemi)
     match /lesson-slots/{slotId} {
+        // Herkes boş slotları görebilmeli
         allow read: if true;
+        
+        // Sadece admin veya sistem (backend) slot oluşturabilir/silebilir normal şartlarda, 
+        // ama mevcut yapı izin veriyorsa sahiplik kontrolü ekliyoruz.
         allow create: if isSignedIn();
-        allow update, delete: if isSignedIn();
+        
+        allow update: if isAdmin() || (
+            isSignedIn() && (
+                resource.data.bookedBy == request.auth.uid || 
+                resource.data.teacherId == request.auth.uid
+            )
+        );
+        
+        allow delete: if isAdmin() || (
+            isSignedIn() && resource.data.bookedBy == request.auth.uid
+        );
         
         match /chats/{chatId} {
-          allow read, write: if isSignedIn();
+          allow read, write: if isAdmin() || (
+            isSignedIn() && (
+                get(/databases/$(database)/documents/lesson-slots/$(slotId)).data.bookedBy == request.auth.uid ||
+                get(/databases/$(database)/documents/lesson-slots/$(slotId)).data.teacherId == request.auth.uid
+            )
+          );
         }
     }
     
-    // 4. İŞLEMLER VE GENEL VERİLER
-    match /transactions/{id} {
-      allow read: if isAdmin();
+    // 3. MESAJLAŞMA VE DESTEK SİSTEMİ
+    match /conversations/{convId} {
+      // Sadece konuşmayı başlatan veli veya admin görebilir
+      allow read: if isAdmin() || (isSignedIn() && resource.data.createdBy.uid == request.auth.uid);
       allow create: if isSignedIn();
+      allow update: if isAdmin() || (isSignedIn() && resource.data.createdBy.uid == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    match /messages/{msgId} {
+      // Mesajın ait olduğu konuşmaya erişimi olanlar okuyabilir
+      allow read: if isAdmin() || (isSignedIn() && resource.data.senderUid == request.auth.uid) || 
+                  (isSignedIn() && exists(/databases/$(database)/documents/conversations/$(resource.data.conversationId)) && 
+                   get(/databases/$(database)/documents/conversations/$(resource.data.conversationId)).data.createdBy.uid == request.auth.uid);
+      
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.senderUid == request.auth.uid);
+    }
+
+    // 4. İŞLEMLER, SATIŞLAR VE SADAKAT PROGRAMI
+    match /transactions/{id} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn();
+      allow update: if isAdmin();
+    }
+
+    match /loyalty-requests/{id} {
+      // Veliler kendi taleplerini görebilir ve yeni talep oluşturabilir
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn();
+      allow update: if isAdmin();
     }
 
     match /courses/{courseId} {
@@ -71,7 +131,22 @@ service cloud.firestore {
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
-    // 5. GLOBAL ADMIN ERİŞİMİ
+    match /coupons/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 5. LOGLAR VE SİSTEM VERİLERİ (Sadece Admin)
+    match /activity-log/{id} {
+      allow create: if true; // Kayıt her zaman yapılabilmeli
+      allow read: if isAdmin();
+    }
+
+    match /notifications-log/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    // 6. GLOBAL ADMIN ERİŞİMİ
     match /{document=**} {
       allow read, write: if isAdmin();
     }
