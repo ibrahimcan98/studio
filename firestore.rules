@@ -35,8 +35,8 @@ service cloud.firestore {
         (resource != null && resource.data.role == 'teacher')
       );
       
-      // Kayıt sırasında email kontrolü vb. için listeleme (Sadece Admin)
-      allow list: if isAdmin();
+      // Kayıt sırasında email kontrolü ve öğretmen listeleme için izin
+      allow list: if isSignedIn();
       
       // Kullanıcı dökümanı oluşturma
       allow create: if isSignedIn() && request.auth.uid == userId;
