@@ -1548,8 +1548,12 @@ function UsersPageContent() {
                                     <Input 
                                         type="number" 
                                         className="h-12 rounded-xl border-slate-200 font-bold text-lg text-center"
-                                        value={lessonCount}
-                                        onChange={(e) => setLessonCount(Math.min(parseInt(selectedPackageFromPool.replace(/\D/g, ''), 10), parseInt(e.target.value) || 0))}
+                                        value={isNaN(lessonCount) ? 0 : lessonCount}
+                                        onChange={(e) => {
+                                            const maxLessons = parseInt(selectedPackageFromPool.replace(/\D/g, ''), 10) || 0;
+                                            const newVal = parseInt(e.target.value) || 0;
+                                            setLessonCount(Math.min(maxLessons, newVal));
+                                        }}
                                     />
                                     <div className="flex gap-2">
                                         {[4, 8, 12, 24].map(n => {
