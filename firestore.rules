@@ -78,6 +78,7 @@ service cloud.firestore {
         
         allow update: if isAdmin() || (
             isSignedIn() && (
+                resource.data.status == 'available' || 
                 resource.data.bookedBy == request.auth.uid || 
                 resource.data.teacherId == request.auth.uid
             )
