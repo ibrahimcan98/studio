@@ -541,7 +541,83 @@ export default function AdminDerslerPage() {
             }
 
             await batch.commit();
-            toast({ title: 'Ders Atandı', description: `${details.duration} dakikalık ders başarıyla atandı.` });
+
+            // Notify via Email & Push (Non-blocking)
+            const handleNotifications = async () => {
+                try {
+                    const parent = users?.find(u => u.uid === parentId);
+                    const teacher = users?.find(u => u.uid === selectedTeacherId);
+                    const childName = childInfo?.firstName || '-';
+                    const lessonTime = format(startTime, 'dd MMMM yyyy, HH:mm', { locale: tr });
+                    const details = getCourseDetailsFromPackageCode(packageCode);
+
+                    // 1. Send Email to Parent
+                    if (parent?.email) {
+                        fetch('/api/emails/send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                to: parent.email,
+                                subject: 'Yeni Dersiniz Planlandı',
+                                templateName: 'lesson-planned',
+                                data: {
+                                    studentName: childName,
+                                    teacherName: `${teacher?.firstName} ${teacher?.lastName || ''}`,
+                                    courseName: details?.courseName || 'Akademik Ders',
+                                    duration: details?.duration || 45,
+                                    date: format(startTime, 'dd MMMM yyyy', { locale: tr }),
+                                    time: format(startTime, 'HH:mm', { locale: tr }),
+                                    startTime: startTime.toISOString(),
+                                    role: 'parent'
+                                }
+                            })
+                        }).catch(e => console.error("Parent email error:", e));
+                    }
+
+                    // 2. Send Email to Teacher
+                    if (teacher?.email) {
+                        fetch('/api/emails/send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                to: teacher.email,
+                                subject: 'Yeni Bir Dersiniz Var',
+                                templateName: 'lesson-planned',
+                                data: {
+                                    studentName: childName,
+                                    teacherName: `${teacher?.firstName} ${teacher?.lastName || ''}`,
+                                    courseName: details?.courseName || 'Akademik Ders',
+                                    duration: details?.duration || 45,
+                                    date: format(startTime, 'dd MMMM yyyy', { locale: tr }),
+                                    time: format(startTime, 'HH:mm', { locale: tr }),
+                                    startTime: startTime.toISOString(),
+                                    role: 'teacher'
+                                }
+                            })
+                        }).catch(e => console.error("Teacher email error:", e));
+                    }
+
+                    // 3. Push Notification to Parent
+                    if (parentId) {
+                        fetch('/api/notify/user', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                userId: parentId,
+                                title: '📅 Yeni Ders Atandı',
+                                body: `${childName} için ${lessonTime} saatine bir ders atandı. Keyifli dersler dileriz! ✨`,
+                                link: '/ebeveyn-portali/derslerim'
+                            })
+                        }).catch(console.error);
+                    }
+                } catch (err) {
+                    console.error("Manual assignment notification error:", err);
+                }
+            };
+
+            handleNotifications();
+
+            toast({ title: 'Ders Atandı', description: `${details.duration} dakikalık ders başarıyla atandı ve bildirimler gönderildi.` });
             setIsAssignDialogOpen(false);
             setAssignStep(1);
             refetchLessons();
