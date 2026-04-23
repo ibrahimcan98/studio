@@ -427,148 +427,136 @@ export default function DersPlanlaPage() {
             const childName = selectedChildData?.firstName || selectedChildId;
             const lessonTime = formatInTimeZone(startTime, 'Europe/Istanbul', 'dd.MM.yyyy HH:mm', { locale: tr });
 
-            // Store in Activity Log (Frontend side for auth)
-            addDoc(collection(db, 'activity-log'), {
-                event: rescheduleId ? '🔄 Ders Değiştirildi' : '📅 Ders Planlandı',
-                icon: rescheduleId ? '🔄' : '📅',
-                details: {
-                    'Ders Türü': selectedPackage || '-',
-                    'Öğrenci': childName,
-                    'Ders Zamanı': lessonTime
-                },
-                createdAt: Timestamp.fromDate(new Date())
-            }).catch(console.error);
-
-            // Email Notification (Resend)
-            const teacherDocRef = doc(db, 'users', selectedSlot.teacherId);
-            const teacherSnap = await getDoc(teacherDocRef);
-            const teacherData = teacherSnap.exists() ? teacherSnap.data() : null;
-            const teacherEmail = teacherData?.email;
-
-            if (teacherEmail || user.email) {
-                const teacherFullName = (teacherData?.firstName && teacherData?.lastName) 
-                    ? `${teacherData.firstName} ${teacherData.lastName}` 
-                    : (teacherData?.firstName || 'Akademi Eğitmeni');
-
-                const courseDetails = getCourseDetailsFromPackageCode(selectedPackage);
-
-                const commonData = {
-                    studentName: childName,
-                    teacherName: teacherFullName,
-                    courseName: courseDetails?.courseName || 'Akademik Ders',
-                    duration: courseDetails?.duration || 45,
-                };
-
-                const parentEmailData = {
-                    ...commonData,
-                    date: formatInTimeZone(startTime, selectedTimeZone, 'dd MMMM yyyy', { locale: tr }),
-                    time: formatInTimeZone(startTime, selectedTimeZone, 'HH:mm', { locale: tr }),
-                    startTime: startTime.toISOString(),
-                    role: 'parent' as const,
-                };
-
-                const teacherEmailData = {
-                    ...commonData,
-                    date: formatInTimeZone(startTime, 'Europe/Istanbul', 'dd MMMM yyyy', { locale: tr }),
-                    time: formatInTimeZone(startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr }),
-                    startTime: startTime.toISOString(),
-                    role: 'teacher' as const,
-                };
-
-                // Send to Parent
-                if (user.email) {
-                    try {
-                        const res = await fetch('/api/emails/send', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                to: user.email,
-                                subject: rescheduleId ? 'Dersiniz Değiştirildi' : 'Yeni Dersiniz Planlandı',
-                                templateName: 'lesson-planned',
-                                data: parentEmailData
-                            })
-                        });
-                        if (!res.ok) console.error('Parent email failed:', await res.text());
-                    } catch (e) {
-                        console.error('Parent email fetch error:', e);
-                    }
-                }
-
-                // Send to Teacher
-                if (teacherEmail) {
-                    try {
-                        const res = await fetch('/api/emails/send', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                to: teacherEmail,
-                                subject: rescheduleId ? 'Bir Dersiniz Değiştirildi' : 'Yeni Bir Dersiniz Var',
-                                templateName: 'lesson-planned',
-                                data: teacherEmailData
-                            })
-                        });
-                        if (!res.ok) console.error('Teacher email failed:', await res.text());
-                    } catch (e) {
-                        console.error('Teacher email fetch error:', e);
-                    }
-                }
-            }
-
-            // Admin notification (Push + Email if trial)
-            const isTrial = bookingMode === 'free';
-            fetch('/api/notify/admin', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    title: isTrial ? (rescheduleId ? '🚨 Deneme Dersi Değiştirildi' : '🚨 Deneme Dersi Planlandı') : (rescheduleId ? '🔄 Ders Değiştirildi' : '📅 Ders Planlandı'),
-                    body: `${childName} için ${lessonTime} saatine ders ${rescheduleId ? 'taşındı' : 'planlandı'}.`,
-                    link: '/yonetici/dersler',
-                    sendEmail: isTrial, // Only send email for trial lessons
-                    logData: {
-                        icon: isTrial ? '🚨' : (rescheduleId ? '🔄' : '📅'),
-                        event: isTrial ? 'Deneme Dersi İşlemi' : 'Ders İşlemi',
+            // Post-booking actions (Non-blocking)
+            const handlePostBookingActions = async () => {
+                try {
+                    // Store in Activity Log
+                    addDoc(collection(db, 'activity-log'), {
+                        event: rescheduleId ? '🔄 Ders Değiştirildi' : '📅 Ders Planlandı',
+                        icon: rescheduleId ? '🔄' : '📅',
                         details: {
+                            'Ders Türü': selectedPackage || '-',
+                            'Öğrenci': childName,
+                            'Ders Zamanı': lessonTime
+                        },
+                        createdAt: Timestamp.fromDate(new Date())
+                    }).catch(console.error);
+
+                    // Email Notification
+                    const teacherDocRef = doc(db, 'users', selectedSlot.teacherId);
+                    const teacherSnap = await getDoc(teacherDocRef);
+                    const teacherData = teacherSnap.exists() ? teacherSnap.data() : null;
+                    const teacherEmail = teacherData?.email;
+
+                    if (teacherEmail || user.email) {
+                        const teacherFullName = (teacherData?.firstName && teacherData?.lastName) 
+                            ? `${teacherData.firstName} ${teacherData.lastName}` 
+                            : (teacherData?.firstName || 'Akademi Eğitmeni');
+
+                        const courseDetails = getCourseDetailsFromPackageCode(selectedPackage);
+
+                        const commonData = {
                             studentName: childName,
                             teacherName: teacherFullName,
+                            courseName: courseDetails?.courseName || 'Akademik Ders',
+                            duration: courseDetails?.duration || 45,
+                        };
+
+                        const parentEmailData = {
+                            ...commonData,
+                            date: formatInTimeZone(startTime, selectedTimeZone, 'dd MMMM yyyy', { locale: tr }),
+                            time: formatInTimeZone(startTime, selectedTimeZone, 'HH:mm', { locale: tr }),
+                            startTime: startTime.toISOString(),
+                            role: 'parent' as const,
+                        };
+
+                        const teacherEmailData = {
+                            ...commonData,
                             date: formatInTimeZone(startTime, 'Europe/Istanbul', 'dd MMMM yyyy', { locale: tr }),
                             time: formatInTimeZone(startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr }),
-                            isTrial: isTrial
+                            startTime: startTime.toISOString(),
+                            role: 'teacher' as const,
+                        };
+
+                        // Send to Parent
+                        if (user.email) {
+                            fetch('/api/emails/send', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    to: user.email,
+                                    subject: rescheduleId ? 'Dersiniz Değiştirildi' : 'Yeni Dersiniz Planlandı',
+                                    templateName: 'lesson-planned',
+                                    data: parentEmailData
+                                })
+                            }).catch(e => console.error('Parent email fetch error:', e));
+                        }
+
+                        // Send to Teacher
+                        if (teacherEmail) {
+                            fetch('/api/emails/send', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    to: teacherEmail,
+                                    subject: rescheduleId ? 'Bir Dersiniz Değiştirildi' : 'Yeni Bir Dersiniz Var',
+                                    templateName: 'lesson-planned',
+                                    data: teacherEmailData
+                                })
+                            }).catch(e => console.error('Teacher email fetch error:', e));
                         }
                     }
-                })
-            }).catch(console.error);
 
-            // Parent Low Balance Notification (Push)
-            if (bookingMode === 'paid' && !rescheduleId && selectedChildData && (selectedChildData.remainingLessons - 1) === 2) {
-                fetch('/api/notify/user', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: user.uid,
-                        title: '🎈 Maceraya Ara Vermeyelim!',
-                        body: `${childName}'in heyecan dolu derslerine ara vermeden devam etmesi için kredi almayı unutmayın! Sizi bekliyoruz. ✨`,
-                        link: '/ebeveyn-portali/paket-al'
-                    })
-                }).catch(console.error);
-            }
+                    // Admin notification
+                    const isTrial = bookingMode === 'free';
+                    fetch('/api/notify/admin', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            title: isTrial ? (rescheduleId ? '🚨 Deneme Dersi Değiştirildi' : '🚨 Deneme Dersi Planlandı') : (rescheduleId ? '🔄 Ders Değiştirildi' : '📅 Ders Planlandı'),
+                            body: `${childName} için ${lessonTime} saatine ders ${rescheduleId ? 'taşındı' : 'planlandı'}.`,
+                            link: '/yonetici/dersler',
+                            sendEmail: isTrial,
+                            logData: {
+                                icon: isTrial ? '🚨' : (rescheduleId ? '🔄' : '📅'),
+                                event: isTrial ? 'Deneme Dersi İşlemi' : 'Ders İşlemi',
+                                details: {
+                                    studentName: childName,
+                                    teacherName: (teacherSnap.exists() ? `${teacherSnap.data().firstName} ${teacherSnap.data().lastName}` : 'Bilinmiyor'),
+                                    date: formatInTimeZone(startTime, 'Europe/Istanbul', 'dd MMMM yyyy', { locale: tr }),
+                                    time: formatInTimeZone(startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr }),
+                                    isTrial: isTrial
+                                }
+                            }
+                        })
+                    }).catch(console.error);
 
-            // Legacy notify call (if still needed)
-            fetch('/api/notify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    event: rescheduleId ? '🔄 Ders Değiştirildi' : '📅 Ders Planlandı',
-                    details: {
-                        'Ders Türü': selectedPackage || '-',
-                        'Öğrenci': childName,
-                        'Ders Zamanı': lessonTime
+                    // Parent Low Balance Notification
+                    if (bookingMode === 'paid' && !rescheduleId && selectedChildData && (selectedChildData.remainingLessons - 1) === 2) {
+                        fetch('/api/notify/user', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                userId: user.uid,
+                                title: '🎈 Maceraya Ara Vermeyelim!',
+                                body: `${childName}'in heyecan dolu derslerine ara vermeden devam etmesi için kredi almayı unutmayın! Sizi bekliyoruz. ✨`,
+                                link: '/ebeveyn-portali/paket-al'
+                            })
+                        }).catch(console.error);
                     }
-                })
-            }).catch(console.error);
+                } catch (postError) {
+                    console.error("Post-booking actions failed, but lesson was saved:", postError);
+                }
+            };
+
+            // Execute post-booking actions in background
+            handlePostBookingActions();
+
             toast({ title: rescheduleId ? 'Ders Değiştirildi!' : 'Ders Planlandı!', description: 'İşlem başarıyla tamamlandı.', className: 'bg-green-500 text-white font-bold' });
             router.push('/ebeveyn-portali');
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Hata', description: 'İşlem başarısız oldu.' });
+            console.error("Booking failed:", error);
+            toast({ variant: 'destructive', title: 'Hata', description: 'İşlem başarısız oldu. Lütfen tekrar deneyin.' });
         } finally { setIsBooking(false); setIsConfirming(false); }
     };
 
