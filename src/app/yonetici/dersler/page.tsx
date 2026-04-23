@@ -423,6 +423,8 @@ export default function AdminDerslerPage() {
         }
     };
 
+    const [selectedPackageType, setSelectedPackageType] = useState<'regular' | 'trial'>('regular');
+
     const handleAssignLesson = async () => {
         if (!db || !selectedSlotId || !selectedChildId) return;
         setIsAssigning(true);
@@ -430,7 +432,9 @@ export default function AdminDerslerPage() {
             const batch = writeBatch(db);
             const parentId = selectedParentId;
             const childInfo = allChildren.find(c => c.id === selectedChildId);
-            const packageCode = childInfo?.assignedPackage || 'K4';
+            
+            // Determine package code based on selection
+            const packageCode = selectedPackageType === 'trial' ? 'FREE_TRIAL' : (childInfo?.assignedPackage || 'K4');
 
             // Check if student has remaining lessons (skip if FREE_TRIAL)
             if (packageCode === 'FREE_TRIAL') {
@@ -440,6 +444,16 @@ export default function AdminDerslerPage() {
                         variant: 'destructive', 
                         title: 'Deneme Dersi Yasak', 
                         description: 'Bu veli "Eski Üye" olarak işaretlendiği için deneme dersi atanamaz.' 
+                    });
+                    setIsAssigning(false);
+                    return;
+                }
+                // Check if already used (inform admin but allow if they really want to? No, better stay safe or allow with warning)
+                if (childInfo?.hasUsedFreeTrial) {
+                     toast({ 
+                        variant: 'destructive', 
+                        title: 'Deneme Dersi Kullanılmış', 
+                        description: 'Bu öğrenci zaten deneme dersi hakkını kullanmış.' 
                     });
                     setIsAssigning(false);
                     return;
@@ -513,11 +527,15 @@ export default function AdminDerslerPage() {
                 });
             });
 
-            // Update Child (Decrement lesson)
-            if (packageCode !== 'FREE_TRIAL' && childInfo?.parentId) {
+            // Update Child and Parent (Credit/Trial management)
+            if (childInfo?.parentId) {
                 const childRef = doc(db, 'users', childInfo.parentId, 'children', selectedChildId);
-                const childSnap = await getDoc(childRef);
-                if (childSnap.exists()) {
+                const userRef = doc(db, 'users', childInfo.parentId);
+
+                if (packageCode === 'FREE_TRIAL') {
+                    batch.update(childRef, { hasUsedFreeTrial: true });
+                    batch.update(userRef, { freeTrialsUsed: increment(1) });
+                } else {
                     batch.update(childRef, { remainingLessons: increment(-1) });
                 }
             }
@@ -769,20 +787,48 @@ export default function AdminDerslerPage() {
                                 </div>
 
                                 {selectedParentId && (
-                                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                                        <Label className="font-bold text-slate-700">2. Öğrenciyi Seçin</Label>
-                                        <Select value={selectedChildId} onValueChange={setSelectedChildId}>
-                                            <SelectTrigger className="rounded-xl h-12 border-slate-200">
-                                                <SelectValue placeholder="Çocuk seç..." />
-                                            </SelectTrigger>
-                                            <SelectContent className="rounded-2xl">
-                                                {allChildren.filter(c => c.parentId === selectedParentId).map((c, idx) => (
-                                                    <SelectItem key={c.id || idx} value={c.id} className="rounded-lg">
-                                                        {c.firstName} (Kalan: {c.remainingLessons || 0} ders)
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <div className="space-y-2">
+                                            <Label className="font-bold text-slate-700">2. Öğrenciyi Seçin</Label>
+                                            <Select value={selectedChildId} onValueChange={setSelectedChildId}>
+                                                <SelectTrigger className="rounded-xl h-12 border-slate-200">
+                                                    <SelectValue placeholder="Çocuk seç..." />
+                                                </SelectTrigger>
+                                                <SelectContent className="rounded-2xl">
+                                                    {allChildren.filter(c => c.parentId === selectedParentId).map((c, idx) => (
+                                                        <SelectItem key={c.id || idx} value={c.id} className="rounded-lg">
+                                                            {c.firstName} (Kredi: {c.remainingLessons || 0} | Deneme: {c.hasUsedFreeTrial ? 'Kullanıldı' : 'Müsait'})
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        {selectedChildId && (
+                                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                <Label className="font-bold text-slate-700">3. Ders Türü</Label>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <Button 
+                                                        variant={selectedPackageType === 'regular' ? 'default' : 'outline'}
+                                                        className="rounded-xl font-bold h-11"
+                                                        onClick={() => setSelectedPackageType('regular')}
+                                                    >
+                                                        Normal Ders
+                                                    </Button>
+                                                    <Button 
+                                                        variant={selectedPackageType === 'trial' ? 'default' : 'outline'}
+                                                        className="rounded-xl font-bold h-11"
+                                                        onClick={() => setSelectedPackageType('trial')}
+                                                        disabled={allChildren.find(c => c.id === selectedChildId)?.hasUsedFreeTrial}
+                                                    >
+                                                        Deneme Dersi
+                                                    </Button>
+                                                </div>
+                                                {allChildren.find(c => c.id === selectedChildId)?.hasUsedFreeTrial && selectedPackageType === 'trial' && (
+                                                    <p className="text-[10px] text-red-500 font-bold italic">Bu öğrenci deneme dersini zaten kullanmış.</p>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
