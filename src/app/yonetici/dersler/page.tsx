@@ -355,17 +355,38 @@ export default function AdminDerslerPage() {
                 });
             });
 
-            // Refund logic (refund 1 UNIT if not trial)
-            if (lessonToCancel.packageCode !== 'FREE_TRIAL' && lessonToCancel.bookedBy && lessonToCancel.childId) {
+            // Refund logic
+            if (lessonToCancel.bookedBy && lessonToCancel.childId) {
                 const childRef = doc(db, 'users', lessonToCancel.bookedBy, 'children', lessonToCancel.childId);
-                const childSnap = await getDoc(childRef);
-                if (childSnap.exists()) {
+                const userRef = doc(db, 'users', lessonToCancel.bookedBy);
+                
+                if (lessonToCancel.packageCode === 'FREE_TRIAL') {
+                    // Refund Trial Lesson
+                    batch.update(childRef, { hasUsedFreeTrial: false });
+                    batch.update(userRef, { freeTrialsUsed: increment(-1) });
+                } else {
+                    // Refund Regular Lesson
                     batch.update(childRef, { remainingLessons: increment(1) });
                 }
             }
+
+            // Log the cancellation
+            const activityRef = doc(collection(db, 'activity-log'));
+            batch.set(activityRef, {
+                event: '❌ Ders İptal Edildi (Admin)',
+                icon: '❌',
+                details: {
+                    'Öğrenci': lessonToCancel.studentName,
+                    'Veli': lessonToCancel.parentName,
+                    'Ders': lessonToCancel.courseName,
+                    'Zaman': format(lessonToCancel.startDateTime, 'dd.MM.yyyy HH:mm', { locale: tr }),
+                    'İade': 'Yapıldı'
+                },
+                createdAt: Timestamp.now()
+            });
             
             await batch.commit();
-            toast({ title: 'Ders İptal Edildi', description: `${lessonToCancel.duration} dakikalık oturum başarıyla iptal edildi.` });
+            toast({ title: 'Ders İptal Edildi', description: `${lessonToCancel.duration} dakikalık oturum başarıyla iptal edildi ve hak iadesi yapıldı.` });
             refetchLessons();
         } catch (e) {
             console.error("Error cancelling lesson:", e);
