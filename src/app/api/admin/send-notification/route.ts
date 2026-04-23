@@ -135,21 +135,21 @@ export async function POST(req: Request) {
 
         const emailHtml = getBaseTemplate(`${htmlBody}${callToActionHtml}`);
 
-        const emailChunks = [];
-        for (let i = 0; i < emailUsers.length; i += 100) {
-          emailChunks.push(emailUsers.slice(i, i + 100));
+        // Fix: Use Resend Batch API to send INDIVIDUAL emails to each user
+        // This ensures privacy so users don't see each other's email addresses.
+        const batchData = emailUsers.map(u => ({
+          from: FROM_EMAIL,
+          to: [u.email], // Single recipient per email
+          subject: title,
+          html: emailHtml,
+        }));
+
+        // Resend batch limit is usually 100 emails per call
+        for (let i = 0; i < batchData.length; i += 100) {
+          const chunk = batchData.slice(i, i + 100);
+          await resend.batch.send(chunk);
         }
-
-        const emailPromises = emailChunks.map(chunk => 
-          resend.emails.send({
-            from: FROM_EMAIL,
-            to: chunk.map(u => u.email),
-            subject: title,
-            html: emailHtml,
-          })
-        );
-
-        const emailResponses = await Promise.all(emailPromises);
+        
         results.email.successCount = emailUsers.length; 
       }
     }
