@@ -6,10 +6,19 @@ import { getBaseTemplate } from '@/lib/email-templates';
 
 export async function POST(req: Request) {
   try {
-    const { title, body, target, channels = ['push'], selectedUserIds = [], redirectPath = '' } = await req.json();
+    const { title, body, target, channels = ['push'], selectedUserIds = [], redirectPath = '', expiresAt = null } = await req.json();
 
     if (!title || !body) {
       return NextResponse.json({ error: 'Başlık ve mesaj gereklidir.' }, { status: 400 });
+    }
+
+    let expiryDate: Date | null = null;
+    if (expiresAt) {
+        expiryDate = new Date();
+        if (expiresAt === '1_day') expiryDate.setDate(expiryDate.getDate() + 1);
+        else if (expiresAt === '3_days') expiryDate.setDate(expiryDate.getDate() + 3);
+        else if (expiresAt === '1_week') expiryDate.setDate(expiryDate.getDate() + 7);
+        else expiryDate = new Date(expiresAt); // Custom date string
     }
 
     let users: any[] = [];
@@ -47,8 +56,7 @@ export async function POST(req: Request) {
         ? redirectPath 
         : `https://turkcocukakademisi.com${redirectPath.startsWith('/') ? '' : '/'}${redirectPath}`;
 
-    // 2. Persist to Firestore (Subcollection) - REMOVED AS REQUESTED TO SIMPLIFY
-    /*
+    // 2. Persist to Firestore (Subcollection)
     const persistenceChunks = [];
     for (let i = 0; i < users.length; i += 500) {
       persistenceChunks.push(users.slice(i, i + 500));
@@ -64,6 +72,7 @@ export async function POST(req: Request) {
           type: 'announcement',
           redirectPath,
           isRead: false,
+          expiresAt: expiryDate,
           createdAt: FieldValue.serverTimestamp(),
           metadata: {
             channels,
@@ -74,7 +83,6 @@ export async function POST(req: Request) {
       await batch.commit();
       results.persistence.successCount += chunk.length;
     }
-    */
 
     // 3. Send Push Notifications
     if (channels.includes('push')) {
@@ -161,7 +169,9 @@ export async function POST(req: Request) {
       target,
       channels,
       redirectPath,
+      expiresAt: expiryDate,
       createdAt: FieldValue.serverTimestamp(),
+      recipients: users.map(u => ({ id: u.id, name: `${u.firstName || ''} ${u.lastName || ''}`.trim(), email: u.email })),
       results
     });
 

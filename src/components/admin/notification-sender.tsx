@@ -38,6 +38,8 @@ export function NotificationSender() {
   const [customLink, setCustomLink] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [parentSearch, setParentSearch] = useState('');
+  const [expiresAt, setExpiresAt] = useState<string>('never');
+  const [customExpiryDate, setCustomExpiryDate] = useState<string>('');
 
   // Fetch parents for targeting
   const parentsQuery = useMemoFirebase(() => db ? query(collection(db, 'users'), where('role', '==', 'parent')) : null, [db]);
@@ -75,6 +77,11 @@ export function NotificationSender() {
       return;
     }
 
+    if (expiresAt === 'custom' && !customExpiryDate) {
+      toast({ variant: 'destructive', title: 'Hata', description: 'Lütfen bir gecerlilik tarihi seçin.' });
+      return;
+    }
+
     const redirectPath = redirectType === 'custom' ? customLink : redirectType;
 
     setIsSending(true);
@@ -82,7 +89,15 @@ export function NotificationSender() {
       const response = await fetch('/api/admin/send-notification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, body, target, channels, selectedUserIds, redirectPath }),
+        body: JSON.stringify({ 
+          title, 
+          body, 
+          target, 
+          channels, 
+          selectedUserIds, 
+          redirectPath,
+          expiresAt: expiresAt === 'never' ? null : expiresAt === 'custom' ? customExpiryDate : expiresAt
+        }),
       });
 
       const result = await response.json();
@@ -296,11 +311,40 @@ export function NotificationSender() {
                 </div>
               )}
             </div>
+
+            {/* Expiration Selection */}
+            <div className="space-y-3">
+              <Label htmlFor="expiresAt" className="text-[11px] font-black uppercase text-slate-400 tracking-[0.1em]">4. Geçerlilik Süresi</Label>
+              <Select value={expiresAt} onValueChange={setExpiresAt}>
+                <SelectTrigger id="expiresAt" className="h-12 rounded-2xl border-slate-200 bg-slate-50/50">
+                  <SelectValue placeholder="Geçerlilik süresi seçin" />
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl shadow-xl">
+                  <SelectItem value="never">Her Zaman (Süresiz)</SelectItem>
+                  <SelectItem value="1_day">1 Gün Boyunca</SelectItem>
+                  <SelectItem value="3_days">3 Gün Boyunca</SelectItem>
+                  <SelectItem value="1_week">1 Hafta Boyunca</SelectItem>
+                  <SelectItem value="custom">Özel Tarih Seç</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {expiresAt === 'custom' && (
+                <div className="pt-2 animate-in zoom-in-95 duration-200">
+                  <Input 
+                    type="date"
+                    value={customExpiryDate}
+                    onChange={(e) => setCustomExpiryDate(e.target.value)}
+                    className="h-12 rounded-2xl border-slate-200 bg-slate-50/50 focus:bg-white"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1.5 ml-2 font-medium italic">* Bu tarihten sonra bildirim velilerin panelinden kaybolacaktır.</p>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-6">
             <div className="space-y-3">
-              <Label htmlFor="title" className="text-[11px] font-black uppercase text-slate-400 tracking-[0.1em]">4. Başlık</Label>
+              <Label htmlFor="title" className="text-[11px] font-black uppercase text-slate-400 tracking-[0.1em]">5. Başlık</Label>
               <Input
                 id="title"
                 placeholder="Bildirim başlığını buraya yazın..."
@@ -312,7 +356,7 @@ export function NotificationSender() {
             </div>
 
             <div className="space-y-3">
-              <Label htmlFor="body" className="text-[11px] font-black uppercase text-slate-400 tracking-[0.1em]">5. Mesaj İçeriği</Label>
+              <Label htmlFor="body" className="text-[11px] font-black uppercase text-slate-400 tracking-[0.1em]">6. Mesaj İçeriği</Label>
               <Textarea
                 id="body"
                 placeholder="Mesajınızı detaylıca buraya yazın..."

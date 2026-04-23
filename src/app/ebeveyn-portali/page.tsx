@@ -262,6 +262,9 @@ function EbeveynPortaliContent() {
   const childrenRef = useMemoFirebase(() => (db && user?.uid) ? collection(db, 'users', user.uid, 'children') : null, [db, user?.uid]);
   const { data: children, isLoading: childrenLoading, refetch: refetchChildren } = useCollection(childrenRef);
 
+  const notificationsRef = useMemoFirebase(() => (db && user?.uid) ? collection(db, 'users', user.uid, 'notifications') : null, [db, user?.uid]);
+  const { data: dbNotifications, isLoading: dbNotificationsLoading } = useCollection(notificationsRef);
+
   const slotsQuery = useMemoFirebase(() => (db && user?.uid) ? query(collection(db, 'lesson-slots'), where('bookedBy', '==', user.uid)) : null, [db, user?.uid]);
   const { data: slots, isLoading: slotsLoading } = useCollection(slotsQuery);
 
@@ -285,7 +288,18 @@ function EbeveynPortaliContent() {
   // Note: Manual announcement Firestore checking removed as requested.
 
   const handleMarkAsRead = async (notif: any) => {
-      setActiveManualNotif(null);
+      if (!db || !user?.uid || !notif?.id || notif.type !== 'announcement') {
+          setActiveManualNotif(null);
+          return;
+      }
+      try {
+          const notifRef = doc(db, 'users', user.uid, 'notifications', notif.id);
+          await updateDoc(notifRef, { isRead: true });
+          setActiveManualNotif(null);
+      } catch (error) {
+          console.error("Mark as read error:", error);
+          setActiveManualNotif(null);
+      }
   };
 
   useEffect(() => {
@@ -373,6 +387,30 @@ function EbeveynPortaliContent() {
 
     checkWelcomeModal();
   }, [childrenLoading, children, userData?.isLegacy, user]);
+
+  useEffect(() => {
+    if (dbNotifications && dbNotifications.length > 0) {
+        const now = new Date();
+        const unreadAnnouncement = dbNotifications
+            .filter(n => {
+                if (n.type !== 'announcement' || n.isRead) return false;
+                if (n.expiresAt) {
+                    const expiry = n.expiresAt.toDate ? n.expiresAt.toDate() : new Date(n.expiresAt);
+                    if (expiry < now) return false;
+                }
+                return true;
+            })
+            .sort((a, b) => {
+                const aTime = a.createdAt?.seconds || 0;
+                const bTime = b.createdAt?.seconds || 0;
+                return bTime - aTime;
+            })[0];
+        
+        if (unreadAnnouncement) {
+            setActiveManualNotif(unreadAnnouncement);
+        }
+    }
+  }, [dbNotifications]);
 
   useEffect(() => {
     if (searchParams.get('cancelled') === 'true') {
@@ -509,6 +547,32 @@ function EbeveynPortaliContent() {
         }
     });
 
+    if (dbNotifications) {
+        const now = new Date();
+        dbNotifications
+        .filter(n => {
+            if (n.expiresAt) {
+                const expiry = n.expiresAt.toDate ? n.expiresAt.toDate() : new Date(n.expiresAt);
+                if (expiry < now) return false;
+            }
+            return true;
+        })
+        .forEach(n => {
+            list.push({
+                id: n.id,
+                type: n.type || 'announcement',
+                icon: n.type === 'announcement' ? <Megaphone className="h-4 w-4" /> : <Bell className="h-4 w-4" />,
+                color: n.type === 'announcement' ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-600',
+                title: n.title,
+                text: n.body,
+                fullText: n.body,
+                path: n.redirectPath || '/ebeveyn-portali',
+                createdAt: parseDate(n.createdAt),
+                isRead: n.isRead
+            });
+        });
+    }
+
     return list.sort((a, b) => {
         const aTime = a.createdAt?.getTime?.() || 0;
         const bTime = b.createdAt?.getTime?.() || 0;
@@ -546,7 +610,7 @@ function EbeveynPortaliContent() {
     }
   };
 
-  if (userLoading || childrenLoading || userDataLoading || slotsLoading) return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
+  if (userLoading || childrenLoading || userDataLoading || slotsLoading || dbNotificationsLoading) return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
   if (!user || user.isAnonymous) return null;
 
   return (
@@ -587,17 +651,32 @@ function EbeveynPortaliContent() {
                         </CardHeader>
                     </Card>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2"><Bell className="h-5 w-5 text-primary" /> Bildirim Detayları</DialogTitle>
-                        <DialogDescription>Aktif bildirimleriniz ve öğretmen notlarınız.</DialogDescription>
+                <DialogContent className="sm:max-w-[480px] rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
+                    <DialogHeader className="p-8 pb-4 bg-gradient-to-b from-slate-50 to-white">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                <Bell className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                                <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Bildirim Merkezi</DialogTitle>
+                                <DialogDescription className="text-slate-500 font-medium">Aktif bildirimleriniz ve önemli duyurular.</DialogDescription>
+                            </div>
+                        </div>
                     </DialogHeader>
-                    <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-4 py-4">
+                    <div className="max-h-[70vh] overflow-y-auto px-8 pb-8 space-y-4 custom-scrollbar">
                         {notifications.length > 0 ? notifications.map((notif) => (
                             <div 
                                 key={notif.id} 
-                                className="p-4 rounded-xl border bg-card hover:bg-accent transition-colors cursor-pointer" 
+                                className={cn(
+                                    "p-5 rounded-[24px] border transition-all duration-300 cursor-pointer relative group overflow-hidden",
+                                    notif.isRead === false 
+                                        ? "bg-gradient-to-br from-primary/10 to-transparent border-primary/20 shadow-sm" 
+                                        : "bg-white border-slate-100 hover:border-primary/20 hover:shadow-md"
+                                )}
                                 onClick={() => {
+                                    if (notif.type === 'announcement') {
+                                        handleMarkAsRead(notif);
+                                    }
                                     if (notif.type === 'level' && notif.childId) {
                                         const child = children?.find(c => c.id === notif.childId);
                                         if (child) {
@@ -610,32 +689,31 @@ function EbeveynPortaliContent() {
                                     setIsNotificationsModalOpen(false);
                                 }}
                             >
+                                <div className="absolute top-0 right-0 p-1">
+                                    {notif.isRead === false && (
+                                        <div className="h-2 w-2 rounded-full bg-primary animate-pulse mr-2 mt-2" />
+                                    )}
+                                </div>
+
                                 <div className="flex items-start gap-4">
-                                    <div className={cn("p-2 rounded-lg", notif.color)}>{notif.icon}</div>
-                                    <div className="space-y-1 flex-1">
+                                    <div className={cn(
+                                        "h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 shadow-inner",
+                                        notif.color || "bg-slate-100 text-slate-600"
+                                    )}>
+                                        {notif.icon}
+                                    </div>
+                                    <div className="space-y-1.5 flex-1 min-w-0">
                                         <div className="flex justify-between items-start">
-                                            <p className="text-sm font-bold leading-none">{notif.title}</p>
+                                            <p className="text-sm font-black text-slate-900 leading-none tracking-tight">{notif.title}</p>
                                         </div>
-                                        <p className="text-sm text-muted-foreground leading-relaxed mt-2">{notif.fullText || notif.text}</p>
-                                        <Button 
-                                            variant="link" 
-                                            className="p-0 h-auto text-xs font-bold text-primary" 
-                                            onClick={(e) => { 
-                                                e.stopPropagation(); 
-                                                if (notif.type === 'level' && notif.childId) {
-                                                    const child = children?.find(c => c.id === notif.childId);
-                                                    if (child) {
-                                                        setSelectedReportChild(child);
-                                                        setIsNotificationsModalOpen(false);
-                                                        return;
-                                                    }
-                                                }
-                                                router.push(notif.path); 
-                                                setIsNotificationsModalOpen(false);
-                                            }}
-                                        >
-                                            Detayı Gör <ArrowRight className="ml-1 h-3 w-3" />
-                                        </Button>
+                                        <p className="text-[13px] text-slate-600 leading-relaxed font-medium whitespace-pre-wrap">
+                                            {notif.fullText || notif.text}
+                                        </p>
+                                        <div className="flex items-center justify-end pt-2">
+                                            <div className="text-xs font-black text-primary flex items-center gap-1 group-hover:gap-2 transition-all">
+                                                Detayı Gör <ArrowRight className="h-3 w-3" />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -789,21 +867,24 @@ function EbeveynPortaliContent() {
 
         {/* Manual Announcement Popup */}
         <AlertDialog open={!!activeManualNotif}>
-            <AlertDialogContent className="max-w-md rounded-[32px] p-8 text-center border-none shadow-2xl bg-white overflow-hidden relative">
-                <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl" />
-                <AlertDialogHeader className="items-center relative z-10">
-                    <div className="w-20 h-20 bg-primary/10 rounded-[24px] flex items-center justify-center mb-6">
-                        <Megaphone className="w-10 h-10 text-primary animate-bounce" />
-                    </div>
-                    <AlertDialogTitle className="text-3xl font-black text-slate-900 tracking-tight leading-tight">
-                        {activeManualNotif?.title}
-                    </AlertDialogTitle>
-                    <AlertDialogDescription className="text-lg font-medium text-slate-500 mt-4 leading-relaxed">
-                        {activeManualNotif?.body}
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
+            <AlertDialogContent className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-md w-[95vw] rounded-[32px] p-0 border-none shadow-2xl bg-white overflow-hidden flex flex-col max-h-[85vh] z-[100]">
+                <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
                 
-                <AlertDialogFooter className="mt-8 flex flex-col sm:flex-row gap-3 relative z-10">
+                <div className="p-8 pb-4 text-center overflow-y-auto custom-scrollbar flex-1">
+                    <AlertDialogHeader className="items-center relative z-10">
+                        <div className="w-20 h-20 bg-primary/10 rounded-[24px] flex items-center justify-center mb-6 shrink-0">
+                            <Megaphone className="w-10 h-10 text-primary animate-bounce" />
+                        </div>
+                        <AlertDialogTitle className="text-3xl font-black text-slate-900 tracking-tight leading-tight">
+                            {activeManualNotif?.title}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-lg font-medium text-slate-500 mt-4 leading-relaxed whitespace-pre-wrap">
+                            {activeManualNotif?.body}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                </div>
+                
+                <AlertDialogFooter className="p-8 pt-0 flex flex-col sm:flex-row gap-3 relative z-10">
                     <Button 
                         variant="ghost" 
                         onClick={() => handleMarkAsRead(activeManualNotif)}
