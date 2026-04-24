@@ -54,7 +54,7 @@ service cloud.firestore {
       // Alt koleksiyonlar (Çocuklar, Bildirimler vb.)
       match /children/{childId} {
         allow read: if isAdmin() || isTeacher() || (isSignedIn() && request.auth.uid == userId);
-        allow write: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+        allow write: if isAdmin() || isTeacher() || (isSignedIn() && request.auth.uid == userId);
       }
       
       match /notifications/{notifId} {

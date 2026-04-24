@@ -1104,9 +1104,25 @@ function UsersPageContent() {
                                     </Card>
                                     <Card className="bg-slate-50 border-none p-4 sm:p-6 space-y-1 sm:space-y-2">
                                         <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Kalan Toplam Ders</p>
-                                        <p className="text-lg sm:text-xl font-bold text-slate-800">
-                                            {(allChildren.filter(c => c.parentId === selectedParent.id).reduce((acc, c) => acc + (c.remainingLessons || 0), 0)) + (selectedParent.remainingLessons || 0)}
-                                        </p>
+                                        <div className="space-y-1">
+                                            <p className="text-lg sm:text-xl font-bold text-slate-800">
+                                                {(allChildren.filter(c => c.parentId === selectedParent.id).reduce((acc, c) => acc + (c.remainingLessons || 0), 0)) + (selectedParent.remainingLessons || 0)}
+                                            </p>
+                                            <div className="flex flex-wrap gap-1">
+                                                {allChildren.filter(c => c.parentId === selectedParent.id).map((c, idx) => (
+                                                    c.remainingLessons > 0 && (
+                                                        <Badge key={idx} variant="outline" className="bg-white text-[8px] font-bold text-slate-500 border-slate-200">
+                                                            {c.firstName}: {c.remainingLessons} {c.assignedPackage?.includes('B') ? 'BK' : c.assignedPackage?.includes('K') ? 'KK' : c.assignedPackage?.includes('A') ? 'AK' : c.assignedPackage?.includes('G') ? 'GK' : c.assignedPackage || 'Ders'}
+                                                        </Badge>
+                                                    )
+                                                ))}
+                                                {selectedParent.remainingLessons > 0 && (
+                                                    <Badge variant="outline" className="bg-white text-[8px] font-bold text-blue-500 border-blue-100">
+                                                        Havuz: {selectedParent.remainingLessons}
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                        </div>
                                     </Card>
                                     <Card className="bg-slate-50 border-none p-4 sm:p-6 space-y-1 sm:space-y-2">
                                         <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Havuzdaki Paketler</p>
