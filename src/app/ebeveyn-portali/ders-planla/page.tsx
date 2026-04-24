@@ -428,11 +428,12 @@ export default function DersPlanlaPage() {
                 let finalAssignedPackage = selectedChildData?.assignedPackage;
                 let finalAssignedPackageName = selectedChildData?.assignedPackageName;
 
+                const isSingleChild = childrenList.length === 1;
                 const poolPackages = userData?.enrolledPackages || [];
                 const poolCredits = userData?.remainingLessons || 0;
 
-                // AUTO-REFILL LOGIC: Eğer ders bittiyse ve havuzda bekleyen paket varsa
-                if (newCount === 0 && poolPackages.length > 0) {
+                // AUTO-REFILL LOGIC: Sadece TEK ÇOCUKLU ailelerde ders bittiyse ve havuzda bekleyen paket varsa otomatik çek
+                if (isSingleChild && newCount === 0 && poolPackages.length > 0) {
                     const nextPackageCode = poolPackages[0];
                     const prefix = nextPackageCode.replace(/[0-9]/g, '');
                     const courseNames: any = { 
