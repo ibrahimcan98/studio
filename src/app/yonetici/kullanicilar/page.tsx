@@ -576,28 +576,51 @@ function UsersPageContent() {
                 const child = parentChildren[0];
                 const childRef = doc(db, 'users', selectedParentForLessons.id, 'children', child.id);
                 
-                batch.update(childRef, {
-                    remainingLessons: (child.remainingLessons || 0) + lessonCount,
-                    assignedPackage: packageCode,
-                    assignedPackageName: courseName,
-                    updatedAt: new Date()
-                });
+                // MANTIK: Eğer çocuğun dersi varsa VE yeni paket farklı bir türdeyse -> Havuza at
+                const currentPackagePrefix = child.assignedPackage ? child.assignedPackage.replace(/[0-9]/g, '') : '';
+                const isDifferentType = currentPackagePrefix && currentPackagePrefix !== prefix;
 
+                if ((child.remainingLessons || 0) > 0 && isDifferentType) {
+                    // HAVUZA AT
+                    batch.update(parentRef, {
+                        remainingLessons: (selectedParentForLessons.remainingLessons || 0) + lessonCount,
+                        enrolledPackages: [...(selectedParentForLessons.enrolledPackages || []), packageCode]
+                    });
 
+                    // TX for pool
+                    const txRef = doc(collection(db, 'transactions'));
+                    batch.set(txRef, {
+                        userId: selectedParentForLessons.id,
+                        status: 'completed',
+                        amountGbp: 0,
+                        description: `🎁 Veli Havuzuna Manuel Paket Ekleme (Tür Farklılığı)`,
+                        items: [{ name: courseName, quantity: 1, price: 0 }],
+                        assignedLessons: lessonCount,
+                        createdAt: new Date(),
+                    });
+                } else {
+                    // ÇOCUĞA DOĞRUDAN EKLE
+                    batch.update(childRef, {
+                        remainingLessons: (child.remainingLessons || 0) + lessonCount,
+                        assignedPackage: packageCode,
+                        assignedPackageName: courseName,
+                        updatedAt: new Date()
+                    });
 
-                // TX for child
-                const txRef = doc(collection(db, 'transactions'));
-                batch.set(txRef, {
-                    userId: selectedParentForLessons.id,
-                    childId: child.id,
-                    childName: child.firstName,
-                    status: 'completed',
-                    amountGbp: 0,
-                    description: `🎁 [${child.firstName}] İçin Otomatik Paket Atama (Manuel Ekleme)`,
-                    items: [{ name: courseName, quantity: 1, price: 0 }],
-                    assignedLessons: lessonCount,
-                    createdAt: new Date(),
-                });
+                    // TX for child
+                    const txRef = doc(collection(db, 'transactions'));
+                    batch.set(txRef, {
+                        userId: selectedParentForLessons.id,
+                        childId: child.id,
+                        childName: child.firstName,
+                        status: 'completed',
+                        amountGbp: 0,
+                        description: `🎁 [${child.firstName}] İçin Otomatik Paket Atama (Manuel Ekleme)`,
+                        items: [{ name: courseName, quantity: 1, price: 0 }],
+                        assignedLessons: lessonCount,
+                        createdAt: new Date(),
+                    });
+                }
             } else {
                 batch.update(parentRef, {
                     remainingLessons: (selectedParentForLessons.remainingLessons || 0) + lessonCount,
