@@ -768,7 +768,10 @@ function UsersPageContent() {
     setIsSavingTags(true);
     try {
         const parentRef = doc(db, 'users', selectedParent.id);
-        await updateDoc(parentRef, { tags: selectedParent.manualTags });
+        await updateDoc(parentRef, { 
+            tags: selectedParent.manualTags,
+            hiddenTags: selectedParent.hiddenTags 
+        });
         toast({ title: 'Etiketler Güncellendi', className: 'bg-green-500 text-white' });
         setIsTagsOpen(false);
         refetchParents();
@@ -816,14 +819,52 @@ function UsersPageContent() {
     }
   };
 
+  const toggleTagInDialog = (tag: string) => {
+    if (!selectedParent) return;
+    const normalizedTag = tag.toLowerCase();
+    const isManual = selectedParent.manualTags.includes(normalizedTag);
+    const isComputed = selectedParent.computedTags.includes(normalizedTag);
+
+    setSelectedParent(prev => {
+        if (!prev) return null;
+        
+        let newManualTags = [...prev.manualTags];
+        let newHiddenTags = [...(prev.hiddenTags || [])];
+        let newComputedTags = [...prev.computedTags];
+
+        if (isManual) {
+            // Manuel etiketi kaldır
+            newManualTags = newManualTags.filter(t => t !== normalizedTag);
+            newComputedTags = newComputedTags.filter(t => t !== normalizedTag);
+        } else if (isComputed) {
+            // Sistem etiketini gizle
+            if (!newHiddenTags.includes(normalizedTag)) {
+                newHiddenTags.push(normalizedTag);
+            }
+            newComputedTags = newComputedTags.filter(t => t !== normalizedTag);
+        } else {
+            // Yeni etiket ekle
+            newManualTags.push(normalizedTag);
+            // Eğer daha önce gizlendiyse gizliliği kaldır
+            newHiddenTags = newHiddenTags.filter(t => t !== normalizedTag);
+            if (!newComputedTags.includes(normalizedTag)) {
+                newComputedTags.push(normalizedTag);
+            }
+        }
+
+        return {
+            ...prev,
+            manualTags: newManualTags,
+            hiddenTags: newHiddenTags,
+            computedTags: newComputedTags
+        };
+    });
+  };
+
   const addTag = (tag: string) => {
-    const normalizedTag = tag?.toLowerCase();
-    if (!normalizedTag || selectedParent?.manualTags.includes(normalizedTag)) return;
-    setSelectedParent(prev => prev ? { 
-        ...prev, 
-        manualTags: [...prev.manualTags, normalizedTag],
-        computedTags: prev.computedTags.includes(normalizedTag) ? prev.computedTags : [...prev.computedTags, normalizedTag]
-    } : null);
+    const normalizedTag = tag?.trim().toLowerCase();
+    if (!normalizedTag) return;
+    toggleTagInDialog(normalizedTag);
     setNewTagInput('');
   };
 
@@ -1394,13 +1435,13 @@ function UsersPageContent() {
                         )}
                         {selectedParent?.computedTags?.map(tag => {
                             return (
-                                <Badge key={tag} className={cn("relative group font-bold pl-3 py-1 rounded-full overflow-visible transition-all", selectedParent.manualTags?.includes(tag) ? "bg-primary text-white pr-3" : "bg-slate-200 text-slate-500 pr-3 border-none shadow-none")}>
+                                <Badge key={tag} className={cn("relative group font-bold pl-3 pr-8 py-1 rounded-full overflow-visible transition-all", selectedParent.manualTags?.includes(tag) ? "bg-primary text-white" : "bg-slate-200 text-slate-500 border-none shadow-none")}>
                                     {tag}
                                     <button 
-                                        onClick={() => handleQuickRemoveTag(selectedParent, tag)} 
-                                        className="absolute -top-1 -right-1 w-4 h-4 p-0 bg-white text-slate-400 border border-slate-200 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white hover:border-red-600 transition-all shadow-sm opacity-0 group-hover:opacity-100"
+                                        onClick={() => toggleTagInDialog(tag)} 
+                                        className="absolute top-1/2 -translate-y-1/2 right-1 w-5 h-5 p-0 bg-white/20 hover:bg-white/40 text-current rounded-full flex items-center justify-center transition-all"
                                     >
-                                        <X className="w-2.5 h-2.5" />
+                                        <X className="w-3 h-3" />
                                     </button>
                                 </Badge>
                             );
