@@ -1182,7 +1182,7 @@ function UsersPageContent() {
                                                 ))}
                                                 {selectedParent.remainingLessons > 0 && (
                                                     <Badge variant="outline" className="bg-white text-[8px] font-bold text-blue-500 border-blue-100">
-                                                        Havuz: {selectedParent.remainingLessons}
+                                                        Havuz: {selectedParent.remainingLessons} {selectedParent.enrolledPackages?.join(', ')}
                                                     </Badge>
                                                 )}
                                             </div>
@@ -1212,26 +1212,40 @@ function UsersPageContent() {
                                     </Card>
                                 </div>
 
-                                {allChildren.filter(c => c.parentId === selectedParent.id).length === 1 && selectedParent.remainingLessons > 0 && (
-                                    <div className="p-6 bg-red-50 border border-red-100 rounded-[20px] space-y-3">
-                                        <div className="flex items-center gap-3 text-red-700">
-                                            <Activity className="w-5 h-5" />
-                                            <h4 className="font-black uppercase tracking-tight text-sm">Veri Tutarsızlığı Tespit Edildi</h4>
+                                {(() => {
+                                    const parentChildren = allChildren.filter(c => c.parentId === selectedParent.id);
+                                    if (parentChildren.length !== 1 || selectedParent.remainingLessons <= 0) return null;
+                                    
+                                    const child = parentChildren[0];
+                                    const childPrefix = child.assignedPackage ? child.assignedPackage.replace(/[0-9]/g, '') : '';
+                                    
+                                    // Sadece havuzdaki paketlerden herhangi biri çocuğun paketiyle AYNIYSA uyarı göster
+                                    // (Çünkü farklıysa bu bizim 'Akıllı Geçiş' bekleyen paketimizdir, hata değildir)
+                                    const hasSameTypeInPool = selectedParent.enrolledPackages?.some((p: string) => p.replace(/[0-9]/g, '') === childPrefix);
+                                    
+                                    if (!hasSameTypeInPool) return null;
+
+                                    return (
+                                        <div className="p-6 bg-red-50 border border-red-100 rounded-[20px] space-y-3">
+                                            <div className="flex items-center gap-3 text-red-700">
+                                                <Activity className="w-5 h-5" />
+                                                <h4 className="font-black uppercase tracking-tight text-sm">Veri Tutarsızlığı Tespit Edildi</h4>
+                                            </div>
+                                            <p className="text-xs font-medium text-red-600 leading-relaxed">
+                                                Bu velinin sadece bir çocuğu var ancak veli havuzunda <strong>{selectedParent.remainingLessons} ders</strong> bulunuyor ve bu dersler çocukla aynı türde. 
+                                                Bu durum genellikle derslerin hem çocuğa hem veliye aynı anda eklenmesinden (çift sayılma) kaynaklanır.
+                                            </p>
+                                            <Button 
+                                                variant="destructive" 
+                                                size="sm" 
+                                                className="h-9 rounded-xl font-bold shadow-sm"
+                                                onClick={() => handleSyncLessons(selectedParent)}
+                                            >
+                                                <Activity className="w-3.5 h-3.5 mr-2" /> Dersleri Eşitle (Havuzu Sıfırla)
+                                            </Button>
                                         </div>
-                                        <p className="text-xs font-medium text-red-600 leading-relaxed">
-                                            Bu velinin sadece bir çocuğu var ancak veli havuzunda <strong>{selectedParent.remainingLessons} ders</strong> bulunuyor. 
-                                            Bu durum genellikle derslerin hem çocuğa hem veliye aynı anda eklenmesinden (çift sayılma) kaynaklanır.
-                                        </p>
-                                        <Button 
-                                            variant="destructive" 
-                                            size="sm" 
-                                            className="h-9 rounded-xl font-bold shadow-sm"
-                                            onClick={() => handleSyncLessons(selectedParent)}
-                                        >
-                                            <Activity className="w-3.5 h-3.5 mr-2" /> Dersleri Eşitle (Havuzu Sıfırla)
-                                        </Button>
-                                    </div>
-                                )}
+                                    );
+                                })()}
 
                                 <div className="space-y-4">
                                     <h3 className="font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
