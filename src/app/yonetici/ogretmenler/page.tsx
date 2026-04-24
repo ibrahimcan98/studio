@@ -6,7 +6,9 @@ import { collection, query, where, doc, setDoc, updateDoc, deleteDoc, serverTime
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { firebaseConfig } from '@/firebase/config';
-import { useState } from 'react';
+import { startOfMonth, endOfMonth, format, addMinutes } from 'date-fns';
+import { tr } from 'date-fns/locale';
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -32,6 +34,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -585,6 +594,8 @@ export default function AdminTeachersPage() {
 
 function TeacherStatsDialog({ isOpen, onOpenChange, teacher }: { isOpen: boolean, onOpenChange: (o: boolean) => void, teacher: any }) {
   const db = useFirestore();
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
+
   const statsQuery = useMemoFirebase(() => {
     if (!db || !teacher) return null;
     return query(collection(db, 'lesson-slots'), where('teacherId', '==', teacher.id));
@@ -593,107 +604,242 @@ function TeacherStatsDialog({ isOpen, onOpenChange, teacher }: { isOpen: boolean
   const { data: slots, isLoading } = useCollection(statsQuery);
 
   const stats = useMemo(() => {
-    if (!slots) return { completedCount: 0, studentCount: 0, cancellations: [] };
+    if (!slots || !teacher) return { completedCount: 0, studentCount: 0, cancellations: [], breakdown: {}, totalMonthlyEarnings: 0, totalMonthlyCount: 0 };
     
-    // Group slots by childId and startTime to count unique "lessons"
-    const grouped = new Map();
-    slots.forEach(s => {
-      const updatedAtStr = s.updatedAt?.seconds || s.startTime.seconds;
-      const key = `${s.childId}-${s.status}-${updatedAtStr}`;
-      if (!grouped.has(key)) grouped.set(key, s);
+    const now = new Date();
+    const startOfViewMonth = startOfMonth(selectedMonth);
+    const endOfViewMonth = endOfMonth(selectedMonth);
+
+    const getCourseKey = (code?: string) => {
+        if (!code) return 'OTHER';
+        if (code === 'FREE_TRIAL') return 'FREE_TRIAL';
+        const prefix = code.replace(/[0-9]/g, '');
+        const map: any = { 'B': 'baslangic', 'K': 'konusma', 'G': 'gelisim', 'A': 'akademik', 'GCSE': 'gcse' };
+        return map[prefix] || 'OTHER';
+    };
+
+    // 1. Filter and Sort Slots
+    const relevantSlots = slots
+        .filter(s => s.status === 'booked' || s.status === 'completed' || s.status === 'cancelled')
+        .sort((a, b) => a.startTime.seconds - b.startTime.seconds);
+
+    // 2. Group Consecutive Slots into Sessions
+    const sessions: any[] = [];
+    let currentSession: any = null;
+
+    relevantSlots.forEach(slot => {
+        const startTime = slot.startTime.toDate();
+        const endTime = slot.endTime?.toDate?.() || addMinutes(startTime, 5);
+        
+        const isConsecutive = currentSession && 
+            currentSession.teacherId === slot.teacherId &&
+            currentSession.childId === slot.childId &&
+            currentSession.packageCode === slot.packageCode &&
+            currentSession.status === slot.status &&
+            // Check if this slot starts exactly when the previous one ended (or very close)
+            Math.abs(startTime.getTime() - currentSession.lastEndTime.getTime()) < 2000;
+
+        if (isConsecutive) {
+            currentSession.lastEndTime = endTime;
+            currentSession.slotIds.push(slot.id);
+        } else {
+            currentSession = {
+                ...slot,
+                firstStartTime: startTime,
+                lastEndTime: endTime,
+                slotIds: [slot.id]
+            };
+            sessions.push(currentSession);
+        }
     });
 
-    const uniqueLessons = Array.from(grouped.values());
-    const completed = uniqueLessons.filter(l => l.status === 'completed');
-    const cancelled = uniqueLessons.filter(l => l.status === 'cancelled' && l.cancelledBy === 'teacher');
-    const students = new Set(slots.map(s => s.childId).filter(Boolean));
+    // 3. Finalize Stats based on Sessions
+    const completedSessions = sessions.filter(s => {
+        const isPast = s.lastEndTime < now;
+        return s.status === 'completed' || (s.status === 'booked' && isPast);
+    });
+    
+    const cancelledSessions = sessions.filter(s => s.status === 'cancelled' && s.cancelledBy === 'teacher');
+    const students = new Set(sessions.filter(s => s.status === 'booked' || s.status === 'completed').map(s => s.childId).filter(Boolean));
+
+    const breakdown: any = {};
+    let totalMonthlyEarnings = 0;
+    let totalMonthlyCount = 0;
+
+    completedSessions.forEach(session => {
+        const key = getCourseKey(session.packageCode);
+        if (!breakdown[key]) {
+            breakdown[key] = { lifetime: 0, monthly: 0, rate: teacher.lessonRates?.[key] || teacher.lessonRate || 0 };
+        }
+        
+        breakdown[key].lifetime++;
+
+        const lessonDate = session.firstStartTime;
+        if (lessonDate >= startOfViewMonth && lessonDate <= endOfViewMonth) {
+            breakdown[key].monthly++;
+            totalMonthlyCount++;
+            totalMonthlyEarnings += breakdown[key].rate;
+        }
+    });
 
     return {
-      completedCount: completed.length,
+      completedCount: completedSessions.length,
       studentCount: students.size,
-      cancellations: cancelled.sort((a, b) => b.startTime.seconds - a.startTime.seconds)
+      cancellations: cancelledSessions.sort((a, b) => b.startTime.seconds - a.startTime.seconds),
+      breakdown,
+      totalMonthlyEarnings,
+      totalMonthlyCount
     };
-  }, [slots]);
+  }, [slots, teacher, selectedMonth]);
+
+  const courseNames: any = {
+      baslangic: 'Başlangıç Kursu',
+      konusma: 'Konuşma Kursu',
+      gelisim: 'Gelişim Kursu',
+      akademik: 'Akademik Kurs',
+      gcse: 'GCSE Türkçe',
+      FREE_TRIAL: 'Deneme Dersi',
+      OTHER: 'Diğer'
+  };
+
+  const months = useMemo(() => {
+      const result = [];
+      const now = new Date();
+      for (let i = 0; i < 12; i++) {
+          const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          result.push(date);
+      }
+      return result;
+  }, []);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto rounded-[32px] border-none shadow-2xl p-0">
-        <div className="bg-indigo-600 p-8 text-white relative overflow-hidden">
-             {/* Background Decoration */}
-            <div className="absolute top-[-20%] right-[-10%] w-64 h-64 bg-white/10 rounded-full blur-3xl" />
-            
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-[32px] border-none shadow-2xl p-0 font-sans">
+        <div className="bg-slate-900 p-8 text-white relative overflow-hidden">
+            <div className="absolute top-[-20%] right-[-10%] w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl" />
             <DialogHeader className="relative z-10">
-                <div className="flex items-center gap-4 mb-4">
-                    <Avatar className="h-16 w-16 border-4 border-white/20">
-                        <AvatarFallback className="bg-white/20 text-white font-black text-xl">
-                            {teacher?.firstName?.[0]}{teacher?.lastName?.[0]}
-                        </AvatarFallback>
-                    </Avatar>
-                    <div>
-                        <DialogTitle className="text-3xl font-black text-white">{teacher?.firstName} {teacher?.lastName}</DialogTitle>
-                        <DialogDescription className="text-indigo-100 font-medium opacity-90">Performans Analizi ve Ders Geçmişi</DialogDescription>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+                    <div className="flex items-center gap-4">
+                        <Avatar className="h-20 w-20 border-4 border-white/10 shadow-2xl">
+                            <AvatarFallback className="bg-indigo-600 text-white font-black text-2xl">
+                                {teacher?.firstName?.[0]}{teacher?.lastName?.[0]}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div>
+                            <DialogTitle className="text-3xl font-black text-white">{teacher?.firstName} {teacher?.lastName}</DialogTitle>
+                            <DialogDescription className="text-slate-400 font-medium">Performans Analizi ve Hak Edişler</DialogDescription>
+                        </div>
+                    </div>
+                    
+                    {/* Month Selector */}
+                    <div className="bg-white/10 backdrop-blur-md p-1 rounded-2xl border border-white/10 flex items-center gap-1">
+                        <Select 
+                            value={format(selectedMonth, 'yyyy-MM')} 
+                            onValueChange={(val) => setSelectedMonth(new Date(val + '-01'))}
+                        >
+                            <SelectTrigger className="w-[180px] bg-transparent border-none text-white font-bold h-10 focus:ring-0">
+                                <CalendarIcon className="w-4 h-4 mr-2 text-indigo-400" />
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl border-none shadow-2xl">
+                                {months.map((m) => (
+                                    <SelectItem key={format(m, 'yyyy-MM')} value={format(m, 'yyyy-MM')} className="font-bold text-slate-700">
+                                        {format(m, 'MMMM yyyy', { locale: tr })}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
             </DialogHeader>
         </div>
 
-        <div className="p-4 sm:p-8 space-y-6 sm:space-y-8">
-            {/* Quick Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div className="bg-slate-50 p-4 sm:p-6 rounded-[24px] border border-slate-100 shadow-sm relative overflow-hidden group">
-                    <div className="absolute right-[-10px] bottom-[-10px] bg-primary/5 p-4 rounded-full group-hover:scale-110 transition-transform">
-                        <CheckCircle2 className="w-12 h-12 text-primary/20" />
-                    </div>
-                    <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Toplam Tamamlanan Ders</p>
-                    <p className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tighter">{isLoading ? '...' : stats.completedCount}</p>
+        <div className="p-4 sm:p-8 space-y-8 bg-white">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-indigo-50 p-6 rounded-[24px] border border-indigo-100">
+                    <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Toplam Ders</p>
+                    <p className="text-4xl font-black text-indigo-900 tracking-tighter">{isLoading ? '...' : stats.completedCount}</p>
+                    <p className="text-[10px] font-bold text-indigo-300 mt-1 uppercase tracking-tight">Ömür Boyu Tamamlanan</p>
                 </div>
-                <div className="bg-slate-50 p-6 rounded-[24px] border border-slate-100 shadow-sm relative overflow-hidden group">
-                    <div className="absolute right-[-10px] bottom-[-10px] bg-indigo-500/5 p-4 rounded-full group-hover:scale-110 transition-transform">
-                        <User className="w-12 h-12 text-indigo-500/20" />
-                    </div>
-                    <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Hizmet Verilen Öğrenci</p>
-                    <p className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tighter">{isLoading ? '...' : stats.studentCount}</p>
+                <div className="bg-emerald-50 p-6 rounded-[24px] border border-emerald-100">
+                    <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">{format(selectedMonth, 'MMMM', { locale: tr })} Kazancı</p>
+                    <p className="text-4xl font-black text-emerald-700 tracking-tighter">€{isLoading ? '...' : stats.totalMonthlyEarnings.toLocaleString('tr-TR')}</p>
+                    <p className="text-[10px] font-bold text-emerald-400 mt-1 uppercase tracking-tight">{stats.totalMonthlyCount} Tamamlanan Ders</p>
+                </div>
+                <div className="bg-blue-50 p-6 rounded-[24px] border border-blue-100">
+                    <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">Öğrenci Havuzu</p>
+                    <p className="text-4xl font-black text-blue-800 tracking-tighter">{isLoading ? '...' : stats.studentCount}</p>
+                    <p className="text-[10px] font-bold text-blue-400 mt-1 uppercase tracking-tight">Toplam Farklı Öğrenci</p>
                 </div>
             </div>
 
-            {/* Cancellation History */}
             <div className="space-y-4">
-                <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-500" /> Mazeretli İptal Geçmişi ({stats.cancellations.length})
+                <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                        <Presentation className="w-4 h-4 text-indigo-500" /> {format(selectedMonth, 'MMMM yyyy', { locale: tr })} Hak Ediş Detayları
+                    </h3>
+                    <Badge variant="outline" className="text-slate-400 font-bold border-slate-200">
+                        {stats.totalMonthlyCount} Ders
+                    </Badge>
+                </div>
+                <div className="border border-slate-100 rounded-[24px] overflow-hidden shadow-sm">
+                    <Table>
+                        <TableHeader className="bg-slate-50">
+                            <TableRow className="hover:bg-transparent">
+                                <TableHead className="font-black text-[10px] uppercase text-slate-400 py-4 pl-6">Kurs Türü</TableHead>
+                                <TableHead className="font-black text-[10px] uppercase text-slate-400 text-center">Birim Ücret</TableHead>
+                                <TableHead className="font-black text-[10px] uppercase text-slate-400 text-center">Ders Adedi</TableHead>
+                                <TableHead className="font-black text-[10px] uppercase text-slate-400 text-right pr-6">Toplam Kazanç</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {Object.entries(stats.breakdown).length > 0 ? Object.entries(stats.breakdown).map(([key, data]: [string, any]) => (
+                                <TableRow key={key} className="hover:bg-slate-50/50 transition-colors">
+                                    <TableCell className="font-bold text-slate-700 py-4 pl-6 text-sm">{courseNames[key] || key}</TableCell>
+                                    <TableCell className="text-center font-bold text-slate-500 text-sm">€{data.rate}</TableCell>
+                                    <TableCell className="text-center">
+                                        <div className="flex flex-col items-center">
+                                            <Badge variant="secondary" className="bg-indigo-50 text-indigo-600 border-indigo-100 font-black text-[10px]">{data.monthly}</Badge>
+                                            <span className="text-[9px] font-bold text-slate-300 mt-1 uppercase tracking-tighter">Bu Ay</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-right pr-6 font-black text-slate-800 text-sm">€{(data.monthly * data.rate).toLocaleString('tr-TR')}</TableCell>
+                                </TableRow>
+                            )) : (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="py-12 text-center text-slate-400 font-bold italic text-xs uppercase tracking-widest">Seçili ayda ders verisi bulunamadı.</TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+            </div>
+
+            <div className="space-y-4">
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-500" /> Mazeretli İptaller (Tüm Zamanlar)
                 </h3>
-                
-                {isLoading ? (
-                    <div className="py-10 text-center"><Loader2 className="animate-spin mx-auto text-primary" /></div>
-                ) : stats.cancellations.length === 0 ? (
-                    <div className="py-12 bg-slate-50 rounded-[20px] border border-dashed text-center text-slate-400 font-bold italic text-xs">
-                        Öğretmen tarafından iptal edilen bir ders bulunmamaktadır.
-                    </div>
-                ) : (
-                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                        {stats.cancellations.map((c: any, i: number) => (
-                            <div key={i} className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-red-100 transition-colors">
-                                <div className="flex justify-between items-start mb-2">
-                                    <div className="flex flex-col">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                                            {c.startTime.toDate().toLocaleString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                        </span>
-                                        <span className="font-bold text-slate-700 text-sm">Öğrenci ID: {c.childId?.substring(0, 8)}</span>
-                                    </div>
-                                    <Badge variant="outline" className="text-red-600 bg-red-50 border-red-100 text-[9px] font-black px-2">İPTAL</Badge>
-                                </div>
-                                <div className="p-3 bg-red-50/50 rounded-xl border border-red-50">
-                                    <p className="text-xs text-red-800 italic font-medium">"{c.cancelReason || 'Mazeret belirtilmedi.'}"</p>
-                                </div>
+                <div className="grid grid-cols-1 gap-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                    {stats.cancellations.length > 0 ? stats.cancellations.map((c: any, i: number) => (
+                        <div key={i} className="p-4 bg-red-50/20 rounded-2xl border border-red-100/50 flex justify-between items-center group hover:bg-red-50 transition-colors">
+                            <div>
+                                <p className="text-[10px] font-black text-red-400 uppercase tracking-wider mb-0.5">
+                                    {c.startTime.toDate().toLocaleString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                                <p className="text-xs font-bold text-slate-700 italic">"{c.cancelReason || 'Mazeret belirtilmedi.'}"</p>
                             </div>
-                        ))}
-                    </div>
-                )}
+                            <Badge className="bg-red-500 text-white font-black text-[8px] uppercase tracking-tighter">İPTAL</Badge>
+                        </div>
+                    )) : (
+                        <div className="py-8 bg-slate-50/50 rounded-[20px] border border-dashed text-center text-slate-400 font-bold italic text-[10px] uppercase tracking-wider">İptal edilen ders bulunmuyor.</div>
+                    )}
+                </div>
             </div>
         </div>
         
-        <DialogFooter className="p-6 bg-slate-50 rounded-b-[32px]">
-            <Button onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl font-bold bg-slate-900 text-white hover:bg-slate-800">
-                Kapat
+        <DialogFooter className="p-6 bg-slate-50 rounded-b-[32px] border-t">
+            <Button onClick={() => onOpenChange(false)} className="w-full h-12 rounded-xl font-bold bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-slate-900/10 transition-all">
+                Raporu Kapat
             </Button>
         </DialogFooter>
       </DialogContent>

@@ -1280,7 +1280,12 @@ function UsersPageContent() {
                                                     <div className="flex gap-4 items-center">
                                                         <div className="text-right">
                                                             <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase leading-tight">Kalan Ders</p>
-                                                            <p className="font-bold text-slate-800 text-sm sm:text-base leading-none mt-1">{child.remainingLessons || 0}</p>
+                                                            <div className="flex items-center gap-1 justify-end mt-1">
+                                                                <p className="font-bold text-slate-800 text-sm sm:text-base leading-none">{child.remainingLessons || 0}</p>
+                                                                {child.assignedPackage && (
+                                                                    <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-1 rounded uppercase">{child.assignedPackage}</span>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                         <div className="text-right">
                                                             <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase leading-tight">Seviye</p>
