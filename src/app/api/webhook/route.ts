@@ -79,12 +79,27 @@ export async function POST(req: Request) {
                 const firstPackage = newPackages[0];
                 const prefix = firstPackage ? firstPackage.replace(/[0-9]/g, '') : 'B';
                 const courseNames: any = { 'B': 'Başlangıç Kursu (Pre A1)', 'K': 'Konuşma Kursu (A1)', 'A': 'Akademik Kurs (A2)', 'G': 'Gelişim Kursu (B1)', 'GCSE': 'GCSE Türkçe Kursu' };
-                batch.update(childRef, {
-                    remainingLessons: FieldValue.increment(totalLessonsToAdd),
-                    assignedPackage: firstPackage || 'B4',
-                    assignedPackageName: courseNames[prefix] || 'Standart Kurs',
-                    updatedAt: FieldValue.serverTimestamp()
-                });
+                
+                // MANTIK: Eğer çocuğun dersi varsa VE yeni paket farklı bir türdeyse -> Havuza at
+                // Eğer dersi yoksa VEYA aynı tür paketse -> Çocuğa ekle
+                const currentPackagePrefix = child.assignedPackage ? child.assignedPackage.replace(/[0-9]/g, '') : '';
+                const isDifferentType = currentPackagePrefix && currentPackagePrefix !== prefix;
+
+                if (child.remainingLessons > 0 && isDifferentType) {
+                    // HAVUZA AT
+                    batch.update(userRef, {
+                        enrolledPackages: FieldValue.arrayUnion(...newPackages),
+                        remainingLessons: FieldValue.increment(totalLessonsToAdd),
+                    });
+                } else {
+                    // ÇOCUĞA DOĞRUDAN EKLE
+                    batch.update(childRef, {
+                        remainingLessons: FieldValue.increment(totalLessonsToAdd),
+                        assignedPackage: firstPackage || 'B4',
+                        assignedPackageName: courseNames[prefix] || 'Standart Kurs',
+                        updatedAt: FieldValue.serverTimestamp()
+                    });
+                }
             } else {
                 batch.update(userRef, {
                     enrolledPackages: FieldValue.arrayUnion(...newPackages),

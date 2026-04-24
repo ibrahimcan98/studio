@@ -420,7 +420,63 @@ export default function DersPlanlaPage() {
                 batch.update(userDocRef, { freeTrialsUsed: increment(1) });
                 batch.update(childDocRef, { hasUsedFreeTrial: true });
             } else {
-                batch.update(childDocRef, { remainingLessons: increment(-1) });
+                // 1. Decrement Child Credit
+                const currentLessons = selectedChildData?.remainingLessons || 0;
+                const newCount = currentLessons - 1;
+                
+                let finalRemainingLessons = newCount;
+                let finalAssignedPackage = selectedChildData?.assignedPackage;
+                let finalAssignedPackageName = selectedChildData?.assignedPackageName;
+
+                const poolPackages = userData?.enrolledPackages || [];
+                const poolCredits = userData?.remainingLessons || 0;
+
+                // AUTO-REFILL LOGIC: Eğer ders bittiyse ve havuzda bekleyen paket varsa
+                if (newCount === 0 && poolPackages.length > 0) {
+                    const nextPackageCode = poolPackages[0];
+                    const prefix = nextPackageCode.replace(/[0-9]/g, '');
+                    const courseNames: any = { 
+                        'B': 'Başlangıç Kursu (Pre A1)', 
+                        'K': 'Konuşma Kursu (A1)', 
+                        'A': 'Akademik Kurs (A2)', 
+                        'G': 'Gelişim Kursu (B1)', 
+                        'GCSE': 'GCSE Türkçe Kursu' 
+                    };
+                    
+                    const lessonsInNextPackage = parseInt(nextPackageCode.replace(/\D/g, ''), 10) || 0;
+                    
+                    finalRemainingLessons = lessonsInNextPackage;
+                    finalAssignedPackage = nextPackageCode;
+                    finalAssignedPackageName = courseNames[prefix] || 'Yeni Paket';
+
+                    // Havuzu güncelle (İlk paketi çıkar ve toplam krediyi düş)
+                    const updatedPoolPackages = poolPackages.slice(1);
+                    batch.update(userDocRef, {
+                        enrolledPackages: updatedPoolPackages,
+                        remainingLessons: Math.max(0, poolCredits - lessonsInNextPackage)
+                    });
+
+                    // Aktivite loguna işlemin kaydını düş
+                    const activityRef = doc(collection(db, 'activity-log'));
+                    batch.set(activityRef, {
+                        event: '🔄 Otomatik Paket Geçişi',
+                        icon: '🚀',
+                        details: {
+                            'Öğrenci': selectedChildData.firstName,
+                            'Veli': `${userData.firstName} ${userData.lastName}`,
+                            'Yeni Paket': finalAssignedPackageName,
+                            'Ders Sayısı': lessonsInNextPackage
+                        },
+                        createdAt: serverTimestamp()
+                    });
+                }
+
+                batch.update(childDocRef, { 
+                    remainingLessons: finalRemainingLessons,
+                    assignedPackage: finalAssignedPackage,
+                    assignedPackageName: finalAssignedPackageName,
+                    updatedAt: serverTimestamp() 
+                });
             }
 
             await batch.commit();
