@@ -1,4 +1,5 @@
 'use client';
+import { useRouter } from 'next/navigation';
 
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, getDocs, addDoc, serverTimestamp, orderBy, onSnapshot, doc, updateDoc, deleteDoc, limit, collectionGroup } from 'firebase/firestore';
@@ -49,6 +50,7 @@ export default function AramalarPage() {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedParent, setSelectedParent] = useState<ParentData | null>(null);
@@ -74,6 +76,40 @@ export default function AramalarPage() {
     const [isLoadingChildren, setIsLoadingChildren] = useState(false);
     const [allLatestLessons, setAllLatestLessons] = useState<Record<string, number>>({});
     const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+    const [isImpersonating, setIsImpersonating] = useState(false);
+
+  const handleImpersonate = async () => {
+    if (!selectedParent || !user) return;
+    setIsImpersonating(true);
+    try {
+        const token = await user.getIdToken();
+        const res = await fetch('/api/admin/impersonate', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ targetUid: selectedParent.id })
+        });
+        
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Bilinmeyen bir hata oluştu');
+
+        const { signInWithCustomToken, getAuth } = await import('firebase/auth');
+        const auth = getAuth();
+        await signInWithCustomToken(auth, data.customToken);
+        
+        toast({ title: 'Başarılı', description: `${selectedParent.firstName} adlı velinin hesabına giriş yapıldı.` });
+        
+        // Redirect to parent dashboard
+        router.push('/veli');
+    } catch (error: any) {
+        console.error("Impersonate error:", error);
+        toast({ variant: 'destructive', title: 'Hata', description: error.message });
+    } finally {
+        setIsImpersonating(false);
+    }
+  };
 
   const parentsQuery = useMemoFirebase(() => {
     if (!db) return null;
@@ -629,6 +665,16 @@ export default function AramalarPage() {
                                      <Badge className="bg-emerald-500 text-white border-none font-bold px-3 py-1 sm:px-4 sm:py-1.5 rounded-full uppercase tracking-widest text-[9px] sm:text-[10px]">
                                         {getCountryFromPhone(selectedParent.phoneNumber)}
                                     </Badge>
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        className="bg-white/10 text-white hover:bg-white/20 border-white/20 font-bold px-3 py-1 h-auto"
+                                        onClick={handleImpersonate}
+                                        disabled={isImpersonating}
+                                    >
+                                        {isImpersonating ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <UserCog className="w-3.5 h-3.5 mr-1.5" />}
+                                        Hesaba Gir
+                                    </Button>
                                     <div className="flex flex-wrap gap-1 justify-center sm:justify-end max-w-[150px] sm:max-w-none">
                                         {tags.map(t => (
                                             <Badge key={t} className="px-1.5 py-0.5 text-[8px] sm:text-[9px] font-black uppercase bg-white/10 text-slate-200 border-none">

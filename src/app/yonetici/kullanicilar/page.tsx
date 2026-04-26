@@ -4,7 +4,7 @@
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, getDocs, getDoc, collectionGroup, doc, updateDoc, writeBatch, setDoc, deleteDoc, onSnapshot, addDoc } from 'firebase/firestore';
 import { useEffect, useState, useMemo, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -45,7 +45,8 @@ import {
     ArrowRight,
     Filter,
     Clock,
-    Edit2
+    Edit2,
+    UserCog
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -147,6 +148,41 @@ function UsersPageContent() {
   const [isTagsOpen, setIsTagsOpen] = useState(false);
   const [newTagInput, setNewTagInput] = useState('');
   const [isSavingTags, setIsSavingTags] = useState(false);
+  const [isImpersonating, setIsImpersonating] = useState<string | null>(null);
+  const router = useRouter();
+
+  const handleImpersonate = async (targetParent: ParentData) => {
+    if (!user) return;
+    setIsImpersonating(targetParent.id);
+    try {
+        const token = await user.getIdToken();
+        const res = await fetch('/api/admin/impersonate', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ targetUid: targetParent.id })
+        });
+        
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Bilinmeyen bir hata oluştu');
+
+        const { signInWithCustomToken, getAuth } = await import('firebase/auth');
+        const auth = getAuth();
+        await signInWithCustomToken(auth, data.customToken);
+        
+        toast({ title: 'Başarılı', description: `${targetParent.firstName} adlı velinin hesabına giriş yapıldı.` });
+        
+        // Redirect to parent dashboard
+        router.push('/veli');
+    } catch (error: any) {
+        console.error("Impersonate error:", error);
+        toast({ variant: 'destructive', title: 'Hata', description: error.message });
+    } finally {
+        setIsImpersonating(null);
+    }
+  };
 
   // Child Progress States
   const [selectedChildForProgress, setSelectedChildForProgress] = useState<any | null>(null);
@@ -1092,6 +1128,8 @@ function UsersPageContent() {
                                 onDelete={() => handleDeleteParent(parent)}
                                 onQuickRemoveTag={(tag) => handleQuickRemoveTag(parent, tag)}
                                 onUpdateCountry={(newCountry: string) => handleUpdateCountry(parent, newCountry)}
+                                onImpersonate={() => handleImpersonate(parent)}
+                                isImpersonating={isImpersonating === parent.id}
                             />
                         ))}
                     </div>
@@ -1126,6 +1164,8 @@ function UsersPageContent() {
                                         onDelete={() => handleDeleteParent(parent)}
                                         onQuickRemoveTag={(tag) => handleQuickRemoveTag(parent, tag)}
                                         onUpdateCountry={(newCountry: string) => handleUpdateCountry(parent, newCountry)}
+                                        onImpersonate={() => handleImpersonate(parent)}
+                                        isImpersonating={isImpersonating === parent.id}
                                     />
                                 ))}
                             </TableBody>
@@ -1816,7 +1856,7 @@ function UsersPageContent() {
   );
 }
 
-function ParentRow({ parent, isSelected, onSelect, onDetail, onAddLessons, onManageTags, onToggleLegacy, onDelete, onQuickRemoveTag, onUpdateCountry }: any) {
+function ParentRow({ parent, isSelected, onSelect, onDetail, onAddLessons, onManageTags, onToggleLegacy, onDelete, onQuickRemoveTag, onUpdateCountry, onImpersonate, isImpersonating }: any) {
     return (
         <TableRow className={cn("hover:bg-slate-50/30 transition-colors border-slate-100", isSelected && "bg-slate-50")}>
             <TableCell className="pl-8">
@@ -1913,6 +1953,9 @@ function ParentRow({ parent, isSelected, onSelect, onDetail, onAddLessons, onMan
                         <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-orange-600" onClick={onToggleLegacy}>
                             <ArrowRight className="w-3.5 h-3.5 mr-2 rotate-[-45deg]" /> {parent.isLegacy ? 'Eski Üye Durumunu Kaldır' : 'Eski Üye Yap'}
                         </DropdownMenuItem>
+                        <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer" onClick={onImpersonate} disabled={isImpersonating}>
+                            {isImpersonating ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> : <UserCog className="w-3.5 h-3.5 mr-2" />} Hesaba Gir
+                        </DropdownMenuItem>
                         <div className="my-1 border-t border-slate-100" />
                         <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-red-500 hover:bg-red-50" onClick={onDelete}>
                             <X className="w-3.5 h-3.5 mr-2" /> Veliyi Sil
@@ -1924,7 +1967,7 @@ function ParentRow({ parent, isSelected, onSelect, onDetail, onAddLessons, onMan
     );
 }
 
-function ParentCard({ parent, isSelected, onSelect, onDetail, onAddLessons, onManageTags, onToggleLegacy, onDelete, onQuickRemoveTag, onUpdateCountry }: any) {
+function ParentCard({ parent, isSelected, onSelect, onDetail, onAddLessons, onManageTags, onToggleLegacy, onDelete, onQuickRemoveTag, onUpdateCountry, onImpersonate, isImpersonating }: any) {
     return (
         <div className={cn("p-4 bg-white transition-colors flex gap-3", isSelected && "bg-blue-50/30")}>
             <div className="pt-1">
@@ -1956,6 +1999,9 @@ function ParentCard({ parent, isSelected, onSelect, onDetail, onAddLessons, onMa
                             <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-emerald-600" onClick={onManageTags}>Etiketleri Yönet</DropdownMenuItem>
                             <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer text-orange-600" onClick={onToggleLegacy}>
                                 {parent.isLegacy ? 'Normal Üye Yap' : 'Eski Üye Yap'}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 cursor-pointer" onClick={onImpersonate} disabled={isImpersonating}>
+                                {isImpersonating ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> : <UserCog className="w-3.5 h-3.5 mr-2" />} Hesaba Gir
                             </DropdownMenuItem>
                             <div className="my-1 border-t border-slate-100" />
                             <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 text-red-500 cursor-pointer" onClick={onDelete}>
