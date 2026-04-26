@@ -285,13 +285,13 @@ function UsersPageContent() {
             ...parentChildren.map(c => c.finishedPackage)
         ].filter(Boolean);
 
-        const hasActivePackage = parentChildren.some(c => c.assignedPackage && (c.remainingLessons || 0) > 0) || ((parent.enrolledPackages || []).length > 0);
+        const hasActivePackage = totalRemainingLessons > 0;
         if (hasActivePackage) tags.add('active');
 
         const hasHistory = allPackageCodes.length > 0;
         const packageFinishedField = parentChildren.some(c => c.finishedPackage && !c.assignedPackage);
         
-        if (totalRemainingLessons === 0 && (hasHistory || packageFinishedField)) {
+        if (totalRemainingLessons <= 0 && (hasHistory || packageFinishedField)) {
             tags.add('package finished');
         }
 
@@ -304,11 +304,12 @@ function UsersPageContent() {
 
 
         allPackageCodes.forEach(code => {
+            if (code.includes('GCSE')) tags.add('gcse');
+            else if (code.includes('G')) tags.add('gk');
+            
             if (code.includes('B')) tags.add('bk');
             if (code.includes('K')) tags.add('kk');
             if (code.includes('A')) tags.add('ak');
-            if (code.includes('G')) tags.add('gk');
-            if (code.includes('GCSE')) tags.add('gcse');
         });
 
         const manualTags = (parent.tags || []).map((t: string) => t.toLowerCase());
@@ -572,7 +573,25 @@ function UsersPageContent() {
             const courseName = courseNames[selectedCourseId] || 'Hediye Kurs';
             const packageCode = `${prefix}${lessonCount}`;
 
-            if (isSingleChild) {
+            // Eğer değer NEGATİFSE her zaman havuzda işlem yap (Çocuğu düşürme, havuzu dengele)
+            if (lessonCount < 0) {
+                batch.update(parentRef, {
+                    remainingLessons: (selectedParentForLessons.remainingLessons || 0) + lessonCount,
+                    enrolledPackages: [...(selectedParentForLessons.enrolledPackages || []), packageCode]
+                });
+
+                const txRef = doc(collection(db, 'transactions'));
+                batch.set(txRef, {
+                    userId: selectedParentForLessons.id,
+                    status: 'completed',
+                    amountGbp: 0,
+                    description: `📉 Manuel Ders Silme / Düzeltme (${lessonCount})`,
+                    items: [{ name: courseName, quantity: 1, price: 0 }],
+                    assignedLessons: lessonCount,
+                    createdAt: new Date(),
+                });
+            }
+            else if (isSingleChild) {
                 const child = parentChildren[0];
                 const childRef = doc(db, 'users', selectedParentForLessons.id, 'children', child.id);
                 
@@ -631,11 +650,11 @@ function UsersPageContent() {
             // Log activity
             const activityRef = doc(collection(db, 'activity-log'));
             batch.set(activityRef, {
-                event: isSingleChild ? '🎁 Öğrenciye Manuel Ders Ekleme' : '🎁 Veliye Manuel Ders Ekleme',
-                icon: '🎫',
+                event: lessonCount < 0 ? '📉 Manuel Ders Silme' : (isSingleChild ? '🎁 Öğrenciye Manuel Ders Ekleme' : '🎁 Veliye Manuel Ders Ekleme'),
+                icon: lessonCount < 0 ? '📉' : '🎫',
                 details: {
                     'Veli': `${selectedParentForLessons.firstName} ${selectedParentForLessons.lastName}`,
-                    'Hedef': isSingleChild ? parentChildren[0].firstName : 'Havuz',
+                    'Hedef': lessonCount < 0 ? 'Havuz (Düzeltme)' : (isSingleChild ? parentChildren[0].firstName : 'Havuz'),
                     'Paket': packageCode,
                     'Tip': 'Yönetici Tanımlı'
                 },
@@ -1176,7 +1195,7 @@ function UsersPageContent() {
                                                 {allChildren.filter(c => c.parentId === selectedParent.id).map((c, idx) => (
                                                     c.remainingLessons > 0 && (
                                                         <Badge key={idx} variant="outline" className="bg-white text-[8px] font-bold text-slate-500 border-slate-200">
-                                                            {c.firstName}: {c.remainingLessons} {c.assignedPackage?.includes('B') ? 'BK' : c.assignedPackage?.includes('K') ? 'KK' : c.assignedPackage?.includes('A') ? 'AK' : c.assignedPackage?.includes('G') ? 'GK' : c.assignedPackage || 'Ders'}
+                                                            {c.firstName}: {c.remainingLessons} {c.assignedPackage?.includes('GCSE') ? 'GCSE' : c.assignedPackage?.includes('B') ? 'BK' : c.assignedPackage?.includes('K') ? 'KK' : c.assignedPackage?.includes('A') ? 'AK' : c.assignedPackage?.includes('G') ? 'GK' : c.assignedPackage || 'Ders'}
                                                         </Badge>
                                                     )
                                                 ))}
@@ -1190,9 +1209,33 @@ function UsersPageContent() {
                                     </Card>
                                     <Card className="bg-slate-50 border-none p-4 sm:p-6 space-y-1 sm:space-y-2">
                                         <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Havuzdaki Paketler</p>
-                                        <div className="flex flex-wrap gap-1 mt-1">
+                                        <div className="flex flex-wrap gap-1.5 mt-1">
                                             {selectedParent.enrolledPackages?.length > 0 ? selectedParent.enrolledPackages.map((p: string, i: number) => (
-                                                <Badge key={i} variant="secondary" className="bg-white border-slate-200 text-slate-600 font-bold text-[8px] sm:text-[10px] uppercase">{p}</Badge>
+                                                <Badge key={i} variant="secondary" className="group bg-white border-slate-200 text-slate-600 font-bold text-[8px] sm:text-[10px] uppercase pl-2 pr-1 gap-1">
+                                                    {p}
+                                                    <button 
+                                                        className="opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all p-0.5"
+                                                        onClick={async () => {
+                                                            if (!window.confirm(`${p} paketini havuzdan silmek istediğinize emin misiniz?`)) return;
+                                                            const lessonsInPkg = parseInt(p.match(/-?\d+/)?.[0] || '0', 10);
+                                                            const updatedPkgs = selectedParent.enrolledPackages.filter((_: any, idx: number) => idx !== i);
+                                                            const parentRef = doc(db, 'users', selectedParent.id);
+                                                            await updateDoc(parentRef, {
+                                                                enrolledPackages: updatedPkgs,
+                                                                remainingLessons: (selectedParent.remainingLessons || 0) - lessonsInPkg
+                                                            });
+                                                            toast({ title: 'Paket Silindi', className: 'bg-slate-800 text-white' });
+                                                            refetchParents();
+                                                            setSelectedParent(prev => prev ? { 
+                                                                ...prev, 
+                                                                enrolledPackages: updatedPkgs,
+                                                                remainingLessons: (prev.remainingLessons || 0) - lessonsInPkg
+                                                            } : null);
+                                                        }}
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                </Badge>
                                             )) : <span className="text-xs sm:text-sm font-medium text-slate-400">Yok</span>}
                                         </div>
                                     </Card>

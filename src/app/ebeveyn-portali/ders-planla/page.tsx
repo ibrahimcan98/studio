@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, where, query, increment, Timestamp, writeBatch, getDocs, getDoc, arrayRemove, addDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, where, query, increment, Timestamp, writeBatch, getDocs, getDoc, arrayRemove, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Loader2, ArrowLeft, Info, BookOpen, User, Calendar as CalendarIcon, Package, Clock, Plus, Eye, PlayCircle, Sprout, Heart, ChevronLeft, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -428,7 +428,7 @@ export default function DersPlanlaPage() {
                 let finalAssignedPackage = selectedChildData?.assignedPackage;
                 let finalAssignedPackageName = selectedChildData?.assignedPackageName;
 
-                const isSingleChild = childrenList.length === 1;
+                const isSingleChild = children?.length === 1;
                 const poolPackages = userData?.enrolledPackages || [];
                 const poolCredits = userData?.remainingLessons || 0;
 
@@ -463,9 +463,9 @@ export default function DersPlanlaPage() {
                         event: '🔄 Otomatik Paket Geçişi',
                         icon: '🚀',
                         details: {
-                            'Öğrenci': selectedChildData.firstName,
-                            'Veli': `${userData.firstName} ${userData.lastName}`,
-                            'Yeni Paket': finalAssignedPackageName,
+                            'Öğrenci': selectedChildData?.firstName || 'Bilinmiyor',
+                            'Veli': userData ? `${userData.firstName} ${userData.lastName}` : 'Bilinmiyor',
+                            'Yeni Paket': finalAssignedPackageName || 'Yeni Paket',
                             'Ders Sayısı': lessonsInNextPackage
                         },
                         createdAt: serverTimestamp()
@@ -611,9 +611,13 @@ export default function DersPlanlaPage() {
 
             toast({ title: rescheduleId ? 'Ders Değiştirildi!' : 'Ders Planlandı!', description: 'İşlem başarıyla tamamlandı.', className: 'bg-green-500 text-white font-bold' });
             router.push('/ebeveyn-portali');
-        } catch (error) {
+        } catch (error: any) {
             console.error("Booking failed:", error);
-            toast({ variant: 'destructive', title: 'Hata', description: 'İşlem başarısız oldu. Lütfen tekrar deneyin.' });
+            toast({ 
+                variant: 'destructive', 
+                title: 'İşlem Başarısız', 
+                description: `Hata: ${error.message || 'Bilinmeyen bir sorun oluştu. Lütfen bağlantınızı kontrol edip tekrar deneyin.'}` 
+            });
         } finally { setIsBooking(false); setIsConfirming(false); }
     };
 

@@ -41,10 +41,10 @@ service cloud.firestore {
       // Kullanıcı dökümanı oluşturma
       allow create: if isSignedIn() && request.auth.uid == userId;
       
-      // GÜNCELLEME KORUMASI: Kullanıcı kendi rolünü, kredisini veya kayıt durumunu DEĞİŞTİREMEZ.
+      // GÜNCELLEME KORUMASI: Kullanıcı kendi rolünü veya kayıt durumunu DEĞİŞTİREMEZ.
       allow update: if isSignedIn() && (
         (request.auth.uid == userId && 
-         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'remainingLessons', 'enrolledPackages', 'isLegacy', 'credits'])) ||
+         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isLegacy', 'credits'])) ||
         isAdmin()
       );
       
