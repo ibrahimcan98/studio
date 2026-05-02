@@ -48,7 +48,7 @@ Konuşma Geçmişi:
 
 const childConversationPrompt = ai.definePrompt({
     name: 'childConversationPrompt',
-    model: 'googleai/gemini-2.0-flash', // Hızlı cevap için flash model
+    model: 'googleai/gemini-1.5-flash-latest', // Hızlı ve kararlı cevap için flash model
     input: { schema: ChildConversationInputSchema },
     output: { schema: ChildConversationOutputSchema },
     prompt: systemPrompt

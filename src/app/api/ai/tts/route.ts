@@ -13,9 +13,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'ElevenLabs API Key is missing' }, { status: 500 });
     }
 
-    // Varsayılan ses ID'si (Örn: "Lily" veya neşeli bir çocuk sesi için bir ID)
-    // Eğer bir ID verilmezse bu varsayılanı kullanır.
-    const selectedVoiceId = voiceId || 'EXAVITQu4vr4xnSDxMaL'; // Örnek bir ID, panelden değiştirebilirsiniz
+    // Varsayılan ses ID'si (Seçtiğiniz özel karakter sesi)
+    const selectedVoiceId = voiceId || 'UKn8d228qbbMa2f9ezXL'; 
 
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`,
