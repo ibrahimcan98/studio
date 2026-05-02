@@ -76,38 +76,22 @@ export default function KonusmaPage() {
     }
   }, [childId, router]);
 
-  // Yardımcı fonksiyon: ElevenLabs üzerinden konuşturma
-  const speakText = async (text: string) => {
-    try {
-      const response = await fetch('/api/ai/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
-      });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || 'TTS failed');
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+  // Yardımcı fonksiyon: Tarayıcı sesiyle konuşturma
+  const speakText = (text: string) => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      // Önceki konuşmaları durdur
+      window.speechSynthesis.cancel();
       
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = url;
-        audioRef.current.load();
-        await audioRef.current.play();
-      }
-    } catch (e) {
-      console.error("ElevenLabs TTS Error:", e);
-      // Fallback
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'tr-TR';
-        window.speechSynthesis.speak(utterance);
-      }
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'tr-TR';
+      utterance.rate = 1.1; 
+      utterance.pitch = 1.2; 
+      
+      const voices = window.speechSynthesis.getVoices();
+      const trVoice = voices.find(v => v.lang.includes('tr')) || voices[0];
+      if (trVoice) utterance.voice = trVoice;
+
+      window.speechSynthesis.speak(utterance);
     }
   };
 

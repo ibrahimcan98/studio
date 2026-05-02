@@ -39,36 +39,24 @@ export function WordCard({ wordList, childId, topicId, onComplete }: WordCardPro
     const isFirstWord = currentIndex === 0;
     const isLastWord = currentIndex === wordList.length - 1;
 
-    const playAudio = useCallback(async (text: string) => {
-        try {
-            const response = await fetch('/api/ai/tts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text }),
-            });
-
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(errData.error || 'TTS failed');
-            }
-
-            const blob = await response.blob();
-            const url = URL.createObjectURL(blob);
-            
-            if (audioRef.current) {
+    const playAudio = useCallback(async (audioSrc: string) => {
+        if (!audioSrc || !audioRef.current) return;
+        
+        if (audioRef.current) {
+            // Stop and reset any currently playing audio
+            if (!audioRef.current.paused) {
                 audioRef.current.pause();
-                audioRef.current.src = url;
-                audioRef.current.load(); // Kaynağı yüklemesini zorla
-                await audioRef.current.play();
+                audioRef.current.currentTime = 0;
             }
-        } catch (error) {
-            console.error("ElevenLabs Playback Error:", error);
-            // Fallback: Tarayıcı sesi
-            if (typeof window !== 'undefined' && window.speechSynthesis) {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'tr-TR';
-                window.speechSynthesis.speak(utterance);
+            audioRef.current.src = audioSrc;
+            try {
+                // The play() method returns a Promise which can be safely handled.
+                await audioRef.current.play();
+            } catch (error) {
+                // Autoplay was prevented.
+                if ((error as Error).name !== 'AbortError') {
+                    console.error("Audio play failed:", error);
+                }
             }
         }
     }, []);
@@ -76,8 +64,8 @@ export function WordCard({ wordList, childId, topicId, onComplete }: WordCardPro
     useEffect(() => {
         setGradient(backgroundGradients[currentIndex % backgroundGradients.length]);
         // Autoplay audio when word changes
-        if (currentWord?.word) {
-            playAudio(currentWord.word);
+        if (currentWord?.audio) {
+            playAudio(currentWord.audio);
         }
     }, [currentIndex, currentWord, playAudio]);
 
@@ -120,7 +108,7 @@ export function WordCard({ wordList, childId, topicId, onComplete }: WordCardPro
                         size="icon"
                         variant="outline"
                         className="rounded-full w-16 h-16 bg-green-100 hover:bg-green-200 text-green-600 border-none shadow-md"
-                        onClick={() => currentWord?.word && playAudio(currentWord.word)}
+                        onClick={() => currentWord?.audio && playAudio(currentWord.audio)}
                     >
                         <Volume2 className="w-8 h-8" />
                     </Button>

@@ -44,44 +44,12 @@ export function VoiceMatching({ wordList, onComplete }: VoiceMatchingProps) {
     }, [generateOptions]);
 
     const playAudio = useCallback(async () => {
-        try {
-            // Eğer elimizde hazır bir ses dosyası varsa onu kullan, yoksa API'den üret
-            if (currentWord?.audio && currentWord.audio.startsWith('http')) {
-                if (audioRef.current) {
-                    audioRef.current.src = currentWord.audio;
-                    await audioRef.current.play();
-                }
-            } else {
-                // Dinamik olarak ElevenLabs'ten üret
-                const response = await fetch('/api/ai/tts', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: currentWord.word }),
-                });
-
-                if (!response.ok) {
-                    const errData = await response.json().catch(() => ({}));
-                    throw new Error(errData.error || 'TTS failed');
-                }
-
-                const blob = await response.blob();
-                const url = URL.createObjectURL(blob);
-                
-                if (audioRef.current) {
-                    audioRef.current.pause();
-                    audioRef.current.src = url;
-                    audioRef.current.load();
-                    await audioRef.current.play();
-                }
-            }
-        } catch (error) {
-            console.error("ElevenLabs Audio Error:", error);
-            // Fallback: Tarayıcı sesi
-            if (typeof window !== 'undefined' && window.speechSynthesis) {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(currentWord.word);
-                utterance.lang = 'tr-TR';
-                window.speechSynthesis.speak(utterance);
+        if (audioRef.current && currentWord?.audio) {
+            audioRef.current.src = currentWord.audio;
+            try {
+                await audioRef.current.play();
+            } catch (error) {
+                console.error("Audio play failed:", error);
             }
         }
     }, [currentWord]);
