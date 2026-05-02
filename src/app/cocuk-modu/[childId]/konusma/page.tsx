@@ -269,7 +269,7 @@ export default function KonusmaPage() {
             </div>
 
             {/* Mikrofon Butonu */}
-            <div className="relative flex items-center justify-center">
+            <div className="relative flex items-center justify-center z-[100]">
               {/* Dalga Efektleri */}
               {isListening && (
                 <>
@@ -280,12 +280,17 @@ export default function KonusmaPage() {
               )}
               
               <button
-                onClick={handleMicClick}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleMicClick();
+                }}
+                type="button"
                 className={cn(
-                  "relative z-10 w-36 h-36 rounded-full flex items-center justify-center transition-all duration-300 shadow-[0_15px_30px_rgba(0,0,0,0.15)] border-8",
+                  "relative z-[110] w-36 h-36 rounded-full flex items-center justify-center transition-all duration-300 shadow-[0_15px_40px_rgba(0,0,0,0.2)] border-8 cursor-pointer active:scale-95",
                   isListening 
-                    ? "bg-red-500 border-red-300 text-white hover:bg-red-600 scale-105" 
-                    : "bg-green-500 border-green-300 text-white hover:bg-green-600 hover:scale-105"
+                    ? "bg-red-500 border-red-300 text-white hover:bg-red-600" 
+                    : "bg-green-500 border-green-300 text-white hover:bg-green-600"
                 )}
               >
                 {isListening ? (
@@ -296,7 +301,7 @@ export default function KonusmaPage() {
               </button>
             </div>
             
-            <p className="text-green-900/60 font-black uppercase tracking-[0.2em] text-sm">
+            <p className="text-green-900/60 font-black uppercase tracking-[0.2em] text-sm pointer-events-none">
               {isListening ? "BİTİRMEK İÇİN TIKLA" : "KONUŞMAK İÇİN TIKLA"}
             </p>
 
