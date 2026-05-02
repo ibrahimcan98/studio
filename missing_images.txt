@@ -1,0 +1,12 @@
+/images/7-yemekler/patates-kizartmasi.png
+/images/15-dogumgunu/parti-sapkalari.png
+/images/16-hareket/pisirmek.png
+/images/27-spor/buz-pateni.png
+/images/27-spor/ata-binme.png
+/images/30-kisilikozellikleri/sinirli.png
+/images/31-sanat/kostum.png
+/images/31-sanat/dans-ayakkabisi.png
+/images/31-sanat/firca.png
+/images/32-kamp/orman.png
+/images/35-mekanlar/otobus-duragi.png
+/images/35-mekanlar/market.png

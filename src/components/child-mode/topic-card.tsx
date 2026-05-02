@@ -1,78 +1,80 @@
-'use client';
+import { cn } from "@/lib/utils";
+import Image from "next/image";
 
-import { Lock, Crown, CheckCircle2 } from "lucide-react";
-import { cn } from '@/lib/utils';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@/components/ui/tooltip"
-
-type Topic = {
+interface TopicCardProps {
+  topic: {
     id: string;
     name: string;
     icon: string;
-    isPremium?: boolean;
-};
+    color: string;
+    imageUrl?: string;
+  };
+  number: number;
+  onClick: () => void;
+}
 
-type TopicCardProps = {
-    topic: Topic;
-    isPremium: boolean;
-    isLocked: boolean;
-    isCompleted: boolean;
-    onClick: () => void;
-};
+export function TopicCard({ topic, number, onClick }: TopicCardProps) {
+  // Renk temaları (CSS 3D silindir için üst ve alt renkler - Fallback olarak)
+  const colorThemes = {
+    green: { top: 'bg-gradient-to-br from-emerald-300 to-emerald-500', bottom: 'bg-emerald-700', border: 'border-emerald-200' },
+    orange: { top: 'bg-gradient-to-br from-orange-300 to-orange-500', bottom: 'bg-orange-700', border: 'border-orange-200' },
+    purple: { top: 'bg-gradient-to-br from-purple-300 to-purple-500', bottom: 'bg-purple-700', border: 'border-purple-200' },
+    blue: { top: 'bg-gradient-to-br from-blue-300 to-blue-500', bottom: 'bg-blue-700', border: 'border-blue-200' },
+  };
 
-export function TopicCard({ topic, isPremium, isLocked, isCompleted, onClick }: TopicCardProps) {
-    const isEffectivelyLocked = isLocked || (topic.isPremium && !isPremium);
-
-    const handleClick = () => {
-        if (!isEffectivelyLocked) {
-            onClick();
-        }
-    };
-
-    let content;
-    let cardClasses = "bg-white/80 backdrop-blur-sm border-2 border-white/90";
-    let tooltipContent = topic.name;
-
-    if(isEffectivelyLocked) {
-        content = <Lock className="w-8 h-8 text-gray-500" />;
-        cardClasses = "bg-gray-300/80 border-gray-400/50 cursor-not-allowed";
-        tooltipContent = topic.isPremium && !isPremium ? `${topic.name} (Premium Gerekli)` : `${topic.name} (Kilitli)`;
-    } else if (isCompleted) {
-        content = <CheckCircle2 className="w-10 h-10 text-green-500" />;
-        cardClasses = "bg-green-100/90 border-2 border-green-300/90";
-    } else {
-        content = <span className="text-5xl">{topic.icon}</span>;
-    }
-
+  const theme = colorThemes[topic.color as keyof typeof colorThemes] || colorThemes.blue;
 
   return (
-    <TooltipProvider>
-        <Tooltip>
-            <TooltipTrigger asChild>
-                <div
-                    onClick={handleClick}
-                    className={cn(
-                        "w-24 h-24 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110",
-                        cardClasses,
-                        !isEffectivelyLocked && "cursor-pointer"
-                    )}
-                >
-                     {topic.isPremium && !isCompleted && (
-                        <div className="absolute -top-2 -right-2 bg-yellow-400 p-1.5 rounded-full shadow-md z-10">
-                            <Crown className="w-4 h-4 text-yellow-900"/>
-                        </div>
-                    )}
-                    {content}
+    <div 
+      className="relative cursor-pointer group flex flex-col items-center select-none"
+      onClick={onClick}
+    >
+      {/* Yumuşak zemin gölgesi */}
+      <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-32 h-8 bg-black/15 rounded-[100%] blur-xl group-hover:scale-90 transition-transform duration-300" />
+      
+      {/* 3D Platform Konteyneri */}
+      <div className="relative w-48 h-48">
+        {/* Alt Katman ve Üst Katman sadece görsel YOKSA gösterilir */}
+        {!topic.imageUrl && (
+          <>
+            <div className={cn("absolute inset-0 rounded-[40px] rotate-45 translate-y-4", theme.bottom)} />
+            <div className={cn(
+              "absolute inset-0 rounded-[40px] rotate-45 border-4 flex items-center justify-center transition-all duration-200 group-hover:translate-y-2 group-active:translate-y-4 shadow-inner",
+              theme.top,
+              theme.border
+            )}>
+              <div className="transform -rotate-45 text-6xl drop-shadow-[0_8px_8px_rgba(0,0,0,0.3)] group-hover:scale-110 transition-transform duration-300">
+                <span className="text-6xl">{topic.icon}</span>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* İkon veya Şeffaf Görsel */}
+        <div className="absolute inset-0 flex items-center justify-center">
+            {topic.imageUrl ? (
+                <div className="absolute inset-[-60px] z-20 group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_20px_20px_rgba(0,0,0,0.4)] translate-y-[-10px]">
+                    <img 
+                        src={topic.imageUrl} 
+                        className="w-full h-full object-contain" 
+                        style={{ mixBlendMode: 'multiply' }}
+                        alt={topic.name} 
+                    />
                 </div>
-            </TooltipTrigger>
-            <TooltipContent>
-                <p>{tooltipContent}</p>
-            </TooltipContent>
-        </Tooltip>
-    </TooltipProvider>
+            ) : (
+                /* Emoji ikon sadece görsel yoksa platformun içinde gösterilir (yukarıda yapıldı) */
+                null
+            )}
+        </div>
+      </div>
+
+      {/* Modern İsim Etiketi */}
+      <div className="mt-4 bg-white/95 backdrop-blur-md pl-2 pr-6 py-2 rounded-full shadow-[0_8px_16px_rgba(0,0,0,0.1)] border-2 border-white/50 relative z-20 group-hover:-translate-y-2 transition-transform duration-300 flex items-center gap-3">
+        <div className={cn("w-8 h-8 rounded-full flex items-center justify-center text-sm font-black text-white shadow-md border-2 border-white/50", theme.top)}>
+          {number}
+        </div>
+        <span className="text-[13px] font-black text-slate-700 uppercase tracking-widest">{topic.name}</span>
+      </div>
+    </div>
   );
 }

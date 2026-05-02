@@ -2,7 +2,7 @@
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, getDocs, getDoc, collectionGroup, doc, updateDoc, writeBatch, setDoc, deleteDoc, onSnapshot, addDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDoc, collectionGroup, doc, updateDoc, writeBatch, setDoc, deleteDoc, onSnapshot, addDoc, increment, arrayUnion } from 'firebase/firestore';
 import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
@@ -546,14 +546,18 @@ function UsersPageContent() {
 
             // 2. Update Parent Document (Pool)
             const updatedPackages = [...(selectedParentForLessons.enrolledPackages || [])];
-            const packageIndex = updatedPackages.indexOf(selectedPackageFromPool);
+            const packageIndex = updatedPackages.findIndex(pkg => pkg.trim() === selectedPackageFromPool.trim());
             
-            if (packageIndex !== -1) {
-                updatedPackages.splice(packageIndex, 1);
-                const remainder = lessonsInPackage - lessonCount;
-                if (remainder > 0) {
-                    updatedPackages.push(`${prefix}${remainder}`);
-                }
+            if (packageIndex === -1) {
+                toast({ variant: 'destructive', title: 'Hata', description: 'Paket havuzda bulunamadı.' });
+                setIsAddingLessons(false);
+                return;
+            }
+
+            updatedPackages.splice(packageIndex, 1);
+            const remainder = lessonsInPackage - lessonCount;
+            if (remainder > 0) {
+                updatedPackages.push(`${prefix}${remainder}`);
             }
 
             batch.update(parentRef, {
@@ -700,6 +704,14 @@ function UsersPageContent() {
         }
 
         await batch.commit();
+
+        // Update local state immediately for the modal if we were in pool assignment mode
+        if (selectedChildForPackage && selectedParent && selectedParent.id === selectedParentForLessons.id) {
+            // We need the updatedPackages from above scope, but since we can't easily access it here without refactoring,
+            // the refetchParents() will handle it, but for instant UI we can do a quick update if we had kept the variable.
+            // For now, let's just rely on refetch but ensure it's called.
+        }
+
         toast({ title: selectedChildForPackage ? 'Transfer Başarılı' : 'Dersler Eklendi', className: 'bg-green-500 text-white' });
         setIsAddLessonsOpen(false);
         refetchParents();
@@ -1231,31 +1243,76 @@ function UsersPageContent() {
                                             <p className="text-lg sm:text-xl font-bold text-slate-800">
                                                 {(allChildren.filter(c => c.parentId === selectedParent.id).reduce((acc, c) => acc + (c.remainingLessons || 0), 0)) + (selectedParent.remainingLessons || 0)}
                                             </p>
-                                            <div className="flex flex-wrap gap-1">
-                                                {allChildren.filter(c => c.parentId === selectedParent.id).map((c, idx) => (
-                                                    c.remainingLessons > 0 && (
-                                                        <Badge key={idx} variant="outline" className="bg-white text-[8px] font-bold text-slate-500 border-slate-200">
-                                                            {c.firstName}: {c.remainingLessons} {c.assignedPackage?.includes('GCSE') ? 'GCSE' : c.assignedPackage?.includes('B') ? 'BK' : c.assignedPackage?.includes('K') ? 'KK' : c.assignedPackage?.includes('A') ? 'AK' : c.assignedPackage?.includes('G') ? 'GK' : c.assignedPackage || 'Ders'}
+                                                <div className="flex flex-wrap gap-1">
+                                                    {allChildren.filter(c => c.parentId === selectedParent.id).map((c, idx) => (
+                                                        c.remainingLessons > 0 && (
+                                                            <Badge key={idx} variant="outline" className="group bg-white text-[8px] font-bold text-slate-500 border-slate-200 pl-2 pr-1 gap-1">
+                                                                {c.firstName}: {c.remainingLessons} {c.assignedPackage?.includes('GCSE') ? 'GCSE' : c.assignedPackage?.includes('B') ? 'BK' : c.assignedPackage?.includes('K') ? 'KK' : c.assignedPackage?.includes('A') ? 'AK' : c.assignedPackage?.includes('G') ? 'GK' : c.assignedPackage || 'Ders'}
+                                                                <button 
+                                                                    className="text-slate-300 hover:text-red-500 transition-colors p-0.5"
+                                                                    onClick={async (e) => {
+                                                                        e.stopPropagation();
+                                                                        if (!window.confirm(`${c.firstName} isimli öğrencinin derslerini kaldırıp havuza iade etmek istediğinize emin misiniz?`)) return;
+                                                                        try {
+                                                                            const batch = writeBatch(db);
+                                                                            const childRef = doc(db, 'users', selectedParent.id, 'children', c.id);
+                                                                            const parentRef = doc(db, 'users', selectedParent.id);
+                                                                            
+                                                                            batch.update(childRef, { remainingLessons: 0, assignedPackage: null, assignedPackageName: null });
+                                                                            batch.update(parentRef, { 
+                                                                                remainingLessons: increment(c.remainingLessons),
+                                                                                enrolledPackages: arrayUnion(c.assignedPackage)
+                                                                            });
+                                                                            
+                                                                            await batch.commit();
+                                                                            toast({ title: 'Dersler Havuza İade Edildi', className: 'bg-slate-800 text-white' });
+                                                                            refetchParents();
+                                                                        } catch (err) {
+                                                                            console.error(err);
+                                                                            toast({ variant: 'destructive', title: 'Hata oluştu' });
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <X className="w-2.5 h-2.5" />
+                                                                </button>
+                                                            </Badge>
+                                                        )
+                                                    ))}
+                                                    {selectedParent.remainingLessons > 0 && (
+                                                        <Badge variant="outline" className="bg-white text-[8px] font-bold text-blue-500 border-blue-100 pl-2 pr-1 gap-1">
+                                                            Havuz: {selectedParent.remainingLessons} {selectedParent.enrolledPackages?.join(', ')}
+                                                            <button 
+                                                                className="text-blue-300 hover:text-red-500 transition-colors p-0.5"
+                                                                onClick={async (e) => {
+                                                                    e.stopPropagation();
+                                                                    if (!window.confirm(`Havuzdaki TÜM dersleri silmek istediğinize emin misiniz? (Bu işlem iade yapmaz, sadece temizler)`)) return;
+                                                                    try {
+                                                                        const parentRef = doc(db, 'users', selectedParent.id);
+                                                                        await updateDoc(parentRef, { remainingLessons: 0, enrolledPackages: [] });
+                                                                        toast({ title: 'Havuz Temizlendi', className: 'bg-red-600 text-white' });
+                                                                        refetchParents();
+                                                                    } catch (err) {
+                                                                        console.error(err);
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <X className="w-2.5 h-2.5" />
+                                                            </button>
                                                         </Badge>
-                                                    )
-                                                ))}
-                                                {selectedParent.remainingLessons > 0 && (
-                                                    <Badge variant="outline" className="bg-white text-[8px] font-bold text-blue-500 border-blue-100">
-                                                        Havuz: {selectedParent.remainingLessons} {selectedParent.enrolledPackages?.join(', ')}
-                                                    </Badge>
-                                                )}
-                                            </div>
+                                                    )}
+                                                </div>
                                         </div>
                                     </Card>
                                     <Card className="bg-slate-50 border-none p-4 sm:p-6 space-y-1 sm:space-y-2">
                                         <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Havuzdaki Paketler</p>
                                         <div className="flex flex-wrap gap-1.5 mt-1">
                                             {selectedParent.enrolledPackages?.length > 0 ? selectedParent.enrolledPackages.map((p: string, i: number) => (
-                                                <Badge key={i} variant="secondary" className="group bg-white border-slate-200 text-slate-600 font-bold text-[8px] sm:text-[10px] uppercase pl-2 pr-1 gap-1">
+                                                <Badge key={i} variant="secondary" className="bg-white border-slate-200 text-slate-600 font-bold text-[8px] sm:text-[10px] uppercase pl-2 pr-1 gap-1">
                                                     {p}
                                                     <button 
-                                                        className="opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all p-0.5"
-                                                        onClick={async () => {
+                                                        className="text-slate-300 hover:text-red-500 transition-all p-0.5"
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation();
                                                             if (!window.confirm(`${p} paketini havuzdan silmek istediğinize emin misiniz?`)) return;
                                                             const lessonsInPkg = parseInt(p.match(/-?\d+/)?.[0] || '0', 10);
                                                             const updatedPkgs = selectedParent.enrolledPackages.filter((_: any, idx: number) => idx !== i);

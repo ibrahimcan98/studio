@@ -18,6 +18,7 @@ type WordCardProps = {
     wordList: Word[];
     childId: string;
     topicId: string;
+    onComplete?: () => void;
 };
 
 const backgroundGradients = [
@@ -28,7 +29,7 @@ const backgroundGradients = [
     'from-red-200 to-yellow-200',
 ];
 
-export function WordCard({ wordList, childId, topicId }: WordCardProps) {
+export function WordCard({ wordList, childId, topicId, onComplete }: WordCardProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [gradient, setGradient] = useState(backgroundGradients[0]);
     const audioRef = useRef<HTMLAudioElement>(null);
@@ -81,8 +82,12 @@ export function WordCard({ wordList, childId, topicId }: WordCardProps) {
         }
     };
     
-    const goToGames = () => {
-        router.push(`/cocuk-modu/${childId}/${topicId}/oyunlar`);
+    const goToNextStage = () => {
+        if (onComplete) {
+            onComplete();
+        } else {
+            router.push(`/cocuk-modu/${childId}/${topicId}/oyunlar`);
+        }
     };
 
     return (
@@ -123,9 +128,9 @@ export function WordCard({ wordList, childId, topicId }: WordCardProps) {
                     {isLastWord ? (
                          <Button
                             className="rounded-full py-6 px-8 font-semibold text-lg bg-green-500 hover:bg-green-600"
-                            onClick={goToGames}
+                            onClick={goToNextStage}
                         >
-                            Oyunlara Geç
+                            Devam Et
                             <Gamepad2 className="ml-2" />
                         </Button>
                     ) : (

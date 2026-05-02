@@ -34,6 +34,7 @@ export default function RegisterPage() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [honeypot, setHoneypot] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const auth = useAuth();
@@ -57,6 +58,19 @@ export default function RegisterPage() {
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    // Honeypot Check (Bot Protection)
+    if (honeypot) {
+      console.warn('Bot detected. Registration blocked.');
+      setIsSubmitting(true);
+      setTimeout(() => {
+        setIsSubmitting(false);
+        // Silently fail to trick bots
+        router.push('/login'); 
+      }, 1500);
+      return;
+    }
+
     if (!auth || !db) return;
 
     setIsSubmitting(true);
@@ -227,6 +241,20 @@ export default function RegisterPage() {
                   </CardHeader>
                   <CardContent>
                     <form onSubmit={handleSignUp} className="space-y-4">
+                      {/* Honeypot Field - Bots will fill this, real users won't see it */}
+                      <div className="absolute opacity-0 -z-50 w-0 h-0 pointer-events-none" aria-hidden="true" tabIndex={-1}>
+                        <Label htmlFor="company-website">Website URL</Label>
+                        <Input
+                          id="company-website"
+                          type="text"
+                          name="company-website"
+                          tabIndex={-1}
+                          autoComplete="off"
+                          value={honeypot}
+                          onChange={(e) => setHoneypot(e.target.value)}
+                        />
+                      </div>
+                      
                       <div className="space-y-2">
                         <Label htmlFor="name">İsim Soyisim</Label>
                         <Input

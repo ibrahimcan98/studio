@@ -91,22 +91,28 @@ export function SetPinDialog({ children, childId }: { children: React.ReactNode,
     setIsSetting(true);
     setError('');
 
+    localStorage.setItem(`child-pin-${childId}`, pinStr);
+    toast({
+        title: 'PIN Ayarlandı!',
+        description: 'Çocuk modu başlatılıyor...',
+    });
+    
+    router.push(`/cocuk-modu/${childId}`);
+    
     setTimeout(() => {
-        localStorage.setItem(`child-pin-${childId}`, pinStr);
-        toast({
-            title: 'PIN Ayarlandı!',
-            description: 'Çocuk modu başlatılıyor...',
-        });
-        router.push(`/cocuk-modu/${childId}`);
-        setOpen(false);
-        setIsSetting(false);
-    }, 1000);
+      setOpen(false);
+      setIsSetting(false);
+      // Fallback: Eğer navigasyon hala başlamadıysa window.location ile zorla
+      if (typeof window !== 'undefined' && window.location.pathname !== `/cocuk-modu/${childId}`) {
+          window.location.href = `/cocuk-modu/${childId}`;
+      }
+    }, 1500);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md rounded-[32px]">
         <DialogHeader>
           <DialogTitle>Çocuk Modu PIN Ayarla</DialogTitle>
           <DialogDescription>
@@ -127,7 +133,7 @@ export function SetPinDialog({ children, childId }: { children: React.ReactNode,
                     value={digit}
                     onChange={(e) => createInputHandler(pin, setPin, confirmPinInputRefs.current[0])(e, index)}
                     onKeyDown={(e) => createKeyDownHandler(pin, setPin)(e, index)}
-                    className="w-12 h-14 text-center text-2xl font-bold"
+                    className="w-12 h-14 text-center text-2xl font-bold rounded-xl"
                     pattern="\d*"
                     autoComplete="off"
                     disabled={isSetting}
@@ -148,7 +154,7 @@ export function SetPinDialog({ children, childId }: { children: React.ReactNode,
                     value={digit}
                     onChange={(e) => createInputHandler(confirmPin, setConfirmPin)(e, index)}
                     onKeyDown={(e) => createKeyDownHandler(confirmPin, setConfirmPin)(e, index)}
-                    className="w-12 h-14 text-center text-2xl font-bold"
+                    className="w-12 h-14 text-center text-2xl font-bold rounded-xl"
                     pattern="\d*"
                     autoComplete="off"
                     disabled={isSetting}
@@ -156,13 +162,13 @@ export function SetPinDialog({ children, childId }: { children: React.ReactNode,
                 ))}
             </div>
           </div>
-          {error && <p className="text-destructive text-sm text-center">{error}</p>}
+          {error && <p className="text-destructive text-sm text-center font-medium">{error}</p>}
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={isSetting}>
+        <DialogFooter className="sm:justify-center">
+          <Button variant="ghost" onClick={() => setOpen(false)} disabled={isSetting} className="rounded-xl">
             İptal
           </Button>
-          <Button onClick={handleSetPin} disabled={isSetting}>
+          <Button onClick={handleSetPin} disabled={isSetting} className="rounded-xl font-bold">
             {isSetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             PIN Ayarla ve Başla
           </Button>

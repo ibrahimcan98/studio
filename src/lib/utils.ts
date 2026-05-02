@@ -36,6 +36,7 @@ export const COUNTRIES = [
   "🇭🇷 Hırvatistan",
   "🇴🇲 Umman",
   "🇨🇱 Şili",
+  "🇨🇺 Küba",
 ];
 
 export function getCountryFromPhone(phone: string | undefined | null) {
@@ -74,6 +75,7 @@ export function getCountryFromPhone(phone: string | undefined | null) {
   if (cleanPhone.startsWith("+385")) return "🇭🇷 Hırvatistan";
   if (cleanPhone.startsWith("+968")) return "🇴🇲 Umman";
   if (cleanPhone.startsWith("+56")) return "🇨🇱 Şili";
+  if (cleanPhone.startsWith("+53")) return "🇨🇺 Küba";
 
   // Provide a generic fallback with the first 4 characters of the area code
   return "🌍 Diğer (" + cleanPhone.substring(0, 4) + "..)";

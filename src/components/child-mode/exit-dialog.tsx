@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
@@ -28,7 +27,9 @@ export function ExitDialog({ children, childId }: { children: React.ReactNode, c
 
   useEffect(() => {
     if (open) {
-      inputRefs.current[0]?.focus();
+      setTimeout(() => inputRefs.current[0]?.focus(), 100);
+      setPin(['', '', '', '']);
+      setError('');
     }
   }, [open]);
 
@@ -40,7 +41,6 @@ export function ExitDialog({ children, childId }: { children: React.ReactNode, c
       setPin(newPin);
       setError('');
 
-      // Move to next input
       if (value !== '' && index < 3) {
         inputRefs.current[index + 1]?.focus();
       }
@@ -52,48 +52,33 @@ export function ExitDialog({ children, childId }: { children: React.ReactNode, c
       inputRefs.current[index - 1]?.focus();
     }
   };
-  
-  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    const pasteData = e.clipboardData.getData('text').slice(0, 4);
-    if (/^\d{4}$/.test(pasteData)) {
-      const newPin = pasteData.split('');
-      setPin(newPin);
-      inputRefs.current[3]?.focus();
-    }
-  };
-
 
   const handleVerify = () => {
     setIsVerifying(true);
     setError('');
     const enteredPin = pin.join('');
-    
-    // Simulate verification
-    setTimeout(() => {
-        const storedPin = localStorage.getItem(`child-pin-${childId}`);
+    const storedPin = localStorage.getItem(`child-pin-${childId}`);
 
-        if (enteredPin === storedPin) {
-            toast({
-                title: 'Başarılı!',
-                description: 'Ebeveyn portalına yönlendiriliyorsunuz.',
-            });
-            localStorage.removeItem(`child-pin-${childId}`);
-            router.push('/ebeveyn-portali');
-            setOpen(false);
-        } else {
-            setError('PIN kodu yanlış. Lütfen tekrar deneyin.');
-            setPin(['', '', '', '']);
-            inputRefs.current[0]?.focus();
-        }
-        setIsVerifying(false);
-    }, 1000);
+    if (enteredPin === storedPin) {
+        toast({
+            title: 'Görüşmek Üzere!',
+            description: 'Ebeveyn portalına yönlendiriliyorsunuz.',
+        });
+        localStorage.removeItem(`child-pin-${childId}`);
+        router.push('/ebeveyn-portali');
+        setOpen(false);
+    } else {
+        setError('PIN kodu yanlış. Lütfen tekrar deneyin.');
+        setPin(['', '', '', '']);
+        inputRefs.current[0]?.focus();
+    }
+    setIsVerifying(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md rounded-[32px]">
         <DialogHeader>
           <DialogTitle>Çıkış Yap</DialogTitle>
           <DialogDescription>
@@ -101,32 +86,33 @@ export function ExitDialog({ children, childId }: { children: React.ReactNode, c
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col items-center gap-4 py-4">
-           <div className="flex justify-center gap-2" onPaste={handlePaste}>
+           <div className="flex justify-center gap-2">
             {pin.map((digit, index) => (
               <Input
                 key={index}
                 ref={(el) => { inputRefs.current[index] = el; }}
-                id={`pin-${index}`}
-                type="text"
+                id={`exit-pin-${index}`}
+                type="password"
                 maxLength={1}
                 value={digit}
                 onChange={(e) => handleChange(e, index)}
                 onKeyDown={(e) => handleKeyDown(e, index)}
-                className="w-12 h-14 text-center text-2xl font-bold"
+                className="w-12 h-14 text-center text-2xl font-bold rounded-xl"
                 pattern="\d*"
                 disabled={isVerifying}
+                autoComplete="off"
               />
             ))}
           </div>
-          {error && <p className="text-destructive text-sm">{error}</p>}
+          {error && <p className="text-destructive text-sm font-medium">{error}</p>}
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={isVerifying}>
+        <DialogFooter className="sm:justify-center">
+          <Button variant="ghost" onClick={() => setOpen(false)} disabled={isVerifying} className="rounded-xl">
             İptal
           </Button>
-          <Button onClick={handleVerify} disabled={isVerifying || pin.join('').length < 4}>
+          <Button onClick={handleVerify} disabled={isVerifying || pin.join('').length < 4} className="rounded-xl font-bold">
             {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Doğrula
+            Doğrula ve Çık
           </Button>
         </DialogFooter>
       </DialogContent>

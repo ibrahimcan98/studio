@@ -1,242 +1,2279 @@
-
 [
-    {
-      "id": "hayvanlar",
-      "name": "Hayvanlar",
-      "icon": "🦁",
-      "words": 10,
-      "unlocked": true,
-      "isPremium": false,
-      "wordList": [
-        { "word": "aslan", "image": "/images/hayvanlar/aslan.png", "audio": "/audio/hayvanlar/aslan.mp3" },
-        { "word": "fil", "image": "/images/hayvanlar/fil.png", "audio": "/audio/hayvanlar/fil.mp3" },
-        { "word": "inek", "image": "/images/hayvanlar/inek.png", "audio": "/audio/hayvanlar/inek.mp3" },
-        { "word": "kedi", "image": "/images/hayvanlar/kedi.png", "audio": "/audio/hayvanlar/kedi.mp3" },
-        { "word": "köpek", "image": "/images/hayvanlar/kopek.png", "audio": "/audio/hayvanlar/kopek.mp3" },
-        { "word": "kurbağa", "image": "/images/hayvanlar/kurbaga.png", "audio": "/audio/hayvanlar/kurbaga.mp3" },
-        { "word": "kuş", "image": "/images/hayvanlar/kus.png", "audio": "/audio/hayvanlar/kus.mp3" },
-        { "word": "maymun", "image": "/images/hayvanlar/maymun.png", "audio": "/audio/hayvanlar/maymun.mp3" },
-        { "word": "panda", "image": "/images/hayvanlar/panda.png", "audio": "/audio/hayvanlar/panda.mp3" },
-        { "word": "zürafa", "image": "/images/hayvanlar/zurafa.png", "audio": "/audio/hayvanlar/zurafa.mp3" }
-      ]
-    },
-    {
-      "id": "renkler",
-      "name": "Renkler",
-      "icon": "🎨",
-      "words": 7,
-      "unlocked": true,
-      "isPremium": false,
-      "wordList": [
-        { "word": "pembe", "image": "/images/renkler/pembe.png", "audio": "/audio/renkler/pembe.mp3" },
-        { "word": "kahverengi", "image": "/images/renkler/kahverengi.png", "audio": "/audio/renkler/kahverengi.mp3" },
-        { "word": "yeşil", "image": "/images/renkler/yesil.png", "audio": "/audio/renkler/yesil.mp3" },
-        { "word": "beyaz", "image": "/images/renkler/beyaz.png", "audio": "/audio/renkler/beyaz.mp3" },
-        { "word": "sarı", "image": "/images/renkler/sari.png", "audio": "/audio/renkler/sari.mp3" },
-        { "word": "turuncu", "image": "/images/renkler/turuncu.png", "audio": "/audio/renkler/turuncu.mp3" },
-        { "word": "mavi", "image": "/images/renkler/mavi.png", "audio": "/audio/renkler/mavi.mp3" }
-      ]
-    },
-    {
-      "id": "aile-uyeleri",
-      "name": "Aile Üyeleri",
-      "icon": "❤️",
-      "words": 10,
-      "unlocked": true,
-      "isPremium": false,
-      "wordList": [
-        { "word": "anne", "image": "/images/aile-uyeleri/anne.png", "audio": "/audio/aile-uyeleri/anne.mp3" },
-        { "word": "baba", "image": "/images/aile-uyeleri/baba.png", "audio": "/audio/aile-uyeleri/baba.mp3" },
-        { "word": "kardeş", "image": "/images/aile-uyeleri/kardes.png", "audio": "/audio/aile-uyeleri/kardes.mp3" },
-        { "word": "dede", "image": "/images/aile-uyeleri/dede.png", "audio": "/audio/aile-uyeleri/dede.mp3" },
-        { "word": "nine", "image": "/images/aile-uyeleri/nine.png", "audio": "/audio/aile-uyeleri/nine.mp3" },
-        { "word": "amca", "image": "/images/aile-uyeleri/amca.png", "audio": "/audio/aile-uyeleri/amca.mp3" },
-        { "word": "hala", "image": "/images/aile-uyeleri/hala.png", "audio": "/audio/aile-uyeleri/hala.mp3" },
-        { "word": "teyze", "image": "/images/aile-uyeleri/teyze.png", "audio": "/audio/aile-uyeleri/teyze.mp3" },
-        { "word": "kuzen", "image": "/images/aile-uyeleri/kuzen.png", "audio": "/audio/aile-uyeleri/kuzen.mp3" },
-        { "word": "bebek", "image": "/images/aile-uyeleri/bebek.png", "audio": "/audio/aile-uyeleri/bebek.mp3" }
-      ]
-    },
-    {
-      "id": "vucudumuz",
-      "name": "Vücudumuz",
-      "icon": "💪",
-      "words": 19,
-      "unlocked": false,
-      "isPremium": true,
-      "wordList": [
-        { "word": "saç", "image": "/images/vucudumuz/sac.png", "audio": "/audio/vucudumuz/sac.mp3" },
-        { "word": "alın", "image": "/images/vucudumuz/alin.png", "audio": "/audio/vucudumuz/alin.mp3" },
-        { "word": "kaş", "image": "/images/vucudumuz/kas.png", "audio": "/audio/vucudumuz/kas.mp3" },
-        { "word": "göz", "image": "/images/vucudumuz/goz.png", "audio": "/audio/vucudumuz/goz.mp3" },
-        { "word": "yanak", "image": "/images/vucudumuz/yanak.png", "audio": "/audio/vucudumuz/yanak.mp3" },
-        { "word": "kulak", "image": "/images/vucudumuz/kulak.png", "audio": "/audio/vucudumuz/kulak.mp3" },
-        { "word": "burun", "image": "/images/vucudumuz/burun.png", "audio": "/audio/vucudumuz/burun.mp3" },
-        { "word": "ağız", "image": "/images/vucudumuz/agiz.png", "audio": "/audio/vucudumuz/agiz.mp3" },
-        { "word": "diş", "image": "/images/vucudumuz/dis.png", "audio": "/audio/vucudumuz/dis.mp3" },
-        { "word": "dil", "image": "/images/vucudumuz/dil.png", "audio": "/audio/vucudumuz/dil.mp3" },
-        { "word": "dudak", "image": "/images/vucudumuz/dudak.png", "audio": "/audio/vucudumuz/dudak.mp3" },
-        { "word": "boyun", "image": "/images/vucudumuz/boyun.png", "audio": "/audio/vucudumuz/boyun.mp3" },
-        { "word": "omuz", "image": "/images/vucudumuz/omuz.png", "audio": "/audio/vucudumuz/omuz.mp3" },
-        { "word": "kol", "image": "/images/vucudumuz/kol.png", "audio": "/audio/vucudumuz/kol.mp3" },
-        { "word": "el", "image": "/images/vucudumuz/el.png", "audio": "/audio/vucudumuz/el.mp3" },
-        { "word": "parmak", "image": "/images/vucudumuz/parmak.png", "audio": "/audio/vucudumuz/parmak.mp3" },
-        { "word": "karın", "image": "/images/vucudumuz/karin.png", "audio": "/audio/vucudumuz/karin.mp3" },
-        { "word": "bacak", "image": "/images/vucudumuz/bacak.png", "audio": "/audio/vucudumuz/bacak.mp3" },
-        { "word": "ayak parmağı", "image": "/images/vucudumuz/ayak-parmagi.png", "audio": "/audio/vucudumuz/ayak-parmagi.mp3" }
-      ]
-    },
-    {
-      "id": "meyveler",
-      "name": "Meyveler",
-      "icon": "🍎",
-      "words": 8,
-      "unlocked": false,
-      "isPremium": true,
-      "wordList": [
-        { "word": "muz", "image": "/images/meyveler/muz.png", "audio": "/audio/meyveler/muz.mp3" },
-        { "word": "portakal", "image": "/images/meyveler/portakal.png", "audio": "/audio/meyveler/portakal.mp3" },
-        { "word": "elma", "image": "/images/meyveler/elma.png", "audio": "/audio/meyveler/elma.mp3" },
-        { "word": "çilek", "image": "/images/meyveler/cilek.png", "audio": "/audio/meyveler/cilek.mp3" },
-        { "word": "kiraz", "image": "/images/meyveler/kiraz.png", "audio": "/audio/meyveler/kiraz.mp3" },
-        { "word": "üzüm", "image": "/images/meyveler/uzum.png", "audio": "/audio/meyveler/uzum.mp3" },
-        { "word": "kivi", "image": "/images/meyveler/kivi.png", "audio": "/audio/meyveler/kivi.mp3" },
-        { "word": "armut", "image": "/images/meyveler/armut.png", "audio": "/audio/meyveler/armut.mp3" }
-      ]
-    },
-    {
-      "id": "sebzeler",
-      "name": "Sebzeler",
-      "icon": "🥕",
-      "words": 6,
-      "unlocked": false,
-      "isPremium": true,
-      "wordList": [
-        { "word": "havuç", "image": "/images/sebzeler/havuc.png", "audio": "/audio/sebzeler/havuc.mp3" },
-        { "word": "salatalık", "image": "/images/sebzeler/salatalik.png", "audio": "/audio/sebzeler/salatalik.mp3" },
-        { "word": "domates", "image": "/images/sebzeler/domates.png", "audio": "/audio/sebzeler/domates.mp3" },
-        { "word": "brokoli", "image": "/images/sebzeler/brokoli.png", "audio": "/audio/sebzeler/brokoli.mp3" },
-        { "word": "soğan", "image": "/images/sebzeler/sogan.png", "audio": "/audio/sebzeler/sogan.mp3" },
-        { "word": "biber", "image": "/images/sebzeler/biber.png", "audio": "/audio/sebzeler/biber.mp3" }
-      ]
-    },
-    {
-      "id": "sekiller",
-      "name": "Şekiller",
-      "icon": "🔷",
-      "words": 4,
-      "unlocked": false,
-      "isPremium": true,
-      "wordList": [
-        { "word": "üçgen", "image": "/images/sekiller/ucgen.png", "audio": "/audio/sekiller/ucgen.mp3" },
-        { "word": "dikdörtgen", "image": "/images/sekiller/dikdortgen.png", "audio": "/audio/sekiller/dikdortgen.mp3" },
-        { "word": "kare", "image": "/images/sekiller/kare.png", "audio": "/audio/sekiller/kare.mp3" },
-        { "word": "daire", "image": "/images/sekiller/daire.png", "audio": "/audio/sekiller/daire.mp3" }
-      ]
-    },
-    {
-      "id": "duygular",
-      "name": "Duygular",
-      "icon": "😊",
-      "words": 5,
-      "unlocked": false,
-      "isPremium": true,
-      "wordList": [
-        { "word": "mutlu", "image": "/images/duygular/mutlu.png", "audio": "/audio/duygular/mutlu.mp3" },
-        { "word": "üzgün", "image": "/images/duygular/uzgun.png", "audio": "/audio/duygular/uzgun.mp3" },
-        { "word": "şaşırmış", "image": "/images/duygular/sasirmis.png", "audio": "/audio/duygular/sasirmis.mp3" },
-        { "word": "korkmuş", "image": "/images/duygular/korkmus.png", "audio": "/audio/duygular/korkmus.mp3" },
-        { "word": "sinirli", "image": "/images/duygular/sinirli.png", "audio": "/audio/duygular/sinirli.mp3" }
-      ]
-    },
-    {
-      "id": "doga",
-      "name": "Doğa",
-      "icon": "🌳",
-      "words": 8,
-      "unlocked": false,
-      "isPremium": true,
-      "wordList": [
-        { "word": "orman", "image": "/images/doga/orman.png", "audio": "/audio/doga/orman.mp3" },
-        { "word": "çiçek", "image": "/images/doga/cicek.png", "audio": "/audio/doga/cicek.mp3" },
-        { "word": "kaya", "image": "/images/doga/kaya.png", "audio": "/audio/doga/kaya.mp3" },
-        { "word": "ağaç", "image": "/images/doga/agac.png", "audio": "/audio/doga/agac.mp3" },
-        { "word": "dere", "image": "/images/doga/dere.png", "audio": "/audio/doga/dere.mp3" },
-        { "word": "dağ", "image": "/images/doga/dag.png", "audio": "/audio/doga/dag.mp3" },
-        { "word": "yaprak", "image": "/images/doga/yaprak.png", "audio": "/audio/doga/yaprak.mp3" },
-        { "word": "bulut", "image": "/images/doga/bulut.png", "audio": "/audio/doga/bulut.mp3" }
-      ]
-    },
-    {
-      "id": "kahvalti",
-      "name": "Kahvaltı",
-      "icon": "🍳",
-      "words": 7,
-      "unlocked": false,
-      "isPremium": true,
-      "wordList": [
-        { "word": "yumurta", "image": "/images/kahvalti/yumurta.png", "audio": "/audio/kahvalti/yumurta.mp3" },
-        { "word": "zeytin", "image": "/images/kahvalti/zeytin.png", "audio": "/audio/kahvalti/zeytin.mp3" },
-        { "word": "peynir", "image": "/images/kahvalti/peynir.png", "audio": "/audio/kahvalti/peynir.mp3" },
-        { "word": "ekmek", "image": "/images/kahvalti/ekmek.png", "audio": "/audio/kahvalti/ekmek.mp3" },
-        { "word": "reçel", "image": "/images/kahvalti/recel.png", "audio": "/audio/kahvalti/recel.mp3" },
-        { "word": "bal", "image": "/images/kahvalti/bal.png", "audio": "/audio/kahvalti/bal.mp3" },
-        { "word": "tereyağ", "image": "/images/kahvalti/tereyag.png", "audio": "/audio/kahvalti/tereyag.mp3" }
-      ]
-    },
-    {
-      "id": "aksam-yemegi",
-      "name": "Akşam Yemeği",
-      "icon": "🍲",
-      "words": 8,
-      "unlocked": false,
-      "isPremium": true,
-      "wordList": [
-        { "word": "çorba", "image": "/images/aksam-yemegi/corba.png", "audio": "/audio/aksam-yemegi/corba.mp3" },
-        { "word": "pilav", "image": "/images/aksam-yemegi/pilav.png", "audio": "/audio/aksam-yemegi/pilav.mp3" },
-        { "word": "makarna", "image": "/images/aksam-yemegi/makarna.png", "audio": "/audio/aksam-yemegi/makarna.mp3" },
-        { "word": "köfte", "image": "/images/aksam-yemegi/kofte.png", "audio": "/audio/aksam-yemegi/kofte.mp3" },
-        { "word": "balık", "image": "/images/aksam-yemegi/balik.png", "audio": "/audio/aksam-yemegi/balik.mp3" },
-        { "word": "tavuk", "image": "/images/aksam-yemegi/tavuk.png", "audio": "/audio/aksam-yemegi/tavuk.mp3" },
-        { "word": "salata", "image": "/images/aksam-yemegi/salata.png", "audio": "/audio/aksam-yemegi/salata.mp3" },
-        { "word": "patates kızartması", "image": "/images/aksam-yemegi/patates-kizartmasi.png", "audio": "/audio/aksam-yemegi/patates-kizartmasi.mp3" }
-      ]
-    },
-    {
-      "id": "tatlilar",
-      "name": "Tatlılar",
-      "icon": "🍰",
-      "words": 5,
-      "unlocked": false,
-      "isPremium": true,
-      "wordList": [
-        { "word": "kek", "image": "/images/tatlilar/kek.png", "audio": "/audio/tatlilar/kek.mp3" },
-        { "word": "kurabiye", "image": "/images/tatlilar/kurabiye.png", "audio": "/audio/tatlilar/kurabiye.mp3" },
-        { "word": "dondurma", "image": "/images/tatlilar/dondurma.png", "audio": "/audio/tatlilar/dondurma.mp3" },
-        { "word": "pasta", "image": "/images/tatlilar/pasta.png", "audio": "/audio/tatlilar/pasta.mp3" },
-        { "word": "baklava", "image": "/images/tatlilar/baklava.png", "audio": "/audio/tatlilar/baklava.mp3" }
-      ]
-    },
-    {
-      "id": "meslekler",
-      "name": "Meslekler",
-      "icon": "👩‍⚕️",
-      "words": 10,
-      "unlocked": false,
-      "isPremium": true,
-      "wordList": [
-        { "word": "manav", "image": "/images/meslekler/manav.png", "audio": "/audio/meslekler/manav.mp3" },
-        { "word": "veteriner", "image": "/images/meslekler/veteriner.png", "audio": "/audio/meslekler/veteriner.mp3" },
-        { "word": "kuaför", "image": "/images/meslekler/kuafor.png", "audio": "/audio/meslekler/kuafor.mp3" },
-        { "word": "ressam", "image": "/images/meslekler/ressam.png", "audio": "/audio/meslekler/ressam.mp3" },
-        { "word": "aşçı", "image": "/images/meslekler/asci.png", "audio": "/audio/meslekler/asci.mp3" },
-        { "word": "pilot", "image": "/images/meslekler/pilot.png", "audio": "/audio/meslekler/pilot.mp3" },
-        { "word": "çiftçi", "image": "/images/meslekler/ciftci.png", "audio": "/audio/meslekler/ciftci.mp3" },
-        { "word": "doktor", "image": "/images/meslekler/doktor.png", "audio": "/audio/meslekler/doktor.mp3" },
-        { "word": "tamirci", "image": "/images/meslekler/tamirci.png", "audio": "/audio/meslekler/tamirci.mp3" },
-        { "word": "öğretmen", "image": "/images/meslekler/ogretmen.png", "audio": "/audio/meslekler/ogretmen.mp3" }
-      ]
-    }
-  ]
-
-    
+  {
+    "id": "hayvanlar",
+    "name": "HAYVANLAR",
+    "icon": "🦁",
+    "wordList": [
+      {
+        "word": "Panda",
+        "image": "/images/1-hayvanlar/panda.png",
+        "audio": ""
+      },
+      {
+        "word": "Kedi",
+        "image": "/images/1-hayvanlar/cat.png",
+        "audio": ""
+      },
+      {
+        "word": "Aslan",
+        "image": "/images/1-hayvanlar/lion.png",
+        "audio": ""
+      },
+      {
+        "word": "Köpek",
+        "image": "/images/1-hayvanlar/dog.png",
+        "audio": ""
+      },
+      {
+        "word": "Kuş",
+        "image": "/images/1-hayvanlar/bird.png",
+        "audio": ""
+      },
+      {
+        "word": "İnek",
+        "image": "/images/1-hayvanlar/cow.png",
+        "audio": ""
+      },
+      {
+        "word": "Kurbağa",
+        "image": "/images/1-hayvanlar/frog.png",
+        "audio": ""
+      },
+      {
+        "word": "Maymun",
+        "image": "/images/1-hayvanlar/monkey.png",
+        "audio": ""
+      },
+      {
+        "word": "Fil",
+        "image": "/images/1-hayvanlar/elephant.png",
+        "audio": ""
+      },
+      {
+        "word": "Zürafa",
+        "image": "/images/1-hayvanlar/giraffe.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "renkler",
+    "name": "RENKLER",
+    "icon": "🎨",
+    "wordList": [
+      {
+        "word": "Pembe",
+        "image": "/images/2-renkler/pink.png",
+        "audio": ""
+      },
+      {
+        "word": "Sarı",
+        "image": "/images/2-renkler/yellow.png",
+        "audio": ""
+      },
+      {
+        "word": "Turuncu",
+        "image": "/images/2-renkler/orange.png",
+        "audio": ""
+      },
+      {
+        "word": "Mavi",
+        "image": "/images/2-renkler/blue.png",
+        "audio": ""
+      },
+      {
+        "word": "Yeşil",
+        "image": "/images/2-renkler/green.png",
+        "audio": ""
+      },
+      {
+        "word": "Kahverengi",
+        "image": "/images/2-renkler/brown.png",
+        "audio": ""
+      },
+      {
+        "word": "Beyaz",
+        "image": "/images/2-renkler/white.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "vucudumuz",
+    "name": "VÜCUDUMUZ",
+    "icon": "🖐️",
+    "wordList": [
+      {
+        "word": "Alın",
+        "image": "/images/3-vucudumuz/alin.png",
+        "audio": ""
+      },
+      {
+        "word": "Ağız",
+        "image": "/images/3-vucudumuz/agiz.png",
+        "audio": ""
+      },
+      {
+        "word": "Yanak",
+        "image": "/images/3-vucudumuz/yanak.png",
+        "audio": ""
+      },
+      {
+        "word": "Burun",
+        "image": "/images/3-vucudumuz/burun.png",
+        "audio": ""
+      },
+      {
+        "word": "Çene",
+        "image": "/images/3-vucudumuz/cene.png",
+        "audio": ""
+      },
+      {
+        "word": "Dil",
+        "image": "/images/3-vucudumuz/dil.png",
+        "audio": ""
+      },
+      {
+        "word": "Yüz",
+        "image": "/images/3-vucudumuz/yuz.png",
+        "audio": ""
+      },
+      {
+        "word": "Saç",
+        "image": "/images/3-vucudumuz/sac.png",
+        "audio": ""
+      },
+      {
+        "word": "Boyun",
+        "image": "/images/3-vucudumuz/boyun.png",
+        "audio": ""
+      },
+      {
+        "word": "Kaş",
+        "image": "/images/3-vucudumuz/kas.png",
+        "audio": ""
+      },
+      {
+        "word": "Göz",
+        "image": "/images/3-vucudumuz/goz.png",
+        "audio": ""
+      },
+      {
+        "word": "Dudak",
+        "image": "/images/3-vucudumuz/dudak.png",
+        "audio": ""
+      },
+      {
+        "word": "Ayak",
+        "image": "/images/3-vucudumuz/ayak.png",
+        "audio": ""
+      },
+      {
+        "word": "Göbek",
+        "image": "/images/3-vucudumuz/gobek.png",
+        "audio": ""
+      },
+      {
+        "word": "Diş",
+        "image": "/images/3-vucudumuz/dis.png",
+        "audio": ""
+      },
+      {
+        "word": "Kulak",
+        "image": "/images/3-vucudumuz/kulak.png",
+        "audio": ""
+      },
+      {
+        "word": "Omuz",
+        "image": "/images/3-vucudumuz/omuz.png",
+        "audio": ""
+      },
+      {
+        "word": "Baş",
+        "image": "/images/3-vucudumuz/bas.png",
+        "audio": ""
+      },
+      {
+        "word": "Bacak",
+        "image": "/images/3-vucudumuz/bacak.png",
+        "audio": ""
+      },
+      {
+        "word": "Kol",
+        "image": "/images/3-vucudumuz/kol.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "meyveler-sebzeler",
+    "name": "MEYVELER VE SEBZELER",
+    "icon": "🍎",
+    "wordList": [
+      {
+        "word": "Salatalık",
+        "image": "/images/4-meyvelersebzeler/salatalik.png",
+        "audio": ""
+      },
+      {
+        "word": "Havuç",
+        "image": "/images/4-meyvelersebzeler/havuc.png",
+        "audio": ""
+      },
+      {
+        "word": "Soğan",
+        "image": "/images/4-meyvelersebzeler/sogan.png",
+        "audio": ""
+      },
+      {
+        "word": "Portakal",
+        "image": "/images/4-meyvelersebzeler/portakal.png",
+        "audio": ""
+      },
+      {
+        "word": "Brokoli",
+        "image": "/images/4-meyvelersebzeler/brokoli.png",
+        "audio": ""
+      },
+      {
+        "word": "Domates",
+        "image": "/images/4-meyvelersebzeler/domates.png",
+        "audio": ""
+      },
+      {
+        "word": "Kivi",
+        "image": "/images/4-meyvelersebzeler/kivi.png",
+        "audio": ""
+      },
+      {
+        "word": "Elma",
+        "image": "/images/4-meyvelersebzeler/elma.png",
+        "audio": ""
+      },
+      {
+        "word": "Karpuz",
+        "image": "/images/4-meyvelersebzeler/karpuz.png",
+        "audio": ""
+      },
+      {
+        "word": "Armut",
+        "image": "/images/4-meyvelersebzeler/armut.png",
+        "audio": ""
+      },
+      {
+        "word": "Kiraz",
+        "image": "/images/4-meyvelersebzeler/kiraz.png",
+        "audio": ""
+      },
+      {
+        "word": "Çilek",
+        "image": "/images/4-meyvelersebzeler/cilek.png",
+        "audio": ""
+      },
+      {
+        "word": "Üzüm",
+        "image": "/images/4-meyvelersebzeler/uzum.png",
+        "audio": ""
+      },
+      {
+        "word": "Biber",
+        "image": "/images/4-meyvelersebzeler/biber.png",
+        "audio": ""
+      },
+      {
+        "word": "Muz",
+        "image": "/images/4-meyvelersebzeler/muz.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "sekiller",
+    "name": "ŞEKİLLER",
+    "icon": "📐",
+    "wordList": [
+      {
+        "word": "Üçgen",
+        "image": "/images/5-sekiller/ucgen.png",
+        "audio": ""
+      },
+      {
+        "word": "Dikdörtgen",
+        "image": "/images/5-sekiller/dikdortgen.png",
+        "audio": ""
+      },
+      {
+        "word": "Kare",
+        "image": "/images/5-sekiller/kare.png",
+        "audio": ""
+      },
+      {
+        "word": "Daire",
+        "image": "/images/5-sekiller/daire.png",
+        "audio": ""
+      },
+      {
+        "word": "Kalp",
+        "image": "/images/5-sekiller/kalp.png",
+        "audio": ""
+      },
+      {
+        "word": "Yıldız",
+        "image": "/images/5-sekiller/yildiz.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "duygular",
+    "name": "DUYGULAR",
+    "icon": "😊",
+    "wordList": [
+      {
+        "word": "Mutlu",
+        "image": "/images/6-duygular/mutlu.png",
+        "audio": ""
+      },
+      {
+        "word": "Uzgun",
+        "image": "/images/6-duygular/uzgun.png",
+        "audio": ""
+      },
+      {
+        "word": "Sinirli",
+        "image": "/images/6-duygular/sinirli.png",
+        "audio": ""
+      },
+      {
+        "word": "Korkmus",
+        "image": "/images/6-duygular/korkmus.png",
+        "audio": ""
+      },
+      {
+        "word": "Saskin",
+        "image": "/images/6-duygular/saskin.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "yemekler",
+    "name": "YEMEKLER",
+    "icon": "🍲",
+    "wordList": [
+      {
+        "word": "Yumurta",
+        "image": "/images/7-yemekler/yumurta.png",
+        "audio": ""
+      },
+      {
+        "word": "Zeytin",
+        "image": "/images/7-yemekler/zeytin.png",
+        "audio": ""
+      },
+      {
+        "word": "Peynir",
+        "image": "/images/7-yemekler/peynir.png",
+        "audio": ""
+      },
+      {
+        "word": "Ekmek",
+        "image": "/images/7-yemekler/ekmek.png",
+        "audio": ""
+      },
+      {
+        "word": "Reçel",
+        "image": "/images/7-yemekler/recel.png",
+        "audio": ""
+      },
+      {
+        "word": "Bal",
+        "image": "/images/7-yemekler/bal.png",
+        "audio": ""
+      },
+      {
+        "word": "Tereyağ",
+        "image": "/images/7-yemekler/tereyag.png",
+        "audio": ""
+      },
+      {
+        "word": "Çorba",
+        "image": "/images/7-yemekler/corba.png",
+        "audio": ""
+      },
+      {
+        "word": "Pilav",
+        "image": "/images/7-yemekler/pilav.png",
+        "audio": ""
+      },
+      {
+        "word": "Makarna",
+        "image": "/images/7-yemekler/makarna.png",
+        "audio": ""
+      },
+      {
+        "word": "Köfte",
+        "image": "/images/7-yemekler/kofte.png",
+        "audio": ""
+      },
+      {
+        "word": "Balık",
+        "image": "/images/7-yemekler/balik.png",
+        "audio": ""
+      },
+      {
+        "word": "Tavuk",
+        "image": "/images/7-yemekler/tavuk.png",
+        "audio": ""
+      },
+      {
+        "word": "Patates kızartması",
+        "image": "/images/7-yemekler/patates-kizartmasi.png",
+        "audio": ""
+      },
+      {
+        "word": "Salata",
+        "image": "/images/7-yemekler/salata.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "meslekler",
+    "name": "MESLEKLER",
+    "icon": "👨‍✈️",
+    "wordList": [
+      {
+        "word": "Çiftçi",
+        "image": "/images/8-meslekler/ciftci.png",
+        "audio": ""
+      },
+      {
+        "word": "Ressam",
+        "image": "/images/8-meslekler/ressam.png",
+        "audio": ""
+      },
+      {
+        "word": "Manav",
+        "image": "/images/8-meslekler/manav.png",
+        "audio": ""
+      },
+      {
+        "word": "Veteriner",
+        "image": "/images/8-meslekler/veteriner.png",
+        "audio": ""
+      },
+      {
+        "word": "Aşçı",
+        "image": "/images/8-meslekler/asci.png",
+        "audio": ""
+      },
+      {
+        "word": "Tamirci",
+        "image": "/images/8-meslekler/tamirci.png",
+        "audio": ""
+      },
+      {
+        "word": "Pilot",
+        "image": "/images/8-meslekler/pilot.png",
+        "audio": ""
+      },
+      {
+        "word": "Doktor",
+        "image": "/images/8-meslekler/doktor.png",
+        "audio": ""
+      },
+      {
+        "word": "Kuaför",
+        "image": "/images/8-meslekler/kuafor.png",
+        "audio": ""
+      },
+      {
+        "word": "Öğretmen",
+        "image": "/images/8-meslekler/ogretmen.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "uzay",
+    "name": "UZAY",
+    "icon": "🚀",
+    "wordList": [
+      {
+        "word": "Güneş",
+        "image": "/images/9-uzay/gunes.png",
+        "audio": ""
+      },
+      {
+        "word": "Ay",
+        "image": "/images/9-uzay/ay.png",
+        "audio": ""
+      },
+      {
+        "word": "Yıldız",
+        "image": "/images/9-uzay/yildiz.png",
+        "audio": ""
+      },
+      {
+        "word": "Jüpiter",
+        "image": "/images/9-uzay/jupiter.png",
+        "audio": ""
+      },
+      {
+        "word": "Merkür",
+        "image": "/images/9-uzay/merkur.png",
+        "audio": ""
+      },
+      {
+        "word": "Dünya",
+        "image": "/images/9-uzay/dunya.png",
+        "audio": ""
+      },
+      {
+        "word": "Astronot",
+        "image": "/images/9-uzay/astronot.png",
+        "audio": ""
+      },
+      {
+        "word": "Roket",
+        "image": "/images/9-uzay/roket.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "duyu-organlari",
+    "name": "DUYU ORGANLARI",
+    "icon": "👂",
+    "wordList": [
+      {
+        "word": "Duymak",
+        "image": "/images/10-duyuorganlari/duymak.png",
+        "audio": ""
+      },
+      {
+        "word": "Görmek",
+        "image": "/images/10-duyuorganlari/gormek.png",
+        "audio": ""
+      },
+      {
+        "word": "Dokunmak",
+        "image": "/images/10-duyuorganlari/dokunmak.png",
+        "audio": ""
+      },
+      {
+        "word": "Tatmak",
+        "image": "/images/10-duyuorganlari/tatmak.png",
+        "audio": ""
+      },
+      {
+        "word": "Koklamak",
+        "image": "/images/10-duyuorganlari/koklamak.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "kisisel-bakim",
+    "name": "KİŞİSEL BAKIM",
+    "icon": "🪥",
+    "wordList": [
+      {
+        "word": "Ellerini yıkamak",
+        "image": "/images/11-kisiselbakim/ellerini-yikamak.png",
+        "audio": ""
+      },
+      {
+        "word": "Sabun",
+        "image": "/images/11-kisiselbakim/sabun.png",
+        "audio": ""
+      },
+      {
+        "word": "Havlu",
+        "image": "/images/11-kisiselbakim/havlu.png",
+        "audio": ""
+      },
+      {
+        "word": "Su",
+        "image": "/images/11-kisiselbakim/su.png",
+        "audio": ""
+      },
+      {
+        "word": "Saç taramak",
+        "image": "/images/11-kisiselbakim/sac-taramak.png",
+        "audio": ""
+      },
+      {
+        "word": "Tarak",
+        "image": "/images/11-kisiselbakim/tarak.png",
+        "audio": ""
+      },
+      {
+        "word": "Diş fırçalamak",
+        "image": "/images/11-kisiselbakim/dis-fircalamak.png",
+        "audio": ""
+      },
+      {
+        "word": "Diş fırçası",
+        "image": "/images/11-kisiselbakim/dis-fircasi.png",
+        "audio": ""
+      },
+      {
+        "word": "Diş macunu",
+        "image": "/images/11-kisiselbakim/dis-macunu.png",
+        "audio": ""
+      },
+      {
+        "word": "Banyo yapmak",
+        "image": "/images/11-kisiselbakim/banyo-yapmak.png",
+        "audio": ""
+      },
+      {
+        "word": "Banyo lifi",
+        "image": "/images/11-kisiselbakim/banyo-lifi.png",
+        "audio": ""
+      },
+      {
+        "word": "Şampuan",
+        "image": "/images/11-kisiselbakim/sampuan.png",
+        "audio": ""
+      },
+      {
+        "word": "Duş jeli",
+        "image": "/images/11-kisiselbakim/dus-jeli.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "hava-durumu",
+    "name": "HAVA DURUMU",
+    "icon": "🌤️",
+    "wordList": [
+      {
+        "word": "Güneşli",
+        "image": "/images/12-havadurumu/gunesli.png",
+        "audio": ""
+      },
+      {
+        "word": "Güneş",
+        "image": "/images/12-havadurumu/gunes.png",
+        "audio": ""
+      },
+      {
+        "word": "Yağmurlu",
+        "image": "/images/12-havadurumu/yagmurlu.png",
+        "audio": ""
+      },
+      {
+        "word": "Yağmur",
+        "image": "/images/12-havadurumu/yagmur.png",
+        "audio": ""
+      },
+      {
+        "word": "Karlı",
+        "image": "/images/12-havadurumu/karli.png",
+        "audio": ""
+      },
+      {
+        "word": "Kar",
+        "image": "/images/12-havadurumu/kar.png",
+        "audio": ""
+      },
+      {
+        "word": "Bulutlu",
+        "image": "/images/12-havadurumu/bulutlu.png",
+        "audio": ""
+      },
+      {
+        "word": "Bulut",
+        "image": "/images/12-havadurumu/bulut.png",
+        "audio": ""
+      },
+      {
+        "word": "Rüzgarlı",
+        "image": "/images/12-havadurumu/ruzgarli.png",
+        "audio": ""
+      },
+      {
+        "word": "Rüzgar",
+        "image": "/images/12-havadurumu/ruzgar.png",
+        "audio": ""
+      },
+      {
+        "word": "Fırtınalı",
+        "image": "/images/12-havadurumu/firtinali.png",
+        "audio": ""
+      },
+      {
+        "word": "Hortum",
+        "image": "/images/12-havadurumu/hortum.png",
+        "audio": ""
+      },
+      {
+        "word": "Şimşek",
+        "image": "/images/12-havadurumu/simsek.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "kiyafetler",
+    "name": "KIYAFETLER",
+    "icon": "👕",
+    "wordList": [
+      {
+        "word": "Kazak",
+        "image": "/images/13-kiyafetler/kazak.png",
+        "audio": ""
+      },
+      {
+        "word": "Tişört",
+        "image": "/images/13-kiyafetler/tisort.png",
+        "audio": ""
+      },
+      {
+        "word": "Hırka",
+        "image": "/images/13-kiyafetler/hirka.png",
+        "audio": ""
+      },
+      {
+        "word": "Pantolon",
+        "image": "/images/13-kiyafetler/pantolon.png",
+        "audio": ""
+      },
+      {
+        "word": "Etek",
+        "image": "/images/13-kiyafetler/etek.png",
+        "audio": ""
+      },
+      {
+        "word": "Eldiven",
+        "image": "/images/13-kiyafetler/eldiven.png",
+        "audio": ""
+      },
+      {
+        "word": "Atkı",
+        "image": "/images/13-kiyafetler/atki.png",
+        "audio": ""
+      },
+      {
+        "word": "Mont",
+        "image": "/images/13-kiyafetler/mont.png",
+        "audio": ""
+      },
+      {
+        "word": "Ayakkabı",
+        "image": "/images/13-kiyafetler/ayakkabi.png",
+        "audio": ""
+      },
+      {
+        "word": "Çorap",
+        "image": "/images/13-kiyafetler/corap.png",
+        "audio": ""
+      },
+      {
+        "word": "Ceket",
+        "image": "/images/13-kiyafetler/ceket.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "mevsimler",
+    "name": "MEVSİMLER",
+    "icon": "🍂",
+    "wordList": [
+      {
+        "word": "Ilkbahar",
+        "image": "/images/14-mevsimler/ilkbahar.png",
+        "audio": ""
+      },
+      {
+        "word": "Kelebek",
+        "image": "/images/14-mevsimler/kelebek.png",
+        "audio": ""
+      },
+      {
+        "word": "Ağaç",
+        "image": "/images/14-mevsimler/agac.png",
+        "audio": ""
+      },
+      {
+        "word": "Çiçek",
+        "image": "/images/14-mevsimler/cicek.png",
+        "audio": ""
+      },
+      {
+        "word": "Yaz",
+        "image": "/images/14-mevsimler/yaz.png",
+        "audio": ""
+      },
+      {
+        "word": "Kumdan kale",
+        "image": "/images/14-mevsimler/kumdan-kale.png",
+        "audio": ""
+      },
+      {
+        "word": "Güneş",
+        "image": "/images/14-mevsimler/gunes.png",
+        "audio": ""
+      },
+      {
+        "word": "Yüzmek",
+        "image": "/images/14-mevsimler/yuzmek.png",
+        "audio": ""
+      },
+      {
+        "word": "Dondurma",
+        "image": "/images/14-mevsimler/dondurma.png",
+        "audio": ""
+      },
+      {
+        "word": "Sonbahar",
+        "image": "/images/14-mevsimler/sonbahar.png",
+        "audio": ""
+      },
+      {
+        "word": "Sararmış yapraklar",
+        "image": "/images/14-mevsimler/sararmis-yapraklar.png",
+        "audio": ""
+      },
+      {
+        "word": "Rüzgar",
+        "image": "/images/14-mevsimler/ruzgar.png",
+        "audio": ""
+      },
+      {
+        "word": "Balkabağı",
+        "image": "/images/14-mevsimler/balkabagi.png",
+        "audio": ""
+      },
+      {
+        "word": "Kış",
+        "image": "/images/14-mevsimler/kis.png",
+        "audio": ""
+      },
+      {
+        "word": "Kar",
+        "image": "/images/14-mevsimler/kar.png",
+        "audio": ""
+      },
+      {
+        "word": "Kardan adam",
+        "image": "/images/14-mevsimler/kardan-adam.png",
+        "audio": ""
+      },
+      {
+        "word": "Atkı",
+        "image": "/images/14-mevsimler/atki.png",
+        "audio": ""
+      },
+      {
+        "word": "Bere",
+        "image": "/images/14-mevsimler/bere.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "dogum-gunu",
+    "name": "DOĞUM GÜNÜ",
+    "icon": "🎂",
+    "wordList": [
+      {
+        "word": "Pasta",
+        "image": "/images/15-dogumgunu/pasta.png",
+        "audio": ""
+      },
+      {
+        "word": "Mum",
+        "image": "/images/15-dogumgunu/mum.png",
+        "audio": ""
+      },
+      {
+        "word": "Hediye",
+        "image": "/images/15-dogumgunu/hediye.png",
+        "audio": ""
+      },
+      {
+        "word": "Kostüm",
+        "image": "/images/15-dogumgunu/kostum.png",
+        "audio": ""
+      },
+      {
+        "word": "Maske",
+        "image": "/images/15-dogumgunu/maske.png",
+        "audio": ""
+      },
+      {
+        "word": "Balon",
+        "image": "/images/15-dogumgunu/balon.png",
+        "audio": ""
+      },
+      {
+        "word": "Parti şapkaları",
+        "image": "/images/15-dogumgunu/parti-sapkalari.png",
+        "audio": ""
+      },
+      {
+        "word": "Konfeti",
+        "image": "/images/15-dogumgunu/konfeti.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "hareket",
+    "name": "HAREKET",
+    "icon": "🏃",
+    "wordList": [
+      {
+        "word": "Koşmak",
+        "image": "/images/16-hareket/kosmak.png",
+        "audio": ""
+      },
+      {
+        "word": "Zıplamak",
+        "image": "/images/16-hareket/ziplamak.png",
+        "audio": ""
+      },
+      {
+        "word": "Pişirmek",
+        "image": "/images/16-hareket/pisirmek.png",
+        "audio": ""
+      },
+      {
+        "word": "Yoğurmak",
+        "image": "/images/16-hareket/yogurmak.png",
+        "audio": ""
+      },
+      {
+        "word": "Kesmek",
+        "image": "/images/16-hareket/kesmek.png",
+        "audio": ""
+      },
+      {
+        "word": "Yapıştırmak",
+        "image": "/images/16-hareket/yapistirmak.png",
+        "audio": ""
+      },
+      {
+        "word": "Sürmek",
+        "image": "/images/16-hareket/surmek.png",
+        "audio": ""
+      },
+      {
+        "word": "Tırmanmak",
+        "image": "/images/16-hareket/tirmanmak.png",
+        "audio": ""
+      },
+      {
+        "word": "Yüzmek",
+        "image": "/images/16-hareket/yuzmek.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "deniz-canlilari",
+    "name": "DENİZ CANLILARI",
+    "icon": "🐙",
+    "wordList": [
+      {
+        "word": "Köpek balığı",
+        "image": "/images/17-denizcanlilari/kopek-baligi.png",
+        "audio": ""
+      },
+      {
+        "word": "Denizanası",
+        "image": "/images/17-denizcanlilari/denizanasi.png",
+        "audio": ""
+      },
+      {
+        "word": "Deniz kabuğu",
+        "image": "/images/17-denizcanlilari/deniz-kabugu.png",
+        "audio": ""
+      },
+      {
+        "word": "Deniz yıldızı",
+        "image": "/images/17-denizcanlilari/deniz-yildizi.png",
+        "audio": ""
+      },
+      {
+        "word": "Deniz kaplumbağası",
+        "image": "/images/17-denizcanlilari/deniz-kaplumbagasi.png",
+        "audio": ""
+      },
+      {
+        "word": "Yengeç",
+        "image": "/images/17-denizcanlilari/yengec.png",
+        "audio": ""
+      },
+      {
+        "word": "Karides",
+        "image": "/images/17-denizcanlilari/karides.png",
+        "audio": ""
+      },
+      {
+        "word": "Ahtapot",
+        "image": "/images/17-denizcanlilari/ahtapot.png",
+        "audio": ""
+      },
+      {
+        "word": "Balina",
+        "image": "/images/17-denizcanlilari/balina.png",
+        "audio": ""
+      },
+      {
+        "word": "Yunus",
+        "image": "/images/17-denizcanlilari/yunus.png",
+        "audio": ""
+      },
+      {
+        "word": "Denizatı",
+        "image": "/images/17-denizcanlilari/denizati.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "ciftlik-hayvanlari",
+    "name": "ÇİFTLİK HAYVANLARI",
+    "icon": "🐄",
+    "wordList": [
+      {
+        "word": "Köpek",
+        "image": "/images/18-ciftlikhayvanlari/kopek.png",
+        "audio": ""
+      },
+      {
+        "word": "Horoz",
+        "image": "/images/18-ciftlikhayvanlari/horoz.png",
+        "audio": ""
+      },
+      {
+        "word": "Kedi",
+        "image": "/images/18-ciftlikhayvanlari/kedi.png",
+        "audio": ""
+      },
+      {
+        "word": "Civciv",
+        "image": "/images/18-ciftlikhayvanlari/civciv.png",
+        "audio": ""
+      },
+      {
+        "word": "Eşek",
+        "image": "/images/18-ciftlikhayvanlari/esek.png",
+        "audio": ""
+      },
+      {
+        "word": "Inek",
+        "image": "/images/18-ciftlikhayvanlari/inek.png",
+        "audio": ""
+      },
+      {
+        "word": "Koyun",
+        "image": "/images/18-ciftlikhayvanlari/koyun.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "rakamlar",
+    "name": "RAKAMLAR",
+    "icon": "🔢",
+    "wordList": [
+      {
+        "word": "Bir",
+        "image": "/images/19-rakamlar/bir.png",
+        "audio": ""
+      },
+      {
+        "word": "Iki",
+        "image": "/images/19-rakamlar/iki.png",
+        "audio": ""
+      },
+      {
+        "word": "Üç",
+        "image": "/images/19-rakamlar/uc.png",
+        "audio": ""
+      },
+      {
+        "word": "Dört",
+        "image": "/images/19-rakamlar/dort.png",
+        "audio": ""
+      },
+      {
+        "word": "Beş",
+        "image": "/images/19-rakamlar/bes.png",
+        "audio": ""
+      },
+      {
+        "word": "Altı",
+        "image": "/images/19-rakamlar/alti.png",
+        "audio": ""
+      },
+      {
+        "word": "Yedi",
+        "image": "/images/19-rakamlar/yedi.png",
+        "audio": ""
+      },
+      {
+        "word": "Sekiz",
+        "image": "/images/19-rakamlar/sekiz.png",
+        "audio": ""
+      },
+      {
+        "word": "Dokuz",
+        "image": "/images/19-rakamlar/dokuz.png",
+        "audio": ""
+      },
+      {
+        "word": "On",
+        "image": "/images/19-rakamlar/on.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "seyahat",
+    "name": "SEYAHAT",
+    "icon": "✈️",
+    "wordList": [
+      {
+        "word": "Pasaport",
+        "image": "/images/20-seyahat/pasaport.png",
+        "audio": ""
+      },
+      {
+        "word": "Valiz",
+        "image": "/images/20-seyahat/valiz.png",
+        "audio": ""
+      },
+      {
+        "word": "Bilet",
+        "image": "/images/20-seyahat/bilet.png",
+        "audio": ""
+      },
+      {
+        "word": "Çadır",
+        "image": "/images/20-seyahat/cadir.png",
+        "audio": ""
+      },
+      {
+        "word": "Harita",
+        "image": "/images/20-seyahat/harita.png",
+        "audio": ""
+      },
+      {
+        "word": "Pusula",
+        "image": "/images/20-seyahat/pusula.png",
+        "audio": ""
+      },
+      {
+        "word": "Kamera",
+        "image": "/images/20-seyahat/kamera.png",
+        "audio": ""
+      },
+      {
+        "word": "Karavan",
+        "image": "/images/20-seyahat/karavan.png",
+        "audio": ""
+      },
+      {
+        "word": "Havaalanı",
+        "image": "/images/20-seyahat/havaalani.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "muzik-aletleri",
+    "name": "MÜZİK ALETLERİ",
+    "icon": "🎸",
+    "wordList": [
+      {
+        "word": "Piyano",
+        "image": "/images/21-muzikaletleri/piyano.png",
+        "audio": ""
+      },
+      {
+        "word": "Davul",
+        "image": "/images/21-muzikaletleri/davul.png",
+        "audio": ""
+      },
+      {
+        "word": "Elektro gitar",
+        "image": "/images/21-muzikaletleri/elektro-gitar.png",
+        "audio": ""
+      },
+      {
+        "word": "Maraka",
+        "image": "/images/21-muzikaletleri/maraka.png",
+        "audio": ""
+      },
+      {
+        "word": "Bağlama",
+        "image": "/images/21-muzikaletleri/baglama.png",
+        "audio": ""
+      },
+      {
+        "word": "Kemençe",
+        "image": "/images/21-muzikaletleri/kemence.png",
+        "audio": ""
+      },
+      {
+        "word": "Saksafon",
+        "image": "/images/21-muzikaletleri/saksafon.png",
+        "audio": ""
+      },
+      {
+        "word": "Keman",
+        "image": "/images/21-muzikaletleri/keman.png",
+        "audio": ""
+      },
+      {
+        "word": "Kanun",
+        "image": "/images/21-muzikaletleri/kanun.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "tasitlar",
+    "name": "TAŞITLAR",
+    "icon": "🚗",
+    "wordList": [
+      {
+        "word": "Denizaltı",
+        "image": "/images/22-tasitlar/denizalti.png",
+        "audio": ""
+      },
+      {
+        "word": "Sıcak hava balonu",
+        "image": "/images/22-tasitlar/sicak-hava-balonu.png",
+        "audio": ""
+      },
+      {
+        "word": "Yelkenli",
+        "image": "/images/22-tasitlar/yelkenli.png",
+        "audio": ""
+      },
+      {
+        "word": "UFO",
+        "image": "/images/22-tasitlar/ufo.png",
+        "audio": ""
+      },
+      {
+        "word": "Motorsiklet",
+        "image": "/images/22-tasitlar/motorsiklet.png",
+        "audio": ""
+      },
+      {
+        "word": "Helikopter",
+        "image": "/images/22-tasitlar/helikopter.png",
+        "audio": ""
+      },
+      {
+        "word": "Uzay mekiği",
+        "image": "/images/22-tasitlar/uzay-mekigi.png",
+        "audio": ""
+      },
+      {
+        "word": "Yarış arabası",
+        "image": "/images/22-tasitlar/yaris-arabasi.png",
+        "audio": ""
+      },
+      {
+        "word": "Otobüs",
+        "image": "/images/22-tasitlar/otobus.png",
+        "audio": ""
+      },
+      {
+        "word": "Taksi",
+        "image": "/images/22-tasitlar/taksi.png",
+        "audio": ""
+      },
+      {
+        "word": "Ambulans",
+        "image": "/images/22-tasitlar/ambulans.png",
+        "audio": ""
+      },
+      {
+        "word": "Tren",
+        "image": "/images/22-tasitlar/tren.png",
+        "audio": ""
+      },
+      {
+        "word": "Polis arabası",
+        "image": "/images/22-tasitlar/polis-arabasi.png",
+        "audio": ""
+      },
+      {
+        "word": "Uçak",
+        "image": "/images/22-tasitlar/ucak.png",
+        "audio": ""
+      },
+      {
+        "word": "Gemi",
+        "image": "/images/22-tasitlar/gemi.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "ev",
+    "name": "EV",
+    "icon": "🏠",
+    "wordList": [
+      {
+        "word": "Yatak",
+        "image": "/images/23-ev/yatak.png",
+        "audio": ""
+      },
+      {
+        "word": "Dolap",
+        "image": "/images/23-ev/dolap.png",
+        "audio": ""
+      },
+      {
+        "word": "Klozet",
+        "image": "/images/23-ev/klozet.png",
+        "audio": ""
+      },
+      {
+        "word": "Pano",
+        "image": "/images/23-ev/pano.png",
+        "audio": ""
+      },
+      {
+        "word": "Bulaşık makinesi",
+        "image": "/images/23-ev/bulasik-makinesi.png",
+        "audio": ""
+      },
+      {
+        "word": "Buzdolabı",
+        "image": "/images/23-ev/buzdolabi.png",
+        "audio": ""
+      },
+      {
+        "word": "Koltuk",
+        "image": "/images/23-ev/koltuk.png",
+        "audio": ""
+      },
+      {
+        "word": "Televizyon",
+        "image": "/images/23-ev/televizyon.png",
+        "audio": ""
+      },
+      {
+        "word": "Saat",
+        "image": "/images/23-ev/saat.png",
+        "audio": ""
+      },
+      {
+        "word": "Halı",
+        "image": "/images/23-ev/hali.png",
+        "audio": ""
+      },
+      {
+        "word": "Oturma odası",
+        "image": "/images/23-ev/oturma-odasi.png",
+        "audio": ""
+      },
+      {
+        "word": "Yatak odası",
+        "image": "/images/23-ev/yatak-odasi.png",
+        "audio": ""
+      },
+      {
+        "word": "Mutfak",
+        "image": "/images/23-ev/mutfak.png",
+        "audio": ""
+      },
+      {
+        "word": "Banyo",
+        "image": "/images/23-ev/banyo.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "alisveris",
+    "name": "ALIŞVERİŞ",
+    "icon": "🛒",
+    "wordList": [
+      {
+        "word": "Market",
+        "image": "/images/24-alisveris/market.png",
+        "audio": ""
+      },
+      {
+        "word": "Çiçekçi",
+        "image": "/images/24-alisveris/cicekci.png",
+        "audio": ""
+      },
+      {
+        "word": "Eczane",
+        "image": "/images/24-alisveris/eczane.png",
+        "audio": ""
+      },
+      {
+        "word": "Kitapçı",
+        "image": "/images/24-alisveris/kitapci.png",
+        "audio": ""
+      },
+      {
+        "word": "Kıyafet mağazası",
+        "image": "/images/24-alisveris/kiyafet-magazasi.png",
+        "audio": ""
+      },
+      {
+        "word": "Ayakkabı mağazası",
+        "image": "/images/24-alisveris/ayakkabi-magazasi.png",
+        "audio": ""
+      },
+      {
+        "word": "Indirim",
+        "image": "/images/24-alisveris/indirim.png",
+        "audio": ""
+      },
+      {
+        "word": "Kredi kartı",
+        "image": "/images/24-alisveris/kredi-karti.png",
+        "audio": ""
+      },
+      {
+        "word": "Nakit para",
+        "image": "/images/24-alisveris/nakit-para.png",
+        "audio": ""
+      },
+      {
+        "word": "Kasa",
+        "image": "/images/24-alisveris/kasa.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "yemek-yapiyorum",
+    "name": "YEMEK YAPIYORUM",
+    "icon": "👨‍🍳",
+    "wordList": [
+      {
+        "word": "Rendele",
+        "image": "/images/25-yemekyapiyorum/rendele.png",
+        "audio": ""
+      },
+      {
+        "word": "Dök",
+        "image": "/images/25-yemekyapiyorum/dok.png",
+        "audio": ""
+      },
+      {
+        "word": "Karıştır",
+        "image": "/images/25-yemekyapiyorum/karistir.png",
+        "audio": ""
+      },
+      {
+        "word": "Ekle",
+        "image": "/images/25-yemekyapiyorum/ekle.png",
+        "audio": ""
+      },
+      {
+        "word": "Kaynat",
+        "image": "/images/25-yemekyapiyorum/kaynat.png",
+        "audio": ""
+      },
+      {
+        "word": "Doğra",
+        "image": "/images/25-yemekyapiyorum/dogra.png",
+        "audio": ""
+      },
+      {
+        "word": "Dilimle",
+        "image": "/images/25-yemekyapiyorum/dilimle.png",
+        "audio": ""
+      },
+      {
+        "word": "Hamuru aç",
+        "image": "/images/25-yemekyapiyorum/hamuru-ac.png",
+        "audio": ""
+      },
+      {
+        "word": "Hamuru yoğur",
+        "image": "/images/25-yemekyapiyorum/hamuru-yogur.png",
+        "audio": ""
+      },
+      {
+        "word": "Tencere",
+        "image": "/images/25-yemekyapiyorum/tencere.png",
+        "audio": ""
+      },
+      {
+        "word": "Merdane",
+        "image": "/images/25-yemekyapiyorum/merdane.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "hastalik",
+    "name": "HASTALIK",
+    "icon": "🤒",
+    "wordList": [
+      {
+        "word": "Öksürmek",
+        "image": "/images/26-hastalik/oksurmek.png",
+        "audio": ""
+      },
+      {
+        "word": "Hapşurmak",
+        "image": "/images/26-hastalik/hapsurmak.png",
+        "audio": ""
+      },
+      {
+        "word": "Burnu akmak",
+        "image": "/images/26-hastalik/burnu-akmak.png",
+        "audio": ""
+      },
+      {
+        "word": "Dişi ağrımak",
+        "image": "/images/26-hastalik/disi-agrimak.png",
+        "audio": ""
+      },
+      {
+        "word": "Karnı ağrımak",
+        "image": "/images/26-hastalik/karni-agrimak.png",
+        "audio": ""
+      },
+      {
+        "word": "Başı ağrımak",
+        "image": "/images/26-hastalik/basi-agrimak.png",
+        "audio": ""
+      },
+      {
+        "word": "Ateşi çıkmak",
+        "image": "/images/26-hastalik/atesi-cikmak.png",
+        "audio": ""
+      },
+      {
+        "word": "Boğazı ağrımak",
+        "image": "/images/26-hastalik/bogazi-agrimak.png",
+        "audio": ""
+      },
+      {
+        "word": "Ayağı kırılmak",
+        "image": "/images/26-hastalik/ayagi-kirilmak.png",
+        "audio": ""
+      },
+      {
+        "word": "Şurup",
+        "image": "/images/26-hastalik/surup.png",
+        "audio": ""
+      },
+      {
+        "word": "Hap",
+        "image": "/images/26-hastalik/hap.png",
+        "audio": ""
+      },
+      {
+        "word": "Iğne",
+        "image": "/images/26-hastalik/igne.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "spor",
+    "name": "SPOR",
+    "icon": "⚽",
+    "wordList": [
+      {
+        "word": "Yüzme",
+        "image": "/images/27-spor/yuzme.png",
+        "audio": ""
+      },
+      {
+        "word": "Boks",
+        "image": "/images/27-spor/boks.png",
+        "audio": ""
+      },
+      {
+        "word": "Koşu",
+        "image": "/images/27-spor/kosu.png",
+        "audio": ""
+      },
+      {
+        "word": "Buz pateni",
+        "image": "/images/27-spor/buz-pateni.png",
+        "audio": ""
+      },
+      {
+        "word": "Futbol",
+        "image": "/images/27-spor/futbol.png",
+        "audio": ""
+      },
+      {
+        "word": "Golf",
+        "image": "/images/27-spor/golf.png",
+        "audio": ""
+      },
+      {
+        "word": "Tenis",
+        "image": "/images/27-spor/tenis.png",
+        "audio": ""
+      },
+      {
+        "word": "Basketbol",
+        "image": "/images/27-spor/basketbol.png",
+        "audio": ""
+      },
+      {
+        "word": "Karate",
+        "image": "/images/27-spor/karate.png",
+        "audio": ""
+      },
+      {
+        "word": "Bisiklet sürme",
+        "image": "/images/27-spor/bisiklet-surme.png",
+        "audio": ""
+      },
+      {
+        "word": "Okçuluk",
+        "image": "/images/27-spor/okculuk.png",
+        "audio": ""
+      },
+      {
+        "word": "Ata binme",
+        "image": "/images/27-spor/ata-binme.png",
+        "audio": ""
+      },
+      {
+        "word": "Dalış",
+        "image": "/images/27-spor/dalis.png",
+        "audio": ""
+      },
+      {
+        "word": "Güreş",
+        "image": "/images/27-spor/gures.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "yeryuzu",
+    "name": "YERYÜZÜ",
+    "icon": "🌍",
+    "wordList": [
+      {
+        "word": "Çöl",
+        "image": "/images/28-yeryuzu/col.png",
+        "audio": ""
+      },
+      {
+        "word": "Orman",
+        "image": "/images/28-yeryuzu/orman.png",
+        "audio": ""
+      },
+      {
+        "word": "Göl",
+        "image": "/images/28-yeryuzu/gol.png",
+        "audio": ""
+      },
+      {
+        "word": "Mağara",
+        "image": "/images/28-yeryuzu/magara.png",
+        "audio": ""
+      },
+      {
+        "word": "Dağ",
+        "image": "/images/28-yeryuzu/dag.png",
+        "audio": ""
+      },
+      {
+        "word": "Deniz",
+        "image": "/images/28-yeryuzu/deniz.png",
+        "audio": ""
+      },
+      {
+        "word": "Şelale",
+        "image": "/images/28-yeryuzu/selale.png",
+        "audio": ""
+      },
+      {
+        "word": "Volkan",
+        "image": "/images/28-yeryuzu/volkan.png",
+        "audio": ""
+      },
+      {
+        "word": "Uçurum",
+        "image": "/images/28-yeryuzu/ucurum.png",
+        "audio": ""
+      },
+      {
+        "word": "Bataklık",
+        "image": "/images/28-yeryuzu/bataklik.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "cihazlar",
+    "name": "CİHAZLAR",
+    "icon": "💻",
+    "wordList": [
+      {
+        "word": "Fare",
+        "image": "/images/29-cihazlar/fare.png",
+        "audio": ""
+      },
+      {
+        "word": "Klavye",
+        "image": "/images/29-cihazlar/klavye.png",
+        "audio": ""
+      },
+      {
+        "word": "Akıllı saat",
+        "image": "/images/29-cihazlar/akilli-saat.png",
+        "audio": ""
+      },
+      {
+        "word": "Telefon",
+        "image": "/images/29-cihazlar/telefon.png",
+        "audio": ""
+      },
+      {
+        "word": "Tablet",
+        "image": "/images/29-cihazlar/tablet.png",
+        "audio": ""
+      },
+      {
+        "word": "Uzaktan kumandalı araba",
+        "image": "/images/29-cihazlar/uzaktan-kumandali-araba.png",
+        "audio": ""
+      },
+      {
+        "word": "Mikrofon",
+        "image": "/images/29-cihazlar/mikrofon.png",
+        "audio": ""
+      },
+      {
+        "word": "Hoparlör",
+        "image": "/images/29-cihazlar/hoparlor.png",
+        "audio": ""
+      },
+      {
+        "word": "Dizüstü bilgisayar",
+        "image": "/images/29-cihazlar/dizustu-bilgisayar.png",
+        "audio": ""
+      },
+      {
+        "word": "Yazıcı",
+        "image": "/images/29-cihazlar/yazici.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "kisisel-ozellikler",
+    "name": "KİŞİSEL ÖZELLİKLER",
+    "icon": "👤",
+    "wordList": [
+      {
+        "word": "Tembel",
+        "image": "/images/30-kisilikozellikleri/tembel.png",
+        "audio": ""
+      },
+      {
+        "word": "Çalışkan",
+        "image": "/images/30-kisilikozellikleri/caliskan.png",
+        "audio": ""
+      },
+      {
+        "word": "Sinirli",
+        "image": "/images/30-kisilikozellikleri/sinirli.png",
+        "audio": ""
+      },
+      {
+        "word": "Utangaç",
+        "image": "/images/30-kisilikozellikleri/utangac.png",
+        "audio": ""
+      },
+      {
+        "word": "Eğlenceli",
+        "image": "/images/30-kisilikozellikleri/eglenceli.png",
+        "audio": ""
+      },
+      {
+        "word": "Konuşkan",
+        "image": "/images/30-kisilikozellikleri/konuskan.png",
+        "audio": ""
+      },
+      {
+        "word": "Yardımsever",
+        "image": "/images/30-kisilikozellikleri/yardimsever.png",
+        "audio": ""
+      },
+      {
+        "word": "Cimri",
+        "image": "/images/30-kisilikozellikleri/cimri.png",
+        "audio": ""
+      },
+      {
+        "word": "Kaba",
+        "image": "/images/30-kisilikozellikleri/kaba.png",
+        "audio": ""
+      },
+      {
+        "word": "Cesur",
+        "image": "/images/30-kisilikozellikleri/cesur.png",
+        "audio": ""
+      },
+      {
+        "word": "Korkak",
+        "image": "/images/30-kisilikozellikleri/korkak.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "sanat",
+    "name": "SANAT",
+    "icon": "🎨",
+    "wordList": [
+      {
+        "word": "Konser",
+        "image": "/images/31-sanat/konser.png",
+        "audio": ""
+      },
+      {
+        "word": "Oyuncu",
+        "image": "/images/31-sanat/oyuncu.png",
+        "audio": ""
+      },
+      {
+        "word": "Koro",
+        "image": "/images/31-sanat/koro.png",
+        "audio": ""
+      },
+      {
+        "word": "Kostüm",
+        "image": "/images/31-sanat/kostum.png",
+        "audio": ""
+      },
+      {
+        "word": "Tuval",
+        "image": "/images/31-sanat/tuval.png",
+        "audio": ""
+      },
+      {
+        "word": "Enstrüman",
+        "image": "/images/31-sanat/enstruman.png",
+        "audio": ""
+      },
+      {
+        "word": "Boya",
+        "image": "/images/31-sanat/boya.png",
+        "audio": ""
+      },
+      {
+        "word": "Dans ayakkabısı",
+        "image": "/images/31-sanat/dans-ayakkabisi.png",
+        "audio": ""
+      },
+      {
+        "word": "Fırça",
+        "image": "/images/31-sanat/firca.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "kamp",
+    "name": "KAMP",
+    "icon": "⛺",
+    "wordList": [
+      {
+        "word": "Kamp ateşi",
+        "image": "/images/32-kamp/kamp-atesi.png",
+        "audio": ""
+      },
+      {
+        "word": "Pusula",
+        "image": "/images/32-kamp/pusula.png",
+        "audio": ""
+      },
+      {
+        "word": "Uyku tulumu",
+        "image": "/images/32-kamp/uyku-tulumu.png",
+        "audio": ""
+      },
+      {
+        "word": "Termos",
+        "image": "/images/32-kamp/termos.png",
+        "audio": ""
+      },
+      {
+        "word": "Çadır",
+        "image": "/images/32-kamp/cadir.png",
+        "audio": ""
+      },
+      {
+        "word": "Sırt çantası",
+        "image": "/images/32-kamp/sirt-cantasi.png",
+        "audio": ""
+      },
+      {
+        "word": "Orman",
+        "image": "/images/32-kamp/orman.png",
+        "audio": ""
+      },
+      {
+        "word": "El feneri",
+        "image": "/images/32-kamp/el-feneri.png",
+        "audio": ""
+      },
+      {
+        "word": "Harita",
+        "image": "/images/32-kamp/harita.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "ev-isleri",
+    "name": "EV İŞLERİ",
+    "icon": "🧹",
+    "wordList": [
+      {
+        "word": "Süpürmek",
+        "image": "/images/33-evisleri/supurmek.png",
+        "audio": ""
+      },
+      {
+        "word": "Toz almak",
+        "image": "/images/33-evisleri/toz-almak.png",
+        "audio": ""
+      },
+      {
+        "word": "Yemek yapmak",
+        "image": "/images/33-evisleri/yemek-yapmak.png",
+        "audio": ""
+      },
+      {
+        "word": "Bulaşık yıkamak",
+        "image": "/images/33-evisleri/bulasik-yikamak.png",
+        "audio": ""
+      },
+      {
+        "word": "Çamaşır yıkamak",
+        "image": "/images/33-evisleri/camasir-yikamak.png",
+        "audio": ""
+      },
+      {
+        "word": "Ütü yapmak",
+        "image": "/images/33-evisleri/utu-yapmak.png",
+        "audio": ""
+      },
+      {
+        "word": "Yerleri silmek",
+        "image": "/images/33-evisleri/yerleri-silmek.png",
+        "audio": ""
+      },
+      {
+        "word": "Çöpü çıkarmak",
+        "image": "/images/33-evisleri/copu-cikarmak.png",
+        "audio": ""
+      },
+      {
+        "word": "Çamaşır asmak",
+        "image": "/images/33-evisleri/camasir-asmak.png",
+        "audio": ""
+      },
+      {
+        "word": "Yatak yapmak",
+        "image": "/images/33-evisleri/yatak-yapmak.png",
+        "audio": ""
+      },
+      {
+        "word": "Dolapları düzenlemek",
+        "image": "/images/33-evisleri/dolaplari-duzenlemek.png",
+        "audio": ""
+      },
+      {
+        "word": "Bitkileri sulamak",
+        "image": "/images/33-evisleri/bitkileri-sulamak.png",
+        "audio": ""
+      },
+      {
+        "word": "Camları silmek",
+        "image": "/images/33-evisleri/camlari-silmek.png",
+        "audio": ""
+      },
+      {
+        "word": "Sofra hazırlamak",
+        "image": "/images/33-evisleri/sofra-hazirlamak.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "vahsi-ve-evcil-hayvanlar",
+    "name": "VAHŞİ VE EVCİL HAYVANLAR",
+    "icon": "🦁",
+    "wordList": [
+      {
+        "word": "Aslan",
+        "image": "/images/34-vahsiveevcilhayvanlar/aslan.png",
+        "audio": ""
+      },
+      {
+        "word": "Kaplan",
+        "image": "/images/34-vahsiveevcilhayvanlar/kaplan.png",
+        "audio": ""
+      },
+      {
+        "word": "Fil",
+        "image": "/images/34-vahsiveevcilhayvanlar/fil.png",
+        "audio": ""
+      },
+      {
+        "word": "Ayı",
+        "image": "/images/34-vahsiveevcilhayvanlar/ayi.png",
+        "audio": ""
+      },
+      {
+        "word": "Tilki",
+        "image": "/images/34-vahsiveevcilhayvanlar/tilki.png",
+        "audio": ""
+      },
+      {
+        "word": "Kurt",
+        "image": "/images/34-vahsiveevcilhayvanlar/kurt.png",
+        "audio": ""
+      },
+      {
+        "word": "Zebra",
+        "image": "/images/34-vahsiveevcilhayvanlar/zebra.png",
+        "audio": ""
+      },
+      {
+        "word": "Zürafa",
+        "image": "/images/34-vahsiveevcilhayvanlar/zurafa.png",
+        "audio": ""
+      },
+      {
+        "word": "Timsah",
+        "image": "/images/34-vahsiveevcilhayvanlar/timsah.png",
+        "audio": ""
+      },
+      {
+        "word": "Kartal",
+        "image": "/images/34-vahsiveevcilhayvanlar/kartal.png",
+        "audio": ""
+      },
+      {
+        "word": "Kedi",
+        "image": "/images/34-vahsiveevcilhayvanlar/kedi.png",
+        "audio": ""
+      },
+      {
+        "word": "Köpek",
+        "image": "/images/34-vahsiveevcilhayvanlar/kopek.png",
+        "audio": ""
+      },
+      {
+        "word": "Tavşan",
+        "image": "/images/34-vahsiveevcilhayvanlar/tavsan.png",
+        "audio": ""
+      },
+      {
+        "word": "Kuş",
+        "image": "/images/34-vahsiveevcilhayvanlar/kus.png",
+        "audio": ""
+      },
+      {
+        "word": "Balık",
+        "image": "/images/34-vahsiveevcilhayvanlar/balik.png",
+        "audio": ""
+      },
+      {
+        "word": "Papağan",
+        "image": "/images/34-vahsiveevcilhayvanlar/papagan.png",
+        "audio": ""
+      },
+      {
+        "word": "Hamster",
+        "image": "/images/34-vahsiveevcilhayvanlar/hamster.png",
+        "audio": ""
+      },
+      {
+        "word": "Inek",
+        "image": "/images/34-vahsiveevcilhayvanlar/inek.png",
+        "audio": ""
+      },
+      {
+        "word": "At",
+        "image": "/images/34-vahsiveevcilhayvanlar/at.png",
+        "audio": ""
+      },
+      {
+        "word": "Tavuk",
+        "image": "/images/34-vahsiveevcilhayvanlar/tavuk.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "mekanlar",
+    "name": "MEKANLAR",
+    "icon": "🏢",
+    "wordList": [
+      {
+        "word": "Park",
+        "image": "/images/35-mekanlar/park.png",
+        "audio": ""
+      },
+      {
+        "word": "Okul",
+        "image": "/images/35-mekanlar/okul.png",
+        "audio": ""
+      },
+      {
+        "word": "Kafe",
+        "image": "/images/35-mekanlar/kafe.png",
+        "audio": ""
+      },
+      {
+        "word": "Fırın",
+        "image": "/images/35-mekanlar/firin.png",
+        "audio": ""
+      },
+      {
+        "word": "Otobüs durağı",
+        "image": "/images/35-mekanlar/otobus-duragi.png",
+        "audio": ""
+      },
+      {
+        "word": "Market",
+        "image": "/images/35-mekanlar/market.png",
+        "audio": ""
+      },
+      {
+        "word": "Banka",
+        "image": "/images/35-mekanlar/banka.png",
+        "audio": ""
+      },
+      {
+        "word": "Hastane",
+        "image": "/images/35-mekanlar/hastane.png",
+        "audio": ""
+      },
+      {
+        "word": "Restoran",
+        "image": "/images/35-mekanlar/restoran.png",
+        "audio": ""
+      }
+    ]
+  },
+  {
+    "id": "sifatlar",
+    "name": "SIFATLAR",
+    "icon": "✨",
+    "wordList": [
+      {
+        "word": "Uzun",
+        "image": "/images/36-sifatlar/uzun.png",
+        "audio": ""
+      },
+      {
+        "word": "Kısa",
+        "image": "/images/36-sifatlar/kisa.png",
+        "audio": ""
+      },
+      {
+        "word": "Şişman",
+        "image": "/images/36-sifatlar/sisman.png",
+        "audio": ""
+      },
+      {
+        "word": "Zayıf",
+        "image": "/images/36-sifatlar/zayif.png",
+        "audio": ""
+      },
+      {
+        "word": "Büyük",
+        "image": "/images/36-sifatlar/buyuk.png",
+        "audio": ""
+      },
+      {
+        "word": "Küçük",
+        "image": "/images/36-sifatlar/kucuk.png",
+        "audio": ""
+      },
+      {
+        "word": "Yumuşak",
+        "image": "/images/36-sifatlar/yumusak.png",
+        "audio": ""
+      },
+      {
+        "word": "Sert",
+        "image": "/images/36-sifatlar/sert.png",
+        "audio": ""
+      },
+      {
+        "word": "Temiz",
+        "image": "/images/36-sifatlar/temiz.png",
+        "audio": ""
+      },
+      {
+        "word": "Kirli",
+        "image": "/images/36-sifatlar/kirli.png",
+        "audio": ""
+      },
+      {
+        "word": "Kuru",
+        "image": "/images/36-sifatlar/kuru.png",
+        "audio": ""
+      },
+      {
+        "word": "Islak",
+        "image": "/images/36-sifatlar/islak.png",
+        "audio": ""
+      },
+      {
+        "word": "Hızlı",
+        "image": "/images/36-sifatlar/hizli.png",
+        "audio": ""
+      },
+      {
+        "word": "Yavaş",
+        "image": "/images/36-sifatlar/yavas.png",
+        "audio": ""
+      },
+      {
+        "word": "Boş",
+        "image": "/images/36-sifatlar/bos.png",
+        "audio": ""
+      },
+      {
+        "word": "Dolu",
+        "image": "/images/36-sifatlar/dolu.png",
+        "audio": ""
+      },
+      {
+        "word": "Sıcak",
+        "image": "/images/36-sifatlar/sicak.png",
+        "audio": ""
+      },
+      {
+        "word": "Soğuk",
+        "image": "/images/36-sifatlar/soguk.png",
+        "audio": ""
+      }
+    ]
+  }
+]

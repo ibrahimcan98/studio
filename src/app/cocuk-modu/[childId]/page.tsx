@@ -1,24 +1,69 @@
 
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
-import { Loader2, LogOut, Award, Star, Heart, Lock, Infinity as InfinityIcon } from 'lucide-react';
+import { doc } from 'firebase/firestore';
+import { Loader2, LogOut, Star, Settings, Home, User as UserIcon, Coins, Gem, Map, BookOpen, MessageCircle } from 'lucide-react';
 import { TopicCard } from '@/components/child-mode/topic-card';
-import topics from '@/data/topics.json';
 import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import { ExitDialog } from "@/components/child-mode/exit-dialog";
 import { cn } from '@/lib/utils';
-import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { ChildSidebar } from '@/components/child-mode/sidebar';
 
-const topicPositions = [
-  [20, 22], [19.8, 70], [23.8, 68], [23.7, 25], [29.7, 25], 
-  [26.4, 75], [31.7, 72], [35, 12], [35.5, 70], [42, 78], 
-  [39.4, 30], [43, 52], [48, 82]
+// Mock veriler (Sizden başlıklar gelene kadar test için)
+const MOCK_TOPICS = [
+  { id: 'hayvanlar', name: 'HAYVANLAR', icon: '🦁', color: 'green', top: '250px', left: '65%', imageUrl: '/images/1-hayvanlar/1-hayvanlar.png' },
+  { id: 'renkler', name: 'RENKLER', icon: '🎨', color: 'purple', top: '450px', left: '25%', imageUrl: '/images/2-renkler/2-renkler.png' },
+  { id: 'vucudumuz', name: 'VÜCUDUMUZ', icon: '🖐️', color: 'orange', top: '750px', left: '65%', imageUrl: '/images/3-vucudumuz/3-vucudumuz.png' },
+  { id: 'meyveler-sebzeler', name: 'MEYVELER VE SEBZELER', icon: '🍎', color: 'red', top: '1050px', left: '25%', imageUrl: '/images/4-meyvelersebzeler/4-meyvelersebzeler.png' },
+  { id: 'sekiller', name: 'ŞEKİLLER', icon: '📐', color: 'blue', top: '1350px', left: '65%', imageUrl: '/images/5-sekiller/5-sekiller.png' },
+  { id: 'duygular', name: 'DUYGULAR', icon: '😊', color: 'pink', top: '1650px', left: '25%', imageUrl: '/images/6-duygular/6-duygular.png' },
+  { id: 'yemekler', name: 'YEMEKLER', icon: '🍲', color: 'yellow', top: '1950px', left: '65%', imageUrl: '/images/7-yemekler/7-yemekler.png' },
+  { id: 'meslekler', name: 'MESLEKLER', icon: '👨‍✈️', color: 'slate', top: '2250px', left: '25%', imageUrl: '/images/8-meslekler/8-meslekler.png' },
+  { id: 'uzay', name: 'UZAY', icon: '🚀', color: 'indigo', top: '2550px', left: '65%', imageUrl: '/images/9-uzay/9-uzay.png' },
+  { id: 'duyu-organlari', name: 'DUYU ORGANLARI', icon: '👂', color: 'amber', top: '2850px', left: '25%', imageUrl: '/images/10-duyuorganlari/10-duyuorganlari.png' },
+  { id: 'kisisel-bakim', name: 'KİŞİSEL BAKIM', icon: '🪥', color: 'cyan', top: '3150px', left: '65%', imageUrl: '/images/11-kisiselbakim/11-kisiselbakim.png' },
+  { id: 'hava-durumu', name: 'HAVA DURUMU', icon: '🌤️', color: 'blue', top: '3450px', left: '25%', imageUrl: '/images/12-havadurumu/12-havadurumu.png' },
+  { id: 'kiyafetler', name: 'KIYAFETLER', icon: '👕', color: 'orange', top: '3750px', left: '65%', imageUrl: '/images/13-kiyafetler/13-kiyafetler.png' },
+  { id: 'mevsimler', name: 'MEVSİMLER', icon: '🍂', color: 'green', top: '4050px', left: '25%', imageUrl: '/images/14-mevsimler/14-mevsimler.png' },
+  { id: 'dogum-gunu', name: 'DOĞUM GÜNÜ', icon: '🎂', color: 'pink', top: '4250px', left: '65%', imageUrl: '/images/15-dogumgunu/15-dogumgunu.png' },
+  { id: 'hareket', name: 'HAREKET', icon: '🏃', color: 'orange', top: '4650px', left: '25%', imageUrl: '/images/16-hareket/16-hareket.png' },
+  { id: 'deniz-canlilari', name: 'DENİZ CANLILARI', icon: '🐙', color: 'blue', top: '4950px', left: '65%', imageUrl: '/images/17-denizcanlilari/17-denizcanlilari.png' },
+  { id: 'ciftlik-hayvanlari', name: 'ÇİFTLİK HAYVANLARI', icon: '🐄', color: 'green', top: '5250px', left: '25%', imageUrl: '/images/18-ciftlikhayvanlari/18-ciftlikhayvanlari.png' },
+  { id: 'rakamlar', name: 'RAKAMLAR', icon: '🔢', color: 'indigo', top: '5550px', left: '65%', imageUrl: '/images/19-rakamlar/19-rakamlar.png' },
+  { id: 'seyahat', name: 'SEYAHAT', icon: '✈️', color: 'cyan', top: '5850px', left: '25%', imageUrl: '/images/20-seyahat/20-seyahat.png' },
+  { id: 'muzik-aletleri', name: 'MÜZİK ALETLERİ', icon: '🎸', color: 'orange', top: '6150px', left: '65%', imageUrl: '/images/21-muzikaletleri/21-muzikaletleri.png' },
+  { id: 'tasitlar', name: 'TAŞITLAR', icon: '🚗', color: 'slate', top: '6450px', left: '25%', imageUrl: '/images/22-tasitlar/22-tasitlar.png' },
+  { id: 'ev', name: 'EV', icon: '🏠', color: 'orange', top: '6750px', left: '65%', imageUrl: '/images/23-ev/23-ev.png' },
+  { id: 'alisveris', name: 'ALIŞVERİŞ', icon: '🛒', color: 'indigo', top: '7050px', left: '25%', imageUrl: '/images/24-alisveris/24-alisveris.png' },
+  { id: 'yemek-yapiyorum', name: 'YEMEK YAPIYORUM', icon: '👨‍🍳', color: 'orange', top: '7250px', left: '65%', imageUrl: '/images/25-yemekyapiyorum/25-yemekyapiyorum.png' },
+  { id: 'hastalik', name: 'HASTALIK', icon: '🤒', color: 'red', top: '7650px', left: '25%', imageUrl: '/images/26-hastalik/26-hastalik.png' },
+  { id: 'spor', name: 'SPOR', icon: '⚽', color: 'green', top: '7950px', left: '65%', imageUrl: '/images/27-spor/27-spor.png' },
+  { id: 'yeryuzu', name: 'YERYÜZÜ', icon: '🌍', color: 'blue', top: '8250px', left: '25%', imageUrl: '/images/28-yeryuzu/28-yeryuzu.png' },
+  { id: 'cihazlar', name: 'CİHAZLAR', icon: '💻', color: 'slate', top: '8650px', left: '65%', imageUrl: '/images/29-cihazlar/29-cihazlar.png' },
+  { id: 'kisisel-ozellikler', name: 'KİŞİSEL ÖZELLİKLER', icon: '👤', color: 'amber', top: '8850px', left: '25%', imageUrl: '/images/30-kisilikozellikleri/30-kisiselozellik.png' },
+  { id: 'sanat', name: 'SANAT', icon: '🎨', color: 'pink', top: '9150px', left: '65%', imageUrl: '/images/31-sanat/31-sanat.png' },
+  { id: 'kamp', name: 'KAMP', icon: '⛺', color: 'green', top: '9450px', left: '25%', imageUrl: '/images/32-kamp/32-kamp.png' },
+  { id: 'ev-isleri', name: 'EV İŞLERİ', icon: '🧹', color: 'blue', top: '9750px', left: '65%', imageUrl: '/images/33-evisleri/33-evisleri.png' },
+  { id: 'vahsi-ve-evcil-hayvanlar', name: 'VAHŞİ VE EVCİL HAYVANLAR', icon: '🦁', color: 'green', top: '10050px', left: '25%', imageUrl: '/images/34-vahsiveevcilhayvanlar/34-vahsievcil.png' },
+  { id: 'mekanlar', name: 'MEKANLAR', icon: '🏢', color: 'blue', top: '10250px', left: '65%', imageUrl: '/images/35-mekanlar/35-mekanlar.png' },
+  { id: 'sifatlar', name: 'SIFATLAR', icon: '✨', color: 'orange', top: '10650px', left: '25%', imageUrl: '/images/36-sifatlar/36-sifatlar.png' },
 ];
+
+const Cloud = ({ className, style }: { className?: string, style?: React.CSSProperties }) => (
+  <div
+    className={cn("absolute opacity-60 animate-float-slow pointer-events-none z-0", className)}
+    style={style}
+  >
+    <div className="w-32 h-10 bg-white rounded-full relative shadow-sm">
+      <div className="absolute w-16 h-16 bg-white rounded-full -top-6 left-4" />
+      <div className="absolute w-20 h-20 bg-white rounded-full -top-10 right-4" />
+    </div>
+  </div>
+);
 
 export default function CocukModuPage() {
   const router = useRouter();
@@ -32,9 +77,31 @@ export default function CocukModuPage() {
   useEffect(() => {
     setIsMounted(true);
     const pin = localStorage.getItem(`child-pin-${childId}`);
-    if (!pin) router.push('/ebeveyn-portali');
-    else setIsAuthenticated(true);
+    if (!pin) {
+      router.push('/ebeveyn-portali');
+    } else {
+      setIsAuthenticated(true);
+    }
   }, [childId, router]);
+
+  // Kaldığı adaya odaklan
+  useEffect(() => {
+    if (isMounted && isAuthenticated) {
+      const timer = setTimeout(() => {
+        const lastTopic = localStorage.getItem('last-topic');
+        if (lastTopic) {
+          const element = document.getElementById(`topic-${lastTopic}`);
+          if (element) {
+            element.scrollIntoView({
+              behavior: 'instant',
+              block: 'center'
+            });
+          }
+        }
+      }, 300); // Adaların tam render olması için süreyi biraz artırdım
+      return () => clearTimeout(timer);
+    }
+  }, [isMounted, isAuthenticated]);
 
   const childDocRef = useMemoFirebase(() => {
     if (!db || !authUser?.uid || !childId) return null;
@@ -42,224 +109,151 @@ export default function CocukModuPage() {
   }, [db, authUser?.uid, childId]);
 
   const { data: childData, isLoading: childLoading } = useDoc(childDocRef);
-  
-  const userDocRef = useMemoFirebase(() => {
-    if (!db || !authUser?.uid) return null;
-    return doc(db, 'users', authUser.uid);
-  }, [db, authUser?.uid]);
 
-  const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
-
-  // Filter completed topics (exclude sub-games with hyphens)
-  const completedTopicsCount = useMemo(() => {
-      if (!childData?.completedTopics) return 0;
-      return childData.completedTopics.filter((id: string) => !id.includes('-')).length;
+  const level = useMemo(() => {
+    if (!childData?.completedTopics) return 1;
+    return Math.floor(childData.completedTopics.length / 5) + 1;
   }, [childData?.completedTopics]);
 
-  // Award new item logic
-  useEffect(() => {
-    if (!db || !childDocRef || !childData) return;
-  
-    // Award an item every 3 topics
-    if (completedTopicsCount > 0 && completedTopicsCount % 3 === 0) {
-      const itemToAward = Math.floor(completedTopicsCount / 3);
-      if (itemToAward >= 1 && itemToAward <= 7) {
-        const equippedItems = childData.equippedItems || [];
-        if (!equippedItems.includes(itemToAward)) {
-          const awardNewItem = async () => {
-            try {
-              await updateDoc(childDocRef, {
-                equippedItems: arrayUnion(itemToAward)
-              });
-            } catch (e) {
-              console.error("Error awarding item:", e);
-            }
-          };
-          awardNewItem();
-        }
-      }
-    }
-  }, [db, childDocRef, completedTopicsCount, childData]);
-
-  const isTopicUnlocked = (index: number) => {
-      if (index === 0) return true; 
-      if (!childData?.completedTopics) return false;
-      const previousTopic = topics[index - 1];
-      return childData.completedTopics.includes(previousTopic.id);
-  };
-  
-  const isTopicCompleted = (topicId: string) => childData?.completedTopics?.includes(topicId) ?? false;
-
-  if (!isMounted || authLoading || childLoading || userDataLoading || isAuthenticated === null || !childData || !userData) {
+  if (!isMounted || isAuthenticated === null || childLoading || !childData) {
     return (
       <div className="flex h-screen items-center justify-center bg-sky-100">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+        <div className="text-center">
+          <Loader2 className="h-16 w-16 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-slate-500 font-medium">Macera Başlıyor...</p>
+        </div>
       </div>
     );
   }
-  
+
   return (
-    <div className="h-screen w-full overflow-hidden font-sans">
-      <main className="h-screen w-full overflow-y-auto scrollbar-hide bg-[#e8f5e9]">
-        <div
-          className="relative w-full mx-auto"
-          style={{
-            backgroundImage: "url('/map-path-background.png')",
-            backgroundSize: "100% auto",
-            backgroundRepeat: "no-repeat",
-            width: "100%",
-            height: "450vw",
-            minHeight: "100vh",
-          }}
-        >
-          {/* ÜST PANEL KONTEYNERI */}
-          <div className="absolute top-10 inset-x-0 z-30 flex justify-between px-16 pointer-events-none">
-            
-            {/* SOL: GEZGİN PROFİL KARTI */}
-            <div className="flex flex-col pointer-events-auto">
-              <div className="relative w-[30vw] max-w-[340px] bg-white/90 backdrop-blur-xl rounded-[45px] border-[6px] border-white shadow-2xl overflow-hidden">
-                
-                {/* Kart Başlığı (Level Alanı) */}
-                <div className="h-24 bg-gradient-to-r from-orange-400 to-yellow-400 flex items-center justify-center pb-6">
-                  <div className="bg-white/30 backdrop-blur-md px-5 py-1 rounded-full border border-white/50">
-                    <span className="text-white font-black text-lg uppercase">
-                      SEVİYE {Math.floor(completedTopicsCount / 3) + 1}
-                    </span>
-                  </div>
-                </div>
+    <div className="h-screen w-full overflow-hidden font-sans bg-gradient-to-b from-[#7dd3fc] via-[#bae6fd] to-[#e0f2fe] relative">
 
-                {/* Karakter Avatarı (Tam Orta) */}
-                <div className="relative -mt-10 flex flex-col items-center">
-                  <div className="relative w-44 h-44 bg-sky-50 rounded-full border-[8px] border-white shadow-lg overflow-hidden">
-                    {/* Ana Karakter (ch1) */}
-                    <Image 
-                      src="/images/avatars/karakter1/ch1.png" 
-                      fill 
-                      className="object-contain scale-125 translate-y-4" 
-                      alt="Profil" 
-                      priority
-                    />
-                    {/* Giydiği İtemler */}
-                    {(childData.equippedItems || []).map((id: number) => (
-                      <Image 
-                        key={id} 
-                        src={`/images/avatars/karakter1/${id}.png`} 
-                        fill 
-                        className="object-contain scale-125 translate-y-4 z-20" 
-                        alt="Item" 
-                      />
-                    ))}
-                  </div>
+      {/* Sabit Arkaplan (Kaydırmadan Etkilenmez) */}
+      <div className="absolute inset-0 z-0">
+        <Cloud className="top-[15%] left-[10%] scale-50 md:scale-75" style={{ animationDelay: '0s' }} />
+        <Cloud className="top-[5%] right-[20%] scale-75 md:scale-100 opacity-80" style={{ animationDelay: '2s' }} />
+        <Cloud className="hidden md:block top-[40%] right-[8%] scale-50 opacity-50" style={{ animationDelay: '4s' }} />
+        <Cloud className="bottom-[30%] left-[15%] scale-100 md:scale-125 opacity-40" style={{ animationDelay: '1s' }} />
+        <Cloud className="bottom-[10%] right-[25%] scale-75 md:scale-90 opacity-60" style={{ animationDelay: '3s' }} />
+      </div>
 
-                  {/* İsim ve İstatistik */}
-                  <div className="p-6 text-center w-full">
-                    <h2 className="text-2xl font-black text-slate-800 uppercase leading-none mb-1">
-                      {childData.firstName || childData.ad}
-                    </h2>
-                    <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-4">Usta Gezgin</p>
-                    
-                    <div className="flex justify-center gap-3 border-t pt-4 border-slate-100">
-                      <div className="text-center">
-                        <p className="text-[10px] text-slate-400 font-bold uppercase">Bölümler</p>
-                        <p className="text-xl font-black text-slate-700">{completedTopicsCount}</p>
-                      </div>
-                      <div className="w-[1px] bg-slate-100" />
-                      <div className="text-center">
-                        <p className="text-[10px] text-slate-400 font-bold uppercase">Hediyeler</p>
-                        <p className="text-xl font-black text-slate-700">{(childData.equippedItems || []).length}/7</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+      <main className="h-full w-full flex flex-col md:flex-row relative z-10">
 
-            {/* SAĞ: ROZETLER VE GARDIROP */}
-            <div className="flex flex-col gap-6 pointer-events-auto w-[350px]">
-              
-              {/* ROZETLER (Bölüm Rozetleri) */}
-              <div className="bg-white/90 backdrop-blur-md p-5 rounded-[35px] border-4 border-orange-100 shadow-xl">
-                <h3 className="text-center font-black text-orange-400 text-sm mb-4 tracking-widest uppercase">Rozet Koleksiyonu</h3>
-                <div className="flex flex-wrap justify-center gap-3">
-                  {(childData.badges || []).map((badgeId: string, index: number) => {
-                    const topic = topics.find(t => t.id === badgeId);
-                    if (!topic) return null;
-                    return (
-                        <div key={index} className="w-14 h-14 bg-orange-50 rounded-full flex items-center justify-center text-3xl relative hover:scale-110 transition-transform cursor-help" title={topic.name}>
-                          {topic.icon}
-                        </div>
-                    );
-                  })}
-                  {(childData.badges || []).length === 0 && (
-                    <p className="text-[10px] text-slate-400 font-bold text-center w-full uppercase">Henüz rozet kazanılmadı</p>
-                  )}
-                </div>
-              </div>
+        {/* SOL PANEL: Profil ve Seviye */}
+        <ChildSidebar childId={childId} childData={childData} />
 
-              {/* GARDIROP (Level Mantığı ile Kilit Açma) */}
-              <div className="bg-white/90 backdrop-blur-md p-5 rounded-[35px] border-4 border-sky-100 shadow-xl">
-                <div className="flex justify-between items-center mb-4 px-2">
-                  <h3 className="font-black text-sky-400 text-sm tracking-widest uppercase">GARDIROP</h3>
-                  <span className="text-[10px] font-bold text-sky-300">Level {Math.floor(completedTopicsCount / 3) + 1}</span>
-                </div>
-                
-                <div className="grid grid-cols-4 gap-2">
-                  {[1, 2, 3, 4, 5, 6, 7].map((id) => {
-                    const isUnlocked = completedTopicsCount >= (id * 3);
-                    return (
-                      <div 
-                        key={id} 
-                        className={`relative aspect-square rounded-2xl flex items-center justify-center p-2 transition-all border-2 
-                          ${isUnlocked ? 'bg-sky-50 border-sky-200' : 'bg-slate-50 border-slate-100 grayscale opacity-40'}`}
-                      >
-                        <Image src={`/images/avatars/karakter1/${id}.png`} width={45} height={45} className="object-contain" alt="item" />
-                        {!isUnlocked && (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-[9px] font-black text-slate-400 mt-7">Lvl {id + 1}</span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+        {/* ORTA ALAN: Kaydırılabilir Macera Haritası */}
+        <div className="flex-1 relative order-3 md:order-2 overflow-y-auto scrollbar-hide perspective-1000 flex flex-col items-center">
+
+          {/* Başlık Bölümü */}
+          <div className="w-full flex justify-center pt-[100px] flex-shrink-0">
+            <div className="absolute top-0 z-30 hover:scale-105 transition-transform duration-300 cursor-default select-none">
+              <Image
+                src="/macera.png"
+                width={550}
+                height={687}
+                alt="Macera Haritası"
+                className="drop-shadow-[0_15px_25px_rgba(0,0,0,0.3)] object-contain"
+                priority
+              />
             </div>
           </div>
-          
-          {topics.map((topic, index) => {
-            const position = topicPositions[index] || [0, 0]
-            const unlocked = isTopicUnlocked(index)
-            const completed = isTopicCompleted(topic.id)
 
-            return (
+          {/* Macera Haritası İçeriği (Adalar ve Köprüler) */}
+          <div className="relative w-full min-h-[11100px] flex-shrink-0">
+
+            {/* Köprü Efektleri */}
+            <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 10 }}>
+              <defs>
+                <filter id="glow">
+                  <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                  <feMerge>
+                    <feMergeNode in="coloredBlur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              <path d="M 45% 150px Q 30% 300px 25% 450px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 25% 450px Q 40% 600px 55% 750px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 55% 750px Q 45% 900px 35% 1050px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 35% 1050px Q 45% 1200px 55% 1350px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 55% 1350px Q 40% 1500px 25% 1650px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 25% 1650px Q 35% 1800px 45% 1950px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 45% 1950px Q 35% 2100px 25% 2250px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 25% 2250px Q 40% 2400px 55% 2550px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 55% 2550px Q 45% 2700px 35% 2850px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 35% 2850px Q 45% 3000px 55% 3150px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 55% 3150px Q 45% 3300px 35% 3450px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 35% 3450px Q 45% 3600px 55% 3750px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 55% 3750px Q 45% 3900px 35% 4050px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 35% 4050px Q 45% 4200px 55% 4350px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 55% 4350px Q 45% 4500px 35% 4650px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 35% 4650px Q 45% 4800px 55% 4950px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 55% 4950px Q 45% 5100px 35% 5250px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 35% 5250px Q 45% 5400px 55% 5550px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 55% 5550px Q 45% 5700px 35% 5850px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 35% 5850px Q 45% 6000px 55% 6150px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 55% 6150px Q 45% 6300px 35% 6450px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 35% 6450px Q 45% 6600px 55% 6750px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 55% 6750px Q 45% 6900px 35% 7050px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 35% 7050px Q 45% 7200px 55% 7350px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 55% 7350px Q 45% 7500px 35% 7650px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 35% 7650px Q 45% 7800px 55% 7950px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 55% 7950px Q 45% 8100px 35% 8250px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 35% 8250px Q 45% 8400px 55% 8550px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 55% 8550px Q 45% 8700px 35% 8850px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 35% 8850px Q 45% 9000px 55% 9150px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 55% 9150px Q 45% 9300px 35% 9450px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 35% 9450px Q 45% 9600px 55% 9750px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 55% 9750px Q 45% 9900px 35% 10050px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 35% 10050px Q 45% 10150px 55% 10250px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+              <path d="M 55% 10250px Q 45% 10450px 35% 10650px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
+            </svg>
+
+            {/* 3D CSS Platformları */}
+            {MOCK_TOPICS.map((topic, index) => (
               <div
                 key={topic.id}
-                className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-110 active:scale-95"
+                id={`topic-${topic.id}`}
+                className="absolute animate-float"
                 style={{
-                  top: `${position[0]}%`,
-                  left: `${position[1]}%`,
-                  zIndex: 20 + index,
+                  top: topic.top,
+                  left: topic.left,
+                  animationDelay: `${index * 0.7}s`,
+                  zIndex: 20
                 }}
               >
                 <TopicCard
                   topic={topic}
-                  isPremium={userData.isPremium}
-                  isLocked={!unlocked}
-                  isCompleted={completed}
-                  onClick={() => unlocked && router.push(`/cocuk-modu/${childId}/${topic.id}`)}
+                  number={index + 1}
+                  onClick={() => {
+                    localStorage.setItem('last-topic', topic.id);
+                    router.push(`/cocuk-modu/${childId}/${topic.id}`);
+                  }}
                 />
               </div>
-            )
-          })}
+            ))}
+          </div>
         </div>
       </main>
-      <div className="fixed bottom-6 right-6 z-40">
-        <ExitDialog childId={childId}>
-          <Button variant="outline" className="rounded-full bg-white/60 backdrop-blur-md hover:bg-white/90 border-white/50 h-12 px-6 shadow-xl font-bold text-slate-700">
-            <LogOut className="mr-2 w-4 h-4" /> Çıkış Yap
-          </Button>
-        </ExitDialog>
-      </div>
+
+      <style jsx global>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-15px) rotate(1deg); }
+        }
+        .animate-float {
+          animation: float 5s ease-in-out infinite;
+        }
+        @keyframes float-slow {
+          0%, 100% { transform: translateY(0px) translateX(0px); }
+          50% { transform: translateY(-20px) translateX(10px); }
+        }
+        .animate-float-slow {
+          animation: float-slow 12s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 }

@@ -18,7 +18,7 @@ type TTSOutput = z.infer<typeof TTSOutputSchema>;
 
 export async function ttsFlow(text: string): Promise<TTSOutput> {
   const { media } = await ai.generate({
-      model: googleAI.model('gemini-2.5-flash-preview-tts'),
+      model: 'googleai/gemini-1.5-flash-latest', // En güncel ve kararlı 1.5 sürümünü zorluyoruz
       config: {
         responseModalities: ['AUDIO'],
         speechConfig: {
@@ -30,15 +30,17 @@ export async function ttsFlow(text: string): Promise<TTSOutput> {
       prompt: text,
     });
 
-    if (!media) {
+    if (!media || !media.url) {
       throw new Error('No media returned from TTS model');
     }
     
-    const audioBuffer = Buffer.from(
-      media.url.substring(media.url.indexOf(',') + 1),
-      'base64'
-    );
+    // Gelen veri zaten data URI formatında olabilir veya ham base64 olabilir
+    let base64Data = media.url;
+    if (base64Data.includes(',')) {
+      base64Data = base64Data.split(',')[1];
+    }
 
+    const audioBuffer = Buffer.from(base64Data, 'base64');
     const wavData = await toWav(audioBuffer);
 
     return {
