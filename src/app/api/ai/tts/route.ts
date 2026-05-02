@@ -15,9 +15,11 @@ export async function POST(req: Request) {
 
     // Varsayılan ses ID'si (Seçtiğiniz özel karakter sesi)
     const selectedVoiceId = voiceId || 'UKn8d228qbbMa2f9ezXL'; 
+    
+    console.log(`TTS Request: "${text}" with Voice ID: ${selectedVoiceId}`);
 
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}?optimize_streaming_latency=0`,
       {
         method: 'POST',
         headers: {
@@ -26,10 +28,10 @@ export async function POST(req: Request) {
         },
         body: JSON.stringify({
           text: text,
-          model_id: 'eleven_multilingual_v2', // Türkçe desteği için en iyisi
+          model_id: 'eleven_turbo_v2_5', // Daha hızlı ve Türkçe desteği çok iyi
           voice_settings: {
             stability: 0.5,
-            similarity_boost: 0.75,
+            similarity_boost: 0.8,
             style: 0.0,
             use_speaker_boost: true,
           },
@@ -46,10 +48,11 @@ export async function POST(req: Request) {
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Ses verisini base64 olarak döndürüyoruz (frontend'de kolay çalmak için)
+    // Ses verisini döndürüyoruz (Cache engelleme ekledik)
     return new NextResponse(buffer, {
       headers: {
         'Content-Type': 'audio/mpeg',
+        'Cache-Control': 'no-store, max-age=0',
       },
     });
   } catch (error: any) {
