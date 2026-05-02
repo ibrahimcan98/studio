@@ -76,23 +76,33 @@ export default function KonusmaPage() {
     }
   }, [childId, router]);
 
-  // Yardımcı fonksiyon: Tarayıcı sesiyle konuşturma
-  const speakText = (text: string) => {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      // Önceki konuşmaları durdur
-      window.speechSynthesis.cancel();
-      
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'tr-TR';
-      utterance.rate = 1.1; // Çocuklar için biraz daha canlı bir hız
-      utterance.pitch = 1.2; // Daha ince ve sevimli bir ses
-      
-      // En iyi Türkçe sesi seçmeye çalış
-      const voices = window.speechSynthesis.getVoices();
-      const trVoice = voices.find(v => v.lang.includes('tr')) || voices[0];
-      if (trVoice) utterance.voice = trVoice;
+  // Yardımcı fonksiyon: ElevenLabs üzerinden konuşturma
+  const speakText = async (text: string) => {
+    try {
+      const response = await fetch('/api/ai/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
 
-      window.speechSynthesis.speak(utterance);
+      if (!response.ok) throw new Error('TTS generation failed');
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      
+      if (audioRef.current) {
+        audioRef.current.src = url;
+        audioRef.current.play();
+      }
+    } catch (e) {
+      console.error("ElevenLabs TTS Error, falling back to browser:", e);
+      // Fallback: Eğer API hata verirse tarayıcı sesine geri dön
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'tr-TR';
+        window.speechSynthesis.speak(utterance);
+      }
     }
   };
 
