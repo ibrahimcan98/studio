@@ -46,10 +46,9 @@ export async function POST(req: Request) {
     }
 
     const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
 
-    // Ses verisini döndürüyoruz (Cache engelleme ekledik)
-    return new NextResponse(buffer, {
+    // Ses verisini döndürüyoruz (Ham Response kullanarak uyumluluğu artırdık)
+    return new Response(arrayBuffer, {
       headers: {
         'Content-Type': 'audio/mpeg',
         'Cache-Control': 'no-store, max-age=0',
@@ -57,6 +56,9 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error('TTS Route Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return new Response(JSON.stringify({ error: error.message }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }

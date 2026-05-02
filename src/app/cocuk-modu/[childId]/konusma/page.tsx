@@ -85,18 +85,23 @@ export default function KonusmaPage() {
         body: JSON.stringify({ text }),
       });
 
-      if (!response.ok) throw new Error('TTS generation failed');
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || 'TTS failed');
+      }
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       
       if (audioRef.current) {
+        audioRef.current.pause();
         audioRef.current.src = url;
-        audioRef.current.play();
+        audioRef.current.load();
+        await audioRef.current.play();
       }
     } catch (e) {
-      console.error("ElevenLabs TTS Error, falling back to browser:", e);
-      // Fallback: Eğer API hata verirse tarayıcı sesine geri dön
+      console.error("ElevenLabs TTS Error:", e);
+      // Fallback
       if (typeof window !== 'undefined' && window.speechSynthesis) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);

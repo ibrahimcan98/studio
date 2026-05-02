@@ -41,26 +41,31 @@ export function WordCard({ wordList, childId, topicId, onComplete }: WordCardPro
 
     const playAudio = useCallback(async (text: string) => {
         try {
-            // Dinamik olarak ElevenLabs'ten üret
             const response = await fetch('/api/ai/tts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text }),
             });
 
-            if (!response.ok) throw new Error('TTS failed');
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.error || 'TTS failed');
+            }
 
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
             
             if (audioRef.current) {
+                audioRef.current.pause();
                 audioRef.current.src = url;
+                audioRef.current.load(); // Kaynağı yüklemesini zorla
                 await audioRef.current.play();
             }
         } catch (error) {
-            console.error("Audio play failed:", error);
+            console.error("ElevenLabs Playback Error:", error);
             // Fallback: Tarayıcı sesi
             if (typeof window !== 'undefined' && window.speechSynthesis) {
+                window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'tr-TR';
                 window.speechSynthesis.speak(utterance);
