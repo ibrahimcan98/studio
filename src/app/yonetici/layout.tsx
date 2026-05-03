@@ -22,7 +22,8 @@ import {
   Calendar,
   Menu,
   PhoneCall,
-  Megaphone
+  Megaphone,
+  Star
 } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
