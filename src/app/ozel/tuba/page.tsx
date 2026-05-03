@@ -46,11 +46,26 @@ export default function TubaSpecialPage() {
 
     const handlePurchase = async (pkgId: string) => {
         setLoadingId(pkgId);
-        // Stripe Checkout API'ye yönlendirme simülasyonu
-        setTimeout(() => {
-            alert("Stripe ödeme sistemine yönlendiriliyorsunuz... (API Anahtarlarınız girildiğinde aktif olacaktır)");
+        try {
+            const response = await fetch('/api/stripe/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    priceId: pkgId === 'tuba_4' ? 'price_1...' : 'price_2...', // Buraya Stripe Price ID'leri gelecek
+                    customerEmail: '', // Eğer kullanıcı login ise burayı doldurabiliriz
+                    userName: 'VIP Student'
+                })
+            });
+            const data = await response.json();
+            if (data.url) {
+                window.location.href = data.url;
+            } else {
+                throw new Error(data.error || 'Ödeme sayfası oluşturulamadı');
+            }
+        } catch (error: any) {
+            alert("Hata: " + error.message);
             setLoadingId(null);
-        }, 1000);
+        }
     };
 
     return (
