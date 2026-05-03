@@ -1,77 +1,54 @@
 'use server';
 /**
- * @fileOverview A flow for converting text to speech using Genkit.
- *
+ * @fileOverview A flow for converting text to speech using ElevenLabs.
+ * 
  * - ttsFlow - A function that takes text and returns a WAV audio data URI.
  */
 
-import { ai } from '@/ai/genkit';
-import { googleAI } from '@genkit-ai/google-genai';
 import { z } from 'zod';
-import wav from 'wav';
 
 const TTSOutputSchema = z.object({
-  media: z.string().describe("The base64 encoded WAV audio data URI."),
+  media: z.string().describe("The base64 encoded MP3 audio data URI."),
 });
 
 type TTSOutput = z.infer<typeof TTSOutputSchema>;
 
 export async function ttsFlow(text: string): Promise<TTSOutput> {
-  const { media } = await ai.generate({
-      model: 'googleai/gemini-1.5-flash-latest', // En güncel ve kararlı 1.5 sürümünü zorluyoruz
-      config: {
-        responseModalities: ['AUDIO'],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Algenib' },
-          },
-        },
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  const voiceId = process.env.ELEVENLABS_VOICE_ID || 'pNInz6obpgDQGcFmaJgB';
+
+  if (!apiKey) {
+    throw new Error('ELEVENLABS_API_KEY is not set');
+  }
+
+  const response = await fetch(
+    `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'xi-api-key': apiKey,
       },
-      prompt: text,
-    });
-
-    if (!media || !media.url) {
-      throw new Error('No media returned from TTS model');
+      body: JSON.stringify({
+        text,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.75,
+        },
+      }),
     }
-    
-    // Gelen veri zaten data URI formatında olabilir veya ham base64 olabilir
-    let base64Data = media.url;
-    if (base64Data.includes(',')) {
-      base64Data = base64Data.split(',')[1];
-    }
+  );
 
-    const audioBuffer = Buffer.from(base64Data, 'base64');
-    const wavData = await toWav(audioBuffer);
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.detail?.message || 'ElevenLabs API error');
+  }
 
-    return {
-      media: 'data:audio/wav;base64,' + wavData,
-    };
-}
+  const audioBuffer = await response.arrayBuffer();
+  const base64Data = Buffer.from(audioBuffer).toString('base64');
 
-
-async function toWav(
-  pcmData: Buffer,
-  channels = 1,
-  rate = 24000,
-  sampleWidth = 2
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const writer = new wav.Writer({
-      channels,
-      sampleRate: rate,
-      bitDepth: sampleWidth * 8,
-    });
-
-    let bufs: any[] = [];
-    writer.on('error', reject);
-    writer.on('data', function (d) {
-      bufs.push(d);
-    });
-    writer.on('end', function () {
-      resolve(Buffer.concat(bufs).toString('base64'));
-    });
-
-    writer.write(pcmData);
-    writer.end();
-  });
+  return {
+    media: 'data:audio/mpeg;base64,' + base64Data,
+  };
 }

@@ -53,10 +53,10 @@ const initializeFirebaseAdmin = (): App => {
         projectId: serviceAccount.project_id || projectId,
         apiKey: apiKey
       } as any);
-      console.log('[Firebase Admin] Initialized via Environment Variable.');
+      console.log('✅ [Firebase Admin] Initialized via Environment Variable.');
       return app;
     } catch (e: any) {
-      console.warn('[Firebase Admin] Env JSON parse failed:', e.message);
+      console.error('❌ [Firebase Admin] Env JSON parse failed:', e.message);
     }
   }
 
@@ -67,25 +67,30 @@ const initializeFirebaseAdmin = (): App => {
       if (serviceAccount.private_key) {
         serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
       }
+      
+      if (!serviceAccount.private_key || !serviceAccount.client_email) {
+          console.error('❌ [Firebase Admin] service-account.json is missing private_key or client_email!');
+      }
+
       app = initializeApp({
         credential: cert(serviceAccount),
         projectId: serviceAccount.project_id || projectId,
         apiKey: apiKey
       } as any);
-      console.log('[Firebase Admin] Initialized via service-account.json.');
+      console.log('✅ [Firebase Admin] Initialized via service-account.json.');
       return app;
     } catch (e: any) {
-      console.warn('[Firebase Admin] File JSON parse failed:', e.message);
+      console.error('❌ [Firebase Admin] File JSON parse failed:', e.message);
     }
   }
 
-  // 3. Last Fallback (Project ID only - might limit some Auth features)
+  // 3. Last Fallback (Project ID only - WILL CAUSE signBlob ERRORS)
   if (projectId) {
+    console.warn('⚠️ [Firebase Admin] WARNING: Falling back to Project ID only. Impersonation will NOT work!');
     app = initializeApp({
       projectId: projectId,
       apiKey: apiKey
     } as any);
-    console.log('[Firebase Admin] Initialized via Project ID fallback.');
     return app;
   }
 

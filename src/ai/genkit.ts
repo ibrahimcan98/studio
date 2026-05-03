@@ -1,11 +1,11 @@
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
+import { openAI } from 'genkitx-openai';
 import 'dotenv/config';
 
 /**
  * Genkit instance initialization.
- * Using a global singleton pattern in development to prevent 
- * multiple server initializations during HMR (Hot Module Replacement).
+ * Supporting both Google AI and OpenAI.
  */
 
 const aiConfig = {
@@ -13,8 +13,11 @@ const aiConfig = {
     googleAI({
       apiKey: process.env.GEMINI_API_KEY,
     }),
+    openAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    }),
   ],
-  model: 'googleai/gemini-2.5-flash' as const,
+  model: 'gpt-4o-mini', // 'openai/' ön eki kaldırıldı
 };
 
 // Singleton pattern for Genkit in development

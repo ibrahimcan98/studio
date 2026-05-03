@@ -9,6 +9,7 @@ import { CheckCircle, XCircle, Trophy } from 'lucide-react';
 import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
 import { cn } from '@/lib/utils';
+import { useTTS } from '@/hooks/use-tts';
 
 type Word = {
     word: string;
@@ -27,6 +28,7 @@ export function TopicQuiz({ wordList, onComplete }: TopicQuizProps) {
     const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
     const [options, setOptions] = useState<Word[]>([]);
     const { width, height } = useWindowSize();
+    const { speak } = useTTS();
 
     const currentWord = wordList[currentIndex];
 
@@ -49,6 +51,10 @@ export function TopicQuiz({ wordList, onComplete }: TopicQuizProps) {
         setSelectedAnswer(answer);
         const correct = answer.word === currentWord.word;
         setIsCorrect(correct);
+
+        if (correct) {
+            speak(answer.word);
+        }
 
         setTimeout(() => {
             if (correct) {

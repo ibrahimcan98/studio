@@ -3,9 +3,16 @@
 import { useMemo } from 'react';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
-import { Star, Map, BookOpen, MessageCircle } from 'lucide-react';
+import { Star, Map, BookOpen, MessageCircle, Trophy, LayoutGrid } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 interface ChildSidebarProps {
   childId: string;
@@ -20,6 +27,8 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
     if (!childData?.completedTopics) return 1;
     return Math.floor(childData.completedTopics.length / 5) + 1;
   }, [childData?.completedTopics]);
+
+  const stickers = useMemo(() => Object.values(childData?.stickers || {}), [childData?.stickers]);
 
   return (
     <div className="w-full md:w-[260px] lg:w-[280px] p-3 lg:p-4 flex flex-row md:flex-col gap-3 flex-shrink-0 z-20 md:h-full bg-transparent overflow-hidden">
@@ -57,11 +66,32 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
 
       {/* Rozetlerin */}
       <div className="hidden lg:block bg-white/40 backdrop-blur-md rounded-[24px] p-3 border-2 border-white/60">
-        <h3 className="text-center font-black text-blue-500 text-[10px] uppercase tracking-widest mb-2 italic">Rozetlerin</h3>
+        <div className="flex items-center justify-between mb-2 px-1">
+           <h3 className="font-black text-blue-500 text-[10px] uppercase tracking-widest italic">Rozetlerin</h3>
+           <Dialog>
+              <DialogTrigger asChild>
+                <button className="text-[9px] font-black text-blue-600/60 hover:text-blue-600 transition-colors flex items-center gap-1">
+                  HEPSİ <LayoutGrid className="w-2.5 h-2.5" />
+                </button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl rounded-[40px] p-8 md:p-12 border-none bg-gradient-to-br from-blue-50 to-indigo-100 shadow-2xl">
+                 <DialogTitle className="text-3xl md:text-5xl font-black text-blue-600 mb-2 italic text-center uppercase tracking-tighter">Rozet Koleksiyonun</DialogTitle>
+                 <DialogDescription className="text-slate-500 font-bold text-center mb-8">Tamamladığın her macera için yeni bir rozet kazanırsın!</DialogDescription>
+                 <div className="grid grid-cols-4 md:grid-cols-6 gap-4 max-h-[60vh] overflow-y-auto p-4 custom-scrollbar">
+                    {Array.from({ length: 24 }).map((_, i) => (
+                      <div key={i} className="aspect-square bg-white/80 rounded-2xl flex flex-col items-center justify-center border-2 border-white shadow-sm grayscale opacity-30 hover:opacity-50 transition-all group">
+                         <Trophy className="w-8 h-8 text-blue-300 group-hover:scale-110 transition-transform" />
+                         <span className="text-[8px] font-black mt-1 text-blue-400 italic uppercase">Kilitli</span>
+                      </div>
+                    ))}
+                 </div>
+              </DialogContent>
+           </Dialog>
+        </div>
         <div className="grid grid-cols-3 gap-2">
           {[1, 2, 3, 4, 5, 6].map(i => (
             <div key={i} className="aspect-square bg-white/60 rounded-xl flex items-center justify-center grayscale opacity-20 border border-white/50">
-              <Star className="w-4 h-4 text-yellow-400" />
+               <Star className="w-4 h-4 text-yellow-400" />
             </div>
           ))}
         </div>
@@ -69,13 +99,55 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
 
       {/* Etiketlerin (Stickers) */}
       <div className="hidden lg:block bg-white/40 backdrop-blur-md rounded-[24px] p-3 border-2 border-white/60">
-        <h3 className="text-center font-black text-purple-500 text-[10px] uppercase tracking-widest mb-2 italic">Etiketlerin</h3>
+        <div className="flex items-center justify-between mb-2 px-1">
+          <h3 className="font-black text-purple-500 text-[10px] uppercase tracking-widest italic">Etiketlerin</h3>
+          <Dialog>
+              <DialogTrigger asChild>
+                <button className="text-[9px] font-black text-purple-600/60 hover:text-purple-600 transition-colors flex items-center gap-1">
+                  HEPSİ <LayoutGrid className="w-2.5 h-2.5" />
+                </button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl rounded-[40px] p-8 md:p-12 border-none bg-gradient-to-br from-purple-50 to-pink-100 shadow-2xl">
+                 <DialogTitle className="text-3xl md:text-5xl font-black text-purple-600 mb-2 italic text-center uppercase tracking-tighter">Etiket Defterin</DialogTitle>
+                 <DialogDescription className="text-slate-500 font-bold text-center mb-8">Maceralarında topladığın tüm çıkartmalar burada saklanır!</DialogDescription>
+                 <div className="grid grid-cols-4 md:grid-cols-6 gap-4 max-h-[60vh] overflow-y-auto p-4 custom-scrollbar">
+                    {stickers.length > 0 ? (
+                      stickers.map((url: any, i) => (
+                        <div key={i} className="aspect-square bg-white rounded-2xl flex items-center justify-center border-2 border-purple-200 shadow-sm p-2 hover:scale-110 hover:rotate-3 transition-transform cursor-pointer group">
+                           <Image src={url} width={80} height={80} alt="Sticker" className="object-contain w-full h-full drop-shadow-md group-hover:drop-shadow-xl" />
+                        </div>
+                      ))
+                    ) : (
+                      <div className="col-span-full py-12 text-center">
+                        <p className="text-purple-400 font-black italic">Henüz hiç etiketin yok. Maceralara katılmaya başla! 🚀</p>
+                      </div>
+                    )}
+                 </div>
+              </DialogContent>
+           </Dialog>
+        </div>
         <div className="grid grid-cols-3 gap-2">
-          {Object.values(childData?.stickers || {}).length > 0 ? (
-            Object.values(childData.stickers).slice(0, 6).map((stickerUrl: any, i) => (
-              <div key={i} className="aspect-square bg-white/80 rounded-xl flex items-center justify-center border-2 border-purple-200 shadow-[0_4px_10px_rgba(0,0,0,0.1)] p-1 hover:scale-110 hover:rotate-3 transition-transform cursor-pointer">
-                <Image src={stickerUrl} width={50} height={50} alt="Sticker" className="object-contain w-full h-full drop-shadow-md" />
-              </div>
+          {stickers.length > 0 ? (
+            stickers.slice(0, 6).map((stickerUrl: any, i) => (
+              <Dialog key={i}>
+                <DialogTrigger asChild>
+                  <div className="aspect-square bg-white/80 rounded-xl flex items-center justify-center border-2 border-purple-200 shadow-[0_4px_10px_rgba(0,0,0,0.1)] p-1 hover:scale-110 hover:rotate-3 transition-transform cursor-pointer group">
+                    <Image src={stickerUrl} width={50} height={50} alt="Sticker" className="object-contain w-full h-full drop-shadow-md" />
+                  </div>
+                </DialogTrigger>
+                <DialogContent className="max-w-sm rounded-[40px] p-0 overflow-hidden border-none bg-transparent shadow-none">
+                  <DialogTitle className="sr-only">Etiket Görüntüle</DialogTitle>
+                  <DialogDescription className="sr-only">Kazandığın etiket büyütülmüş hali.</DialogDescription>
+                  <div className="bg-gradient-to-br from-purple-100 via-white to-pink-100 p-10 flex flex-col items-center">
+                    <div className="relative w-48 h-48 drop-shadow-[0_20px_40px_rgba(168,85,247,0.4)] animate-in zoom-in duration-500">
+                       <Image src={stickerUrl} fill alt="Sticker Big" className="object-contain" />
+                    </div>
+                    <div className="mt-8 bg-white/80 backdrop-blur-sm px-6 py-2 rounded-full border-2 border-purple-200 shadow-sm">
+                      <p className="text-purple-600 font-black text-lg">HARİKA BİR ÇIKARTMA! ✨</p>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             ))
           ) : (
             [1, 2, 3].map(i => (

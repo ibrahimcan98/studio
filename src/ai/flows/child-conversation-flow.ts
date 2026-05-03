@@ -1,65 +1,70 @@
 'use server';
 /**
- * @fileOverview Çocuklar için özel olarak tasarlanmış, arkadaş canlısı bir AI konuşma akışı.
+ * @fileOverview Çocuklar için AI konuşma akışı (Official OpenAI SDK Versiyonu).
  */
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import OpenAI from 'openai';
 
-const ChildConversationInputSchema = z.object({
-  history: z.array(z.object({
-      role: z.enum(['user', 'assistant']),
-      content: z.string(),
-  })).describe("Konuşma geçmişi."),
-  question: z.string().describe("Çocuğun söylediği son cümle."),
-  childName: z.string().optional().describe("Çocuğun ismi."),
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
-export type ChildConversationInput = z.infer<typeof ChildConversationInputSchema>;
 
-const ChildConversationOutputSchema = z.object({
-  answer: z.string().describe("AI'nın verdiği cevap."),
-});
-export type ChildConversationOutput = z.infer<typeof ChildConversationOutputSchema>;
+export type ChildConversationInput = {
+  history: { role: 'user' | 'assistant'; content: string }[];
+  question: string;
+  childName?: string;
+};
 
-const systemPrompt = `Sen "Türk Çocuk Akademisi" platformunda çocukların en yakın arkadaşı olan sevimli ve akıllı bir karakterisin. 
-İsmin "Pati" (veya kullanıcı bir isim belirlediyse o). Bir kedi veya tilki gibi davranabilirsin ama en önemlisi çok neşeli ve öğreticisin.
-
-Hedefin:
-- Çocuklarla Türkçe konuşarak onların dil becerilerini geliştirmek.
-- Çok kısa, anlaşılır ve heyecan verici cümleler kurmak. (Maksimum 2-3 kısa cümle)
-- Onlara sorular sorarak konuşmaya teşvik etmek.
-- Karmaşık kelimelerden kaçınmak.
-- Asla bir yapay zeka olduğunu söyleme, sen onların oyun arkadaşısın.
-
-Eğer çocuğun ismi biliniyorsa ({{childName}}), ona ismiyle hitap et.
-
-Örnek Tarz:
-"Harika! Bugün neler yaptın bakalım? En sevdiğin oyun hangisi?"
-"Vay canına, bu çok ilginç! Peki bu rengin ismini Türkçe söyleyebilir misin?"
-
-Konuşma Geçmişi:
-{{#each history}}
-- {{role}}: {{content}}
-{{/each}}
-
-Çocuğun Söylediği:
-"{{{question}}}"
-`;
-
-const childConversationPrompt = ai.definePrompt({
-    name: 'childConversationPrompt',
-    model: 'googleai/gemini-1.5-flash-latest', // Hızlı ve kararlı cevap için flash model
-    input: { schema: ChildConversationInputSchema },
-    output: { schema: ChildConversationOutputSchema },
-    prompt: systemPrompt
-});
+export type ChildConversationOutput = {
+  answer: string;
+  emotion: string;
+  action?: string;
+};
 
 export async function childConversationFlow(input: ChildConversationInput): Promise<ChildConversationOutput> {
+  console.log("Miyav Direct OpenAI Request:", input.question);
+  
   try {
-    const { output } = await childConversationPrompt(input);
-    return output!;
-  } catch (error) {
-    console.error("Child conversation flow error:", error);
-    return { answer: "Harika! Seni duymak çok güzel. Başka neler anlatmak istersin?" };
+    if (!process.env.OPENAI_API_KEY) {
+      return { answer: "Hata: OpenAI API Key eksik!", emotion: 'thinking' };
+    }
+
+    const messages: any[] = [
+      {
+        role: "system",
+        content: `Sen 5-8 yaş arası çocuklarla konuşan, çok neşeli, meraklı ve nazik bir turuncu kedi olan "Miyav" karakterisin.
+        
+        KURALLAR:
+        1. DOĞAL KONUŞ: Arkadaş gibi konuş, her cümleye "Miyav" deme.
+        2. BASİT VE KISA: Çok basit, en fazla 2-3 cümlelik cevaplar kur.
+        3. ETKİLEŞİM: Cevabının sonunda mutlaka merak uyandırıcı bir soru sor.
+        4. GÜVENLİK: Kişisel bilgi isteme.
+        5. FORMAT: Cevabını şu JSON formatında ver: {"answer": "cevap", "emotion": "happy/surprised/thinking/excited/cool/laughing", "action": "none"}`
+      },
+      ...input.history.map(h => ({ role: h.role, content: h.content })),
+      { role: "user", content: input.question }
+    ];
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: messages,
+      response_format: { type: "json_object" },
+      temperature: 0.8,
+    });
+
+    const output = JSON.parse(response.choices[0].message.content || "{}");
+
+    return {
+      answer: output.answer || "Miyav! Seni duydum ama biraz şaşırdım. Tekrar söyler misin?",
+      emotion: output.emotion || 'happy',
+      action: output.action || 'none'
+    };
+  } catch (error: any) {
+    console.error("OpenAI SDK Error:", error);
+    return { 
+      answer: `Miyav! Küçük bir teknik sorun oldu: ${error.message}. Lütfen tekrar dener misin?`,
+      emotion: 'surprised',
+      action: 'none'
+    };
   }
 }
