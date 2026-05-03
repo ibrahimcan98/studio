@@ -46,29 +46,47 @@ export default function TubaSpecialAdminPage() {
   }, [user, authLoading, router]);
 
   // SADECE Tuba'ya özel işlemleri çekiyoruz
+  const studentsQuery = useMemoFirebase(() => {
+    if (!db) return null;
+    return query(collectionGroup(db, 'children'));
+  }, [db]);
+
   const transactionsQuery = useMemoFirebase(() => {
     if (!db) return null;
     return query(
-        collection(db, 'transactions'), 
-        where('isSpecial', '==', 'tuba'), 
-        orderBy('createdAt', 'desc')
+        collection(db, 'transactions')
     );
   }, [db]);
 
-  const { data: transactions, isLoading } = useCollection(transactionsQuery);
+  const { data: allChildren, isLoading: studentsLoading } = useCollection(studentsQuery);
+  const { data: allTransactions, isLoading: transactionsLoading } = useCollection(transactionsQuery);
+
+  const tubaStudents = useMemo(() => {
+    return allChildren?.filter(c => c.isSpecial === 'tuba') || [];
+  }, [allChildren]);
+
+  const tubaTransactions = useMemo(() => {
+    return allTransactions?.filter(t => t.isSpecial === 'tuba')
+      .sort((a, b) => {
+        const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+        const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+        return dateB.getTime() - dateA.getTime();
+      }) || [];
+  }, [allTransactions]);
 
   const stats = useMemo(() => {
-    if (!transactions) return { total: 0, count: 0 };
-    const total = transactions.reduce((acc, curr) => acc + (curr.amountGbp || 0), 0);
-    return { total, count: transactions.length };
-  }, [transactions]);
+    const total = tubaTransactions.reduce((acc, curr) => acc + (curr.amountGbp || 0), 0);
+    return { total, count: tubaTransactions.length };
+  }, [tubaTransactions]);
+
+  const isLoading = authLoading || studentsLoading || transactionsLoading;
 
   if (isLoading) {
     return (
-        <div className="flex flex-col justify-center items-center h-96 gap-4">
-            <Loader2 className="h-10 w-10 animate-spin text-rose-500 opacity-20" />
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">VIP Veriler Yükleniyor...</p>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="font-bold text-slate-400 animate-pulse uppercase tracking-widest text-xs">Veriler Yükleniyor...</p>
+      </div>
     );
   }
 
@@ -129,8 +147,8 @@ export default function TubaSpecialAdminPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {transactions?.length > 0 ? (
-                        transactions.map((t) => (
+                    {tubaTransactions?.length > 0 ? (
+                        tubaTransactions.map((t) => (
                             <TableRow key={t.id} className="hover:bg-rose-50/20 transition-colors border-slate-50">
                                 <TableCell className="py-6 pl-8">
                                     <div className="flex items-center gap-3">
