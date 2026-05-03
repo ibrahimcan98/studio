@@ -177,7 +177,10 @@ export default function AdminStudentsPage() {
             s.id.toLowerCase().includes(q)
         );
     }
-
+    
+    // KRİTİK: Tuba Hanım'ın özel öğrencilerini GENEL listeden gizliyoruz.
+    result = result.filter((s: any) => s.isSpecial !== 'tuba');
+    
     if (levelFilter !== 'all') {
         result = result.filter(s => s.cefrProfile?.speaking?.toLowerCase() === levelFilter.toLowerCase());
     }

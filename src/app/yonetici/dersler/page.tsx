@@ -311,6 +311,13 @@ export default function AdminDerslerPage() {
         
         if (typeFilter === 'trial') result = result.filter(l => l.isTrial);
         if (typeFilter === 'regular') result = result.filter(l => !l.isTrial);
+
+        // KRİTİK: Tuba Hanım'ın özel derslerini GENEL listeden gizliyoruz.
+        result = result.filter(l => {
+            const student = allChildren?.find(c => c.id === l.childId);
+            const parent = users?.find(u => u.uid === l.bookedBy);
+            return student?.isSpecial !== 'tuba' && parent?.isSpecial !== 'tuba';
+        });
         
         // Final sanity filter: only show lessons with status 'booked' (though already filtered by query)
         // And ensure duration is at least 5 mins

@@ -77,7 +77,12 @@ export default function SalesPage() {
     if (!transactions) return [];
     
     // Sadece tamamlanmış (veya legacy, status alanı olmayan eski kayıtlar) olanları tutun, bekleyenleri filtreleyin.
-    const completedTransactions = transactions.filter((t: any) => t.status !== 'pending');
+    // KRİTİK: Tuba Hanım'ın özel satışlarını GENEL listeden gizliyoruz.
+    const completedTransactions = transactions.filter((t: any) => 
+        t.status !== 'pending' && 
+        t.isSpecial !== 'tuba' && 
+        t.metadata?.isSpecial !== 'tuba'
+    );
     
     const now = new Date();
     
