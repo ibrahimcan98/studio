@@ -279,10 +279,15 @@ export default function AdminDerslerPage() {
         let currentGroup: any = null;
 
         sortedSlots.forEach(slot => {
+            const slotBookedAt = slot.bookedAt?.toDate ? slot.bookedAt.toDate().getTime() : (slot.bookedAt ? new Date(slot.bookedAt).getTime() : 0);
+            const groupBookedAt = currentGroup?.bookedAt?.toDate ? currentGroup.bookedAt.toDate().getTime() : (currentGroup?.bookedAt ? new Date(currentGroup.bookedAt).getTime() : 0);
+
+            // Group only if it's the same teacher, same student, same package AND was booked at the same time (within 5 seconds threshold)
             const isConsecutive = currentGroup && 
                 currentGroup.teacherId === slot.teacherId &&
                 currentGroup.childId === slot.childId &&
                 currentGroup.packageCode === slot.packageCode &&
+                Math.abs(slotBookedAt - groupBookedAt) < 5000 && // Same assignment session
                 Math.abs(slot.startDateTime.getTime() - (currentGroup.startDateTime.getTime() + currentGroup.duration * 60000)) < 1000;
 
             if (isConsecutive) {
@@ -311,13 +316,6 @@ export default function AdminDerslerPage() {
         
         if (typeFilter === 'trial') result = result.filter(l => l.isTrial);
         if (typeFilter === 'regular') result = result.filter(l => !l.isTrial);
-
-        // KRİTİK: Tuba Hanım'ın özel derslerini GENEL listeden gizliyoruz.
-        result = result.filter(l => {
-            const student = allChildren?.find(c => c.id === l.childId);
-            const parent = users?.find(u => u.uid === l.bookedBy);
-            return student?.isSpecial !== 'tuba' && parent?.isSpecial !== 'tuba';
-        });
         
         // Final sanity filter: only show lessons with status 'booked' (though already filtered by query)
         // And ensure duration is at least 5 mins
@@ -839,6 +837,7 @@ export default function AdminDerslerPage() {
                     setSelectedSlotId('');
                     setSelectedDateKey(null);
                     setSelectedHour(null);
+                    setSelectedPackageType('regular'); // Reset to default
                 }
             }}>
                 <DialogContent className="max-w-md rounded-[32px] border-none shadow-2xl p-8">

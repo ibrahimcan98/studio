@@ -15,7 +15,6 @@ service cloud.firestore {
     function isAdmin() {
       return isSignedIn() && (
         getUserData().role == 'admin' ||
-        request.auth.token.email == 'tubakodak@turkcocukakademisii.com' ||
         request.auth.uid in ['HjYBaEgRUsQ4DUIvBlFfrx7ND6p1'] // Bootstrap admin
       );
     }
@@ -86,7 +85,10 @@ service cloud.firestore {
         );
         
         allow delete: if isAdmin() || (
-            isSignedIn() && resource.data.bookedBy == request.auth.uid
+            isSignedIn() && (
+                resource.data.bookedBy == request.auth.uid || 
+                resource.data.teacherId == request.auth.uid
+            )
         );
         
         match /chats/{chatId} {

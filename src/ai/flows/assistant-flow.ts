@@ -8,8 +8,8 @@ import { z } from 'genkit';
 
 const AssistantInputSchema = z.object({
   history: z.array(z.object({
-      role: z.enum(['user', 'assistant']),
-      content: z.string(),
+    role: z.enum(['user', 'assistant']),
+    content: z.string(),
   })).describe("The conversation history."),
   question: z.string().describe("The user's current question."),
 });
@@ -46,11 +46,11 @@ User Question:
 `;
 
 const assistantPrompt = ai.definePrompt({
-    name: 'assistantPrompt',
-    model: 'googleai/gemini-2.5-flash',
-    input: { schema: AssistantInputSchema },
-    output: { schema: AssistantOutputSchema },
-    prompt: systemPrompt
+  name: 'assistantPrompt',
+  model: 'googleai/gemini-2.5-flash',
+  input: { schema: AssistantInputSchema },
+  output: { schema: AssistantOutputSchema },
+  prompt: systemPrompt
 });
 
 export async function assistantFlow(input: AssistantInput): Promise<AssistantOutput> {

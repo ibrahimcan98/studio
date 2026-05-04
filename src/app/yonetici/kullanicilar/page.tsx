@@ -451,9 +451,6 @@ function UsersPageContent() {
             p.id.toLowerCase().includes(q)
         );
     }
-
-    // KRİTİK: Tuba Hanım'ın özel velilerini GENEL listeden gizliyoruz.
-    result = result.filter((p: any) => p.isSpecial !== 'tuba');
     
     if (selectedTags.length > 0) {
         result = result.filter(p => 

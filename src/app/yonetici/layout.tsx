@@ -22,8 +22,7 @@ import {
   Calendar,
   Menu,
   PhoneCall,
-  Megaphone,
-  Star
+  Megaphone
 } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
@@ -73,7 +72,6 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     { id: 'indirimler', href: '/yonetici/indirimler', label: 'İndirimler', icon: Ticket },
     { id: 'puan-merkezi', href: '/yonetici/puan-merkezi', label: 'Puan Merkezi', icon: Trophy },
     { id: 'denetim-kaydi', href: '/yonetici/denetim-kaydi', label: 'Denetim Kaydı', icon: History },
-    { id: 'tuba-ozel', href: '/yonetici/ozel-dersler/tuba', label: 'VIP: Tuba\'nın Dersleri', icon: Star },
     { id: 'admin-yonetimi', href: '/yonetici/admin-yonetimi', label: 'Admin Yönetimi', icon: ShieldAlert },
   ];
 
@@ -86,15 +84,14 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     if (userData?.permissions) {
       items = allNavItems.filter((item: any) => 
         item.id === 'dashboard' || 
-        item.id === 'admin-yonetimi' || 
-        item.id === 'tuba-ozel' || // Allow it in permissions check
+        item.id === 'admin-yonetimi' || // Ensure it potentially stays if we are ultra admin
         userData.permissions.includes(item.id)
       );
     }
 
-    // FINAL STRICT CHECK: Only Ultra Admin sees Admin Management, Audit Logs & Tuba Special
+    // FINAL STRICT CHECK: Only Ultra Admin sees Admin Management & Audit Logs
     return items.filter((item: any) => {
-        if (item.id === 'admin-yonetimi' || item.id === 'denetim-kaydi' || item.id === 'tuba-ozel') return isUltraAdmin;
+        if (item.id === 'admin-yonetimi' || item.id === 'denetim-kaydi') return isUltraAdmin;
         return true;
     });
   }, [userData?.permissions, user?.email]);

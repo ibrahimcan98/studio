@@ -331,7 +331,12 @@ function OgretmenDerslerimPageContent() {
         relevantSlots.forEach(slot => {
             const startTime = parseDate(slot.startTime);
             const sessionDate = startOfDay(startTime).toISOString();
-            const sessionKey = `${sessionDate}-${slot.childId || 'nochild'}-${slot.teacherId || 'noteacher'}-${slot.packageCode || 'nopackage'}`;
+            // Include bookedAt in the key to separate different assignments
+            const bookedAtTime = slot.bookedAt?.toDate ? slot.bookedAt.toDate().getTime() : (slot.bookedAt ? new Date(slot.bookedAt).getTime() : 0);
+            // Use a 5-second window for bookedAt to group slots from the same assignment
+            const bookingGroupKey = Math.floor(bookedAtTime / 5000); 
+            
+            const sessionKey = `${sessionDate}-${slot.childId || 'nochild'}-${slot.teacherId || 'noteacher'}-${slot.packageCode || 'nopackage'}-${bookingGroupKey}`;
             if (!sessions[sessionKey]) sessions[sessionKey] = [];
             sessions[sessionKey].push(slot);
         });
@@ -369,8 +374,8 @@ function OgretmenDerslerimPageContent() {
             return lessons.map(lesson => {
                 const firstSlot = lesson.slots[0];
                 const startTime = parseDate(firstSlot.startTime);
-                const packageDetails = getCourseDetailsFromPackageCode(firstSlot.packageCode);
-                const duration = packageDetails ? packageDetails.duration : 30;
+                // Calculate actual duration from number of slots (5 mins each)
+                const duration = lesson.slots.length * 5;
                 const endTime = addMinutes(startTime, duration);
                 const liveInfoSlot = lesson.slots.find((s: any) => s.isLive);
                 const feedbackSlot = lesson.slots.find((s: any) => s.feedback);
