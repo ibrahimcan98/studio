@@ -1190,13 +1190,13 @@ function UsersPageContent() {
 
       {/* DETAIL DIALOG */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0 rounded-[32px] border-none shadow-2xl">
+        <DialogContent className="max-w-4xl w-[95vw] sm:w-full h-[90dvh] sm:h-auto sm:max-h-[90vh] overflow-hidden p-0 rounded-[24px] sm:rounded-[32px] border-none shadow-2xl">
             <DialogHeader className="sr-only">
                 <DialogTitle>Veli Profil Detayı - {selectedParent?.firstName} {selectedParent?.lastName}</DialogTitle>
                 <DialogDescription>Seçili velinin iletişim bilgileri, çocukları ve ders geçmişini içeren detaylı görünüm.</DialogDescription>
             </DialogHeader>
             {selectedParent && (
-                <div className="flex flex-col h-full">
+                <div className="flex flex-col h-full min-h-0">
                     <div className="p-4 sm:p-8 bg-slate-900 text-white shrink-0">
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                             <div className="flex items-center gap-4 sm:gap-6">
@@ -1221,8 +1221,8 @@ function UsersPageContent() {
                         </div>
                     </div>
 
-                    <Tabs defaultValue="overview" className="flex-1 flex flex-col overflow-hidden">
-                        <div className="bg-slate-900/95 px-4 sm:px-8">
+                    <Tabs defaultValue="overview" className="flex-1 flex flex-col overflow-hidden min-h-0">
+                        <div className="bg-slate-900/95 px-4 sm:px-8 shrink-0">
                             <TabsList className="bg-transparent gap-4 sm:gap-8 h-10 sm:h-12 p-0 w-full justify-start overflow-x-auto no-scrollbar">
                                 <TabsTrigger value="overview" className="data-[state=active]:bg-white data-[state=active]:text-slate-900 rounded-t-lg sm:rounded-t-xl rounded-b-none h-10 sm:h-12 border-none font-bold text-slate-400 px-4 sm:px-6 text-xs sm:text-sm whitespace-nowrap">Özet</TabsTrigger>
                                 <TabsTrigger value="children" className="data-[state=active]:bg-white data-[state=active]:text-slate-900 rounded-t-lg sm:rounded-t-xl rounded-b-none h-10 sm:h-12 border-none font-bold text-slate-400 px-4 sm:px-6 text-xs sm:text-sm whitespace-nowrap">Çocuklar</TabsTrigger>
@@ -1230,8 +1230,8 @@ function UsersPageContent() {
                             </TabsList>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-8 bg-white custom-scrollbar">
-                            <TabsContent value="overview" className="mt-0 space-y-8">
+                        <div className="flex-1 overflow-y-auto p-4 sm:p-8 pb-12 sm:pb-8 bg-white custom-scrollbar min-h-0">
+                            <TabsContent value="overview" className="mt-0 space-y-6 sm:space-y-8">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
                                     <Card className="bg-slate-50 border-none p-4 sm:p-6 space-y-1 sm:space-y-2">
                                         <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Kayıt Tarihi</p>
@@ -1472,23 +1472,36 @@ function UsersPageContent() {
                                             </div>
                                         );
 
-                                        // Grouping Logic
-                                        const sessions: { [key: string]: any[] } = {};
-                                        parentSlots.forEach(slot => {
-                                            const st = slot.startTime.toDate();
-                                            const dateKey = format(st, 'yyyy-MM-dd');
-                                            // Group by date, child, teacher and package (within the same day)
-                                            const sessionKey = `${dateKey}-${slot.childId}-${slot.teacherId}`;
-                                            if (!sessions[sessionKey]) sessions[sessionKey] = [];
-                                            sessions[sessionKey].push(slot);
-                                        });
+                                        // 1. Sort all slots by time to find contiguous blocks
+                                        const sortedSlots = [...parentSlots].sort((a, b) => a.startTime.seconds - b.startTime.seconds);
+                                        
+                                        const sessions: any[][] = [];
+                                        let currentSession: any[] = [];
 
-                                        const groupedSessions = Object.values(sessions).map(sessionSlots => {
-                                            sessionSlots.sort((a,b) => a.startTime.seconds - b.startTime.seconds);
+                                        sortedSlots.forEach(slot => {
+                                            const lastSlot = currentSession[currentSession.length - 1];
+                                            
+                                            const isConsecutive = lastSlot && 
+                                                lastSlot.childId === slot.childId &&
+                                                lastSlot.teacherId === slot.teacherId &&
+                                                lastSlot.packageCode === slot.packageCode &&
+                                                (lastSlot.bookedAt?.seconds === slot.bookedAt?.seconds) &&
+                                                (slot.startTime.seconds - lastSlot.startTime.seconds === 300);
+
+                                            if (isConsecutive) {
+                                                currentSession.push(slot);
+                                            } else {
+                                                if (currentSession.length > 0) sessions.push(currentSession);
+                                                currentSession = [slot];
+                                            }
+                                        });
+                                        if (currentSession.length > 0) sessions.push(currentSession);
+
+                                        const groupedSessions = sessions.map(sessionSlots => {
                                             const first = sessionSlots[0];
                                             const st = first.startTime.toDate();
-                                            const details = getCourseDetailsFromPackageCode(first.packageCode);
-                                            const duration = details?.duration || 30;
+                                            // Dynamic duration based on slots
+                                            const duration = sessionSlots.length * 5;
                                             const et = addMinutes(st, duration);
 
                                             return {
@@ -1504,7 +1517,7 @@ function UsersPageContent() {
                                         return (
                                             <div className="divide-y border rounded-2xl overflow-y-auto max-h-[60vh] custom-scrollbar bg-white shadow-inner">
                                                 {groupedSessions.map((session, i) => (
-                                                    <div key={i} className="p-5 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                                                    <div key={i} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-slate-50 transition-colors gap-4">
                                                         <div className="flex items-center gap-4">
                                                             <div className={cn("w-12 h-12 rounded-full flex items-center justify-center shadow-sm", session.packageCode === 'FREE_TRIAL' ? 'bg-blue-50 text-blue-500' : 'bg-emerald-50 text-emerald-500')}>
                                                                 <History className="w-6 h-6" />
@@ -1528,19 +1541,21 @@ function UsersPageContent() {
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        {(() => {
-                                                            const isStarted = currentTime >= session.startTime;
-                                                            const isEnded = currentTime >= session.endTime;
-                                                            
-                                                            if (isEnded) return <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50/50 border-emerald-100 px-3 py-1 rounded-full">Tamamlandı</Badge>;
-                                                            if (isStarted) return (
-                                                                <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest text-red-600 bg-red-50 border-red-100 px-3 py-1 rounded-full animate-pulse flex items-center gap-1.5 shadow-sm shadow-red-100">
-                                                                    <div className="w-1.5 h-1.5 rounded-full bg-red-600 animate-ping" />
-                                                                    Ders Yapılıyor
-                                                                </Badge>
-                                                            );
-                                                            return <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest text-blue-500 bg-blue-50 border-blue-100 px-3 py-1 rounded-full">Ders Başlamadı</Badge>;
-                                                        })()}
+                                                        <div className="flex justify-end">
+                                                            {(() => {
+                                                                const isStarted = currentTime >= session.startTime;
+                                                                const isEnded = currentTime >= session.endTime;
+                                                                
+                                                                if (isEnded) return <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50/50 border-emerald-100 px-3 py-1 rounded-full">Tamamlandı</Badge>;
+                                                                if (isStarted) return (
+                                                                    <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest text-red-600 bg-red-50 border-red-100 px-3 py-1 rounded-full animate-pulse flex items-center gap-1.5 shadow-sm shadow-red-100">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-red-600 animate-ping" />
+                                                                        Ders Yapılıyor
+                                                                    </Badge>
+                                                                );
+                                                                return <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest text-blue-500 bg-blue-50 border-blue-100 px-3 py-1 rounded-full">Ders Başlamadı</Badge>;
+                                                            })()}
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>

@@ -636,6 +636,7 @@ function TeacherStatsDialog({ isOpen, onOpenChange, teacher }: { isOpen: boolean
             currentSession.childId === slot.childId &&
             currentSession.packageCode === slot.packageCode &&
             currentSession.status === slot.status &&
+            (currentSession.bookedAt?.seconds === slot.bookedAt?.seconds) &&
             // Check if this slot starts exactly when the previous one ended (or very close)
             Math.abs(startTime.getTime() - currentSession.lastEndTime.getTime()) < 2000;
 

@@ -331,12 +331,10 @@ function OgretmenDerslerimPageContent() {
         relevantSlots.forEach(slot => {
             const startTime = parseDate(slot.startTime);
             const sessionDate = startOfDay(startTime).toISOString();
-            // Include bookedAt in the key to separate different assignments
-            const bookedAtTime = slot.bookedAt?.toDate ? slot.bookedAt.toDate().getTime() : (slot.bookedAt ? new Date(slot.bookedAt).getTime() : 0);
-            // Use a 5-second window for bookedAt to group slots from the same assignment
-            const bookingGroupKey = Math.floor(bookedAtTime / 5000); 
             
-            const sessionKey = `${sessionDate}-${slot.childId || 'nochild'}-${slot.teacherId || 'noteacher'}-${slot.packageCode || 'nopackage'}-${bookingGroupKey}`;
+            // We group primarily by date, child, teacher and package.
+            // Proximity check (<= 5 mins) in the next step will handle actual session splitting.
+            const sessionKey = `${sessionDate}-${slot.childId || 'nochild'}-${slot.teacherId || 'noteacher'}-${slot.packageCode || 'nopackage'}`;
             if (!sessions[sessionKey]) sessions[sessionKey] = [];
             sessions[sessionKey].push(slot);
         });
@@ -357,11 +355,15 @@ function OgretmenDerslerimPageContent() {
                 if (!currentLesson) {
                     currentLesson = { ...slot, slots: [slot] };
                 } else {
-                    const lastSlotTime = parseDate(currentLesson.slots[currentLesson.slots.length - 1].startTime);
+                    const lastSlot = currentLesson.slots[currentLesson.slots.length - 1];
+                    const lastSlotTime = parseDate(lastSlot.startTime);
                     const currentSlotTime = parseDate(slot.startTime);
                     const timeDiff = (currentSlotTime.getTime() - lastSlotTime.getTime()) / (1000 * 60);
 
-                    if (timeDiff <= 5) {
+                    // Group only if it's the same booking and consecutive in time
+                    const isSameBooking = lastSlot.bookedAt?.seconds === slot.bookedAt?.seconds;
+
+                    if (timeDiff <= 5 && isSameBooking) {
                         currentLesson.slots.push(slot);
                     } else {
                         lessons.push(currentLesson);

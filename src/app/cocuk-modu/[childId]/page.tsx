@@ -147,14 +147,14 @@ export default function CocukModuPage() {
         <div className="flex-1 relative order-3 md:order-2 overflow-y-auto scrollbar-hide perspective-1000 flex flex-col items-center">
 
           {/* Başlık Bölümü */}
-          <div className="w-full flex justify-center pt-[100px] flex-shrink-0">
-            <div className="absolute top-0 z-30 hover:scale-105 transition-transform duration-300 cursor-default select-none">
+          <div className="w-full flex justify-center pt-8 md:pt-[100px] flex-shrink-0">
+            <div className="relative md:absolute top-0 z-30 hover:scale-105 transition-transform duration-300 cursor-default select-none px-4">
               <Image
                 src="/macera.png"
                 width={550}
                 height={687}
                 alt="Macera Haritası"
-                className="drop-shadow-[0_15px_25px_rgba(0,0,0,0.3)] object-contain"
+                className="drop-shadow-[0_15px_25px_rgba(0,0,0,0.3)] object-contain w-[280px] md:w-[550px]"
                 priority
               />
             </div>
@@ -163,8 +163,8 @@ export default function CocukModuPage() {
           {/* Macera Haritası İçeriği (Adalar ve Köprüler) */}
           <div className="relative w-full min-h-[11100px] flex-shrink-0">
 
-            {/* Köprü Efektleri */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 10 }}>
+            {/* Masaüstü Köprü Efektleri */}
+            <svg className="hidden md:block absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 10 }}>
               <defs>
                 <filter id="glow">
                   <feGaussianBlur stdDeviation="3" result="coloredBlur" />
@@ -211,18 +211,27 @@ export default function CocukModuPage() {
               <path d="M 55% 10250px Q 45% 10450px 35% 10650px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
             </svg>
 
+            {/* Mobil Köprü Efektleri (Farklı Yüzdeler) */}
+            <svg className="block md:hidden absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 10 }}>
+              <path d="M 45% 150px Q 30% 300px 15% 450px" stroke="rgba(255,255,255,0.3)" strokeWidth="4" fill="transparent" strokeDasharray="8 8" strokeLinecap="round" />
+              <path d="M 15% 450px Q 40% 600px 65% 750px" stroke="rgba(255,255,255,0.3)" strokeWidth="4" fill="transparent" strokeDasharray="8 8" strokeLinecap="round" />
+              <path d="M 65% 750px Q 45% 900px 15% 1050px" stroke="rgba(255,255,255,0.3)" strokeWidth="4" fill="transparent" strokeDasharray="8 8" strokeLinecap="round" />
+              {/* Diğer yollar da benzer şekilde mobile göre daraltılabilir */}
+            </svg>
+
             {/* 3D CSS Platformları */}
             {MOCK_TOPICS.map((topic, index) => (
               <div
                 key={topic.id}
                 id={`topic-${topic.id}`}
-                className="absolute animate-float"
+                className="absolute animate-float island-container"
                 style={{
                   top: topic.top,
-                  left: topic.left,
+                  '--desktop-left': topic.left,
+                  '--mobile-left': topic.left === '65%' ? '55%' : '5%', // Mobile için daha dar alan
                   animationDelay: `${index * 0.7}s`,
                   zIndex: 20
-                }}
+                } as any}
               >
                 <TopicCard
                   topic={topic}
@@ -239,6 +248,15 @@ export default function CocukModuPage() {
       </main>
 
       <style jsx global>{`
+        .island-container {
+          left: var(--desktop-left);
+          transition: left 0.5s ease-in-out;
+        }
+        @media (max-width: 768px) {
+          .island-container {
+            left: var(--mobile-left) !important;
+          }
+        }
         @keyframes float {
           0%, 100% { transform: translateY(0px) rotate(0deg); }
           50% { transform: translateY(-15px) rotate(1deg); }

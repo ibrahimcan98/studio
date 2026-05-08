@@ -77,7 +77,9 @@ export default function AdminDashboard() {
     const sessions: { [key: string]: any[] } = {};
     monthSlots.forEach(slot => {
         const date = slot.startTime?.toDate().toDateString();
-        const key = `${slot.childId}_${slot.teacherId}_${date}_${slot.packageCode}`;
+        // Include bookedAt in the key to separate different bookings immediately
+        const bookedAtStr = slot.bookedAt?.seconds || 'manual';
+        const key = `${slot.childId}_${slot.teacherId}_${date}_${slot.packageCode}_${bookedAtStr}`;
         if (!sessions[key]) sessions[key] = [];
         sessions[key].push(slot);
     });
@@ -87,7 +89,10 @@ export default function AdminDashboard() {
         sessionSlots.sort((a, b) => a.startTime.seconds - b.startTime.seconds);
         let currentLesson: any = null;
         sessionSlots.forEach(slot => {
-            if (!currentLesson || (slot.startTime.seconds - currentLesson.lastSlotSeconds > 300)) {
+            // Group only if consecutive (5 min) and same booking (already in key but double check is safe)
+            const isConsecutive = currentLesson && (slot.startTime.seconds - currentLesson.lastSlotSeconds <= 300);
+            
+            if (!currentLesson || !isConsecutive) {
                 currentLesson = { ...slot, slotCount: 1, lastSlotSeconds: slot.startTime.seconds };
                 groupedLessons.push(currentLesson);
             } else {

@@ -69,6 +69,14 @@ export function useTTS() {
     }
   }, []);
 
+  const preload = useCallback((text: string, voiceId?: string) => {
+    if (!text) return;
+    const url = `/api/ai/tts?text=${encodeURIComponent(text)}${voiceId ? `&voiceId=${voiceId}` : ''}`;
+    const audio = new Audio();
+    audio.src = url;
+    audio.preload = 'auto';
+  }, []);
+
   const stop = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -76,9 +84,18 @@ export function useTTS() {
     }
   }, []);
 
+  const resume = useCallback(() => {
+    if (audioRef.current && audioRef.current.paused) {
+      audioRef.current.play().catch(console.error);
+      setIsPlaying(true);
+    }
+  }, []);
+
   return {
     speak,
     stop,
+    resume,
+    preload,
     isPlaying,
     isLoading,
   };

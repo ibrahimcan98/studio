@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { Loader2, Mic, Square, Sparkles } from 'lucide-react';
+import { Loader2, Mic, Square, Sparkles, RotateCcw } from 'lucide-react';
 import { ChildSidebar } from '@/components/child-mode/sidebar';
 import { cn } from '@/lib/utils';
 import { childConversationFlow } from '@/ai/flows/child-conversation-flow';
@@ -27,7 +27,7 @@ export default function KonusmaPage() {
   const [aiResponse, setAiResponse] = useState("Pati seni bekliyor! Haydi konuşmaya başlayalım!");
   const [currentEmotion, setCurrentEmotion] = useState<'happy' | 'surprised' | 'thinking' | 'excited' | 'cool' | 'laughing'>('happy');
   const [history, setHistory] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
-  const { speak, isPlaying: isAudioPlaying } = useTTS();
+  const { speak, stop, isPlaying: isAudioPlaying } = useTTS();
   const [hasInteracted, setHasInteracted] = useState(false);
   const greetingTriggered = useRef(false);
   const transcriptRef = useRef("");
@@ -44,6 +44,12 @@ export default function KonusmaPage() {
   }, [db, authUser?.uid, childId]);
 
   const { data: childData, isLoading: childLoading } = useDoc(childDocRef);
+
+  const handleRepeat = () => {
+    if (aiResponse && !isListening) {
+      speak(aiResponse);
+    }
+  };
 
   const startConversation = async () => {
     setHasInteracted(true);
@@ -68,6 +74,10 @@ export default function KonusmaPage() {
 
   const handleMicClick = async () => {
     if (typeof window === 'undefined') return;
+    
+    // Pati konuşuyorsa sustur
+    stop();
+
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       setAiResponse("Maalesef tarayıcın ses tanımayı desteklemiyor.");
@@ -223,33 +233,57 @@ export default function KonusmaPage() {
               {transcript}
             </div>
 
-            {/* Mic Button - More Compact Size */}
-            <div className="flex flex-col items-center gap-2">
-              <div className="relative">
-                {isListening && (
-                  <motion.div 
-                    animate={{ scale: [1, 1.4, 1], opacity: [0.3, 0, 0.3] }}
-                    transition={{ repeat: Infinity, duration: 1.2 }}
-                    className="absolute inset-0 rounded-full bg-red-400"
-                  />
-                )}
+            {/* Buttons Row */}
+            <div className="flex items-end gap-8">
+              
+              {/* Repeat Button */}
+              <div className="flex flex-col items-center gap-2 mb-2">
                 <button
-                  onClick={handleMicClick}
+                  onClick={handleRepeat}
+                  disabled={isListening || !hasInteracted}
                   className={cn(
-                    "relative z-[210] w-28 h-28 md:w-32 md:h-32 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl border-b-[8px] cursor-pointer active:scale-95 active:border-b-0 active:translate-y-1",
-                    isListening ? "bg-[#FF5252] border-[#D32F2F] text-white" : "bg-[#4CAF50] border-[#388E3C] text-white"
+                    "w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg border-b-[6px] cursor-pointer active:scale-95 active:border-b-0 active:translate-y-1",
+                    (isListening || !hasInteracted) ? "bg-slate-200 border-slate-300 text-slate-400 grayscale" : "bg-[#FFB74D] border-[#F57C00] text-white"
                   )}
                 >
-                  {isListening ? (
-                    <Square className="w-12 h-12 fill-current" />
-                  ) : (
-                    <Mic className="w-14 h-14" />
-                  )}
+                  <RotateCcw className="w-8 h-8" />
                 </button>
+                <p className="text-[#E65100] font-black text-[10px] uppercase tracking-widest bg-white/50 px-3 py-1 rounded-full">
+                  TEKRAR
+                </p>
               </div>
-              <p className="text-[#004D40] font-black text-sm uppercase tracking-widest bg-white/50 px-4 py-1 rounded-full">
-                {isListening ? "DURDUR" : "KONUŞ"}
-              </p>
+
+              {/* Mic Button - More Compact Size */}
+              <div className="flex flex-col items-center gap-2">
+                <div className="relative">
+                  {isListening && (
+                    <motion.div 
+                      animate={{ scale: [1, 1.4, 1], opacity: [0.3, 0, 0.3] }}
+                      transition={{ repeat: Infinity, duration: 1.2 }}
+                      className="absolute inset-0 rounded-full bg-red-400"
+                    />
+                  )}
+                  <button
+                    onClick={handleMicClick}
+                    className={cn(
+                      "relative z-[210] w-28 h-28 md:w-32 md:h-32 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl border-b-[8px] cursor-pointer active:scale-95 active:border-b-0 active:translate-y-1",
+                      isListening ? "bg-[#FF5252] border-[#D32F2F] text-white" : "bg-[#4CAF50] border-[#388E3C] text-white"
+                    )}
+                  >
+                    {isListening ? (
+                      <Square className="w-12 h-12 fill-current" />
+                    ) : (
+                      <Mic className="w-14 h-14" />
+                    )}
+                  </button>
+                </div>
+                <p className="text-[#004D40] font-black text-sm uppercase tracking-widest bg-white/50 px-4 py-1 rounded-full">
+                  {isListening ? "DURDUR" : "KONUŞ"}
+                </p>
+              </div>
+
+              {/* Empty spacing for symmetry */}
+              <div className="w-16 h-16 hidden md:block" />
             </div>
           </div>
         </div>

@@ -424,37 +424,39 @@ export function TeacherCalendarDialog({
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-[32px] border-none shadow-2xl p-0 font-sans" onMouseUp={handleMouseUp}>
-          <div className="bg-emerald-600 p-8 text-white relative overflow-hidden">
+          <div className="bg-emerald-600 p-4 sm:p-8 text-white relative overflow-hidden">
                <div className="absolute top-[-20%] right-[-10%] w-64 h-64 bg-white/10 rounded-full blur-3xl" />
                <DialogHeader className="relative z-10">
-                   <div className="flex items-center gap-4">
-                       <Avatar className="h-16 w-16 border-4 border-white/20">
-                           <AvatarFallback className="bg-white/20 text-white font-black text-xl uppercase">
+                   <div className="flex items-center gap-3 sm:gap-4">
+                       <Avatar className="h-12 w-12 sm:h-16 sm:w-16 border-2 sm:border-4 border-white/20">
+                           <AvatarFallback className="bg-white/20 text-white font-black text-lg sm:text-xl uppercase">
                                {teacher?.firstName?.[0]}{teacher?.lastName?.[0]}
                            </AvatarFallback>
                        </Avatar>
                        <div className="flex flex-col">
-                           <DialogTitle className="text-3xl font-black text-white">{teacher?.firstName} {teacher?.lastName}</DialogTitle>
-                           <DialogDescription className="text-emerald-100 font-bold opacity-90 drop-shadow-sm">Takvim ve Müsaitlik Yönetimi (Admin)</DialogDescription>
+                           <DialogTitle className="text-xl sm:text-3xl font-black text-white">{teacher?.firstName} {teacher?.lastName}</DialogTitle>
+                           <DialogDescription className="text-emerald-100 font-bold opacity-90 drop-shadow-sm text-[10px] sm:text-xs">Takvim ve Müsaitlik Yönetimi (Admin)</DialogDescription>
                        </div>
                    </div>
                </DialogHeader>
           </div>
 
-          <div className="p-8">
+          <div className="p-4 sm:p-8">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                   {/* Left Column: Calendar & Controls */}
                   <div className="lg:col-span-5 space-y-6">
-                      <Card className="p-4 border-none shadow-md bg-slate-50/50 rounded-[28px]">
-                          <Calendar
-                              mode="single"
-                              selected={selectedDate}
-                              onSelect={(date) => date && setSelectedDate(date)}
-                              locale={tr}
-                              modifiers={{ available: availableDays }}
-                              modifiersClassNames={{ available: 'bg-emerald-100 text-emerald-700 font-black rounded-full' }}
-                              className="rounded-xl mx-auto"
-                          />
+                      <Card className="p-2 sm:p-4 border-none shadow-md bg-slate-50/50 rounded-[28px]">
+                          <div className="scale-90 sm:scale-100 origin-top">
+                            <Calendar
+                                mode="single"
+                                selected={selectedDate}
+                                onSelect={(date) => date && setSelectedDate(date)}
+                                locale={tr}
+                                modifiers={{ available: availableDays }}
+                                modifiersClassNames={{ available: 'bg-emerald-100 text-emerald-700 font-black rounded-full' }}
+                                className="rounded-xl mx-auto"
+                            />
+                          </div>
                       </Card>
 
                       <div className="space-y-4">
@@ -524,14 +526,14 @@ export function TeacherCalendarDialog({
               </div>
           </div>
 
-          <DialogFooter className="p-8 bg-slate-50 rounded-b-[32px] flex flex-col sm:flex-row gap-3">
-              <Button onClick={() => onOpenChange(false)} variant="outline" className="h-12 px-6 rounded-xl font-bold border-2">Kapat</Button>
-              <div className="flex-1 flex gap-3">
-                  <Button onClick={handleApplyTemplateToFutureDays} disabled={isApplyingTemplate} variant="secondary" className="flex-1 h-12 rounded-xl font-bold gap-2">
+          <DialogFooter className="p-4 sm:p-8 bg-slate-50 rounded-b-[32px] flex flex-col sm:flex-row gap-2 sm:gap-3">
+              <Button onClick={() => onOpenChange(false)} variant="outline" className="w-full sm:w-auto h-11 sm:h-12 px-6 rounded-xl font-bold border-2">Kapat</Button>
+              <div className="flex-1 flex flex-col sm:flex-row gap-2 sm:gap-3">
+                  <Button onClick={handleApplyTemplateToFutureDays} disabled={isApplyingTemplate} variant="secondary" className="w-full sm:flex-1 h-11 sm:h-12 rounded-xl font-bold gap-2 text-xs">
                       {isApplyingTemplate ? <Loader2 className="h-4 w-4 animate-spin" /> : <Clock className="w-4 h-4" />}
                       Şablonu 12 Haftaya Uygula
                   </Button>
-                  <Button onClick={handleApplyChanges} disabled={isApplyingChanges} className="flex-1 h-12 rounded-xl font-black bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-200 gap-2">
+                  <Button onClick={handleApplyChanges} disabled={isApplyingChanges} className="w-full sm:flex-1 h-11 sm:h-12 rounded-xl font-black bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-200 gap-2 text-xs">
                       {isApplyingChanges ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="w-4 h-4" />}
                       DEĞİŞİKLİKLERİ UYGULA
                   </Button>

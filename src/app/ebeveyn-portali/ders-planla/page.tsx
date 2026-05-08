@@ -408,6 +408,8 @@ export default function DersPlanlaPage() {
                         bookedBy: user.uid, 
                         childId: selectedChildId, 
                         packageCode: selectedPackage,
+                        bookedAt: serverTimestamp(),
+                        updatedAt: serverTimestamp(),
                         rescheduleCount: (oldLessonData?.rescheduleCount || 0) + (rescheduleId ? 1 : 0)
                     });
                 }

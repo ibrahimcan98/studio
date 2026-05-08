@@ -48,9 +48,7 @@ const getCourseDetailsFromPackageCode = (code?: string) => {
     return { courseName: course.title, duration };
 };
 
-const teachers = [
-    { id: 'O2mQCONyczVkAXcgAMBSPpeIfJw2', firstName: 'Tuba', lastName: 'Kodak' },
-];
+// Teachers are now fetched dynamically from Firestore in the LessonCard component
 
 function CancellationButtons({ lesson, timeZone }: { lesson: any, timeZone: string }) {
     const db = useFirestore();
@@ -299,9 +297,14 @@ function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZon
 
     const { data: childData, isLoading: isChildLoading } = useDoc(childDocRef);
     
-    const teacher = useMemo(() => teachers.find(t => t.id === lesson.teacherId), [lesson.teacherId]);
+    const teacherDocRef = useMemoFirebase(() => {
+        if (!db || !lesson.teacherId) return null;
+        return doc(db, 'users', lesson.teacherId);
+    }, [db, lesson.teacherId]);
 
-    if (isChildLoading) {
+    const { data: teacherData, isLoading: isTeacherLoading } = useDoc(teacherDocRef);
+
+    if (isChildLoading || isTeacherLoading) {
         return <Card className="p-4 flex items-center justify-center min-h-[220px]"><Loader2 className="animate-spin text-primary" /></Card>;
     }
 
@@ -340,7 +343,7 @@ function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZon
                 </div>
                  <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-muted-foreground" />
-                    <span><strong>Öğretmen:</strong> {teacher?.firstName} {teacher?.lastName}</span>
+                    <span><strong>Öğretmen:</strong> {teacherData?.firstName} {teacherData?.lastName || ''}</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <BookOpen className="w-4 h-4 text-muted-foreground" />
@@ -427,24 +430,42 @@ export default function DerslerimPage() {
     const groupedLessons = useMemo(() => {
         if (!lessonSlots) return [];
         
-        // Group by Date, Child and Teacher
-        const sessions: { [key: string]: any[] } = {};
-        lessonSlots.forEach(slot => {
-            const st = slot.startTime.toDate();
-            const dateKey = formatInTimeZone(st, 'UTC', 'yyyy-MM-dd');
-            const sessionKey = `${dateKey}-${slot.childId}-${slot.teacherId}`;
-            if (!sessions[sessionKey]) sessions[sessionKey] = [];
-            sessions[sessionKey].push(slot);
-        });
+        // 1. Sort all slots by time to find contiguous blocks
+        const sortedSlots = [...lessonSlots].sort((a, b) => a.startTime.seconds - b.startTime.seconds);
+        
+        const sessions: any[][] = [];
+        let currentSession: any[] = [];
 
-        return Object.values(sessions).map(sessionSlots => {
-            sessionSlots.sort((a, b) => a.startTime.seconds - b.startTime.seconds);
+        sortedSlots.forEach(slot => {
+            const lastSlot = currentSession[currentSession.length - 1];
+            
+            // Group only if:
+            // - Same child and teacher
+            // - Same package code
+            // - Slots are contiguous in time (difference of exactly 5 mins / 300s)
+            // - Slots belong to the same booking (same bookedAt timestamp)
+            const isConsecutive = lastSlot && 
+                lastSlot.childId === slot.childId &&
+                lastSlot.teacherId === slot.teacherId &&
+                lastSlot.packageCode === slot.packageCode &&
+                (lastSlot.bookedAt?.seconds === slot.bookedAt?.seconds) &&
+                (slot.startTime.seconds - lastSlot.startTime.seconds === 300);
+
+            if (isConsecutive) {
+                currentSession.push(slot);
+            } else {
+                if (currentSession.length > 0) sessions.push(currentSession);
+                currentSession = [slot];
+            }
+        });
+        if (currentSession.length > 0) sessions.push(currentSession);
+
+        return sessions.map(sessionSlots => {
             const firstSlot = sessionSlots[0];
             const startTime = firstSlot.startTime.toDate();
             
-            // Get proper duration based on package
-            const packageDetails = getCourseDetailsFromPackageCode(firstSlot.packageCode);
-            const duration = packageDetails?.duration || 30;
+            // Calculate dynamic duration based on slots (each slot is 5 mins)
+            const duration = sessionSlots.length * 5;
             const endTime = addMinutes(startTime, duration);
             
             const feedbackSlot = sessionSlots.find(s => s.feedback);
@@ -463,7 +484,8 @@ export default function DerslerimPage() {
                 isLive: liveSlot ? liveSlot.isLive : false,
                 liveLessonUrl: liveSlot ? liveSlot.liveLessonUrl : null,
                 status: firstSlot.status,
-                cancelReason: firstSlot.cancelReason
+                cancelReason: firstSlot.cancelReason,
+                bookedAt: firstSlot.bookedAt
             };
         });
     }, [lessonSlots]);

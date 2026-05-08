@@ -62,10 +62,11 @@ const getCourseDetailsFromPackageCode = (code?: string) => {
     return { courseName: course.title, duration };
 };
 
-// Static teacher list to ensure names are always available
-const teachers = [
-    { id: 'O2mQCONyczVkAXcgAMBSPpeIfJw2', firstName: 'Tuba', lastName: 'Kodak' },
-];
+// Standard teacher name resolver
+const getTeacherName = (teacherId: string, users: any[]) => {
+    const teacher = users?.find(u => u.id === teacherId || u.uid === teacherId);
+    return teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Akademi Eğitmeni';
+};
 
 function CancellationButtons({ lesson, timeZone }: { lesson: any, timeZone: string }) {
     const db = useFirestore();
@@ -211,7 +212,7 @@ function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZon
 
     const { data: childData, isLoading: isChildLoading } = useDoc(childDocRef);
     
-    const teacher = useMemo(() => teachers.find(t => t.id === lesson.teacherId), [lesson.teacherId]);
+    // Teacher lookup now happens in LessonCard directly or from a passed prop
 
     const handleJoinLesson = () => {
         if (lesson.isLive && lesson.liveLessonUrl) {
@@ -258,9 +259,9 @@ function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZon
                     <Baby className="w-3.5 h-3.5 text-primary" />
                     <span><strong className="text-slate-700">Öğrenci:</strong> {childData?.firstName}</span>
                 </div>
-                 <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
                     <User className="w-3.5 h-3.5" />
-                    <span><strong className="text-slate-700">Öğretmen:</strong> {teacher?.firstName} {teacher?.lastName}</span>
+                    <span><strong className="text-slate-700">Öğretmen:</strong> {lesson.teacherName || 'Akademi Eğitmeni'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <BookOpen className="w-3.5 h-3.5" />
@@ -349,6 +350,13 @@ function DerslerimPageContent() {
 
     const { data: lessonSlots, isLoading: lessonsLoading } = useCollection(bookedLessonsQuery);
     
+    // Fetch teachers to display names correctly
+    const teachersQuery = useMemoFirebase(() => {
+        if (!db) return null;
+        return query(collection(db, 'users'), where('role', '==', 'teacher'));
+    }, [db]);
+    const { data: teachersData } = useCollection(teachersQuery);
+    
     const childDocRef = useMemoFirebase(() => {
         if (!db || !selectedLesson?.bookedBy || !selectedLesson?.childId) return null;
         return doc(db, 'users', selectedLesson.bookedBy, 'children', selectedLesson.childId);
@@ -368,82 +376,76 @@ function DerslerimPageContent() {
             return isNaN(d.getTime()) ? new Date() : d;
         };
 
-        const sessions: { [key: string]: any[] } = {};
-
-        // Only process booked or cancelled lessons
-        const relevantSlots = lessonSlots.filter(s => s.status && s.status !== 'available');
-
-        relevantSlots.forEach(slot => {
-            const startTime = parseDate(slot.startTime);
-            const sessionDate = startOfDay(startTime).toISOString();
-            const sessionKey = `${sessionDate}-${slot.childId || 'nochild'}-${slot.teacherId || 'noteacher'}-${slot.packageCode || 'nopackage'}`;
-
-            if (!sessions[sessionKey]) {
-                sessions[sessionKey] = [];
-            }
-            sessions[sessionKey].push(slot);
-        });
-        
-        return Object.values(sessions).flatMap(sessionSlots => {
-            if (sessionSlots.length === 0) return [];
-
-            sessionSlots.sort((a, b) => {
+        // 1. Sort all slots by time to find contiguous blocks
+        const sortedSlots = [...lessonSlots]
+            .filter(s => s.status && s.status !== 'available')
+            .sort((a, b) => {
                 const timeA = parseDate(a.startTime).getTime();
                 const timeB = parseDate(b.startTime).getTime();
                 return timeA - timeB;
             });
+        
+        const sessions: any[][] = [];
+        let currentSession: any[] = [];
 
-            const lessons: any[] = [];
-            let currentLesson: any = null;
-
-            for (const slot of sessionSlots) {
-                if (!currentLesson) {
-                    currentLesson = { ...slot, slots: [slot] };
-                } else {
-                    const lastSlotTime = parseDate(currentLesson.slots[currentLesson.slots.length - 1].startTime);
-                    const currentSlotTime = parseDate(slot.startTime);
-                    const timeDiff = (currentSlotTime.getTime() - lastSlotTime.getTime()) / (1000 * 60);
-
-                    if (timeDiff <= 5) { // If slots are 5 minutes apart or less, group them
-                        currentLesson.slots.push(slot);
-                    } else {
-                        lessons.push(currentLesson);
-                        currentLesson = { ...slot, slots: [slot] };
-                    }
-                }
-            }
-            if (currentLesson) {
-                lessons.push(currentLesson);
-            }
+        sortedSlots.forEach(slot => {
+            const lastSlot = currentSession[currentSession.length - 1];
             
-            return lessons.map(lesson => {
-                const firstSlot = lesson.slots[0];
-                const startTime = parseDate(firstSlot.startTime);
-                const packageDetails = getCourseDetailsFromPackageCode(firstSlot.packageCode);
-                const duration = packageDetails ? packageDetails.duration : 30;
-                const endTime = addMinutes(startTime, duration);
+            // Group only if:
+            // - Same child and teacher
+            // - Same package code
+            // - Slots are contiguous in time (difference of exactly 5 mins / 300s)
+            // - Slots belong to the same booking (same bookedAt timestamp)
+            const lastSlotTime = lastSlot ? parseDate(lastSlot.startTime) : null;
+            const currentSlotTime = parseDate(slot.startTime);
+            const timeDiff = lastSlotTime ? (currentSlotTime.getTime() - lastSlotTime.getTime()) / 1000 : 0;
 
-                const liveInfoSlot = lesson.slots.find((s: any) => s.isLive);
-                const feedbackSlot = lesson.slots.find((s: any) => s.feedback);
+            const isConsecutive = lastSlot && 
+                lastSlot.childId === slot.childId &&
+                lastSlot.teacherId === slot.teacherId &&
+                lastSlot.packageCode === slot.packageCode &&
+                (lastSlot.bookedAt?.seconds === slot.bookedAt?.seconds) &&
+                timeDiff === 300;
 
-                return {
-                    id: firstSlot.id,
-                    startTime: startTime,
-                    endTime: endTime,
-                    childId: firstSlot.childId,
-                    teacherId: firstSlot.teacherId,
-                    bookedBy: firstSlot.bookedBy,
-                    packageCode: firstSlot.packageCode,
-                    feedback: feedbackSlot ? feedbackSlot.feedback : null,
-                    isLive: liveInfoSlot ? liveInfoSlot.isLive : false,
-                    liveLessonUrl: liveInfoSlot ? liveInfoSlot.liveLessonUrl : null,
-                    rescheduleCount: firstSlot.rescheduleCount || 0,
-                    slots: lesson.slots
-                };
-            });
+            if (isConsecutive) {
+                currentSession.push(slot);
+            } else {
+                if (currentSession.length > 0) sessions.push(currentSession);
+                currentSession = [slot];
+            }
+        });
+        if (currentSession.length > 0) sessions.push(currentSession);
+
+        return sessions.map(sessionSlots => {
+            const firstSlot = sessionSlots[0];
+            const startTime = parseDate(firstSlot.startTime);
+            const packageDetails = getCourseDetailsFromPackageCode(firstSlot.packageCode);
+            
+            // Calculate dynamic duration based on slots (each slot is 5 mins)
+            const duration = sessionSlots.length * 5;
+            const endTime = addMinutes(startTime, duration);
+
+            const liveInfoSlot = sessionSlots.find((s: any) => s.isLive);
+            const feedbackSlot = sessionSlots.find((s: any) => s.feedback);
+
+            return {
+                id: firstSlot.id,
+                startTime: startTime,
+                endTime: endTime,
+                childId: firstSlot.childId,
+                teacherId: firstSlot.teacherId,
+                teacherName: getTeacherName(firstSlot.teacherId, teachersData || []),
+                bookedBy: firstSlot.bookedBy,
+                packageCode: firstSlot.packageCode,
+                feedback: feedbackSlot ? feedbackSlot.feedback : null,
+                isLive: liveInfoSlot ? liveInfoSlot.isLive : false,
+                liveLessonUrl: liveInfoSlot ? liveInfoSlot.liveLessonUrl : null,
+                rescheduleCount: firstSlot.rescheduleCount || 0,
+                slots: sessionSlots
+            };
         });
 
-    }, [lessonSlots]);
+    }, [lessonSlots, teachersData]);
     
     
     const { upcomingLessons, pastLessons, cancelledLessons } = useMemo(() => {

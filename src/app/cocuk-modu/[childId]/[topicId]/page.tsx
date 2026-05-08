@@ -14,6 +14,7 @@ import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
 import { CheckCircle, Trophy, Star, Sparkles, Volume2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTTS } from '@/hooks/use-tts';
 
 const TreasureChest = ({ isOpen }: { isOpen: boolean }) => (
   <svg viewBox="0 0 64 64" className="w-24 h-24 md:w-32 md:h-32 drop-shadow-[0_10px_20px_rgba(0,0,0,0.3)] transition-transform duration-500">
@@ -95,6 +96,9 @@ export default function TopicPage() {
         }
     }, [topicId]);
 
+    const { speak } = useTTS();
+    const [isShowingSuccess, setIsShowingSuccess] = useState(false);
+
     const handleStageComplete = async (currentStage: GameStage) => {
         if (childDocRef && topicId) {
             const completedKey = `${topicId}-${currentStage}`;
@@ -102,15 +106,24 @@ export default function TopicPage() {
                 completedTopics: arrayUnion(completedKey)
             });
 
-            if (currentStage === 'learning') {
-                setStage('matching');
-                setMaxStageReached(prev => Math.max(prev, 1));
-            } else if (currentStage === 'matching') {
-                setStage('quiz');
-                setMaxStageReached(prev => Math.max(prev, 2));
-            } else if (currentStage === 'quiz') {
-                await handleTopicComplete();
-            }
+            // Başarı aşamasını göster
+            setIsShowingSuccess(true);
+            speak("Harika iş çıkardın! Bu bölümü tamamladın. Şimdi bir sonraki maceraya geçiyoruz!");
+            setShowConfetti(true);
+
+            setTimeout(() => {
+                setIsShowingSuccess(false);
+                setShowConfetti(false);
+                if (currentStage === 'learning') {
+                    setStage('matching');
+                    setMaxStageReached(prev => Math.max(prev, 1));
+                } else if (currentStage === 'matching') {
+                    setStage('quiz');
+                    setMaxStageReached(prev => Math.max(prev, 2));
+                } else if (currentStage === 'quiz') {
+                    setStage('completed');
+                }
+            }, 3500);
         }
     };
 
@@ -223,45 +236,64 @@ export default function TopicPage() {
     .arrow-hint { animation: arrowBounce 1.5s ease-in-out infinite; }
     `;
 
+    if (isShowingSuccess) {
+        return (
+            <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/60 backdrop-blur-md animate-in fade-in duration-500">
+                {showConfetti && <Confetti width={width} height={height} className="z-50" />}
+                <div className="relative">
+                    <div className="absolute inset-0 bg-yellow-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
+                    <div className="relative w-48 h-48 bg-white rounded-full flex items-center justify-center shadow-2xl border-b-[8px] border-gray-100 animate-bounce">
+                        <Trophy className="w-24 h-24 text-yellow-400" />
+                    </div>
+                </div>
+                <h2 className="mt-12 text-6xl font-black text-white italic uppercase tracking-tighter drop-shadow-lg animate-in zoom-in duration-500 delay-200">
+                    Mükemmel! ✨
+                </h2>
+                <p className="mt-4 text-2xl font-bold text-white/90 uppercase tracking-widest animate-in slide-in-from-bottom duration-500 delay-300">
+                    Sıradaki bölüme geçiyoruz...
+                </p>
+            </div>
+        );
+    }
+
     if (stage === 'map') {
         return (
-            <div className={cn("bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] h-screen w-full relative flex flex-col items-center overflow-hidden transition-colors duration-1000", currentGradient)}>
+            <div className={cn("bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] min-h-screen w-full relative flex flex-col items-center overflow-y-auto transition-colors duration-1000", currentGradient)}>
                 <style>{cloudStyles}</style>
                 {showConfetti && <Confetti width={width} height={height} className="z-50" />}
 
                 {/* Sol Üst Geri Butonu */}
-                <div className="absolute top-8 left-8 z-50">
+                <div className="absolute top-4 left-4 md:top-8 md:left-8 z-50">
                     <Button
                         variant="outline"
                         size="icon"
-                        className="rounded-2xl h-16 w-16 bg-white/90 border-none shadow-xl hover:scale-110 transition-transform active:scale-95"
+                        className="rounded-xl md:rounded-2xl h-10 w-10 md:h-16 md:w-16 bg-white/90 border-none shadow-xl hover:scale-110 transition-transform active:scale-95"
                         onClick={() => router.push(`/cocuk-modu/${childId}`)}
                     >
-                        <ArrowLeft className="w-8 h-8 text-slate-600" />
+                        <ArrowLeft className="w-5 h-5 md:w-8 md:h-8 text-slate-600" />
                     </Button>
                 </div>
 
                 {/* Arka Plan Atmosfer: Dokular ve Dev İkon */}
                 <div className="absolute inset-0 bg-white/10 z-0" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '40px 40px', opacity: 0.15 }}></div>
 
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-[40vw] opacity-[0.07] pointer-events-none select-none filter blur-[2px] z-0 drop-shadow-2xl">
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-[40vw] opacity-[0.05] pointer-events-none select-none filter blur-[2px] z-0 drop-shadow-2xl">
                     {topic.icon}
                 </div>
 
-                {/* Hareketli Bulutlar */}
+                {/* Hareketli Bulutlar - Mobilde Sayısı Azaltıldı */}
                 <div className="absolute inset-0 pointer-events-none overflow-hidden z-10">
-                    <Cloud className="absolute top-[10%] left-0 w-32 h-32 text-white/40 fill-white/40 cloud-1 drop-shadow-md" />
-                    <Cloud className="absolute top-[35%] left-0 w-48 h-48 text-white/30 fill-white/30 cloud-2 drop-shadow-lg" />
-                    <Cloud className="absolute top-[60%] left-0 w-24 h-24 text-white/50 fill-white/50 cloud-3 drop-shadow-sm" />
-                    <Cloud className="absolute top-[80%] left-0 w-40 h-40 text-white/20 fill-white/20 cloud-4 drop-shadow-xl" />
+                    <Cloud className="absolute top-[10%] left-0 w-24 h-24 md:w-32 md:h-32 text-white/40 fill-white/40 cloud-1 drop-shadow-md" />
+                    <Cloud className="hidden md:absolute top-[35%] left-0 w-32 h-32 md:w-48 md:h-48 text-white/30 fill-white/30 cloud-2 drop-shadow-lg" />
                 </div>
 
-                <h1 className="text-4xl md:text-6xl font-black text-white drop-shadow-lg mt-12 z-20 bg-white/20 px-10 py-4 rounded-full backdrop-blur-md border-4 border-white/40">
-                    {topic.name.toUpperCase()} ADASI
+                {/* Başlık: Yatay modda çok daha küçük */}
+                <h1 className="text-sm md:text-3xl lg:text-5xl font-black text-white drop-shadow-lg mt-4 md:mt-12 z-20 bg-white/20 px-4 md:px-10 py-1 md:py-4 rounded-full backdrop-blur-md border-2 md:border-4 border-white/40 uppercase tracking-tighter">
+                    {topic.name} ADASI
                 </h1>
 
-                {/* Harita Yolu (Yukarıdan Aşağı Zigzag) */}
-                <div className="relative flex-1 w-full max-w-4xl flex items-center justify-center mt-12 mb-20 z-20 min-h-[700px]">
+                {/* Harita Yolu */}
+                <div className="relative flex-1 w-full max-w-4xl flex items-center justify-center mt-4 md:mt-12 mb-10 md:mb-20 z-20 min-h-[500px] md:min-h-[700px]">
 
                     {/* Level 1: Öğrenme (Sol Üst) */}
                     <div className="absolute left-[5%] md:left-[15%] top-[0%] flex flex-col items-center group cursor-pointer z-20" onClick={() => setStage('learning')}>

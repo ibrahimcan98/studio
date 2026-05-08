@@ -1,0 +1,218 @@
+'use client';
+
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
+import { Loader2, ChevronLeft, ChevronRight, X, Volume2, BookOpen } from 'lucide-react';
+import Image from 'next/image';
+import useEmblaCarousel from 'embla-carousel-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { useTTS } from '@/hooks/use-tts';
+
+// Hikaye verisi
+const storyContent = [
+  { id: 1, image: "/hikayeler/2-bir-iki-uc-basardim/1.png", text: "Güneşli bir gündü. Emir, dışarı çıktı ve cebinden en sevdiği renkli tebeşirlerini çıkardı. Bir tane kırmızı, bir tane sarı, bir tane mavi, bir de turuncu. Kaldırımın üzerine özenle kadar kareler çizdi. Her kareyi farklı bir çizerken içi kıpır kıpırdı.Bugün bu sekseği bitireceğim, hiç takılmadan sonuna kadar zıplayacağım! diye kendi kendine söz verdi." },
+  { id: 2, image: "/hikayeler/2-bir-iki-uc-basardim/2.png", text: "Emir oyuna başladı. Bir! dedi, tek ayağının üzerinde dengede durdu. İki! derken biraz tökezledi ama kendini topladı. Üç! dediğinde ayağı çizginin üzerine basınca dengesini kaybetti. Ah, olmadı! dedi. Tekrar denedi, yine dörtte ayağı kaydı. Emir pes etmedi, tekrar denedi, tekrar denedi... Ama her seferinde ya çizgiyi aşıyor ya da dengesini kaybedip ellerini yere koymak zorunda kalıyordu." },
+  { id: 3, image: "/hikayeler/2-bir-iki-uc-basardim/3.png", text: "Emir artık nefes nefese kalmıştı. Alnındaki terleri sildi, bacakları sızlıyordu. Tam derin bir nefes aldığı sırada, köpeği Zıp Zıp neşeyle sokağa daldı. Zıp Zıp, sanki oyunu biliyormuş gibi büyük bir heyecanla seksek karelerinin üzerine atladı. Hiç hata yapmadan kuyruğunu sallayarak karelerin sonuna kadar gitti, sonra zıplayarak geri döndü." },
+  { id: 4, image: "/hikayeler/2-bir-iki-uc-basardim/4.png", text: "Emir, köpeğinin bu kadar kolay yapabildiğini görünce olduğu yere çöküverdi. Dizlerini kendine çekti, başını ellerinin arasına aldı. Gözleri dolmuştu.Köpeğim bile başarıyor, hem de hiç zorlanmadan, diye düşündü. O kadar üzgündü ki, Zıp Zıp'ın havlamalarını bile duymak istemiyordu. Kendi kendine, kenarda sessizce oturmaya başladı.Emir, kaldırımın kenarında oturmuş, burnunu çekerek yere bakarken babası yanına geldi. Emir’in yanına çömeldi. Emir’in omzuna nazikçe elini koydu. Bazen bazı şeyleri ilk seferde yapamayız Emir, dedi babası şefkatle.Önemli olan düşmek değil, düştüğünde kalkıp tekrar denemeye cesaret etmektir. Emir, babasının gözlerindeki güveni görünce biraz olsun rahatladı." },
+  { id: 5, image: "/hikayeler/2-bir-iki-uc-basardim/5.png", text: "Babası, Gel, şimdi seninle yavaş yavaş, adım adım gidelim, dedi. Emir'in elini tuttu. Babası her seferinde onu destekliyor, dengesini sağlamasına yardım ediyordu. Emir zıplamaya başladı. Bir, iki, üç... diye saydılar. Emir her seferinde babasının elini tutarak kendini daha güvende hissediyordu. Düşse bile babası onu hemen kaldırıyor, Hadi, tekrar deneyelim, bu sefer başaracaksın! diyerek onu cesaretlendiriyordu." },
+  { id: 6, image: "/hikayeler/2-bir-iki-uc-basardim/6.png", text: "Emir, yorulmuştu ama babasının desteğiyle yeniden güç bulmuştu. Derin bir nefes aldı, zihninde sayıları bir melodi gibi sıraladı. Bir... iki... üç... diye zıplamaya başladı. Ayakları artık daha kararlıydı. Dört, beş, altı... Emir durmadı. Yedi ve sekiz! Emir, sonuncu kareye geldiğinde kollarını havaya kaldırdı. Başarmıştı! Babası  onu gururla alkışlıyordu. Emir sadece seksek oynamayı öğrenmemiş, sabretmenin ve yardım istemenin ne kadar güzel olduğunu da anlamıştı." },
+];
+
+export default function BirIkiUcBasardimPage() {
+  const router = useRouter();
+  const params = useParams();
+  const childId = params.childId as string;
+  const { user: authUser } = useUser();
+  const db = useFirestore();
+  const { speak, stop, resume, preload, isPlaying, isLoading } = useTTS();
+  const [isAutoPlaying, setIsAutoPlaying] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [lastPlayedIndex, setLastPlayedIndex] = useState(-1);
+  const hasInitialScrolled = useRef(false);
+
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    loop: false,
+    duration: 45,
+  });
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(true);
+
+  const childDocRef = useMemoFirebase(() => {
+    if (!db || !authUser?.uid || !childId) return null;
+    return doc(db, 'users', authUser.uid, 'children', childId);
+  }, [db, authUser?.uid, childId]);
+
+  const { data: childData, isLoading: childLoading } = useDoc(childDocRef);
+
+  useEffect(() => {
+    if (childDocRef && currentIndex > 0) {
+      updateDoc(childDocRef, {
+        [`storyProgress.bir-iki-uc-basardim`]: currentIndex
+      }).catch(console.error);
+    }
+  }, [currentIndex, childDocRef]);
+
+  useEffect(() => {
+    if (childData?.storyProgress?.['bir-iki-uc-basardim'] !== undefined && emblaApi && !hasInitialScrolled.current) {
+      const lastPage = childData.storyProgress['bir-iki-uc-basardim'];
+      if (lastPage > 0) {
+        emblaApi.scrollTo(lastPage);
+        setCurrentIndex(lastPage);
+      }
+      hasInitialScrolled.current = true;
+    }
+  }, [childData, emblaApi]);
+
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    const newIndex = emblaApi.selectedScrollSnap();
+    setCurrentIndex(newIndex);
+    setCanScrollPrev(emblaApi.canScrollPrev());
+    setCanScrollNext(emblaApi.canScrollNext());
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    onSelect();
+    emblaApi.on('select', onSelect);
+    emblaApi.on('reInit', onSelect);
+  }, [emblaApi, onSelect]);
+
+  const scrollPrev = useCallback(() => emblaApi && emblaApi.scrollPrev(), [emblaApi]);
+  const scrollNext = useCallback(() => emblaApi && emblaApi.scrollNext(), [emblaApi]);
+
+  useEffect(() => {
+    if (isAutoPlaying && storyContent[currentIndex]?.text) {
+      setLastPlayedIndex(currentIndex);
+      speak(storyContent[currentIndex].text, {
+        onStart: () => {
+          if (currentIndex < storyContent.length - 1) {
+            preload(storyContent[currentIndex + 1].text);
+          }
+        },
+        onEnd: () => {
+          if (isAutoPlaying && currentIndex < storyContent.length - 1) {
+            setTimeout(() => {
+              scrollNext();
+            }, 300);
+          } else if (currentIndex === storyContent.length - 1) {
+            setIsAutoPlaying(false);
+          }
+        }
+      });
+    }
+  }, [currentIndex, speak, preload, scrollNext, isAutoPlaying]);
+
+  const toggleAutoPlay = () => {
+    if (isAutoPlaying) {
+      setIsAutoPlaying(false);
+      stop();
+    } else {
+      setIsAutoPlaying(true);
+      setHasStarted(true);
+
+      if (lastPlayedIndex !== currentIndex) {
+        if (currentIndex === storyContent.length - 1 && lastPlayedIndex !== -1) {
+          emblaApi?.scrollTo(0);
+        } else {
+          speak(storyContent[currentIndex].text);
+          setLastPlayedIndex(currentIndex);
+        }
+      } else {
+        resume();
+      }
+    }
+  };
+
+  if (childLoading || !childData) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-sky-100">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-screen w-full overflow-hidden bg-gradient-to-b from-blue-50 to-cyan-100 font-sans relative">
+      <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-50">
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              stop();
+              router.push(`/cocuk-modu/${childId}/hikayeler`);
+            }}
+            className="bg-white/80 hover:bg-white rounded-2xl w-14 h-14 shadow-lg border-2 border-blue-200 text-blue-600"
+          >
+            <X className="w-8 h-8" />
+          </Button>
+        </div>
+
+        <div className="absolute left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-md px-8 py-3 rounded-3xl border-2 border-blue-200 shadow-lg flex items-center gap-3">
+          <BookOpen className="w-6 h-6 text-blue-500" />
+          <span className="text-xl font-black text-blue-800 uppercase italic">Bir İki Üç Başardım</span>
+          <span className="ml-4 text-blue-400 font-black">{currentIndex + 1} / {storyContent.length}</span>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <Button
+            onClick={toggleAutoPlay}
+            className={cn(
+              "relative h-16 px-8 rounded-full border-4 shadow-2xl transition-all duration-500 group overflow-hidden",
+              isAutoPlaying
+                ? "bg-gradient-to-r from-red-500 to-rose-600 border-red-200 text-white"
+                : "bg-white border-blue-200 text-blue-600 hover:bg-blue-50"
+            )}
+          >
+            {isAutoPlaying && <div className="absolute inset-0 bg-white/20 animate-pulse" />}
+            <div className="relative z-10 flex items-center gap-3">
+              <div className={cn("p-2 rounded-xl transition-colors", isAutoPlaying ? "bg-white/20" : "bg-blue-100")}>
+                {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Volume2 className={cn("w-6 h-6", isPlaying && "animate-bounce")} />}
+              </div>
+              <span className="text-sm font-black uppercase tracking-wider">
+                {isLoading ? "YÜKLENİYOR..." : (isAutoPlaying ? "DURDUR" : hasStarted ? "DEVAM ET" : "HİKAYEYİ DİNLE")}
+              </span>
+            </div>
+            {!isAutoPlaying && (
+              <div className="absolute -top-1 -right-1 flex h-4 w-4">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-4 w-4 bg-blue-500"></span>
+              </div>
+            )}
+          </Button>
+        </div>
+      </div>
+
+      <div className="h-full w-full flex flex-col items-center justify-center pt-24 pb-12 px-6">
+        <div className="relative w-full max-w-5xl aspect-[16/10] bg-white rounded-[60px] shadow-2xl border-[8px] border-white overflow-hidden group">
+          <div className="overflow-hidden h-full" ref={emblaRef}>
+            <div className="flex h-full">
+              {storyContent.map((slide) => (
+                <div key={slide.id} className="flex-[0_0_100%] min-w-0 relative h-full">
+                  <div className="relative w-full h-full bg-slate-100 flex items-center justify-center">
+                    <Image src={slide.image} alt={`Slide ${slide.id}`} fill className="object-cover" priority />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <button onClick={scrollPrev} disabled={!canScrollPrev} className={cn("absolute left-6 top-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-white/90 shadow-xl border-4 border-blue-100 flex items-center justify-center text-blue-500 transition-all hover:scale-110 active:scale-90 disabled:opacity-0 z-20", !canScrollPrev && "pointer-events-none")}>
+            <ChevronLeft className="w-10 h-10" />
+          </button>
+          <button onClick={scrollNext} disabled={!canScrollNext} className={cn("absolute right-6 top-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-white/90 shadow-xl border-4 border-blue-100 flex items-center justify-center text-blue-500 transition-all hover:scale-110 active:scale-90 disabled:opacity-0 z-20", !canScrollNext && "pointer-events-none")}>
+            <ChevronRight className="w-10 h-10" />
+          </button>
+        </div>
+      </div>
+
+      <div className="fixed -bottom-20 -left-20 w-80 h-80 bg-blue-200/30 rounded-full blur-3xl -z-10" />
+      <div className="fixed -top-20 -right-20 w-80 h-80 bg-cyan-200/30 rounded-full blur-3xl -z-10" />
+    </div>
+  );
+}

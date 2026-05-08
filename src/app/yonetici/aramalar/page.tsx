@@ -199,6 +199,18 @@ export default function AramalarPage() {
             );
         }
 
+        // Apply Status Filter (Single-select)
+        if (activeFilter !== 'all') {
+            list = list.filter(p => {
+                const status = p.lastCallStatus?.status;
+                if (activeFilter === 'answered') return status === 'Açtı';
+                if (activeFilter === 'no-answer') return status === 'Açmadı';
+                if (activeFilter === 'potential') return status === 'Potansiyel Veli';
+                if (activeFilter === 'follow-up') return status === 'Tekrar Ara' || status === 'Müsait Değil';
+                return false;
+            });
+        }
+
         // Sort: 1. Least lessons first, 2. Closest latest lesson first
         list.sort((a,b) => {
             // 1. Kalan paket sayısına göre (artan - en az olan en üstte)
@@ -207,9 +219,8 @@ export default function AramalarPage() {
             }
 
             // 2. Son ders tarihinin yakınlığına göre (artan - tarihi daha yakın/geçmiş olan en üstte)
-            // Not: Eğer hiş ders yoksa (0) en sona atarız veya en başa, user isteği "en az paket kalan son dersi en yakın"
             if (a.latestLesson !== b.latestLesson) {
-                if (a.latestLesson === 0) return 1; // Ders yoksa aşağı
+                if (a.latestLesson === 0) return 1; 
                 if (b.latestLesson === 0) return -1;
                 return a.latestLesson - b.latestLesson; 
             }
@@ -220,7 +231,7 @@ export default function AramalarPage() {
         });
 
         return list;
-    }, [parents, searchQuery, allChildrenLessons, allLatestLessons]);
+    }, [parents, searchQuery, allChildrenLessons, allLatestLessons, activeFilter]);
 
   // Load extras when a parent is selected (Real-time)
   useEffect(() => {
@@ -416,23 +427,35 @@ export default function AramalarPage() {
   const groupedLessons = useMemo(() => {
     if (!parentSlots || parentSlots.length === 0) return [];
     
-    // Group by Date, Child and Teacher
-    const sessions: { [key: string]: any[] } = {};
-    parentSlots.forEach(slot => {
-        const st = slot.startTime.toDate();
-        const dateKey = formatInTimeZone(st, 'UTC', 'yyyy-MM-dd');
-        const sessionKey = `${dateKey}-${slot.childId}-${slot.teacherId}`;
-        if (!sessions[sessionKey]) sessions[sessionKey] = [];
-        sessions[sessionKey].push(slot);
-    });
+    // Sort all slots by time to find contiguous blocks
+    const sortedSlots = [...parentSlots].sort((a, b) => a.startTime.seconds - b.startTime.seconds);
+    
+    const sessions: any[][] = [];
+    let currentSession: any[] = [];
 
-    return Object.values(sessions).map(sessionSlots => {
-        sessionSlots.sort((a, b) => a.startTime.seconds - b.startTime.seconds);
+    sortedSlots.forEach(slot => {
+        const lastSlot = currentSession[currentSession.length - 1];
+        
+        // Group only if: same child, same teacher, same package, same booking, and contiguous in time
+        const isConsecutive = lastSlot && 
+            lastSlot.childId === slot.childId &&
+            lastSlot.teacherId === slot.teacherId &&
+            lastSlot.packageCode === slot.packageCode &&
+            (lastSlot.bookedAt?.seconds === slot.bookedAt?.seconds) &&
+            (slot.startTime.seconds - lastSlot.startTime.seconds === 300);
+
+        if (isConsecutive) {
+            currentSession.push(slot);
+        } else {
+            if (currentSession.length > 0) sessions.push(currentSession);
+            currentSession = [slot];
+        }
+    });
+    if (currentSession.length > 0) sessions.push(currentSession);
+
+    return sessions.map(sessionSlots => {
         const firstSlot = sessionSlots[0];
         const startTime = firstSlot.startTime.toDate();
-        
-        // Approximate duration based on consecutive segments (usually 5 mins each)
-        // Or we can just use 30 as a default like in other places
         const duration = sessionSlots.length * 5; 
         const endTime = addMinutes(startTime, duration);
         
@@ -501,17 +524,40 @@ export default function AramalarPage() {
                         />
                     </div>
                     
-                    {/* Simplified Filter Tabs - Only 'Hepsi' */}
-                    <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-hide no-scrollbar -mx-1 px-1">
+                    {/* Single-select Filter Tabs (No scroll, wrap instead) */}
+                    <div className="flex flex-wrap items-center gap-2 pb-1 -mx-1 px-1">
                         <button
-                            className="px-3 py-1.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border bg-primary text-white border-primary shadow-md shadow-primary/20 scale-105"
+                            onClick={() => setActiveFilter('all')}
+                            className={cn(
+                                "px-3 py-1.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border",
+                                activeFilter === 'all' 
+                                    ? "bg-primary text-white border-primary shadow-md shadow-primary/20 scale-105" 
+                                    : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
+                            )}
                         >
                             <User className="w-3 h-3" />
-                            Kritik Liste (Hepsi)
+                            Hepsi
                         </button>
-                        <span className="text-[10px] text-slate-400 font-medium ml-2 italic whitespace-nowrap">
-                            En Az Ders & En Yakın Randevu
-                        </span>
+                        {[
+                            { id: 'answered', label: 'Açtı', icon: UserCheck, activeColor: 'bg-emerald-600 border-emerald-600 shadow-emerald-200' },
+                            { id: 'no-answer', label: 'Açmadı', icon: PhoneOff, activeColor: 'bg-red-600 border-red-600 shadow-red-200' },
+                            { id: 'potential', label: 'Potansiyel', icon: TagIcon, activeColor: 'bg-amber-500 border-amber-500 shadow-amber-200' },
+                            { id: 'follow-up', label: 'Tekrar', icon: History, activeColor: 'bg-blue-600 border-blue-600 shadow-blue-200' }
+                        ].map((btn) => (
+                            <button
+                                key={btn.id}
+                                onClick={() => setActiveFilter(btn.id)}
+                                className={cn(
+                                    "px-3 py-1.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border",
+                                    activeFilter === btn.id 
+                                        ? `${btn.activeColor} text-white scale-105 shadow-md` 
+                                        : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
+                                )}
+                            >
+                                <btn.icon className="w-3 h-3" />
+                                {btn.label}
+                            </button>
+                        ))}
                     </div>
                 </div>
                 <div className="flex-1 overflow-y-auto p-2 sm:p-3 space-y-2 relative scrollbar-thin">
@@ -702,7 +748,7 @@ export default function AramalarPage() {
                                     <div className="grid grid-cols-2 xs:flex items-center gap-2 w-full sm:w-auto">
                                         <Button disabled={isSavingCall} onClick={() => handleCallAction('Açmadı', 'bg-red-50 text-red-600 border-red-200', 'PhoneOff')} variant="outline" className="h-9 sm:h-10 border-red-200 text-red-600 rounded-xl font-bold flex-1 sm:px-3 text-[10px] sm:text-xs px-1"><PhoneOff className="w-3.5 h-3.5 mr-1.5"/> Açmadı</Button>
                                         <Button disabled={isSavingCall} onClick={() => handleCallAction('Açtı', 'bg-emerald-50 text-emerald-600 border-emerald-200', 'UserCheck')} variant="outline" className="h-9 sm:h-10 border-emerald-200 text-emerald-600 rounded-xl font-bold flex-1 sm:px-3 text-[10px] sm:text-xs px-1"><UserCheck className="w-3.5 h-3.5 mr-1.5"/> Açtı</Button>
-                                        <Button disabled={isSavingCall} onClick={() => handleCallAction('Müsait Değil', 'bg-amber-50 text-amber-600 border-amber-200', 'Clock')} variant="outline" className="h-9 sm:h-10 border-amber-200 text-amber-600 rounded-xl font-bold flex-1 sm:px-3 text-[10px] sm:text-xs px-1"><Clock className="w-3.5 h-3.5 mr-1.5"/> Müsait</Button>
+                                        <Button disabled={isSavingCall} onClick={() => handleCallAction('Potansiyel Veli', 'bg-amber-50 text-amber-600 border-amber-200', 'TagIcon')} variant="outline" className="h-9 sm:h-10 border-amber-200 text-amber-600 rounded-xl font-bold flex-1 sm:px-3 text-[10px] sm:text-xs px-1"><TagIcon className="w-3.5 h-3.5 mr-1.5"/> Potansiyel</Button>
                                         <Button disabled={isSavingCall} onClick={() => handleCallAction('Tekrar Ara', 'bg-blue-50 text-blue-600 border-blue-200', 'CalendarClock')} variant="outline" className="h-9 sm:h-10 border-blue-200 text-blue-600 rounded-xl font-bold flex-1 sm:px-3 text-[10px] sm:text-xs px-1"><CalendarClock className="w-3.5 h-3.5 mr-1.5"/> Tekrar</Button>
                                     </div>
                                 </div>

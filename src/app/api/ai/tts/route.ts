@@ -58,7 +58,7 @@ async function handleTTS(text: string, voiceId?: string) {
         },
         body: JSON.stringify({
           text: cleanText,
-          model_id: 'eleven_multilingual_v2',
+          model_id: 'eleven_turbo_v2_5',
           voice_settings: {
             stability: 0.6, // Stability'yi biraz artırmak telaffuz hatalarını azaltır
             similarity_boost: 0.8,

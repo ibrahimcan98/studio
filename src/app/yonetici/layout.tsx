@@ -233,31 +233,37 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
                         <span className="sr-only">Menüyü Aç</span>
                       </Button>
                     </SheetTrigger>
-                    <SheetContent side="left" className="p-0 w-72">
+                    <SheetContent side="left" className="p-0 w-72 flex flex-col h-full">
                       <SheetHeader className="sr-only">
                         <SheetTitle>Yönetici Paneli Menüsü</SheetTitle>
                       </SheetHeader>
-                      <div className="flex h-20 items-center border-b px-8 mt-4"><Logo /></div>
-                      <nav className="flex-1 space-y-1 p-4">
-                        {navItems.map((item: any) => (
-                          <Link 
-                            key={item.href} 
-                            href={item.href}
-                            onClick={() => setIsMobileMenuOpen(false)}
-                            className={cn('flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200',
-                              pathname === item.href ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:text-primary hover:bg-slate-50'
-                            )}>
-                            <item.icon className="h-5 w-5 shrink-0" />
-                            <span className="flex-1">{item.label}</span>
-                            {item.href === '/yonetici/inbox' && unreadCount > 0 && (
-                              <Badge className="ml-auto bg-red-500 hover:bg-red-600 text-white border-none rounded-full px-1.5 min-w-[20px] h-5 py-0 flex items-center justify-center text-[10px] shadow-sm">
-                                +{unreadCount}
-                              </Badge>
-                            )}
-                          </Link>
-                        ))}
-                      </nav>
-                      <div className="p-4 border-t absolute bottom-0 w-full bg-background">
+                      <div className="flex h-20 items-center border-b px-8 mt-4 shrink-0">
+                        <Logo />
+                      </div>
+                      
+                      <div className="flex-1 overflow-y-auto py-4 px-4 space-y-1 custom-scrollbar">
+                        <nav className="space-y-1">
+                          {navItems.map((item: any) => (
+                            <Link 
+                              key={item.href} 
+                              href={item.href}
+                              onClick={() => setIsMobileMenuOpen(false)}
+                              className={cn('flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200',
+                                pathname === item.href ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:text-primary hover:bg-slate-50'
+                              )}>
+                              <item.icon className="h-5 w-5 shrink-0" />
+                              <span className="flex-1">{item.label}</span>
+                              {item.href === '/yonetici/inbox' && unreadCount > 0 && (
+                                <Badge className="ml-auto bg-red-500 hover:bg-red-600 text-white border-none rounded-full px-1.5 min-w-[20px] h-5 py-0 flex items-center justify-center text-[10px] shadow-sm">
+                                  +{unreadCount}
+                                </Badge>
+                              )}
+                            </Link>
+                          ))}
+                        </nav>
+                      </div>
+
+                      <div className="p-4 border-t bg-background shrink-0">
                         <Button variant="ghost" className='w-full justify-start gap-3 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl font-bold' onClick={handleLogout}>
                           <LogOut className="h-5 w-5" /><span>Çıkış Yap</span>
                         </Button>

@@ -33,7 +33,7 @@ export function TopicCard({ topic, number, onClick }: TopicCardProps) {
       <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-32 h-8 bg-black/15 rounded-[100%] blur-xl group-hover:scale-90 transition-transform duration-300" />
       
       {/* 3D Platform Konteyneri */}
-      <div className="relative w-48 h-48">
+      <div className="relative w-32 h-32 md:w-48 md:h-48">
         {/* Alt Katman ve Üst Katman sadece görsel YOKSA gösterilir */}
         {!topic.imageUrl && (
           <>
@@ -53,7 +53,7 @@ export function TopicCard({ topic, number, onClick }: TopicCardProps) {
         {/* İkon veya Şeffaf Görsel */}
         <div className="absolute inset-0 flex items-center justify-center">
             {topic.imageUrl ? (
-                <div className="absolute inset-[-60px] z-20 group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_20px_20px_rgba(0,0,0,0.4)] translate-y-[-10px]">
+                <div className="absolute inset-[-40px] md:inset-[-60px] z-20 group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_20px_20px_rgba(0,0,0,0.4)] translate-y-[-5px] md:translate-y-[-10px]">
                     <img 
                         src={topic.imageUrl} 
                         className="w-full h-full object-contain" 

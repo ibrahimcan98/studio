@@ -279,15 +279,12 @@ export default function AdminDerslerPage() {
         let currentGroup: any = null;
 
         sortedSlots.forEach(slot => {
-            const slotBookedAt = slot.bookedAt?.toDate ? slot.bookedAt.toDate().getTime() : (slot.bookedAt ? new Date(slot.bookedAt).getTime() : 0);
-            const groupBookedAt = currentGroup?.bookedAt?.toDate ? currentGroup.bookedAt.toDate().getTime() : (currentGroup?.bookedAt ? new Date(currentGroup.bookedAt).getTime() : 0);
-
-            // Group only if it's the same teacher, same student, same package AND was booked at the same time (within 5 seconds threshold)
+            // Group only if it's the same teacher, same student, same package AND slots are contiguous in time AND same booking time
             const isConsecutive = currentGroup && 
                 currentGroup.teacherId === slot.teacherId &&
                 currentGroup.childId === slot.childId &&
                 currentGroup.packageCode === slot.packageCode &&
-                Math.abs(slotBookedAt - groupBookedAt) < 5000 && // Same assignment session
+                (currentGroup.bookedAt?.seconds === slot.bookedAt?.seconds) &&
                 Math.abs(slot.startDateTime.getTime() - (currentGroup.startDateTime.getTime() + currentGroup.duration * 60000)) < 1000;
 
             if (isConsecutive) {
@@ -521,13 +518,14 @@ export default function AdminDerslerPage() {
             });
 
             // Update all Slots in batch
+            const now = Timestamp.now();
             slotsToBook.forEach(slotDoc => {
                 batch.update(slotDoc.ref, {
                     status: 'booked',
                     bookedBy: parentId,
                     childId: selectedChildId,
                     packageCode: packageCode,
-                    bookedAt: Timestamp.now(),
+                    bookedAt: now,
                     assignedBy: 'admin'
                 });
             });
@@ -840,7 +838,7 @@ export default function AdminDerslerPage() {
                     setSelectedPackageType('regular'); // Reset to default
                 }
             }}>
-                <DialogContent className="max-w-md rounded-[32px] border-none shadow-2xl p-8">
+                <DialogContent className="max-w-md w-[95vw] sm:w-full rounded-[32px] border-none shadow-2xl p-4 sm:p-8 max-h-[95vh] overflow-y-auto custom-scrollbar">
                     <DialogHeader>
                         <DialogTitle className="text-2xl font-black text-slate-900">Manuel Ders Ata</DialogTitle>
                         <DialogDescription className="text-slate-500 font-medium">Öğrenci ve öğretmen için ders saati belirleyin.</DialogDescription>
@@ -858,10 +856,13 @@ export default function AdminDerslerPage() {
                                         <SelectTrigger className="rounded-xl h-12 border-slate-200">
                                             <SelectValue placeholder="Veli ara..." />
                                         </SelectTrigger>
-                                        <SelectContent className="rounded-2xl">
+                                        <SelectContent className="rounded-2xl max-w-[90vw] sm:max-w-md">
                                             {users?.filter(u => u.role === 'parent').map((p, idx) => (
                                                 <SelectItem key={p.uid || p.id || idx} value={p.uid || p.id} className="rounded-lg">
-                                                    {p.firstName} {p.lastName} ({p.email})
+                                                    <div className="flex flex-col gap-0.5 overflow-hidden">
+                                                        <span className="font-bold truncate">{p.firstName} {p.lastName}</span>
+                                                        <span className="text-[10px] text-slate-400 truncate opacity-80">{p.email}</span>
+                                                    </div>
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
@@ -876,10 +877,13 @@ export default function AdminDerslerPage() {
                                                 <SelectTrigger className="rounded-xl h-12 border-slate-200">
                                                     <SelectValue placeholder="Çocuk seç..." />
                                                 </SelectTrigger>
-                                                <SelectContent className="rounded-2xl">
+                                                <SelectContent className="rounded-2xl max-w-[90vw]">
                                                     {allChildren.filter(c => c.parentId === selectedParentId).map((c, idx) => (
                                                         <SelectItem key={c.id || idx} value={c.id} className="rounded-lg">
-                                                            {c.firstName} (Kredi: {c.remainingLessons || 0} | Deneme: {c.hasUsedFreeTrial ? 'Kullanıldı' : 'Müsait'})
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-bold">{c.firstName}</span>
+                                                                <span className="text-[10px] text-slate-400">({c.remainingLessons || 0} Kr | {c.hasUsedFreeTrial ? 'D. Dolu' : 'D. Boş'})</span>
+                                                            </div>
                                                         </SelectItem>
                                                     ))}
                                                 </SelectContent>
@@ -945,11 +949,11 @@ export default function AdminDerslerPage() {
                                             <p className="text-sm text-red-500 font-medium p-4 bg-red-50 rounded-xl">Bu öğretmenin hiç müsait zamanı bulunmuyor.</p>
                                         ) : (
                                             <div className="space-y-6">
-                                                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                                <div className="space-y-4 max-h-[200px] sm:max-h-[300px] overflow-y-auto pr-2 custom-scrollbar border rounded-2xl p-3 bg-slate-50/50">
                                                     {Object.entries(datesByMonth).map(([monthName, dates]) => (
-                                                        <div key={monthName} className="space-y-3">
-                                                            <Label className="font-black text-primary text-[10px] uppercase tracking-widest bg-primary/5 px-2 py-1 rounded inline-block">{monthName}</Label>
-                                                            <div className="flex flex-wrap gap-2">
+                                                        <div key={monthName} className="space-y-2">
+                                                            <Label className="font-black text-primary text-[9px] uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded inline-block">{monthName}</Label>
+                                                            <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2">
                                                                 {dates.map(dateKey => (
                                                                     <Button
                                                                         key={dateKey}
@@ -959,7 +963,7 @@ export default function AdminDerslerPage() {
                                                                             setSelectedHour(null);
                                                                             setSelectedSlotId('');
                                                                         }}
-                                                                        className="rounded-xl font-bold h-10 px-4"
+                                                                        className="rounded-xl font-bold h-9 px-2 text-[11px] sm:text-xs"
                                                                         size="sm"
                                                                     >
                                                                         {format(new Date(dateKey), 'dd MMM', { locale: tr })}

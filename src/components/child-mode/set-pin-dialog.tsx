@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, MonitorPlay } from 'lucide-react';
 
 export function SetPinDialog({ children, childId }: { children: React.ReactNode, childId: string }) {
   const [open, setOpen] = useState(false);
@@ -163,6 +163,17 @@ export function SetPinDialog({ children, childId }: { children: React.ReactNode,
             </div>
           </div>
           {error && <p className="text-destructive text-sm text-center font-medium">{error}</p>}
+
+          {/* Cihaz Önerisi Bilgi Kutusu */}
+          <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex items-start gap-3 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <MonitorPlay className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-[10px] font-black text-blue-700 uppercase tracking-wider">Önemli İpucu ✨</p>
+              <p className="text-[12px] text-blue-600 leading-relaxed font-medium">
+                En iyi oyun ve öğrenme deneyimi için <b>Laptop</b> veya <b>Tablet</b> kullanmanızı öneririz.
+              </p>
+            </div>
+          </div>
         </div>
         <DialogFooter className="sm:justify-center">
           <Button variant="ghost" onClick={() => setOpen(false)} disabled={isSetting} className="rounded-xl">
