@@ -24,8 +24,16 @@ export const trackPixelEvent = async (
   if (typeof window === 'undefined') return;
 
   const eventId = generateEventId();
+  
+  // Try to get test code from URL first, then fall back to sessionStorage
   const searchParams = new URLSearchParams(window.location.search);
-  const testEventCode = searchParams.get('test_event_code') || undefined;
+  let testEventCode = searchParams.get('test_event_code');
+  
+  if (testEventCode) {
+    sessionStorage.setItem('fb_test_event_code', testEventCode);
+  } else {
+    testEventCode = sessionStorage.getItem('fb_test_event_code');
+  }
 
   // 1. Send to Browser Pixel
   if ((window as any).fbq) {
@@ -43,7 +51,7 @@ export const trackPixelEvent = async (
         userData,
         customData,
         eventId,
-        testEventCode,
+        testEventCode: testEventCode || undefined,
       }),
     });
   } catch (err) {
@@ -61,7 +69,14 @@ export const FacebookPixel = () => {
     // Track pageview on route change
     if (typeof window !== 'undefined' && (window as any).fbq) {
       const eventId = generateEventId();
-      const testEventCode = searchParams.get('test_event_code') || undefined;
+      
+      // Handle test code persistence
+      let testEventCode = searchParams.get('test_event_code');
+      if (testEventCode) {
+        sessionStorage.setItem('fb_test_event_code', testEventCode);
+      } else {
+        testEventCode = sessionStorage.getItem('fb_test_event_code');
+      }
 
       (window as any).fbq('track', 'PageView', {}, { event_id: eventId });
       
@@ -73,11 +88,12 @@ export const FacebookPixel = () => {
           eventName: 'PageView',
           eventSourceUrl: window.location.href,
           eventId,
-          testEventCode,
+          testEventCode: testEventCode || undefined,
         }),
       }).catch(() => {});
     }
   }, [pathname, searchParams]);
+
 
 
   if (!FB_PIXEL_ID) return null;
