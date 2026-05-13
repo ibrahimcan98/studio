@@ -39,6 +39,10 @@ export function KurslarClientPage({
     // Remove taking only the first one, use the whole list for matching
     
     useEffect(() => {
+        trackPixelEvent('ViewContent', {
+            content_name: 'Kurslar Sayfası',
+            content_category: 'Education'
+        });
         if (typeof window !== 'undefined') {
             const params = new URLSearchParams(window.location.search);
             const courseId = params.get('id');

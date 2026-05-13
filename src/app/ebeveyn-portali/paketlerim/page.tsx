@@ -26,6 +26,7 @@ import { useCart } from '@/context/cart-context';
 import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { trackPixelEvent } from '@/components/analytics/FacebookPixel';
 
 const BOOK_IMAGE = "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=200&h=200&auto=format&fit=crop";
 
@@ -106,6 +107,11 @@ function PaketlerimPageContent() {
                         description: 'Ödemeniz başarıyla alındı. Kurslarınız birkaç saniye içinde hesabınıza tanımlanacaktır.', 
                         className: 'bg-green-500 text-white font-bold' 
                     });
+
+                    // Meta Tracking (Browser Pixel)
+                    trackPixelEvent('Purchase', {
+                        // We use the Stripe session ID as event_id for deduplication
+                    }, { eventID: sessionId });
                 }
             } catch (error) {
                 console.error("Verification error:", error);

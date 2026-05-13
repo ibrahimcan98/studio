@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { useUser, useFirestore, useMemoFirebase, useDoc, useCollection } from '@/firebase';
 import { doc, updateDoc, arrayUnion, increment, collection, addDoc, serverTimestamp, query, where, getDocs, getDoc, writeBatch } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
+import { trackPixelEvent } from '@/components/analytics/FacebookPixel';
 
 const getCourseCode = (courseId: string) => {
     switch (courseId) {
@@ -48,24 +49,25 @@ export default function SepetPage() {
     const publicCouponsQuery = useMemoFirebase(() => db ? query(collection(db, 'coupons'), where('isPublicDisplay', '==', true), where('isActive', '==', true)) : null, [db]);
     const { data: publicCoupons } = useCollection(publicCouponsQuery);
 
-    // Redundant auto-apply logic removed as CartProvider now handles multi-discounts automatically for each item.
-    // Also removed to prevent setting a single 'appliedCouponData' when multiple targeted public discounts are active.
-    
     // Bakiye Logic
     const userDocRef = useMemoFirebase(() => (db && user?.uid) ? doc(db, 'users', user.uid) : null, [db, user?.uid]);
     const { data: userData } = useDoc(userDocRef);
     
     // SUSPENDED: Points Center & Wallet Balance is temporarily disabled
-    // const balanceGbp = userData?.walletBalanceGbp ?? (userData?.walletBalanceEur || 0);
     const balanceGbp = 0;
-    
     const [useBalance, setUseBalance] = useState(false);
-    
     const balanceUsedGbp = useBalance ? Math.min(balanceGbp, finalTotal) : 0;
     const payableTotalGbp = finalTotal - balanceUsedGbp;
 
     useEffect(() => {
         setMounted(true);
+        if (cartItems.length > 0) {
+            trackPixelEvent('InitiateCheckout', {
+                num_items: cartItems.length,
+                value: finalTotal,
+                currency: selectedCurrency
+            });
+        }
     }, []);
 
     const rate = exchangeRates[selectedCurrency] || 1;
@@ -224,8 +226,7 @@ export default function SepetPage() {
                if (isSingleChild) {
                    const child = children[0];
                    const childDocRef = doc(db, "users", user.uid, "children", child.id);
-                   const firstPackage = newPackages[0]; // Use first package for naming
-                   const lessonsText = firstPackage.replace(/\D/g, '');
+                   const firstPackage = newPackages[0]; 
                    const prefix = firstPackage.replace(/[0-9]/g, '');
                    
                    const courseNames: { [key: string]: string } = {
@@ -239,14 +240,13 @@ export default function SepetPage() {
 
                    batch.update(childDocRef, {
                        remainingLessons: increment(totalLessonsToAdd),
-                       assignedPackage: `${prefix}${totalLessonsToAdd / newPackages.length}`, // Approximation for multi-package display
+                       assignedPackage: `${prefix}${totalLessonsToAdd / newPackages.length}`, 
                        assignedPackageName: courseName,
                        updatedAt: serverTimestamp()
                    });
 
                    batch.update(userDocRef, {
                        walletBalanceGbp: increment(-balanceUsedGbp),
-                       // enrolledPackages left unchanged (no items in pool)
                    });
                } else {
                    batch.update(userDocRef, {
@@ -283,7 +283,8 @@ export default function SepetPage() {
                     })),
                     currency: selectedCurrency.toLowerCase(),
                     customerEmail: user.email,
-                    transactionId: txDoc.id
+                    transactionId: txDoc.id,
+                    testEventCode: sessionStorage.getItem('fb_test_event_code') || ''
                 })
             });
             
@@ -411,7 +412,6 @@ export default function SepetPage() {
                                     </div>
                                     <Separator />
                                     <div className="space-y-4">
-                                        {/* İndirim Kodu Kısımı */}
                                         {appliedCoupon && (
                                             <div className="flex items-center justify-between gap-2">
                                                 <Badge>
@@ -423,7 +423,6 @@ export default function SepetPage() {
                                                 </Button>
                                             </div>
                                         )}
-                                        {/* If no manual coupon, users can enter one */}
                                         {!appliedCoupon && (
                                             <div className="space-y-2">
                                                 <Label htmlFor="coupon">İndirim Kodu</Label>
@@ -436,7 +435,6 @@ export default function SepetPage() {
 
                                         <Separator />
 
-                                        {/* Referans Kodu Kısımı */}
                                         {appliedReferralCode ? (
                                             <div className="flex items-center justify-between gap-2">
                                                 <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200">

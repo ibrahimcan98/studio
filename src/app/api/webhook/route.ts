@@ -4,6 +4,7 @@ import { db } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { sendAdminNotification, sendUserPaymentReceipt, sendAdminEmail } from '@/lib/notify';
 import { getAdminPurchaseTemplate } from '@/lib/email-templates';
+import { sendMetaEvent } from '@/lib/meta-pixel';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-06-20',
@@ -209,6 +210,28 @@ export async function POST(req: Request) {
                 // Also trigger push notification via notifyAdmin utility if needed
                 // (We can still keep the email/push part separate if desired)
                 
+                // 5. Track Purchase via Meta CAPI
+                try {
+                    await sendMetaEvent({
+                        eventName: 'Purchase',
+                        eventSourceUrl: `${req.headers.get('origin') || 'https://studio.ibrahimcan.org'}/ebeveyn-portali/paketlerim`,
+                        userData: {
+                            email: customerEmail,
+                        },
+                        customData: {
+                            value: session.amount_total ? session.amount_total / 100 : 0,
+                            currency: session.currency?.toUpperCase() || 'GBP',
+                            content_ids: newPackages,
+                            content_type: 'product',
+                        },
+                        eventId: session.id, // Use Stripe session ID as unique event ID for deduplication
+                        testEventCode: session.metadata?.testEventCode || ''
+                    });
+                    console.log(`[Webhook] Meta CAPI Purchase tracked for ${userId}`);
+                } catch (capiErr: any) {
+                    console.error('[Webhook] Meta CAPI tracking failed:', capiErr.message);
+                }
+
                 console.log(`[Webhook] Global operational log added directly for ${userId}`);
             } catch (globalLogErr: any) {
                 console.error('[Webhook] Failed to add global operational log:', globalLogErr.message);

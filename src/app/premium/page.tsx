@@ -15,6 +15,7 @@ import { addMonths } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useCart, currencyDetails } from "@/context/cart-context";
+import { trackPixelEvent } from "@/components/analytics/FacebookPixel";
 import { 
     Dialog, 
     DialogContent, 
@@ -82,6 +83,10 @@ export default function PremiumPage() {
     const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
 
     useEffect(() => {
+        trackPixelEvent('ViewContent', {
+            content_name: 'Premium Page',
+            content_category: 'Subscription'
+        });
         if (!isUserDataLoading && userData?.isPremium) {
             router.replace('/ebeveyn-portali');
         }
@@ -102,6 +107,15 @@ export default function PremiumPage() {
 
         setIsProcessing(true);
 
+        // Meta Tracking
+        trackPixelEvent('AddToCart', {
+            content_name: 'Aylık Premium Üyelik',
+            content_ids: ['premium-monthly'],
+            content_type: 'product',
+            value: localPrice,
+            currency: selectedCurrency
+        });
+
         try {
             // Stripe Checkout Oturumuna Yönlendirme
             const res = await fetch('/api/checkout_sessions', {
@@ -111,6 +125,7 @@ export default function PremiumPage() {
                     items: [{ id: 'premium-monthly', name: 'Aylık Premium Üyelik', description: 'Sınırsız can ve tüm kategorilere erişim', price: localPrice, quantity: 1 }],
                     currency: selectedCurrency.toLowerCase(),
                     customerEmail: user.email,
+                    testEventCode: sessionStorage.getItem('fb_test_event_code') || ''
                 })
             });
             

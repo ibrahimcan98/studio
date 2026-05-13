@@ -35,7 +35,8 @@ export async function POST(req: Request) {
       cancel_url: `${req.headers.get('origin')}/sepet?canceled=true`,
       customer_email: customerEmail,
       metadata: {
-        transactionId: transactionId || ''
+        transactionId: transactionId || '',
+        testEventCode: body.testEventCode || ''
       }
     });
 

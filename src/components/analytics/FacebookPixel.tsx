@@ -2,7 +2,7 @@
 
 import { usePathname, useSearchParams } from 'next/navigation';
 import Script from 'next/script';
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 
 const FB_PIXEL_ID = process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID;
 
@@ -62,6 +62,14 @@ export const trackPixelEvent = async (
 export const FacebookPixel = () => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [activeTestCode, setActiveTestCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+        const savedCode = sessionStorage.getItem('fb_test_event_code');
+        setActiveTestCode(savedCode);
+    }
+  }, []);
 
   useEffect(() => {
     if (!FB_PIXEL_ID) return;
@@ -74,8 +82,10 @@ export const FacebookPixel = () => {
       let testEventCode = searchParams.get('test_event_code');
       if (testEventCode) {
         sessionStorage.setItem('fb_test_event_code', testEventCode);
+        setActiveTestCode(testEventCode);
       } else {
         testEventCode = sessionStorage.getItem('fb_test_event_code');
+        setActiveTestCode(testEventCode);
       }
 
       (window as any).fbq('track', 'PageView', {}, { event_id: eventId });
@@ -117,6 +127,16 @@ export const FacebookPixel = () => {
           `,
         }}
       />
+      {/* Test Mode Indicator (Only visible if test code is active) */}
+      {activeTestCode && (
+        <div className="fixed bottom-4 left-4 z-[9999] pointer-events-none">
+          <div className="bg-emerald-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-2xl flex items-center gap-2 animate-bounce border border-emerald-400/50 backdrop-blur-sm bg-opacity-90">
+            <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+            Meta Test Modu Aktif: {activeTestCode}
+          </div>
+        </div>
+      )}
+
       <noscript>
         <img
           height="1"
