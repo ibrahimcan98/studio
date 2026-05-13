@@ -33,6 +33,7 @@ import { useToast } from '@/hooks/use-toast';
 const getCourseDetailsFromPackageCode = (code?: string) => {
     if (!code) return null;
     if (code === 'FREE_TRIAL') return { courseName: 'Ücretsiz Deneme Dersi', duration: 30 };
+    if (code.startsWith('GIFT')) return { courseName: 'Hediye Ders', duration: 30 };
     
     const courseCodeMap: { [key: string]: string } = { 'B': 'baslangic', 'K': 'konusma', 'G': 'gelisim', 'A': 'akademik' };
     const courseId = courseCodeMap[code.replace(/[0-9]/g, '') as keyof typeof courseCodeMap];

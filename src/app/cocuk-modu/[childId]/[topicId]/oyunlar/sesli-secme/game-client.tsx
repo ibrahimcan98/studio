@@ -134,7 +134,10 @@ export default function GameClient({ questions }: GameClientProps) {
     const handleGameFinish = async () => {
         if (childDocRef && topicId) {
             const completedKey = `${topicId}-sesli-secme`;
-            await updateDoc(childDocRef, { completedTopics: arrayUnion(completedKey) });
+            await updateDoc(childDocRef, { 
+                completedTopics: arrayUnion(completedKey),
+                xp: increment(30)
+            });
         }
         setGameFinished(true);
     };

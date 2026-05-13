@@ -12,6 +12,16 @@ import { Button } from "@/components/ui/button";
 import { ExitDialog } from "@/components/child-mode/exit-dialog";
 import { cn } from '@/lib/utils';
 import { ChildSidebar } from '@/components/child-mode/sidebar';
+import { BadgeUnlockModal } from '@/components/child-mode/badge-unlock-modal';
+import { LockedFeatureDialog } from '@/components/child-mode/locked-feature-dialog';
+import { updateDoc, arrayUnion } from 'firebase/firestore';
+
+const SOCIAL_BADGES = [
+  { id: 'sabah-yildizi', name: 'Sabah Yıldızı', description: 'Sabah erkenden sisteme girip çalışana verilir.', icon: '/rozetler/sosyal/sabah-yildizi.png', requirement: 1 },
+  { id: 'gece-kusu', name: 'Gece Kuşu', description: 'Akşam vakti sisteme girip çalışana verilir.', icon: '/rozetler/sosyal/gece-kusu.png', requirement: 1 },
+  { id: 'azimli-kaplumbaga', name: 'Azimli Kaplumbağa', description: 'Zorlandığı bir görevi 3. denemede başaranlara.', icon: '/rozetler/sosyal/azimli-kaplumbaga.png', requirement: 3 },
+  { id: 'duzenli-calisan', name: 'Düzenli Çalışkan', description: '5 gün üst üste sisteme giriş yapana verilir.', icon: '/rozetler/sosyal/duzenli-calisan.png', requirement: 5 },
+];
 
 // Mock veriler (Sizden başlıklar gelene kadar test için)
 const MOCK_TOPICS = [
@@ -73,6 +83,24 @@ export default function CocukModuPage() {
   const db = useFirestore();
   const [isMounted, setIsMounted] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [newlyUnlockedBadge, setNewlyUnlockedBadge] = useState<any>(null);
+  const [isLockedDialogOpen, setIsLockedDialogOpen] = useState(false);
+  const loginTracked = useRef(false);
+
+  const childDocRef = useMemoFirebase(() => {
+    if (!db || !authUser?.uid || !childId) return null;
+    return doc(db, 'users', authUser.uid, 'children', childId);
+  }, [db, authUser?.uid, childId]);
+
+  const { data: childData, isLoading: childLoading } = useDoc(childDocRef);
+
+  // Ebeveyn verilerini al (abonelik kontrolü için)
+  const userDocRef = useMemoFirebase(() => {
+    if (!db || !authUser?.uid) return null;
+    return doc(db, 'users', authUser.uid);
+  }, [db, authUser?.uid]);
+  const { data: userData } = useDoc(userDocRef);
+  const subscriptionTier = (userData?.subscriptionTier as string) || 'free';
 
   useEffect(() => {
     setIsMounted(true);
@@ -83,6 +111,67 @@ export default function CocukModuPage() {
       setIsAuthenticated(true);
     }
   }, [childId, router]);
+
+  // Giriş Zamanı ve Davranış Takibi
+  useEffect(() => {
+    if (childData && !loginTracked.current && childDocRef) {
+      loginTracked.current = true;
+      const now = new Date();
+      const hour = now.getHours();
+      const loginStats = (childData as any).stats?.login || {
+        earlyBirdCount: 0,
+        nightOwlCount: 0,
+        consecutiveDays: 0,
+        lastLoginDate: null
+      };
+      const earnedBadges = (childData as any).earnedBadges || [];
+      const updates: any = {};
+      let newlyEarned: any = null;
+
+      // 1. Sabah Yıldızı (06:00 - 10:00)
+      if (hour >= 6 && hour < 10) {
+        loginStats.earlyBirdCount = (loginStats.earlyBirdCount || 0) + 1;
+        if (!earnedBadges.includes('sabah-yildizi')) {
+          newlyEarned = SOCIAL_BADGES.find(b => b.id === 'sabah-yildizi');
+        }
+      }
+
+      // 2. Gece Kuşu (21:00 - 02:00)
+      if (hour >= 21 || hour < 2) {
+        loginStats.nightOwlCount = (loginStats.nightOwlCount || 0) + 1;
+        if (!earnedBadges.includes('gece-kusu')) {
+          newlyEarned = SOCIAL_BADGES.find(b => b.id === 'gece-kusu');
+        }
+      }
+
+      // 3. Düzenli Çalışkan (Üst üste 5 gün)
+      const today = now.toISOString().split('T')[0];
+      if (loginStats.lastLoginDate !== today) {
+        const lastDate = loginStats.lastLoginDate ? new Date(loginStats.lastLoginDate) : null;
+        const diffDays = lastDate ? Math.floor((now.getTime() - lastDate.getTime()) / (1000 * 3600 * 24)) : null;
+
+        if (diffDays === 1) {
+          loginStats.consecutiveDays = (loginStats.consecutiveDays || 0) + 1;
+        } else if (diffDays !== 0) {
+          loginStats.consecutiveDays = 1;
+        }
+        loginStats.lastLoginDate = today;
+
+        if (loginStats.consecutiveDays >= 5 && !earnedBadges.includes('duzenli-calisan')) {
+          newlyEarned = SOCIAL_BADGES.find(b => b.id === 'duzenli-calisan');
+        }
+      }
+
+      if (Object.keys(updates).length > 0 || newlyEarned || loginStats.lastLoginDate === today) {
+        const finalUpdates: any = { 'stats.login': loginStats };
+        if (newlyEarned) {
+          finalUpdates.earnedBadges = arrayUnion(newlyEarned.id);
+          setNewlyUnlockedBadge(newlyEarned);
+        }
+        updateDoc(childDocRef, finalUpdates).catch(console.error);
+      }
+    }
+  }, [childData, childDocRef]);
 
   // Kaldığı adaya odaklan
   useEffect(() => {
@@ -98,22 +187,19 @@ export default function CocukModuPage() {
             });
           }
         }
-      }, 300); // Adaların tam render olması için süreyi biraz artırdım
+      }, 300);
       return () => clearTimeout(timer);
     }
   }, [isMounted, isAuthenticated]);
 
-  const childDocRef = useMemoFirebase(() => {
-    if (!db || !authUser?.uid || !childId) return null;
-    return doc(db, 'users', authUser.uid, 'children', childId);
-  }, [db, authUser?.uid, childId]);
-
-  const { data: childData, isLoading: childLoading } = useDoc(childDocRef);
+  const xp = useMemo(() => {
+    if (childData?.xp !== undefined) return childData.xp;
+    return (childData?.completedTopics?.length || 0) * 33;
+  }, [childData?.xp, childData?.completedTopics]);
 
   const level = useMemo(() => {
-    if (!childData?.completedTopics) return 1;
-    return Math.floor(childData.completedTopics.length / 5) + 1;
-  }, [childData?.completedTopics]);
+    return Math.floor(xp / 100) + 1;
+  }, [xp]);
 
   if (!isMounted || isAuthenticated === null || childLoading || !childData) {
     return (
@@ -127,7 +213,16 @@ export default function CocukModuPage() {
   }
 
   return (
-    <div className="h-screen w-full overflow-hidden font-sans bg-gradient-to-b from-[#7dd3fc] via-[#bae6fd] to-[#e0f2fe] relative">
+    <div className="h-screen w-full overflow-hidden scrollbar-hide font-sans bg-gradient-to-b from-[#7dd3fc] via-[#bae6fd] to-[#e0f2fe] relative">
+      <BadgeUnlockModal
+        badge={newlyUnlockedBadge}
+        onClose={() => setNewlyUnlockedBadge(null)}
+      />
+
+      <LockedFeatureDialog
+        isOpen={isLockedDialogOpen}
+        onClose={() => setIsLockedDialogOpen(false)}
+      />
 
       {/* Sabit Arkaplan (Kaydırmadan Etkilenmez) */}
       <div className="absolute inset-0 z-0">
@@ -138,7 +233,7 @@ export default function CocukModuPage() {
         <Cloud className="bottom-[10%] right-[25%] scale-75 md:scale-90 opacity-60" style={{ animationDelay: '3s' }} />
       </div>
 
-      <main className="h-full w-full flex flex-col md:flex-row relative z-10">
+      <main className="h-full w-full flex flex-col md:flex-row relative z-10 overflow-hidden scrollbar-hide">
 
         {/* SOL PANEL: Profil ve Seviye */}
         <ChildSidebar childId={childId} childData={childData} />
@@ -220,29 +315,48 @@ export default function CocukModuPage() {
             </svg>
 
             {/* 3D CSS Platformları */}
-            {MOCK_TOPICS.map((topic, index) => (
-              <div
-                key={topic.id}
-                id={`topic-${topic.id}`}
-                className="absolute animate-float island-container"
-                style={{
-                  top: topic.top,
-                  '--desktop-left': topic.left,
-                  '--mobile-left': topic.left === '65%' ? '55%' : '5%', // Mobile için daha dar alan
-                  animationDelay: `${index * 0.7}s`,
-                  zIndex: 20
-                } as any}
-              >
-                <TopicCard
-                  topic={topic}
-                  number={index + 1}
-                  onClick={() => {
-                    localStorage.setItem('last-topic', topic.id);
-                    router.push(`/cocuk-modu/${childId}/${topic.id}`);
-                  }}
-                />
-              </div>
-            ))}
+            {MOCK_TOPICS.map((topic, index) => {
+              const isFirst = index === 0;
+              const prevTopic = index > 0 ? MOCK_TOPICS[index - 1] : null;
+              // Önceki adanın sticker'ı var mı?
+              // @ts-ignore
+              const isPrevCompleted = prevTopic ? !!childData?.stickers?.[prevTopic.id] : true;
+              
+              // Abonelik Kontrolü: Ücretsiz sürümde sadece ilk 2 ada açık
+              const isSubscriptionLocked = subscriptionTier === 'free' && index >= 2;
+              const isProgressLocked = !isFirst && !isPrevCompleted;
+              const isLocked = isProgressLocked || isSubscriptionLocked;
+
+              return (
+                <div
+                  key={topic.id}
+                  id={`topic-${topic.id}`}
+                  className={cn("absolute island-container", !isLocked && "animate-float")}
+                  style={{
+                    top: topic.top,
+                    '--desktop-left': topic.left,
+                    '--mobile-left': topic.left === '65%' ? '55%' : '5%', // Mobile için daha dar alan
+                    animationDelay: `${index * 0.7}s`,
+                    zIndex: 20
+                  } as any}
+                >
+                  <TopicCard
+                    topic={topic}
+                    number={index + 1}
+                    isLocked={isProgressLocked}
+                    isPremiumLocked={isSubscriptionLocked}
+                    onClick={() => {
+                      if (isLocked) {
+                        setIsLockedDialogOpen(true);
+                      } else {
+                        localStorage.setItem('last-topic', topic.id);
+                        router.push(`/cocuk-modu/${childId}/${topic.id}`);
+                      }
+                    }}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       </main>

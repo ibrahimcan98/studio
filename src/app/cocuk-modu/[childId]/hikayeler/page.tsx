@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { Loader2, BookOpen, Volume2 } from 'lucide-react';
+import { Loader2, BookOpen, Volume2, Crown } from 'lucide-react';
 import Image from 'next/image';
 import { ChildSidebar } from '@/components/child-mode/sidebar';
+import { LockedFeatureDialog } from '@/components/child-mode/locked-feature-dialog';
 import { useTTS } from '@/hooks/use-tts';
 
 import { cn } from '@/lib/utils';
@@ -19,6 +20,7 @@ export default function HikayelerPage() {
   const db = useFirestore();
   const [isMounted, setIsMounted] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isLockedDialogOpen, setIsLockedDialogOpen] = useState(false);
   const { speak, isPlaying } = useTTS();
 
   useEffect(() => {
@@ -38,6 +40,14 @@ export default function HikayelerPage() {
 
   const { data: childData, isLoading: childLoading } = useDoc(childDocRef);
 
+  // Ebeveyn verilerini al (abonelik kontrolü için)
+  const userDocRef = useMemoFirebase(() => {
+    if (!db || !authUser?.uid) return null;
+    return doc(db, 'users', authUser.uid);
+  }, [db, authUser?.uid]);
+  const { data: userData } = useDoc(userDocRef);
+  const subscriptionTier = (userData?.subscriptionTier as string) || 'free';
+
   if (!isMounted || isAuthenticated === null || childLoading || !childData) {
     return (
       <div className="flex h-screen items-center justify-center bg-sky-100">
@@ -49,8 +59,20 @@ export default function HikayelerPage() {
     );
   }
 
+  const handleStoryClick = (path: string, index: number) => {
+    if (subscriptionTier === 'free' && index >= 1) {
+      setIsLockedDialogOpen(true);
+      return;
+    }
+    router.push(path);
+  };
+
   return (
     <div className="h-screen w-full overflow-hidden font-sans relative">
+      <LockedFeatureDialog
+        isOpen={isLockedDialogOpen}
+        onClose={() => setIsLockedDialogOpen(false)}
+      />
       {/* Arkaplan Görseli ve Overlay */}
       <div className="absolute inset-0 z-0">
         <Image 
@@ -85,7 +107,7 @@ export default function HikayelerPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl mx-auto pb-20">
               {/* Hikaye Kartı: Sarı Top */}
               <div 
-                onClick={() => router.push(`/cocuk-modu/${childId}/hikayeler/sari-top`)}
+                onClick={() => handleStoryClick(`/cocuk-modu/${childId}/hikayeler/sari-top`, 0)}
                 className="group relative bg-white/95 rounded-[45px] p-4 border-[6px] border-amber-200/50 shadow-[0_20px_60px_rgba(0,0,0,0.4)] cursor-pointer transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(251,191,36,0.3)] active:scale-95 overflow-hidden flex flex-col"
               >
                 <div className="relative w-full aspect-[4/3] bg-amber-50/50 rounded-[32px] overflow-hidden">
@@ -110,30 +132,47 @@ export default function HikayelerPage() {
               </div>
 
               {/* Hikaye Kartı: Bir İki Üç Başardım */}
-              <div 
-                onClick={() => router.push(`/cocuk-modu/${childId}/hikayeler/bir-iki-uc-basardim`)}
-                className="group relative bg-white/95 rounded-[45px] p-4 border-[6px] border-blue-200/50 shadow-[0_20px_60px_rgba(0,0,0,0.4)] cursor-pointer transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(59,130,246,0.3)] active:scale-95 overflow-hidden flex flex-col"
-              >
-                <div className="relative w-full aspect-[4/3] bg-blue-50/50 rounded-[32px] overflow-hidden">
-                   <Image 
-                     src="/hikayeler/2-bir-iki-uc-basardim/kapak.png" 
-                     fill 
-                     className="object-contain p-4 group-hover:scale-110 transition-transform duration-700" 
-                     alt="Bir İki Üç Başardım Kapak" 
-                   />
-                   <div className="absolute inset-0 bg-gradient-to-t from-blue-500/10 to-transparent" />
-                </div>
-                
-                <div className="p-4 flex flex-col items-center">
-                   <h3 className="text-2xl font-black text-blue-900 mb-4 uppercase italic tracking-tight">1-2-3 Başardım!</h3>
-                   <span className="w-full text-center bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-4 rounded-2xl text-sm font-black uppercase tracking-widest shadow-lg transform group-hover:translate-y-[-4px] transition-all border-b-4 border-blue-800">
-                      MACERAYA BAŞLA
-                   </span>
-                </div>
+              {(() => {
+                const isLocked = subscriptionTier === 'free';
+                return (
+                  <div 
+                    onClick={() => handleStoryClick(`/cocuk-modu/${childId}/hikayeler/bir-iki-uc-basardim`, 1)}
+                    className={cn(
+                      "group relative bg-white/95 rounded-[45px] p-4 border-[6px] shadow-[0_20px_60px_rgba(0,0,0,0.4)] transition-all overflow-hidden flex flex-col",
+                      isLocked ? "border-slate-200 cursor-not-allowed opacity-80" : "border-blue-200/50 cursor-pointer hover:scale-105 hover:shadow-[0_0_40px_rgba(59,130,246,0.3)] active:scale-95"
+                    )}
+                  >
+                    <div className="relative w-full aspect-[4/3] bg-blue-50/50 rounded-[32px] overflow-hidden">
+                       <Image 
+                         src="/hikayeler/2-bir-iki-uc-basardim/kapak.png" 
+                         fill 
+                         className={cn("object-contain p-4 transition-transform duration-700", !isLocked && "group-hover:scale-110")} 
+                         alt="Bir İki Üç Başardım Kapak" 
+                       />
+                       {isLocked && (
+                         <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] flex flex-col items-center justify-center p-6 text-center">
+                            <Crown className="w-12 h-12 text-amber-400 mb-3 animate-bounce" />
+                            <p className="text-white font-black text-sm uppercase italic">Premium Üyelik Gerekli</p>
+                         </div>
+                       )}
+                       <div className="absolute inset-0 bg-gradient-to-t from-blue-500/10 to-transparent" />
+                    </div>
+                    
+                    <div className="p-4 flex flex-col items-center">
+                       <h3 className={cn("text-2xl font-black mb-4 uppercase italic tracking-tight", isLocked ? "text-slate-400" : "text-blue-900")}>1-2-3 Başardım!</h3>
+                       <span className={cn(
+                         "w-full text-center py-4 rounded-2xl text-sm font-black uppercase tracking-widest shadow-lg transform transition-all border-b-4",
+                         isLocked ? "bg-slate-300 text-slate-500 border-slate-400 cursor-not-allowed" : "bg-gradient-to-r from-blue-600 to-indigo-700 text-white border-blue-800 group-hover:translate-y-[-4px]"
+                       )}>
+                          {isLocked ? "KİLİTLİ" : "MACERAYA BAŞLA"}
+                       </span>
+                    </div>
 
-                {/* Dekoratif Yıldızlar */}
-                <div className="absolute top-6 right-6 text-blue-400 animate-pulse drop-shadow-md z-10 text-2xl">✨</div>
-              </div>
+                    {/* Dekoratif Yıldızlar */}
+                    {!isLocked && <div className="absolute top-6 right-6 text-blue-400 animate-pulse drop-shadow-md z-10 text-2xl">✨</div>}
+                  </div>
+                );
+              })()}
 
               {/* Yakında Gelecek Kartı */}
               <div className="md:col-span-2 flex justify-center">

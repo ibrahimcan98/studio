@@ -16,6 +16,8 @@ import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebas
 import { collection, doc, setDoc, updateDoc, query, where, serverTimestamp } from 'firebase/firestore';
 import { LiveChatForm } from './chat/live-chat-form';
 import { WhatsappSupportForm } from './chat/whatsapp-support-form';
+import { trackPixelEvent } from './analytics/FacebookPixel';
+
 
 type Message = {
     role: 'user' | 'assistant' | 'admin' | 'ai';
@@ -219,7 +221,18 @@ export function AIAssistant() {
             });
         } catch (e) { console.error("Admin notify error:", e); }
 
+        // Meta Tracking
+        trackPixelEvent('Lead', { 
+            topic: formData.topic,
+            method: 'live_chat'
+        }, {
+            em: formData.email,
+            ph: formData.phone,
+            fn: formData.name
+        });
+
         setCurrentConversationId(convRef.id);
+
         localStorage.setItem('tca_conversation_id', convRef.id);
         setMode('live');
     };
@@ -249,8 +262,20 @@ export function AIAssistant() {
         });
 
         const message = `Merhaba, ben ${formData.name}. Telefon: ${formData.phone}. Konu: ${formData.topic}. Destek No: ${ticketId}`;
+        
+        // Meta Tracking
+        trackPixelEvent('Contact', { 
+            type: 'whatsapp',
+            topic: formData.topic
+        }, {
+            em: formData.email,
+            ph: formData.phone,
+            fn: formData.name
+        });
+
         window.open(`https://wa.me/905058029734?text=${encodeURIComponent(message)}`, '_blank');
         setIsOpen(false);
+
     };
 
     return (

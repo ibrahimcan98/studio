@@ -266,6 +266,7 @@ function UsersPageContent() {
   const getCourseDetailsFromPackageCode = (code?: string) => {
     if (!code) return null;
     if (code === 'FREE_TRIAL') return { courseName: 'Ücretsiz Deneme Dersi', duration: 30 };
+    if (code.startsWith('GIFT')) return { courseName: 'Hediye Ders', duration: 30 };
     
     const courseCodeMap: { [key: string]: string } = { 'B': 'baslangic', 'K': 'konusma', 'G': 'gelisim', 'A': 'akademik' };
     const prefix = code.replace(/[0-9]/g, '');
@@ -530,7 +531,8 @@ function UsersPageContent() {
                 'K': 'Konuşma Kursu (A1)',
                 'A': 'Akademik Kurs (A2)',
                 'G': 'Gelişim Kursu (B1)',
-                'GCSE': 'GCSE Türkçe Kursu'
+                'GCSE': 'GCSE Türkçe Kursu',
+                'GIFT': 'Hediye Ders'
             };
             const courseName = courseNames[prefix] || 'Standart Kurs';
             const assignedPackageCode = `${prefix}${lessonCount}`;
@@ -600,14 +602,15 @@ function UsersPageContent() {
             const isSingleChild = parentChildren.length === 1;
 
             const prefixes: { [key: string]: string } = {
-                'baslangic': 'B', 'konusma': 'K', 'akademik': 'A', 'gelisim': 'G', 'gcse': 'GCSE'
+                'baslangic': 'B', 'konusma': 'K', 'akademik': 'A', 'gelisim': 'G', 'gcse': 'GCSE', 'hediye': 'GIFT'
             };
             const courseNames: { [key: string]: string } = {
                 'baslangic': 'Başlangıç Kursu (Pre A1)',
                 'konusma': 'Konuşma Kursu (A1)',
                 'akademik': 'Akademik Kurs (A2)',
                 'gelisim': 'Gelişim Kursu (B1)',
-                'gcse': 'GCSE Türkçe Kursu'
+                'gcse': 'GCSE Türkçe Kursu',
+                'hediye': 'Hediye Ders'
             };
             const prefix = prefixes[selectedCourseId] || 'B';
             const courseName = courseNames[selectedCourseId] || 'Hediye Kurs';
@@ -1213,7 +1216,20 @@ function UsersPageContent() {
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 w-full sm:w-auto self-end sm:self-center">
-                                <span className="hidden sm:inline-block text-[10px] font-mono opacity-50 bg-white/10 px-2 py-0.5 rounded uppercase mr-2 select-all">ID: {selectedParent.shortId || selectedParent.id.substring(0, 8).toUpperCase()}</span>
+                                <div className="hidden sm:flex items-center gap-1.5 bg-white/10 px-2 py-1 rounded-lg group/id">
+                                    <span className="text-[10px] font-mono opacity-50 uppercase select-all leading-none">ID: {selectedParent.shortId || selectedParent.id.substring(0, 8).toUpperCase()}</span>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-5 w-5 hover:bg-white/20 text-white/50 hover:text-white p-0" 
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(selectedParent.id);
+                                            toast({ title: 'ID Kopyalandı', description: 'Veli ID panoya kopyalandı.' });
+                                        }}
+                                    >
+                                        <Copy className="w-3 h-3" />
+                                    </Button>
+                                </div>
                                 <Badge className="bg-emerald-500 text-white border-none font-bold px-3 sm:px-4 py-1 sm:py-1.5 rounded-full uppercase tracking-widest text-[8px] sm:text-[10px]">
                                     {selectedParent.countryName}
                                 </Badge>
@@ -1861,6 +1877,7 @@ function UsersPageContent() {
                                 <option value="akademik">Akademik Kurs (A2)</option>
                                 <option value="gelisim">Gelişim Kursu (B1)</option>
                                 <option value="gcse">GCSE Türkçe Kursu</option>
+                                <option value="hediye" className="bg-emerald-50 text-emerald-700 font-bold">🎁 Hediye Ders (30 Dakika)</option>
                             </select>
                         </div>
 
@@ -1942,7 +1959,21 @@ function ParentRow({ parent, isSelected, onSelect, onDetail, onAddLessons, onMan
                     <div className="flex flex-col min-w-0">
                         <span className="font-bold text-slate-700 truncate">{parent.firstName} {parent.lastName}</span>
                         <span className="text-[10px] text-slate-400 font-medium lowercase truncate">{parent.email}</span>
-                        <span className="text-[9px] font-mono text-slate-300 uppercase tracking-tighter">ID: {parent.shortId || parent.id.substring(0, 8).toUpperCase()}</span>
+                        <div className="flex items-center gap-1 group/id">
+                            <span className="text-[9px] font-mono text-slate-300 uppercase tracking-tighter">ID: {parent.shortId || parent.id.substring(0, 8).toUpperCase()}</span>
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-4 w-4 opacity-0 group-hover/id:opacity-100 transition-opacity p-0 hover:bg-slate-100" 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigator.clipboard.writeText(parent.id);
+                                    toast({ title: 'ID Kopyalandı', description: 'Veli ID panoya kopyalandı.' });
+                                }}
+                            >
+                                <Copy className="w-2.5 h-2.5 text-slate-400" />
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </TableCell>

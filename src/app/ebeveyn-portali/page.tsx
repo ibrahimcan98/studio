@@ -34,9 +34,10 @@ import {
     Gift,
     GraduationCap,
     CheckCircle2,
-    Package
+    Package,
+    Crown
 } from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -105,7 +106,9 @@ function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUp
     const isProfileIncomplete = child.isProfileComplete === false;
     const router = useRouter();
 
-    const currentCourse = getCourseByCode(child.assignedPackage);
+    const courseName = child.assignedPackageName?.includes('[Önceki:') 
+        ? child.assignedPackageName.split('[Önceki:')[1].replace(']', '').trim() 
+        : child.assignedPackageName;
     const recommendedCourseId = child.recommendedCourseId;
     const recommendedCourse = COURSES.find(c => c.id === recommendedCourseId);
 
@@ -133,7 +136,8 @@ function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUp
             </AlertDialog>
 
             <div className="flex flex-col items-center gap-4">
-                <Avatar className="h-[90px] w-[90px] border-0">
+                <Avatar className="h-[90px] w-[90px] border-0 bg-slate-50">
+                    <AvatarImage src={child.avatarUrl} className="object-contain p-1" />
                     <AvatarFallback className="bg-[#E0F2F1] text-[#00897B] font-black text-4xl uppercase tracking-tighter">{child.firstName?.charAt(0) || 'C'}</AvatarFallback>
                 </Avatar>
                 <div className="text-center">
@@ -162,9 +166,9 @@ function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUp
 
                 <div className='flex justify-between items-center'>
                     <span className='text-slate-500 font-medium text-[15px]'>Kurs:</span>
-                    {currentCourse && child.remainingLessons > 0 ? (
+                    {courseName && child.remainingLessons > 0 ? (
                         <span className="font-bold text-white bg-[#4CAF50] px-3 py-1 rounded-full text-[13px]">
-                            {currentCourse.title.split('(')[0].trim()}
+                            {courseName.split('(')[0].trim()}
                         </span>
                     ) : (
                         <span className="font-bold text-white bg-slate-400 px-3 py-1 rounded-full text-[13px]">
@@ -794,6 +798,17 @@ function EbeveynPortaliContent() {
                     <p className="text-xs text-slate-600 mt-2 font-medium">İhtiyacınıza uygun yeni kurslar seçin.</p>
                     <ArrowRight className="mt-4 text-orange-600 group-hover:translate-x-2 transition-transform" />
                 </Card>
+
+                {user?.email === 'ibrahimcanonder_98@hotmail.com' && (
+                  <Card className="p-6 bg-gradient-to-br from-amber-100 to-yellow-200 border-amber-200 hover:shadow-lg transition-all cursor-pointer group relative overflow-hidden" onClick={() => router.push('/ebeveyn-portali/uyelik')}>
+                      <div className="absolute top-2 right-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                          <Crown className="w-20 h-20 rotate-12" />
+                      </div>
+                      <h3 className="text-xl font-black flex items-center gap-2 text-slate-800"><Crown className="text-amber-600 group-hover:scale-110 transition-transform" /> Üyelik Yönetimi</h3>
+                      <p className="text-xs text-slate-600 mt-2 font-medium">Abonelik planınızı yönetin ve premium avantajları keşfedin.</p>
+                      <ArrowRight className="mt-4 text-amber-600 group-hover:translate-x-2 transition-transform" />
+                  </Card>
+                )}
             </div>
 
             <div>

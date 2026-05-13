@@ -992,9 +992,18 @@ export default function DersPlanlaPage() {
                         <AlertDialogTitle className="text-2xl font-bold text-slate-900 tracking-tight">DERSİ ONAYLA</AlertDialogTitle>
                         <AlertDialogDescription className="text-slate-500 font-semibold text-base leading-relaxed">
                             <span className="block mt-3 font-bold text-primary bg-primary/5 p-5 rounded-[20px] text-lg border-2 border-primary/10">
+                                <span className="text-[11px] uppercase tracking-[0.2em] text-primary/60 block mb-2 font-black">
+                                    {getCourseDetailsFromPackageCode(selectedPackage)?.courseName || 'Ders'}
+                                </span>
                                 {selectedDate && format(selectedDate, 'dd MMMM yyyy, EEEE', { locale: tr })}
                                 <br />
-                                Saat: {selectedSlot && formatInTimeZone(selectedSlot.startTime.toDate(), selectedTimeZone, 'HH:mm')}
+                                Saat: {selectedSlot && formatInTimeZone(selectedSlot.startTime.toDate(), selectedTimeZone, 'HH:mm')} - {(() => {
+                                    if (!selectedSlot || !selectedPackage) return '';
+                                    const details = getCourseDetailsFromPackageCode(selectedPackage);
+                                    if (!details) return '';
+                                    const end = addMinutes(selectedSlot.startTime.toDate(), details.duration);
+                                    return formatInTimeZone(end, selectedTimeZone, 'HH:mm');
+                                })()}
                             </span>
                             <span className="block mt-6 px-3 text-sm">Seçilen ders programı kaydedilecektir. Devam etmek istiyor musunuz?</span>
                         </AlertDialogDescription>

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, updateDoc, serverTimestamp, increment, collection, addDoc, writeBatch } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, increment, collection, addDoc, writeBatch, getDoc, query, where } from 'firebase/firestore';
 import {
     Star,
     ChevronRight,
@@ -31,15 +31,18 @@ import {
     Smile,
     MessageSquare,
     Sparkles,
-    UserPlus
+    UserPlus,
+    AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { Textarea } from '@/components/ui/textarea';
 import {
     Dialog,
     DialogContent,
@@ -49,6 +52,9 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { format, addDays, startOfDay, eachDayOfInterval, isSameDay } from 'date-fns';
+import { tr } from 'date-fns/locale';
+import { toZonedTime } from 'date-fns-tz';
 
 // 1. Kültür ve Aile Bağları
 const MISSIONS_CULTURE = [
@@ -85,6 +91,9 @@ export default function PuanMerkeziPage() {
     const [newReferralCode, setNewReferralCode] = useState('');
     const [isChildSelectOpen, setIsChildSelectOpen] = useState(false);
     const [selectedChildId, setSelectedChildId] = useState('');
+    const [userNote, setUserNote] = useState('');
+    const [requestedTime, setRequestedTime] = useState('');
+    const [manualTeacherId, setManualTeacherId] = useState('');
     
     const userDocRef = useMemoFirebase(() => (db && user?.uid) ? doc(db, 'users', user.uid) : null, [db, user?.uid]);
     const { data: userData, isLoading: userDataLoading } = useDoc(userDocRef);
@@ -94,6 +103,19 @@ export default function PuanMerkeziPage() {
         return collection(db, 'users', user.uid, 'children');
     }, [db, user?.uid]);
     const { data: children, isLoading: childrenLoading } = useCollection(childrenRef);
+
+    const selectedChildData = useMemo(() => children?.find((c: any) => c.id === selectedChildId), [children, selectedChildId]);
+    const assignedTeacherId = selectedChildData?.assignedTeacherId;
+    const effectiveTeacherId = manualTeacherId || assignedTeacherId;
+
+    const teacherSlotsQuery = useMemoFirebase(() => 
+        (db && effectiveTeacherId) ? query(collection(db, 'lesson-slots'), where('teacherId', '==', effectiveTeacherId)) : null, 
+    [db, effectiveTeacherId]);
+    const { data: teacherSlots, isLoading: slotsLoading } = useCollection(teacherSlotsQuery);
+
+    const teachersQuery = useMemoFirebase(() => 
+        db ? query(collection(db, 'users'), where('role', '==', 'teacher')) : null, [db]);
+    const { data: allTeachers } = useCollection(teachersQuery);
 
     const points = userData?.academyPoints || 0;
     const packages = userData?.totalPackagesPurchased || 0;
@@ -109,7 +131,7 @@ export default function PuanMerkeziPage() {
     const handleSendProof = async () => {
         if (!user || !userDocRef || !selectedMission || !db) return;
         setIsSaving(true);
-        const message = `Merhaba! "${selectedMission.title}" görevini tamamladım. Kanıtım ektedir. (ID: ${user.uid})`;
+        const message = `Merhaba! "${selectedMission.title}" görevini tamamladım. \n\nNotum: ${userNote || 'Not eklenmedi.'} \n\nKanıtım ektedir. (ID: ${user.uid})`;
         window.open(`https://wa.me/905058029734?text=${encodeURIComponent(message)}`, '_blank');
         try {
             await updateDoc(userDocRef, { [`taskStatus.${selectedMission.id}`]: 'pending' });
@@ -120,11 +142,13 @@ export default function PuanMerkeziPage() {
                 taskId: selectedMission.id,
                 taskTitle: selectedMission.title,
                 points: selectedMission.points,
+                userNote: userNote,
                 status: 'pending',
                 createdAt: serverTimestamp()
             });
             toast({ title: 'Harika!', description: 'Kanıtınız incelenmek üzere başarıyla gönderildi.' });
             setIsProofDialogOpen(false);
+            setUserNote('');
         } catch (e) { console.error(e); } finally { setIsSaving(false); }
     };
 
@@ -151,20 +175,80 @@ export default function PuanMerkeziPage() {
     };
 
     const handleClaimFreeLesson = async () => {
-        if (!userDocRef || points < 500 || !selectedChildId || !db) return;
+        if (!user || !userDocRef || points < 500 || !selectedChildId || !db) {
+            toast({ variant: 'destructive', title: 'Hata', description: 'Gerekli bilgiler eksik veya puanınız yetersiz.' });
+            return;
+        }
+        
         setIsSaving(true);
         try {
-            const childDocRef = doc(db, 'users', user!.uid, 'children', selectedChildId);
+            const childDocRef = doc(db, 'users', user.uid, 'children', selectedChildId);
+            const childSnap = await getDoc(childDocRef);
+            
+            if (!childSnap.exists()) {
+                throw new Error("Öğrenci bulunamadı.");
+            }
+
+            const childData = childSnap.data();
+            const childName = childData?.firstName || 'Öğrenci';
+            
+            const selectedTeacher = allTeachers?.find((t: any) => t.id === effectiveTeacherId);
+            const teacherName = selectedTeacher ? `${selectedTeacher.firstName} ${selectedTeacher.lastName}` : 'Belirtilmedi';
+
             const batch = writeBatch(db);
-            batch.update(userDocRef, { academyPoints: increment(-500) });
-            batch.update(childDocRef, { remainingLessons: increment(1) });
+            
+            // 1. Puan Düşür
+            batch.update(userDocRef, { 
+                academyPoints: increment(-500) 
+            });
+            
+            // 2. İşlemi Kaydet (Mevcut loyalty-requests koleksiyonunu kullanıyoruz)
+            const requestRef = doc(collection(db, 'loyalty-requests'));
+            batch.set(requestRef, {
+                userId: user.uid,
+                userEmail: user.email,
+                userName: userData?.firstName + " " + userData?.lastName || 'Veli',
+                childId: selectedChildId,
+                childName: childName,
+                type: 'gift_lesson_claim',
+                pointsUsed: 500,
+                description: `🎁 Puan ile 30 Dakikalık Hediye Ders Talebi`,
+                teacherId: effectiveTeacherId,
+                teacherName: teacherName,
+                userNote: requestedTime, // Velinin yazdığı tarih/saat bilgisi
+                status: 'pending',
+                createdAt: serverTimestamp()
+            });
+
             await batch.commit();
-            toast({ title: 'Tebrikler! 🎉', description: '1 Bedava Ders çocuğunuzun hesabına başarıyla tanımlandı.', className: 'bg-green-500 text-white' });
-            setIsChildSelectOpen(false);
-            setSelectedChildId('');
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Hata', description: 'İşlem sırasında bir hata oluştu.' });
-        } finally { setIsSaving(false); }
+
+            // WhatsApp Redirection
+            const adminPhone = "905058029734";
+            const message = `Merhaba, 500 Akademi Puanı kullanarak ${childName} (Veli ID: ${user.uid}) için 30 dakikalık hediye dersimi talep ediyorum. \n\n👨‍🏫 Seçilen Öğretmen: ${teacherName}\n⏰ İstediğim tarih/saat: ${requestedTime || 'Belirtilmedi'}`;
+            const whatsappUrl = `https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`;
+            
+            toast({ 
+                title: 'Puanlar Başarıyla Harcandı! 🎁', 
+                description: 'WhatsApp\'a yönlendiriliyorsunuz, lütfen mesajı gönderin.', 
+                className: 'bg-green-600 text-white font-bold' 
+            });
+
+            setTimeout(() => {
+                window.open(whatsappUrl, '_blank');
+                setIsChildSelectOpen(false);
+                setSelectedChildId('');
+            }, 1000);
+
+        } catch (error: any) {
+            console.error("Hediye ders talebi hatası:", error);
+            toast({ 
+                variant: 'destructive', 
+                title: 'İşlem Başarısız', 
+                description: error.message || 'Bir hata oluştu, lütfen daha sonra tekrar deneyin.' 
+            });
+        } finally { 
+            setIsSaving(false); 
+        }
     };
 
     if (authLoading || userDataLoading || childrenLoading) {
@@ -308,8 +392,135 @@ export default function PuanMerkeziPage() {
                 </section>
             </div>
 
+            {/* CHILD SELECTION DIALOG */}
+            <Dialog open={isChildSelectOpen} onOpenChange={setIsChildSelectOpen}>
+                <DialogContent className="rounded-[40px] p-0 overflow-hidden max-w-md border-none shadow-2xl bg-white">
+                    <div className="bg-gradient-to-b from-amber-50/50 to-white p-10 pt-12">
+                        <DialogHeader className="items-center text-center space-y-6">
+                            <div className="w-24 h-24 bg-amber-400/10 rounded-[32px] flex items-center justify-center rotate-3 shadow-inner">
+                                <Gift className="w-12 h-12 text-amber-500" />
+                            </div>
+                            <div className="space-y-2">
+                                <DialogTitle className="text-3xl font-black text-slate-800 uppercase tracking-tight">Hediye Ders Al</DialogTitle>
+                                <DialogDescription className="text-slate-500 font-bold text-sm leading-relaxed px-4">
+                                    500 Puanınızı çocuğunuz için harika bir hediye dersine dönüştürmek üzeresiniz! 🎁✨
+                                </DialogDescription>
+                            </div>
+                        </DialogHeader>
+
+                        <div className="space-y-4">
+                            <div className="space-y-3">
+                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Öğrenci Seçin</label>
+                                <Select value={selectedChildId} onValueChange={setSelectedChildId}>
+                                    <SelectTrigger className="h-16 rounded-2xl border-2 border-slate-100 bg-white font-bold text-lg shadow-sm focus:ring-amber-500 focus:border-amber-500 transition-all">
+                                        <SelectValue placeholder="Bir öğrenci seçin..." />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-2xl border-none shadow-2xl p-2">
+                                        {children?.map((child: any) => (
+                                            <SelectItem key={child.id} value={child.id} className="font-bold py-4 rounded-xl focus:bg-amber-50 focus:text-amber-700">
+                                                {child.firstName}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Öğretmen Seçin</label>
+                                <Select value={effectiveTeacherId || ''} onValueChange={setManualTeacherId}>
+                                    <SelectTrigger className="h-14 rounded-2xl border-2 border-slate-100 bg-white font-bold text-base shadow-sm focus:ring-amber-500 focus:border-amber-500 transition-all">
+                                        <SelectValue placeholder="Bir öğretmen seçin..." />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-2xl border-none shadow-2xl p-2">
+                                        {allTeachers?.map((teacher: any) => (
+                                            <SelectItem key={teacher.id} value={teacher.id} className="font-bold py-3 rounded-xl focus:bg-amber-50 focus:text-amber-700">
+                                                {teacher.firstName} {teacher.lastName}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Tercih Ettiğiniz Tarih ve Saat (TSI)</label>
+                                <Input 
+                                    placeholder="Örn: Pazartesi 18:30" 
+                                    className="h-16 rounded-2xl border-2 border-slate-100 bg-white font-bold text-lg shadow-sm focus:ring-amber-500 focus:border-amber-500 transition-all"
+                                    value={requestedTime}
+                                    onChange={(e) => setRequestedTime(e.target.value)}
+                                />
+                                <p className="text-[10px] text-slate-400 font-bold italic px-1">
+                                    * Lütfen Türkiye saatine (TSI) göre belirtiniz. 🇹🇷
+                                </p>
+                            </div>
+
+                            {/* Replika Öğretmenler İçin Müsaitlik Uyarısı */}
+                            {effectiveTeacherId && (
+                                <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-start gap-3">
+                                    <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                                    <div className="space-y-1">
+                                        <p className="text-xs font-bold text-amber-900">Müsaitlik Bilgisi</p>
+                                        <p className="text-[11px] text-amber-700 leading-relaxed font-medium">
+                                            Seçtiğiniz öğretmenimizin önümüzdeki 7 gün için tüm saatleri doludur. 
+                                            Yine de talebinizi iletebilirsiniz, iptal olan ders olursa sizinle iletişime geçilecektir.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex flex-col gap-4">
+                            <Button 
+                                className="w-full h-16 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 font-black text-base rounded-2xl shadow-xl shadow-amber-200/50 text-white border-none transition-all active:scale-95 group" 
+                                onClick={handleClaimFreeLesson} 
+                                disabled={isSaving || !selectedChildId}
+                            >
+                                {isSaving ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-2 w-6 h-6 group-hover:scale-110 transition-transform" />} 
+                                PUANLARI KULLAN VE TALEP ET
+                            </Button>
+                            <Button variant="ghost" className="w-full h-14 font-black text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-2xl uppercase tracking-widest text-xs" onClick={() => setIsChildSelectOpen(false)}>
+                                Vazgeç
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
             {/* DIALOGS */}
-            <Dialog open={isProofDialogOpen} onOpenChange={setIsProofDialogOpen}><DialogContent className="rounded-[40px] p-10 max-w-md border-none shadow-2xl"><DialogHeader className="items-center text-center space-y-6"><div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center"><Camera className="w-12 h-12 text-primary" /></div><div className="space-y-2"><DialogTitle className="text-2xl font-black uppercase tracking-tight">Harika Bir Haber! 🎉</DialogTitle><DialogDescription className="text-slate-500 font-medium leading-relaxed px-2">Görev kanıtını WhatsApp ekibimize iletin, yıldızlarınız hemen yüklensin! 🚀</DialogDescription></div></DialogHeader><DialogFooter className="mt-8 flex flex-col gap-3"><Button className="w-full h-14 bg-green-500 hover:bg-green-600 font-black text-base rounded-2xl shadow-xl shadow-green-100" onClick={handleSendProof} disabled={isSaving}>{isSaving ? <Loader2 className="animate-spin mr-2" /> : <MessageCircle className="mr-2 w-5 h-5" />} KANITI GÖNDER 🚀✨</Button></DialogFooter></DialogContent></Dialog>
+            <Dialog open={isProofDialogOpen} onOpenChange={setIsProofDialogOpen}>
+                <DialogContent className="rounded-[40px] p-10 max-w-md border-none shadow-2xl">
+                    <DialogHeader className="items-center text-center space-y-6">
+                        <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center">
+                            <Camera className="w-12 h-12 text-primary" />
+                        </div>
+                        <div className="space-y-2">
+                            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Harika Bir Haber! 🎉</DialogTitle>
+                            <DialogDescription className="text-slate-500 font-medium leading-relaxed px-2">
+                                Görev kanıtını WhatsApp ekibimize iletin, yıldızlarınız hemen yüklensin! 🚀
+                            </DialogDescription>
+                        </div>
+                    </DialogHeader>
+                    <div className="py-4 space-y-3">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Varsa Notunuz (İsteğe bağlı)</label>
+                        <Textarea 
+                            placeholder="Görevi nasıl yaptınız? Bize anlatın..." 
+                            className="rounded-2xl border-slate-200 focus:border-primary min-h-[100px]"
+                            value={userNote}
+                            onChange={(e) => setUserNote(e.target.value)}
+                        />
+                    </div>
+                    <DialogFooter className="mt-4 flex flex-col gap-3">
+                        <Button 
+                            className="w-full h-14 bg-green-500 hover:bg-green-600 font-black text-base rounded-2xl shadow-xl shadow-green-100" 
+                            onClick={handleSendProof} 
+                            disabled={isSaving}
+                        >
+                            {isSaving ? <Loader2 className="animate-spin mr-2" /> : <MessageCircle className="mr-2 w-5 h-5" />} 
+                            KANITI GÖNDER 🚀✨
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

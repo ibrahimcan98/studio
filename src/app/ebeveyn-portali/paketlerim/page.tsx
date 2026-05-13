@@ -292,8 +292,12 @@ function PaketlerimPageContent() {
                                 {children && children.length > 0 ? (
                                     <div className="grid gap-6">
                                         {children.map((child: any) => {
-                                            const initialLessonsForActivePackage = child.assignedPackage ? parseInt(child.assignedPackage.replace(/\D/g, ''), 10) : 0;
+                                            const initialLessonsForActivePackage = child.assignedPackage ? (parseInt(child.assignedPackage.replace(/\D/g, ''), 10) || child.remainingLessons) : 0;
                                             const progressPercent = initialLessonsForActivePackage > 0 ? ((initialLessonsForActivePackage - child.remainingLessons) / initialLessonsForActivePackage) * 100 : 0;
+                                            
+                                            const displayName = child.assignedPackageName?.includes('[Önceki:') 
+                                                ? child.assignedPackageName.split('[Önceki:')[1].replace(']', '').trim() 
+                                                : child.assignedPackageName;
 
                                             return (
                                             <div key={child.id} className="p-6 border border-slate-100 rounded-[20px] bg-white hover:border-slate-300 transition-all shadow-sm group">
@@ -314,7 +318,7 @@ function PaketlerimPageContent() {
                                                                 <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-end gap-2 sm:gap-0">
                                                                     <div>
                                                                         <p className="text-secondary font-bold text-sm uppercase tracking-wide">Aktif Kurs</p>
-                                                                        <p className="font-black text-slate-800 break-words line-clamp-2">{child.assignedPackageName}</p>
+                                                                        <p className="font-black text-slate-800 break-words line-clamp-2">{displayName}</p>
                                                                     </div>
                                                                     <div className="text-right">
                                                                         <span className="text-2xl font-black text-primary">{child.remainingLessons}</span>

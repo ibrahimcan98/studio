@@ -52,7 +52,16 @@ export async function childConversationFlow(input: ChildConversationInput): Prom
         1. KUSURSUZ TÜRKÇE: Türkçeyi bir dil uzmanı gibi, anlatım bozukluğu olmayan mükemmel bir Türkçe kullan.
         2. BİLGE ARKADAŞ: Nazik, neşeli ve seviyeli bir arkadaş ol. Cevapların kısa (2-3 cümle) ve mutlaka bir soruyla bitsin.
 
-        FORMAT: Cevabını şu JSON formatında ver: {"answer": "cevap", "emotion": "happy/surprised/thinking/excited/cool/laughing", "action": "none"}`
+        FORMAT: Cevabını şu JSON formatında ver: 
+        {"answer": "cevap", "emotion": "cesaretlendiriyor|goz-kirpiyor|konusuyor|oturuyor|tebrik-ediyor|zipliyor", "action": "none"}
+        
+        EMOTION REHBERİ:
+        - cesaretlendiriyor: Çocuk zorlandığında veya yeni bir şey denediğinde kullan.
+        - goz-kirpiyor: Espri yaptığında veya sır paylaştığında kullan.
+        - konusuyor: Genel bilgi verirken veya normal konuşurken kullan.
+        - oturuyor: Dinlerken veya sakin bir şey anlatırken kullan.
+        - tebrik-ediyor: Çocuk bir şeyi başardığında veya doğru bildiğinde kullan.
+        - zipliyor: Çok heyecanlandığında veya çok mutlu olduğunda kullan.`
       },
       ...input.history.map(h => ({ role: h.role, content: h.content })),
       { role: "user", content: input.question }

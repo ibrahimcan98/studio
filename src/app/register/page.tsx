@@ -24,6 +24,8 @@ import { SignUpIllustration } from '@/components/illustrations/signup-illustrati
 import { useAuth, useFirestore, useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { trackPixelEvent } from '@/components/analytics/FacebookPixel';
+
 
 const adminEmail = 'iletisim@turkcocukakademisi.com';
 
@@ -127,7 +129,28 @@ export default function RegisterPage() {
       // First, create the Firestore document
       await setDoc(userDocRef, userData, { merge: true });
 
+      // Meta Tracking
+      trackPixelEvent('CompleteRegistration', {
+          role: role,
+          method: 'email'
+      }, {
+          em: newUser.email,
+          ph: userData.phoneNumber,
+          fn: name
+      });
+      
+      // Also track as Lead for marketing purposes
+      trackPixelEvent('Lead', {
+          event_category: 'registration',
+          role: role
+      }, {
+          em: newUser.email,
+          ph: userData.phoneNumber,
+          fn: name
+      });
+
       // Notify Admin about new registration
+
       if (role === 'parent') {
         try {
           await fetch('/api/notify/admin', {

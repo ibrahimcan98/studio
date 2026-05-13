@@ -22,6 +22,8 @@ import { doc } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/context/cart-context';
+import { trackPixelEvent } from '@/components/analytics/FacebookPixel';
+
 
 
 export default function Header() {
@@ -67,10 +69,17 @@ export default function Header() {
     router.push('/');
   };
   
-  const handleFreeTrialClick = () => {
-      setMobileMenuOpen(false);
-      router.push('/register');
-  }
+   const handleFreeTrialClick = () => {
+       // Meta Tracking
+       trackPixelEvent('Lead', { 
+           event_category: 'free_trial',
+           position: 'header'
+       });
+       
+       setMobileMenuOpen(false);
+       router.push('/register');
+   }
+
 
   const UserMenu = () => {
     const { user } = useUser();

@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils';
 const getCourseDetailsFromPackageCode = (code?: string) => {
     if (!code) return null;
     if (code === 'FREE_TRIAL') return { courseName: 'Ücretsiz Deneme Dersi', duration: 30 };
+    if (code.startsWith('GIFT')) return { courseName: 'Hediye Ders', duration: 30 };
 
     const courseCodeMap: { [key: string]: string } = {
         'B': 'baslangic',

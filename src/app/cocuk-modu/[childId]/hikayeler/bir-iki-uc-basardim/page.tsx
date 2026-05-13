@@ -4,13 +4,30 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
-import { Loader2, ChevronLeft, ChevronRight, X, Volume2, BookOpen } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, X, Volume2, BookOpen, Brain } from 'lucide-react';
 import Image from 'next/image';
 import useEmblaCarousel from 'embla-carousel-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useTTS } from '@/hooks/use-tts';
+import { BadgeUnlockModal } from '@/components/child-mode/badge-unlock-modal';
+import { StoryQuiz } from '@/components/child-mode/story-quiz';
+import { arrayUnion } from 'firebase/firestore';
 
+const STORY_BADGES = [
+  { id: 'ilk-sayfa', name: 'İlk Sayfa', description: 'İlk hikayeyi sonuna kadar okuyana verilir.', icon: '/rozetler/hikaye/ilk-sayfa.png', requirement: 1 },
+  { id: 'okuma-merdiveni', name: 'Okuma Merdiveni', description: '4 hikayeyi sonuna kadar okuyana verilir.', icon: '/rozetler/hikaye/okuma-merdiveni.png', requirement: 4 },
+  { id: 'kutuphane-krali', name: 'Kütüphane Kralı', description: '10 hikayeyi sonuna kadar okuyana verilir.', icon: '/rozetler/hikaye/kutuphane-krali.png', requirement: 10 },
+  { id: 'dikkatli-gozler', name: 'Dikkatli Gözler', description: 'Hikaye sonundaki soruların hepsini doğru bilene verilir.', icon: '/rozetler/hikaye/dikkatli-gozler.png', requirement: 1 },
+];
+
+const SOCIAL_BADGES = [
+  { id: 'sabah-yildizi', name: 'Sabah Yıldızı', description: 'Sabah erkenden sisteme girip çalışana verilir.', icon: '/rozetler/sosyal/sabah-yildizi.png', requirement: 1 },
+  { id: 'gece-kusu', name: 'Gece Kuşu', description: 'Akşam vakti sisteme girip çalışana verilir.', icon: '/rozetler/sosyal/gece-kusu.png', requirement: 1 },
+  { id: 'azimli-kaplumbaga', name: 'Azimli Kaplumbağa', description: 'Zorlandığı bir görevi 3. denemede başaranlara.', icon: '/rozetler/sosyal/azimli-kaplumbaga.png', requirement: 3 },
+  { id: 'duzenli-calisan', name: 'Düzenli Çalışkan', description: '5 gün üst üste sisteme giriş yapana verilir.', icon: '/rozetler/sosyal/duzenli-calisan.png', requirement: 5 },
+];
+import { motion, AnimatePresence } from 'framer-motion';
 // Hikaye verisi
 const storyContent = [
   { id: 1, image: "/hikayeler/2-bir-iki-uc-basardim/1.png", text: "Güneşli bir gündü. Emir, dışarı çıktı ve cebinden en sevdiği renkli tebeşirlerini çıkardı. Bir tane kırmızı, bir tane sarı, bir tane mavi, bir de turuncu. Kaldırımın üzerine özenle kadar kareler çizdi. Her kareyi farklı bir çizerken içi kıpır kıpırdı.Bugün bu sekseği bitireceğim, hiç takılmadan sonuna kadar zıplayacağım! diye kendi kendine söz verdi." },
@@ -40,6 +57,9 @@ export default function BirIkiUcBasardimPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(true);
+  const [newlyUnlockedBadge, setNewlyUnlockedBadge] = useState<any>(null);
+  const [isQuizOpen, setIsQuizOpen] = useState(false);
+  const completionTracked = useRef(false);
 
   const childDocRef = useMemoFirebase(() => {
     if (!db || !authUser?.uid || !childId) return null;
@@ -48,13 +68,77 @@ export default function BirIkiUcBasardimPage() {
 
   const { data: childData, isLoading: childLoading } = useDoc(childDocRef);
 
+  const BIR_IKI_UC_QUESTIONS = [
+    { question: "Emir kaldırıma ne ile kareler çizdi?", options: ["Kalem ile çizdi", "Tebeşir ile çizdi", "Boya ile çizdi"], correctAnswer: 1 },
+    { question: "Emir'e kim destek oldu ve elini tuttu?", options: ["Annesi destek oldu", "Arkadaşı destek oldu", "Babası destek oldu"], correctAnswer: 2 },
+    { question: "Emir hangi oyunu oynamaya çalışıyordu?", options: ["Seksek oynuyordu", "Körebe oynuyordu", "Saklambaç oynuyordu"], correctAnswer: 0 },
+  ];
+
+  const handleQuizComplete = async (allCorrect: boolean) => {
+    setIsQuizOpen(false);
+    if (childDocRef) {
+      const earnedBadges = (childData as any)?.earnedBadges || [];
+      const storyStats = (childData as any)?.stats?.story || {};
+      const currentAttempts = (storyStats['bir-iki-uc-basardim']?.attempts || 0) + 1;
+      
+      const updates: any = {
+        [`stats.story.bir-iki-uc-basardim.attempts`]: currentAttempts
+      };
+
+      // Dikkatli Gözler (İlk denemede full doğru)
+      if (allCorrect && currentAttempts === 1 && !earnedBadges.includes('dikkatli-gozler')) {
+        updates.earnedBadges = arrayUnion('dikkatli-gozler');
+        setNewlyUnlockedBadge(STORY_BADGES.find(b => b.id === 'dikkatli-gozler'));
+      }
+
+      // Azimli Kaplumbağa (3. denemede başarı)
+      if (allCorrect && currentAttempts === 3 && !earnedBadges.includes('azimli-kaplumbaga')) {
+        updates.earnedBadges = arrayUnion('azimli-kaplumbaga');
+        setNewlyUnlockedBadge(SOCIAL_BADGES.find(b => b.id === 'azimli-kaplumbaga'));
+      }
+
+      if (allCorrect) {
+        updates[`stats.story.bir-iki-uc-basardim.perfectScore`] = true;
+      }
+
+      await updateDoc(childDocRef, updates);
+    }
+  };
+
   useEffect(() => {
     if (childDocRef && currentIndex > 0) {
-      updateDoc(childDocRef, {
+      const updateData: any = {
         [`storyProgress.bir-iki-uc-basardim`]: currentIndex
-      }).catch(console.error);
+      };
+
+      // Hikaye bittiyse (Son sayfa)
+      if (currentIndex === storyContent.length - 1 && !completionTracked.current) {
+        completionTracked.current = true;
+        updateData.completedStories = arrayUnion('bir-iki-uc-basardim');
+        
+        // Rozet Kontrolü
+        const completedStories = (childData as any)?.completedStories || [];
+        const earnedBadges = (childData as any)?.earnedBadges || [];
+        const newCount = completedStories.includes('bir-iki-uc-basardim') ? completedStories.length : completedStories.length + 1;
+
+        let newlyEarned: any = null;
+        for (const badge of STORY_BADGES) {
+          if (earnedBadges.includes(badge.id)) continue;
+          if (badge.id === 'ilk-sayfa' && newCount >= 1) newlyEarned = badge;
+          if (badge.id === 'okuma-merdiveni' && newCount >= 4) newlyEarned = badge;
+          if (badge.id === 'kutuphane-krali' && newCount >= 10) newlyEarned = badge;
+          
+          if (newlyEarned) {
+            updateData.earnedBadges = arrayUnion(badge.id);
+            setNewlyUnlockedBadge(newlyEarned);
+            break;
+          }
+        }
+      }
+
+      updateDoc(childDocRef, updateData).catch(console.error);
     }
-  }, [currentIndex, childDocRef]);
+  }, [currentIndex, childDocRef, childData]);
 
   useEffect(() => {
     if (childData?.storyProgress?.['bir-iki-uc-basardim'] !== undefined && emblaApi && !hasInitialScrolled.current) {
@@ -138,6 +222,17 @@ export default function BirIkiUcBasardimPage() {
 
   return (
     <div className="h-screen w-full overflow-hidden bg-gradient-to-b from-blue-50 to-cyan-100 font-sans relative">
+      <BadgeUnlockModal 
+        badge={newlyUnlockedBadge} 
+        onClose={() => setNewlyUnlockedBadge(null)} 
+      />
+      {isQuizOpen && (
+        <StoryQuiz 
+          questions={BIR_IKI_UC_QUESTIONS} 
+          onComplete={handleQuizComplete} 
+          onClose={() => setIsQuizOpen(false)}
+        />
+      )}
       <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-50">
         <div className="flex items-center">
           <Button
@@ -208,6 +303,23 @@ export default function BirIkiUcBasardimPage() {
           <button onClick={scrollNext} disabled={!canScrollNext} className={cn("absolute right-6 top-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-white/90 shadow-xl border-4 border-blue-100 flex items-center justify-center text-blue-500 transition-all hover:scale-110 active:scale-90 disabled:opacity-0 z-20", !canScrollNext && "pointer-events-none")}>
             <ChevronRight className="w-10 h-10" />
           </button>
+
+          {/* Test Çöz Butonu (Son Sayfada Çıkar) */}
+          {currentIndex === storyContent.length - 1 && (
+            <motion.div 
+              initial={{ y: 50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30"
+            >
+              <Button
+                onClick={() => setIsQuizOpen(true)}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-black px-10 py-8 rounded-[30px] text-2xl shadow-[0_15px_30px_rgba(147,51,234,0.4)] border-b-[8px] border-purple-900 transition-all active:scale-95 flex items-center gap-4 group"
+              >
+                <Brain className="w-8 h-8 group-hover:rotate-12 transition-transform" />
+                TESTİ ÇÖZ & ROZET KAZAN! 🏆
+              </Button>
+            </motion.div>
+          )}
         </div>
       </div>
 

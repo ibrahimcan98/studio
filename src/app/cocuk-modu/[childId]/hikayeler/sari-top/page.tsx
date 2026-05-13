@@ -4,12 +4,30 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
-import { Loader2, ChevronLeft, ChevronRight, X, Volume2, BookOpen } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, X, Volume2, BookOpen, Brain } from 'lucide-react';
 import Image from 'next/image';
 import useEmblaCarousel from 'embla-carousel-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useTTS } from '@/hooks/use-tts';
+import { BadgeUnlockModal } from '@/components/child-mode/badge-unlock-modal';
+import { StoryQuiz } from '@/components/child-mode/story-quiz';
+import { arrayUnion } from 'firebase/firestore';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const STORY_BADGES = [
+  { id: 'ilk-sayfa', name: 'İlk Sayfa', description: 'İlk hikayeyi sonuna kadar okuyana verilir.', icon: '/rozetler/hikaye/ilk-sayfa.png', requirement: 1 },
+  { id: 'okuma-merdiveni', name: 'Okuma Merdiveni', description: '4 hikayeyi sonuna kadar okuyana verilir.', icon: '/rozetler/hikaye/okuma-merdiveni.png', requirement: 4 },
+  { id: 'kutuphane-krali', name: 'Kütüphane Kralı', description: '10 hikayeyi sonuna kadar okuyana verilir.', icon: '/rozetler/hikaye/kutuphane-krali.png', requirement: 10 },
+  { id: 'dikkatli-gozler', name: 'Dikkatli Gözler', description: 'Hikaye sonundaki soruların hepsini doğru bilene verilir.', icon: '/rozetler/hikaye/dikkatli-gozler.png', requirement: 1 },
+];
+
+const SOCIAL_BADGES = [
+  { id: 'sabah-yildizi', name: 'Sabah Yıldızı', description: 'Sabah erkenden sisteme girip çalışana verilir.', icon: '/rozetler/sosyal/sabah-yildizi.png', requirement: 1 },
+  { id: 'gece-kusu', name: 'Gece Kuşu', description: 'Akşam vakti sisteme girip çalışana verilir.', icon: '/rozetler/sosyal/gece-kusu.png', requirement: 1 },
+  { id: 'azimli-kaplumbaga', name: 'Azimli Kaplumbağa', description: 'Zorlandığı bir görevi 3. denemede başaranlara.', icon: '/rozetler/sosyal/azimli-kaplumbaga.png', requirement: 3 },
+  { id: 'duzenli-calisan', name: 'Düzenli Çalışkan', description: '5 gün üst üste sisteme giriş yapana verilir.', icon: '/rozetler/sosyal/duzenli-calisan.png', requirement: 5 },
+];
 
 // Örnek hikaye verisi (Daha sonra bir JSON'dan gelebilir)
 // Örnek hikaye verisi (Gerçek metinleri buraya eklemelisin)
@@ -44,6 +62,9 @@ export default function SariTopPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(true);
+  const [newlyUnlockedBadge, setNewlyUnlockedBadge] = useState<any>(null);
+  const [isQuizOpen, setIsQuizOpen] = useState(false);
+  const completionTracked = useRef(false);
 
   // Firestore referansı
   const childDocRef = useMemoFirebase(() => {
@@ -53,14 +74,78 @@ export default function SariTopPage() {
 
   const { data: childData, isLoading: childLoading } = useDoc(childDocRef);
 
+  const SARI_TOP_QUESTIONS = [
+    { question: "Ela bahçede ne oynuyordu?", options: ["Top oynuyordu", "Saklambaç oynuyordu", "Seksek oynuyordu"], correctAnswer: 0 },
+    { question: "Ela'nın topu ne renkti?", options: ["Mavi renkti", "Sarı renkti", "Kırmızı renkti"], correctAnswer: 1 },
+    { question: "Topu en sonunda nerede buldu?", options: ["Ağaçtaki yuvada buldu", "Nehirde buldu", "Çiçekler arasında buldu"], correctAnswer: 0 },
+  ];
+
+  const handleQuizComplete = async (allCorrect: boolean) => {
+    setIsQuizOpen(false);
+    if (childDocRef) {
+      const earnedBadges = (childData as any)?.earnedBadges || [];
+      const storyStats = (childData as any)?.stats?.story || {};
+      const currentAttempts = (storyStats['sari-top']?.attempts || 0) + 1;
+      
+      const updates: any = {
+        [`stats.story.sari-top.attempts`]: currentAttempts
+      };
+
+      // Dikkatli Gözler (İlk denemede full doğru)
+      if (allCorrect && currentAttempts === 1 && !earnedBadges.includes('dikkatli-gozler')) {
+        updates.earnedBadges = arrayUnion('dikkatli-gozler');
+        setNewlyUnlockedBadge(STORY_BADGES.find(b => b.id === 'dikkatli-gozler'));
+      }
+
+      // Azimli Kaplumbağa (3. denemede başarı)
+      if (allCorrect && currentAttempts === 3 && !earnedBadges.includes('azimli-kaplumbaga')) {
+        updates.earnedBadges = arrayUnion('azimli-kaplumbaga');
+        setNewlyUnlockedBadge(SOCIAL_BADGES.find(b => b.id === 'azimli-kaplumbaga'));
+      }
+
+      if (allCorrect) {
+        updates[`stats.story.sari-top.perfectScore`] = true;
+      }
+
+      await updateDoc(childDocRef, updates);
+    }
+  };
+
   // Kaldığı yeri kaydet
   useEffect(() => {
     if (childDocRef && currentIndex > 0) {
-      updateDoc(childDocRef, {
+      const updateData: any = {
         [`storyProgress.sari-top`]: currentIndex
-      }).catch(console.error);
+      };
+
+      // Hikaye bittiyse (Son sayfa)
+      if (currentIndex === storyContent.length - 1 && !completionTracked.current) {
+        completionTracked.current = true;
+        updateData.completedStories = arrayUnion('sari-top');
+        
+        // Rozet Kontrolü
+        const completedStories = (childData as any)?.completedStories || [];
+        const earnedBadges = (childData as any)?.earnedBadges || [];
+        const newCount = completedStories.includes('sari-top') ? completedStories.length : completedStories.length + 1;
+
+        let newlyEarned: any = null;
+        for (const badge of STORY_BADGES) {
+          if (earnedBadges.includes(badge.id)) continue;
+          if (badge.id === 'ilk-sayfa' && newCount >= 1) newlyEarned = badge;
+          if (badge.id === 'okuma-merdiveni' && newCount >= 4) newlyEarned = badge;
+          if (badge.id === 'kutuphane-krali' && newCount >= 10) newlyEarned = badge;
+          
+          if (newlyEarned) {
+            updateData.earnedBadges = arrayUnion(badge.id);
+            setNewlyUnlockedBadge(newlyEarned);
+            break;
+          }
+        }
+      }
+
+      updateDoc(childDocRef, updateData).catch(console.error);
     }
-  }, [currentIndex, childDocRef]);
+  }, [currentIndex, childDocRef, childData]);
 
   // İlk girişte kaldığı yerden başlat (SADECE BİR KEZ)
   useEffect(() => {
@@ -150,6 +235,17 @@ export default function SariTopPage() {
 
   return (
     <div className="h-screen w-full overflow-hidden bg-gradient-to-b from-yellow-50 to-orange-100 font-sans relative">
+      <BadgeUnlockModal 
+        badge={newlyUnlockedBadge} 
+        onClose={() => setNewlyUnlockedBadge(null)} 
+      />
+      {isQuizOpen && (
+        <StoryQuiz 
+          questions={SARI_TOP_QUESTIONS} 
+          onComplete={handleQuizComplete} 
+          onClose={() => setIsQuizOpen(false)}
+        />
+      )}
       {/* Üst Bar */}
       <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-50">
         <div className="flex items-center">
@@ -269,6 +365,23 @@ export default function SariTopPage() {
           >
             <ChevronRight className="w-10 h-10" />
           </button>
+
+          {/* Test Çöz Butonu (Son Sayfada Çıkar) */}
+          {currentIndex === storyContent.length - 1 && (
+            <motion.div 
+              initial={{ y: 50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30"
+            >
+              <Button
+                onClick={() => setIsQuizOpen(true)}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-black px-10 py-8 rounded-[30px] text-2xl shadow-[0_15px_30px_rgba(147,51,234,0.4)] border-b-[8px] border-purple-900 transition-all active:scale-95 flex items-center gap-4 group"
+              >
+                <Brain className="w-8 h-8 group-hover:rotate-12 transition-transform" />
+                TESTİ ÇÖZ & ROZET KAZAN! 🏆
+              </Button>
+            </motion.div>
+          )}
         </div>
       </div>
 

@@ -38,13 +38,35 @@ export async function POST(req: Request) {
     try {
         // 1. Check Database connection
         if (!db) {
-            throw new Error('Database (db) initialization failed. Check FIREBASE_SERVICE_ACCOUNT variable.');
+            throw new Error('Database (db) initialization failed.');
         }
 
+        // --- ABONELİK İŞLEMLERİ (Subscription Mode) ---
+        if (session.mode === 'subscription') {
+            const userId = session.metadata?.userId;
+            const tierId = session.metadata?.tierId;
+
+            if (userId && tierId) {
+                await db.collection('users').doc(userId).update({
+                    subscriptionTier: tierId,
+                    stripeSubscriptionId: session.subscription,
+                    stripeCustomerId: session.customer,
+                    subscriptionUpdatedAt: FieldValue.serverTimestamp()
+                });
+                console.log(`[Webhook] Subscription activated: ${userId} -> ${tierId}`);
+                return NextResponse.json({ received: true });
+            }
+        }
+
+        // --- TEK SEFERLİK PAKET SATIN ALIMLARI (Normal Mode) ---
         // 2. Check Transaction Metadata
         const transactionId = session.metadata?.transactionId;
         if (!transactionId) {
-            throw new Error('CRITICAL: No transactionId found in session metadata. Metadata found: ' + JSON.stringify(session.metadata));
+            // Eğer subscription ise zaten yukarıda handle ettik, değilse hata fırlat
+            if (session.mode === 'payment') {
+                throw new Error('CRITICAL: No transactionId found in session metadata.');
+            }
+            return NextResponse.json({ received: true });
         }
 
         const txRef = db.collection('transactions').doc(transactionId);
@@ -197,6 +219,38 @@ export async function POST(req: Request) {
     } catch (fulfillErr: any) {
         console.error(`[Webhook] ERROR: ${fulfillErr.message}`);
         return NextResponse.json({ error: `Webhook Logic Error: ${fulfillErr.message}` }, { status: 500 });
+    }
+  } else if (event.type === 'invoice.paid') {
+    const invoice = event.data.object as Stripe.Invoice;
+    const subscriptionId = invoice.subscription as string;
+    const periodEnd = invoice.lines.data[0]?.period?.end;
+
+    if (subscriptionId && periodEnd) {
+      // Önce bu aboneliğe sahip kullanıcıyı bul
+      const usersRef = db.collection('users');
+      const snapshot = await usersRef.where('stripeSubscriptionId', '==', subscriptionId).limit(1).get();
+      
+      if (!snapshot.empty) {
+        const userDoc = snapshot.docs[0];
+        await userDoc.ref.update({
+          subscriptionPeriodEnd: new Date(periodEnd * 1000),
+          lastInvoiceStatus: 'paid',
+          updatedAt: FieldValue.serverTimestamp()
+        });
+        console.log(`[Webhook] Subscription renewed for user: ${userDoc.id}`);
+      }
+    }
+  } else if (event.type === 'customer.subscription.deleted') {
+    const subscription = event.data.object as Stripe.Subscription;
+    const userId = subscription.metadata?.userId;
+
+    if (userId) {
+      await db.collection('users').doc(userId).update({
+        subscriptionTier: 'free',
+        stripeSubscriptionId: null,
+        subscriptionCancelledAt: FieldValue.serverTimestamp()
+      });
+      console.log(`[Webhook] Subscription cancelled: ${userId}`);
     }
   }
 

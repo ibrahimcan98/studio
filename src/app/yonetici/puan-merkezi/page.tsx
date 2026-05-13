@@ -103,10 +103,15 @@ export default function PuanMerkeziPage() {
   // Not: Basitlik adına tüm velileri çekiyoruz, gerçek projede search ile çekilmeli
   const { data: parents, isLoading: parentsLoading } = useCollection(usersQuery);
 
-  const filteredParents = parents?.filter(p => 
-    p.email?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    p.displayName?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredParents = parents?.filter(p => {
+    const fullName = (p.displayName || `${p.firstName || ''} ${p.lastName || ''}`).toLowerCase();
+    const search = searchTerm.toLowerCase();
+    return (
+      p.email?.toLowerCase().includes(search) || 
+      fullName.includes(search) ||
+      p.id?.toLowerCase().includes(search)
+    );
+  }).sort((a, b) => (b.academyPoints || 0) - (a.academyPoints || 0));
 
   const handleApprove = async (request: any) => {
     if (!db) return;
@@ -120,24 +125,30 @@ export default function PuanMerkeziPage() {
         processedAt: serverTimestamp(),
       });
 
-      // Kullanıcı puanını artır ve durumu kaydet
-      batch.update(doc(db, 'users', request.userId), {
-        academyPoints: increment(request.points),
-        [`taskStatus.${request.taskId}`]: 'completed'
-      });
+      if (request.type === 'gift_lesson_claim') {
+        // Hediye ders talebi ise puan ekleme (zaten harcandı)
+        // Sadece bir log kaydı oluşturulabilir veya direkt onaylanabilir
+      } else {
+        // Normal görev onayı: Puan ekle
+        batch.update(doc(db, 'users', request.userId), {
+            academyPoints: increment(request.points || 0),
+            [`taskStatus.${request.taskId}`]: 'completed'
+        });
 
-      // Geçmişe ekle
-      const historyRef = doc(collection(db, 'users', request.userId, 'point-history'));
-      batch.set(historyRef, {
-        amount: request.points,
-        type: 'earn',
-        reason: `Onaylanan Görev: ${request.taskTitle}`,
-        createdAt: serverTimestamp()
-      });
+        // Geçmişe ekle
+        const historyRef = doc(collection(db, 'users', request.userId, 'point-history'));
+        batch.set(historyRef, {
+            amount: request.points,
+            type: 'earn',
+            reason: `Onaylanan Görev: ${request.taskTitle}`,
+            createdAt: serverTimestamp()
+        });
+      }
 
       await batch.commit();
-      toast({ title: 'Talep Onaylandı', description: `${request.points} puan eklendi.` });
+      toast({ title: 'Talep Onaylandı', description: request.type === 'gift_lesson_claim' ? 'Hediye ders talebi işlendi.' : `${request.points} puan eklendi.` });
     } catch (error) {
+      console.error(error);
       toast({ title: 'Hata', description: 'İşlem sırasında bir hata oluştu.', variant: 'destructive' });
     } finally {
       setProcessingId(null);
@@ -153,11 +164,19 @@ export default function PuanMerkeziPage() {
         status: 'rejected',
         processedAt: serverTimestamp()
       });
-      batch.update(doc(db, 'users', request.userId), {
-        [`taskStatus.${request.taskId}`]: deleteField()
-      });
+
+      if (request.type !== 'gift_lesson_claim') {
+          batch.update(doc(db, 'users', request.userId), {
+            [`taskStatus.${request.taskId}`]: deleteField()
+          });
+      } else {
+          // Eğer hediye ders talebi reddedilirse puan iade edilebilir
+          batch.update(doc(db, 'users', request.userId), {
+              academyPoints: increment(500)
+          });
+      }
       await batch.commit();
-      toast({ title: 'Talep Reddedildi' });
+      toast({ title: 'Talep Reddedildi', description: request.type === 'gift_lesson_claim' ? 'Puanlar iade edildi.' : '' });
     } catch (error) {
       toast({ title: 'Hata', description: 'İşlem sırasında bir hata oluştu.', variant: 'destructive' });
     } finally {
@@ -210,17 +229,24 @@ export default function PuanMerkeziPage() {
              requests?.filter(r => r.status === 'pending').length === 0 ? (
                <Card className="border-dashed py-20 text-center text-slate-400">Onay bekleyen talep bulunmuyor.</Card>
              ) : requests?.filter(r => r.status === 'pending').map((req) => (
-              <Card key={req.id} className="overflow-hidden border-2 hover:border-primary/20 transition-all">
+              <Card key={req.id} className={cn("overflow-hidden border-2 transition-all", req.type === 'gift_lesson_claim' ? "border-amber-200 bg-amber-50/20" : "hover:border-primary/20")}>
                 <div className="flex flex-col md:flex-row items-center p-6 gap-6">
-                  <div className="bg-yellow-100 p-4 rounded-2xl shrink-0"><Clock className="h-8 w-8 text-yellow-600" /></div>
+                  <div className={cn("p-4 rounded-2xl shrink-0", req.type === 'gift_lesson_claim' ? "bg-amber-100" : "bg-yellow-100")}>
+                      {req.type === 'gift_lesson_claim' ? <Gift className="h-8 w-8 text-amber-600" /> : <Clock className="h-8 w-8 text-yellow-600" />}
+                  </div>
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="font-bold">{req.taskTitle}</Badge>
-                        <span className="text-xs text-slate-400">{format(req.createdAt.toDate(), 'dd MMM HH:mm', { locale: tr })}</span>
+                        {req.type === 'gift_lesson_claim' ? (
+                            <Badge className="bg-amber-500 text-white font-black uppercase tracking-widest text-[10px]">🎁 Hediye Ders Talebi</Badge>
+                        ) : (
+                            <Badge variant="outline" className="font-bold">{req.taskTitle}</Badge>
+                        )}
+                        <span className="text-xs text-slate-400">{req.createdAt && format(req.createdAt.toDate(), 'dd MMM HH:mm', { locale: tr })}</span>
                     </div>
                     <h3 className="text-lg font-bold text-slate-800">
                         {req.userName || req.userEmail}
                     </h3>
+                    {req.childName && <p className="text-sm font-bold text-amber-700">Öğrenci: {req.childName}</p>}
                     <p className="text-sm font-mono text-slate-500 mb-1">ID: {req.userId}</p>
                     <p className="text-sm text-slate-600 italic">"{req.userNote || 'Not eklenmemiş.'}"</p>
                     {req.evidenceUrl && (
@@ -230,13 +256,17 @@ export default function PuanMerkeziPage() {
                     )}
                   </div>
                   <div className="text-center md:text-right space-y-3 shrink-0">
-                    <div className="text-2xl font-black text-primary">+{req.points} PUAN</div>
+                    {req.type === 'gift_lesson_claim' ? (
+                        <div className="text-xl font-black text-amber-600">500 PUAN HARCANDI</div>
+                    ) : (
+                        <div className="text-2xl font-black text-primary">+{req.points} PUAN</div>
+                    )}
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" className="text-red-500 border-red-200 hover:bg-red-50 font-bold" 
                         onClick={() => handleReject(req)} disabled={processingId === req.id}>
                         {processingId === req.id ? <Loader2 className="animate-spin h-4 w-4" /> : <XCircle className="mr-2 h-4 w-4" />} Reddet
                       </Button>
-                      <Button size="sm" className="bg-green-600 hover:bg-green-700 font-bold"
+                      <Button size="sm" className={cn("font-bold", req.type === 'gift_lesson_claim' ? "bg-amber-600 hover:bg-amber-700" : "bg-green-600 hover:bg-green-700")}
                         onClick={() => handleApprove(req)} disabled={processingId === req.id}>
                         {processingId === req.id ? <Loader2 className="animate-spin h-4 w-4" /> : <CheckCircle2 className="mr-2 h-4 w-4" />} Onayla
                       </Button>
@@ -293,29 +323,32 @@ export default function PuanMerkeziPage() {
                   </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                  {filteredParents?.slice(0, 10).map(parent => (
-                      <div key={parent.id} className="flex items-center justify-between p-4 border rounded-2xl hover:bg-slate-50 transition-colors">
-                          <div className="flex items-center gap-3">
-                              <Avatar className="h-10 w-10">
-                                  <AvatarFallback className="bg-primary/10 text-primary font-bold">{parent.displayName?.[0]}</AvatarFallback>
-                              </Avatar>
-                              <div>
-                                  <p className="font-bold text-slate-800">
-                                      {parent.displayName || 'İsimsiz Veli'} 
-                                      <span className="text-xs font-mono text-slate-400 ml-2">ID: {parent.id}</span>
-                                  </p>
-                                  <p className="text-xs text-slate-500">{parent.email}</p>
+                  {filteredParents?.map(parent => {
+                      const fullName = parent.displayName || (parent.firstName ? `${parent.firstName} ${parent.lastName || ''}`.trim() : 'İsimsiz Veli');
+                      return (
+                          <div key={parent.id} className="flex items-center justify-between p-4 border rounded-2xl hover:bg-slate-50 transition-colors">
+                              <div className="flex items-center gap-3">
+                                  <Avatar className="h-10 w-10">
+                                      <AvatarFallback className="bg-primary/10 text-primary font-bold">{fullName[0]}</AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                      <p className="font-bold text-slate-800">
+                                          {fullName} 
+                                          <span className="text-xs font-mono text-slate-400 ml-2">ID: {parent.id}</span>
+                                      </p>
+                                      <p className="text-xs text-slate-500">{parent.email}</p>
+                                  </div>
+                              </div>
+                              <div className="flex items-center gap-6">
+                                  <div className="text-right">
+                                      <p className="text-[10px] font-bold text-slate-400 uppercase">Mevcut Puan</p>
+                                      <p className="text-lg font-black text-primary">{parent.academyPoints || 0}</p>
+                                  </div>
+                                  <PointActionDialog user={{...parent, displayName: fullName}} onConfirm={handleManualPoints} />
                               </div>
                           </div>
-                          <div className="flex items-center gap-6">
-                              <div className="text-right">
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase">Mevcut Puan</p>
-                                  <p className="text-lg font-black text-primary">{parent.academyPoints || 0}</p>
-                              </div>
-                              <PointActionDialog user={parent} onConfirm={handleManualPoints} />
-                          </div>
-                      </div>
-                  ))}
+                      );
+                  })}
               </CardContent>
            </Card>
         </TabsContent>

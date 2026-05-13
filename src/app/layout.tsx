@@ -4,6 +4,9 @@ import { Toaster } from "@/components/ui/toaster"
 import { Providers } from '@/components/layout/providers';
 import { LayoutContent } from '@/components/layout/layout-content';
 import { Metadata } from 'next';
+import { FacebookPixel } from '@/components/analytics/FacebookPixel';
+import { Suspense } from 'react';
+
 
 const poppins = Poppins({ 
   subsets: ['latin'],
@@ -84,8 +87,12 @@ export default function RootLayout({
   return (
     <html lang="tr" suppressHydrationWarning>
       <body className={`${poppins.className} antialiased`} suppressHydrationWarning>
+        <Suspense fallback={null}>
+          <FacebookPixel />
+        </Suspense>
         <Providers>
           <LayoutContent>
+
             {children}
           </LayoutContent>
         </Providers>

@@ -7,9 +7,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { WordCard } from '@/components/child-mode/word-card';
 import { VoiceMatching } from '@/components/child-mode/voice-matching';
-import { TopicQuiz } from '@/components/child-mode/topic-quiz';
+import { JigsawPuzzle } from '@/components/child-mode/jigsaw-puzzle';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, arrayUnion, setDoc } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, setDoc, increment } from 'firebase/firestore';
 import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
 import { CheckCircle, Trophy, Star, Sparkles, Volume2 } from 'lucide-react';
@@ -102,8 +102,15 @@ export default function TopicPage() {
     const handleStageComplete = async (currentStage: GameStage) => {
         if (childDocRef && topicId) {
             const completedKey = `${topicId}-${currentStage}`;
+            
+            // Define XP for each stage
+            let xpToAdd = 20; // Default for learning
+            if (currentStage === 'matching') xpToAdd = 30;
+            if (currentStage === 'quiz') xpToAdd = 50;
+
             await updateDoc(childDocRef, {
-                completedTopics: arrayUnion(completedKey)
+                completedTopics: arrayUnion(completedKey),
+                xp: increment(xpToAdd)
             });
 
             // Başarı aşamasını göster
@@ -258,7 +265,7 @@ export default function TopicPage() {
 
     if (stage === 'map') {
         return (
-            <div className={cn("bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] min-h-screen w-full relative flex flex-col items-center overflow-y-auto transition-colors duration-1000", currentGradient)}>
+            <div className={cn("bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] h-screen w-full relative flex flex-col items-center overflow-hidden scrollbar-hide transition-colors duration-1000", currentGradient)}>
                 <style>{cloudStyles}</style>
                 {showConfetti && <Confetti width={width} height={height} className="z-50" />}
 
@@ -298,13 +305,18 @@ export default function TopicPage() {
                     {/* Level 1: Öğrenme (Sol Üst) */}
                     <div className="absolute left-[5%] md:left-[15%] top-[0%] flex flex-col items-center group cursor-pointer z-20" onClick={() => setStage('learning')}>
                         {/* Ok İpucu (Hint) */}
-                        {maxStageReached === 0 && (
-                            <div className="absolute -top-20 arrow-hint flex flex-col items-center">
-                                <div className="bg-yellow-400 text-yellow-900 font-black px-4 py-1 rounded-full text-sm mb-1 shadow-lg border-2 border-white uppercase tracking-tighter">BAŞLA</div>
-                                <ArrowRight className="w-10 h-10 text-yellow-400 rotate-90 drop-shadow-lg fill-current" />
-                            </div>
-                        )}
                         <div className="floating-island relative">
+                            {/* Numara/Tamamlandı Rozeti */}
+                            <div className={cn(
+                                "absolute -top-4 -right-4 w-12 h-12 rounded-full border-4 border-white shadow-xl flex items-center justify-center z-30 font-black text-white text-2xl italic transition-all duration-500",
+                                childData?.completedTopics?.includes(`${topicId}-learning`) ? "bg-green-500 scale-110" : "bg-emerald-500"
+                            )}>
+                                {childData?.completedTopics?.includes(`${topicId}-learning`) ? (
+                                    <CheckCircle className="w-8 h-8 text-white" />
+                                ) : (
+                                    "1"
+                                )}
+                            </div>
                             <div className="w-24 h-24 md:w-36 md:h-36 rounded-full bg-white border-[6px] md:border-[10px] border-emerald-300 shadow-[0_15px_35px_rgba(0,0,0,0.3)] flex flex-col items-center justify-center group-hover:scale-110 transition-transform group-active:scale-95 z-10 relative overflow-hidden">
                                 <div className="absolute inset-0 bg-gradient-to-tr from-emerald-50 to-transparent opacity-50" />
                                 <span className="text-6xl md:text-8xl drop-shadow-sm relative z-10 animate-pulse">📖</span>
@@ -316,11 +328,6 @@ export default function TopicPage() {
                         <div className="mt-2 md:mt-4 bg-white px-6 py-2 md:px-8 md:py-3 rounded-full shadow-xl border-4 border-emerald-100 group-hover:bg-emerald-50 transition-colors">
                             <span className="font-bold text-emerald-600 text-sm md:text-xl uppercase tracking-wider">Öğrenme</span>
                         </div>
-                        {childData?.completedTopics?.includes(`${topicId}-learning`) && (
-                            <div className="absolute top-0 right-0 bg-green-500 rounded-full p-1 md:p-2 border-4 border-white shadow-lg z-30 scale-110 animate-bounce">
-                                <CheckCircle className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                            </div>
-                        )}
                     </div>
 
                     {/* Ayak İzleri 1 -> 2 */}
@@ -339,13 +346,18 @@ export default function TopicPage() {
                         if (maxStageReached >= 1) setStage('matching');
                     }}>
                         {/* Ok İpucu (Hint) */}
-                        {maxStageReached === 1 && (
-                            <div className="absolute -top-20 arrow-hint flex flex-col items-center">
-                                <div className="bg-blue-400 text-blue-900 font-black px-4 py-1 rounded-full text-sm mb-1 shadow-lg border-2 border-white uppercase tracking-tighter">SIRADAKİ</div>
-                                <ArrowRight className="w-10 h-10 text-blue-400 rotate-90 drop-shadow-lg fill-current" />
-                            </div>
-                        )}
                         <div className={cn("floating-island relative", maxStageReached < 1 && "grayscale opacity-70")}>
+                            {/* Numara/Tamamlandı Rozeti */}
+                            <div className={cn(
+                                "absolute -top-4 -right-4 w-12 h-12 rounded-full border-4 border-white shadow-xl flex items-center justify-center z-30 font-black text-white text-2xl italic transition-all duration-500",
+                                childData?.completedTopics?.includes(`${topicId}-matching`) ? "bg-green-500 scale-110" : maxStageReached >= 1 ? "bg-blue-500" : "bg-gray-400"
+                            )}>
+                                {childData?.completedTopics?.includes(`${topicId}-matching`) ? (
+                                    <CheckCircle className="w-8 h-8 text-white" />
+                                ) : (
+                                    "2"
+                                )}
+                            </div>
                             <div className={cn(
                                 "w-24 h-24 md:w-36 md:h-36 rounded-full border-[6px] md:border-[10px] shadow-[0_15px_35px_rgba(0,0,0,0.3)] flex items-center justify-center transition-transform z-10 relative overflow-hidden",
                                 maxStageReached >= 1 ? "bg-white border-blue-300 group-hover:scale-110 group-active:scale-95" : "bg-gray-100 border-gray-300 cursor-not-allowed"
@@ -363,11 +375,6 @@ export default function TopicPage() {
                         )}>
                             <span className={cn("font-bold text-sm md:text-xl uppercase tracking-wider", maxStageReached >= 1 ? "text-blue-600" : "text-gray-500")}>Dinle & Bul</span>
                         </div>
-                        {childData?.completedTopics?.includes(`${topicId}-matching`) && (
-                            <div className="absolute top-0 right-0 bg-green-500 rounded-full p-1 md:p-2 border-4 border-white shadow-lg z-30 scale-110 animate-bounce">
-                                <CheckCircle className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                            </div>
-                        )}
                     </div>
 
                     {/* Ayak İzleri 2 -> 3 */}
@@ -386,13 +393,18 @@ export default function TopicPage() {
                         if (maxStageReached >= 2) setStage('quiz');
                     }}>
                         {/* Ok İpucu (Hint) */}
-                        {maxStageReached === 2 && (
-                            <div className="absolute -top-20 arrow-hint flex flex-col items-center">
-                                <div className="bg-purple-400 text-purple-900 font-black px-4 py-1 rounded-full text-sm mb-1 shadow-lg border-2 border-white uppercase tracking-tighter">FİNAL</div>
-                                <ArrowRight className="w-10 h-10 text-purple-400 rotate-90 drop-shadow-lg fill-current" />
-                            </div>
-                        )}
                         <div className={cn("floating-island relative", maxStageReached < 2 && "grayscale opacity-70")}>
+                            {/* Numara/Tamamlandı Rozeti */}
+                            <div className={cn(
+                                "absolute -top-4 -right-4 w-12 h-12 rounded-full border-4 border-white shadow-xl flex items-center justify-center z-30 font-black text-white text-2xl italic transition-all duration-500",
+                                childData?.completedTopics?.includes(`${topicId}-quiz`) ? "bg-green-500 scale-110" : maxStageReached >= 2 ? "bg-purple-500" : "bg-gray-400"
+                            )}>
+                                {childData?.completedTopics?.includes(`${topicId}-quiz`) ? (
+                                    <CheckCircle className="w-8 h-8 text-white" />
+                                ) : (
+                                    "3"
+                                )}
+                            </div>
                             <div className={cn(
                                 "w-24 h-24 md:w-36 md:h-36 rounded-full border-[6px] md:border-[10px] shadow-[0_15px_35px_rgba(0,0,0,0.3)] flex items-center justify-center transition-transform z-10 relative overflow-hidden",
                                 maxStageReached >= 2 ? "bg-white border-purple-300 group-hover:scale-110 group-active:scale-95" : "bg-gray-100 border-gray-300 cursor-not-allowed"
@@ -408,13 +420,8 @@ export default function TopicPage() {
                             "mt-2 md:mt-4 px-6 py-2 md:px-8 md:py-3 rounded-full shadow-xl border-4 transition-colors",
                             maxStageReached >= 2 ? "bg-white border-purple-100 group-hover:bg-purple-50" : "bg-gray-200 border-gray-300 opacity-80"
                         )}>
-                            <span className={cn("font-bold text-sm md:text-xl uppercase tracking-wider", maxStageReached >= 2 ? "text-purple-600" : "text-gray-500")}>Bulmaca</span>
+                            <span className={cn("font-bold text-sm md:text-xl uppercase tracking-wider", maxStageReached >= 2 ? "text-purple-600" : "text-gray-500")}>Yapboz</span>
                         </div>
-                        {childData?.completedTopics?.includes(`${topicId}-quiz`) && (
-                            <div className="absolute top-0 right-0 bg-green-500 rounded-full p-1 md:p-2 border-4 border-white shadow-lg z-30 scale-110 animate-bounce">
-                                <CheckCircle className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                            </div>
-                        )}
                     </div>
 
                     {/* Ayak İzleri 3 -> Hazine */}
@@ -574,7 +581,7 @@ export default function TopicPage() {
                             />
                         )}
                         {stage === 'quiz' && (
-                            <TopicQuiz
+                            <JigsawPuzzle
                                 wordList={topic.wordList}
                                 onComplete={() => handleStageComplete('quiz')}
                             />

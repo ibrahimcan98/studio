@@ -76,29 +76,28 @@ html {
 }
 
 @layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
   .custom-scrollbar {
-    /* Firefox için (sadece renk ve auto genişlik destekler) */
-    scrollbar-width: auto !important;
-    scrollbar-color: #1EA5A4 #f1f5f9 !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: #1EA5A4 transparent !important;
   }
   
-  /* Chrome/Edge/Safari için Devasa ve Parlayan Scrollbar */
   .custom-scrollbar::-webkit-scrollbar {
-    width: 36px !important;
-    height: 36px !important;
+    width: 6px !important;
+    height: 6px !important;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: #f1f5f9 !important;
-    border-radius: 20px;
-    border-left: 2px solid #e2e8f0 !important;
+    background: transparent !important;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #1EA5A4, #43B581) !important;
-    border-radius: 20px;
-    border: 4px solid #f1f5f9 !important; /* Etrafındaki beyaz boşluk. İçteki renkli kısım tam 28px olacak! */
-    box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.4) !important;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, #168a89, #35986a) !important;
+    background: #1EA5A4 !important;
+    border-radius: 10px;
   }
 }

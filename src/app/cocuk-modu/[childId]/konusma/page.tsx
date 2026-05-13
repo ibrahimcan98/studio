@@ -4,13 +4,24 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { Loader2, Mic, Square, Sparkles, RotateCcw } from 'lucide-react';
+import { Loader2, Mic, Square, Sparkles, RotateCcw, ArrowLeft } from 'lucide-react';
 import { ChildSidebar } from '@/components/child-mode/sidebar';
 import { cn } from '@/lib/utils';
 import { childConversationFlow } from '@/ai/flows/child-conversation-flow';
 import { useTTS } from '@/hooks/use-tts';
 import { PatiAvatar } from '@/components/child-mode/pati-avatar';
 import { motion, AnimatePresence } from 'framer-motion';
+import { BadgeUnlockModal } from '@/components/child-mode/badge-unlock-modal';
+import { updateDoc } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+
+const AI_BADGES = [
+  { id: 'soru-makinesi', name: 'Soru Makinesi', description: 'AI’ya 10 adet "Neden?" veya "Nasıl?" sorusu sorana verilir.', icon: '/rozetler/ai/soru-makinesi.png', requirement: 10 },
+  { id: 'nezaket-elcisi', name: 'Nezaket Elçisi', description: 'AI ile konuşurken "Lütfen", "Teşekkür ederim" gibi kelimeleri kullananlara.', icon: '/rozetler/ai/nezaket-elcisi.png', requirement: 5 },
+  { id: 'geveze', name: 'Geveze', description: 'AI ile toplamda 1 saatten fazla vakit geçirene verilir.', icon: '/rozetler/ai/geveze.png', requirement: 50 },
+  { id: 'kelime-avcisi', name: 'Kelime Avcısı', description: 'AI ile konuşurken 5 yeni ve zor kelime öğrenip kullananlara.', icon: '/rozetler/ai/kelime-avcisi.png', requirement: 5 },
+  { id: 'en-iyi-dost', name: 'En İyi Dost', description: 'AI ile her gün üst üste 7 gün boyunca sohbet edene verilir.', icon: '/rozetler/ai/en-iyi-dost.png', requirement: 7 },
+];
 
 export default function KonusmaPage() {
   const router = useRouter();
@@ -18,6 +29,7 @@ export default function KonusmaPage() {
   const childId = params.childId as string;
   const { user: authUser } = useUser();
   const db = useFirestore();
+  const { toast } = useToast();
   const [isMounted, setIsMounted] = useState(false);
   const recognitionRef = useRef<any>(null);
 
@@ -25,12 +37,13 @@ export default function KonusmaPage() {
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [aiResponse, setAiResponse] = useState("Pati seni bekliyor! Haydi konuşmaya başlayalım!");
-  const [currentEmotion, setCurrentEmotion] = useState<'happy' | 'surprised' | 'thinking' | 'excited' | 'cool' | 'laughing'>('happy');
+  const [currentEmotion, setCurrentEmotion] = useState<string>('oturuyor');
   const [history, setHistory] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
   const { speak, stop, isPlaying: isAudioPlaying } = useTTS();
   const [hasInteracted, setHasInteracted] = useState(false);
   const greetingTriggered = useRef(false);
   const transcriptRef = useRef("");
+  const [newlyUnlockedBadge, setNewlyUnlockedBadge] = useState<any>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -45,13 +58,80 @@ export default function KonusmaPage() {
 
   const { data: childData, isLoading: childLoading } = useDoc(childDocRef);
 
+  // Ebeveyn verilerini al (abonelik kontrolü için)
+  const userDocRef = useMemoFirebase(() => {
+    if (!db || !authUser?.uid) return null;
+    return doc(db, 'users', authUser.uid);
+  }, [db, authUser?.uid]);
+  const { data: userData } = useDoc(userDocRef);
+  const subscriptionTier = (userData?.subscriptionTier as string) || 'free';
+
+  // --- KULLANIM SÜRESİ TAKİBİ ---
+  const [usageSeconds, setUsageSeconds] = useState(0);
+  const [isLimitReached, setIsLimitReached] = useState(false);
+
+  useEffect(() => {
+    if (!childData || !isMounted) return;
+
+    const stats = (childData as any).stats?.ai || {};
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Gün değişmişse kullanımı sıfırla
+    if (stats.lastUsageDate !== today) {
+      setUsageSeconds(0);
+      if (childDocRef) {
+        updateDoc(childDocRef, { 
+          'stats.ai.dailyUsageSeconds': 0,
+          'stats.ai.lastUsageDate': today 
+        });
+      }
+    } else {
+      setUsageSeconds(stats.dailyUsageSeconds || 0);
+    }
+  }, [childData, isMounted, childDocRef]);
+
+  // Saniye sayacı (Konuşma veya Dinleme sırasında çalışır)
+  useEffect(() => {
+    let interval: any;
+    if ((isListening || isAiSpeaking || isAudioPlaying) && !isLimitReached) {
+      interval = setInterval(() => {
+        setUsageSeconds(prev => {
+          const next = prev + 1;
+          // Ücretsiz sürüm için 2 dakika (120 saniye) sınırı
+          if (subscriptionTier === 'free' && next >= 120) {
+            setIsLimitReached(true);
+            stop(); // Pati'yi sustur
+            if (recognitionRef.current) recognitionRef.current.stop();
+          }
+          return next;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isListening, isAiSpeaking, isAudioPlaying, isLimitReached, subscriptionTier]);
+
+  // Veritabanını belirli aralıklarla veya çıkışta güncelle (Performans için debounced veya efektle)
+  useEffect(() => {
+    if (usageSeconds > 0 && usageSeconds % 5 === 0 && childDocRef) {
+      updateDoc(childDocRef, { 'stats.ai.dailyUsageSeconds': usageSeconds });
+    }
+  }, [usageSeconds, childDocRef]);
+
   const handleRepeat = () => {
+    if (isLimitReached) return;
     if (aiResponse && !isListening) {
       speak(aiResponse);
     }
   };
 
   const startConversation = async () => {
+    if (subscriptionTier === 'free' && usageSeconds >= 120) {
+      setAiResponse("Günlük konuşma limitine ulaştın! Yarın tekrar bekliyorum ya da ebeveyninden paketi yükseltmesini isteyebilirsin! ✨");
+      setIsLimitReached(true);
+      setHasInteracted(true);
+      return;
+    }
+
     setHasInteracted(true);
     if (childData && !greetingTriggered.current) {
       greetingTriggered.current = true;
@@ -73,8 +153,17 @@ export default function KonusmaPage() {
   };
 
   const handleMicClick = async () => {
+    if (subscriptionTier === 'free' && usageSeconds >= 120) {
+      toast({
+        title: "Günlük Limit Doldu",
+        description: "Ücretsiz sürümde günlük 2 dakika konuşabilirsin. Yarın görüşürüz! 👋",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (typeof window === 'undefined') return;
-    
+
     // Pati konuşuyorsa sustur
     stop();
 
@@ -113,9 +202,64 @@ export default function KonusmaPage() {
 
       recognition.onend = async () => {
         setIsListening(false);
-        const finalTranscript = transcriptRef.current.trim();
-        
+        const finalTranscript = transcriptRef.current.trim().toLowerCase();
+
         if (finalTranscript.length > 0) {
+          // --- ANALİZ VE İSTATİSTİK TAKİBİ ---
+          try {
+            const stats = (childData as any).stats || {};
+            const earnedBadges = (childData as any).earnedBadges || [];
+            const aiStats = stats.ai || {
+              totalQuestions: 0,
+              whyHowQuestions: 0,
+              politeWordsCount: 0,
+              totalChats: 0,
+              uniqueWords: []
+            };
+
+            // 1. Nezaket Kontrolü
+            const politeWords = ['lütfen', 'teşekkür', 'sagol', 'sağol', 'rica ederim'];
+            const hasPolite = politeWords.some(w => finalTranscript.includes(w));
+            if (hasPolite) aiStats.politeWordsCount = (aiStats.politeWordsCount || 0) + 1;
+
+            // 2. Soru Kontrolü (Neden/Nasıl)
+            const questionWords = ['neden', 'nasıl', 'niçin', 'niye', 'ne zaman'];
+            const isWhyHow = questionWords.some(w => finalTranscript.includes(w));
+            if (isWhyHow) aiStats.whyHowQuestions = (aiStats.whyHowQuestions || 0) + 1;
+
+            // 3. Genel Sayaç
+            aiStats.totalChats = (aiStats.totalChats || 0) + 1;
+
+            // --- ROZET KONTROLÜ ---
+            let newlyEarned: any = null;
+            for (const badge of AI_BADGES) {
+              if (earnedBadges.includes(badge.id)) continue;
+
+              let isUnlocked = false;
+              if (badge.id === 'soru-makinesi') isUnlocked = aiStats.whyHowQuestions >= badge.requirement;
+              if (badge.id === 'nezaket-elcisi') isUnlocked = aiStats.politeWordsCount >= badge.requirement;
+              if (badge.id === 'geveze') isUnlocked = aiStats.totalChats >= badge.requirement;
+
+              if (isUnlocked) {
+                newlyEarned = badge;
+                earnedBadges.push(badge.id);
+                break; // Bir seferde tek rozet gösterelim
+              }
+            }
+
+            // Veritabanını Güncelle
+            if (db && childDocRef) {
+              const updateData: any = { 'stats.ai': aiStats };
+              if (newlyEarned) {
+                updateData.earnedBadges = earnedBadges;
+                setNewlyUnlockedBadge(newlyEarned);
+              }
+              await updateDoc(childDocRef, updateData);
+            }
+          } catch (err) {
+            console.error("Stats update error:", err);
+          }
+
           setIsAiSpeaking(true);
           try {
             const res = await childConversationFlow({
@@ -123,12 +267,12 @@ export default function KonusmaPage() {
               question: finalTranscript,
               childName: childData?.name
             });
-            
+
             setAiResponse(res.answer);
             setCurrentEmotion(res.emotion as any);
-            setHistory(prev => [...prev, 
-              { role: 'user', content: finalTranscript }, 
-              { role: 'assistant', content: res.answer }
+            setHistory(prev => [...prev,
+            { role: 'user', content: finalTranscript },
+            { role: 'assistant', content: res.answer }
             ]);
             speak(res.answer);
           } catch (e) {
@@ -156,11 +300,15 @@ export default function KonusmaPage() {
 
   return (
     <div className="h-screen w-full overflow-hidden font-sans bg-[#E0F7FA] relative">
+      <BadgeUnlockModal
+        badge={newlyUnlockedBadge}
+        onClose={() => setNewlyUnlockedBadge(null)}
+      />
       <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#4DD0E1 2px, transparent 2px)', backgroundSize: '40px 40px' }} />
 
       {!hasInteracted && (
         <div className="absolute inset-0 z-[500] bg-black/40 backdrop-blur-xl flex items-center justify-center p-6">
-          <motion.div 
+          <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="bg-white rounded-[50px] p-10 shadow-2xl text-center max-w-sm border-b-[12px] border-slate-200"
@@ -171,9 +319,16 @@ export default function KonusmaPage() {
             <h2 className="text-3xl font-black text-slate-800 mb-2 uppercase italic">Miyav Hazır!</h2>
             <button
               onClick={startConversation}
-              className="w-full bg-[#FF7043] hover:bg-[#F4511E] text-white font-black py-5 rounded-[25px] text-xl shadow-xl transition-all active:scale-95 border-b-[6px] border-[#BF360C] flex items-center justify-center gap-3"
+              className="w-full bg-[#4CAF50] hover:bg-[#43A047] text-white font-black py-5 rounded-[25px] text-xl shadow-xl transition-all active:scale-95 border-b-[6px] border-[#2E7D32] flex items-center justify-center gap-3"
             >
               HAYDİ BAŞLA! <Sparkles className="w-6 h-6" />
+            </button>
+
+            <button
+              onClick={() => router.push(`/cocuk-modu/${childId}`)}
+              className="w-full mt-4 bg-[#FF5252] hover:bg-[#FF1744] text-white font-bold py-3 rounded-[20px] text-lg transition-all active:scale-95 flex items-center justify-center gap-2 border-b-4 border-[#C62828]"
+            >
+              <ArrowLeft className="w-5 h-5" /> Vazgeç
             </button>
           </motion.div>
         </div>
@@ -182,52 +337,59 @@ export default function KonusmaPage() {
       <main className="h-full w-full flex flex-col md:flex-row relative z-10">
         <ChildSidebar childId={childId} childData={childData} />
 
-        <div className="flex-1 relative flex flex-col items-center justify-center px-4 py-6">
-          
-          <div className="w-full max-w-3xl flex flex-col items-center justify-center">
-            
-            {/* Speech Bubble - Spacing Reduced (mb-6) */}
+        <div className="flex-1 relative flex flex-col items-center justify-center px-4 py-4 md:py-8 overflow-y-auto custom-scrollbar">
+          {/* Back Button for easier navigation */}
+          <button
+            onClick={() => router.push(`/cocuk-modu/${childId}`)}
+            className="absolute top-4 left-4 md:top-6 md:left-6 z-[250] bg-white/80 hover:bg-white text-slate-600 p-2 md:p-3 rounded-2xl shadow-lg border-b-4 border-slate-200 transition-all active:scale-95 active:border-b-0 active:translate-y-1 flex items-center gap-2 font-bold"
+          >
+            <ArrowLeft className="w-5 h-5" /> <span className="hidden md:inline">Haritaya Dön</span>
+          </button>
+
+          <div className="w-full max-w-4xl flex flex-col items-center gap-2 md:gap-4">
+
+            {/* Speech Bubble - More Compact */}
             <AnimatePresence mode="wait">
               {aiResponse && (
                 <motion.div
                   key={aiResponse}
-                  initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                  initial={{ opacity: 0, scale: 0.8, y: 10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.8 }}
-                  className="relative z-20 mb-8"
+                  className="relative z-20 w-full flex justify-center"
                 >
                   <div className={cn(
-                    "relative max-w-md bg-white px-8 py-6 md:px-10 md:py-8 rounded-[35px] shadow-[0_15px_40px_rgba(0,0,0,0.08)] border-4 transition-all duration-500",
-                    (isAiSpeaking || isAudioPlaying) ? "border-[#4DB6AC] scale-105" : "border-white"
+                    "relative w-[95%] md:max-w-lg bg-white px-6 py-4 md:px-8 md:py-6 rounded-[30px] md:rounded-[40px] shadow-[0_10px_30px_rgba(0,0,0,0.06)] border-4 transition-all duration-500",
+                    (isAiSpeaking || isAudioPlaying) ? "border-[#4DB6AC] scale-102" : "border-white"
                   )}>
-                    <p className="text-xl md:text-2xl font-black text-slate-700 text-center leading-snug italic">
+                    <p className="text-base md:text-xl font-black text-slate-700 text-center leading-tight italic">
                       {aiResponse}
                     </p>
-                    
-                    <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[20px] border-l-transparent border-r-[20px] border-r-transparent border-t-[25px] border-t-white" />
+
+                    <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[20px] border-t-white" />
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Avatar - Spacing Tightened */}
+            {/* Avatar - Reduced Size on Desktop */}
             <div className={cn(
-              "relative w-48 h-48 md:w-72 md:h-72 transition-all duration-700",
+              "relative w-32 h-32 md:w-56 md:h-56 transition-all duration-700",
               isListening ? "scale-90" : "scale-100"
             )}>
-                <PatiAvatar 
-                  emotion={currentEmotion as any} 
-                  isSpeaking={isAiSpeaking || isAudioPlaying} 
-                />
+              <PatiAvatar
+                emotion={currentEmotion as any}
+                isSpeaking={isAiSpeaking || isAudioPlaying}
+              />
             </div>
           </div>
 
-          {/* Controls - Spacing Reduced (mt-6) */}
-          <div className="w-full max-w-xl flex flex-col items-center gap-4 mt-6 relative z-[200]">
-            
-            {/* Transcript - More Compact */}
+          {/* Controls - More Compact */}
+          <div className="w-full max-w-xl flex flex-col items-center gap-2 md:gap-4 mt-2 md:mt-4 relative z-[200]">
+
+            {/* Transcript - Integrated better */}
             <div className={cn(
-              "min-h-[4rem] w-full px-8 py-3 rounded-[25px] bg-white/70 backdrop-blur-sm border-2 border-white/50 text-xl font-bold text-[#00796B] shadow-sm transition-all flex items-center justify-center text-center",
+              "min-h-[3rem] w-full max-w-[85%] px-6 py-1.5 rounded-[20px] bg-white/60 backdrop-blur-sm border-2 border-white/40 text-base md:text-lg font-bold text-[#00796B] shadow-sm transition-all flex items-center justify-center text-center",
               transcript ? "opacity-100" : "opacity-0 invisible"
             )}>
               {transcript}
@@ -235,15 +397,15 @@ export default function KonusmaPage() {
 
             {/* Buttons Row */}
             <div className="flex items-end gap-8">
-              
+
               {/* Repeat Button */}
               <div className="flex flex-col items-center gap-2 mb-2">
                 <button
                   onClick={handleRepeat}
-                  disabled={isListening || !hasInteracted}
+                  disabled={isListening || !hasInteracted || isLimitReached}
                   className={cn(
                     "w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg border-b-[6px] cursor-pointer active:scale-95 active:border-b-0 active:translate-y-1",
-                    (isListening || !hasInteracted) ? "bg-slate-200 border-slate-300 text-slate-400 grayscale" : "bg-[#FFB74D] border-[#F57C00] text-white"
+                    (isListening || !hasInteracted || isLimitReached) ? "bg-slate-200 border-slate-300 text-slate-400 grayscale" : "bg-[#FFB74D] border-[#F57C00] text-white"
                   )}
                 >
                   <RotateCcw className="w-8 h-8" />
@@ -255,9 +417,33 @@ export default function KonusmaPage() {
 
               {/* Mic Button - More Compact Size */}
               <div className="flex flex-col items-center gap-2">
+                <div className={cn(
+                  "mb-4 px-4 py-2 rounded-2xl border-2 flex items-center gap-2 transition-all duration-500",
+                  (subscriptionTier === 'free' && usageSeconds > 100) ? "bg-red-50 border-red-200 text-red-600 animate-pulse" : "bg-sky-50 border-sky-100 text-sky-600"
+                )}>
+                  <div className="w-2 h-2 rounded-full bg-current" />
+                  <span className="font-black text-xs uppercase tracking-wider italic">
+                    {(() => {
+                      // Toplam saniyeyi pakete göre belirle
+                      let totalSeconds = 120; // Default free
+                      if (subscriptionTier === 'adventurer') totalSeconds = 5 * 3600;
+                      if (subscriptionTier === 'hero') totalSeconds = 20 * 3600;
+                      
+                      const remaining = Math.max(0, totalSeconds - usageSeconds);
+                      const hrs = Math.floor(remaining / 3600);
+                      const mins = Math.floor((remaining % 3600) / 60);
+                      const secs = remaining % 60;
+                      
+                      if (hrs > 0) {
+                        return `Kalan: ${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                      }
+                      return `Kalan: ${mins}:${secs.toString().padStart(2, '0')}`;
+                    })()}
+                  </span>
+                </div>
                 <div className="relative">
                   {isListening && (
-                    <motion.div 
+                    <motion.div
                       animate={{ scale: [1, 1.4, 1], opacity: [0.3, 0, 0.3] }}
                       transition={{ repeat: Infinity, duration: 1.2 }}
                       className="absolute inset-0 rounded-full bg-red-400"

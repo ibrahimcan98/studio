@@ -123,6 +123,17 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
         }
     };
     
+    const handleGameFinish = async () => {
+        if (childDocRef && topicId) {
+            const completedKey = `${topicId}-puzzle`;
+            await updateDoc(childDocRef, { 
+                completedTopics: arrayUnion(completedKey),
+                xp: increment(30)
+            });
+        }
+        setGameFinished(true);
+    };
+
     if (gameFinished) {
         return (
             <div className="bg-green-100 h-screen flex flex-col items-center justify-center p-8 text-center">
@@ -152,7 +163,7 @@ export default function PuzzleClient({ words }: PuzzleClientProps) {
                             {placedPieces[i] !== null && <div className="w-full h-full" style={{ backgroundImage: `url(${currentWord.image})`, backgroundSize: '200% 200%', backgroundPosition: `${(i % 2) * 100}% ${Math.floor(i / 2) * 100}%` }} />}
                         </div>
                     ))}
-                    {isSolved && <div className="absolute inset-0 bg-green-500/80 flex items-center justify-center z-50"><Button onClick={() => currentWordIndex < words.length - 1 ? setCurrentWordIndex(c => c + 1) : setGameFinished(true)}>İleri <ArrowRight className="ml-2"/></Button></div>}
+                    {isSolved && <div className="absolute inset-0 bg-green-500/80 flex items-center justify-center z-50"><Button onClick={() => currentWordIndex < words.length - 1 ? setCurrentWordIndex(c => c + 1) : handleGameFinish()}>İleri <ArrowRight className="ml-2"/></Button></div>}
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
