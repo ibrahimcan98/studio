@@ -24,6 +24,8 @@ export const trackPixelEvent = async (
   if (typeof window === 'undefined') return;
 
   const eventId = generateEventId();
+  const searchParams = new URLSearchParams(window.location.search);
+  const testEventCode = searchParams.get('test_event_code') || undefined;
 
   // 1. Send to Browser Pixel
   if ((window as any).fbq) {
@@ -41,6 +43,7 @@ export const trackPixelEvent = async (
         userData,
         customData,
         eventId,
+        testEventCode,
       }),
     });
   } catch (err) {
@@ -56,10 +59,10 @@ export const FacebookPixel = () => {
     if (!FB_PIXEL_ID) return;
 
     // Track pageview on route change
-    // We don't use trackPixelEvent here for PageView by default to avoid complexity with automatic tracking
-    // but we add event_id for the initial PageView and subsequent ones if needed.
     if (typeof window !== 'undefined' && (window as any).fbq) {
       const eventId = generateEventId();
+      const testEventCode = searchParams.get('test_event_code') || undefined;
+
       (window as any).fbq('track', 'PageView', {}, { event_id: eventId });
       
       // Also send CAPI PageView for full deduplication
@@ -70,10 +73,12 @@ export const FacebookPixel = () => {
           eventName: 'PageView',
           eventSourceUrl: window.location.href,
           eventId,
+          testEventCode,
         }),
       }).catch(() => {});
     }
   }, [pathname, searchParams]);
+
 
   if (!FB_PIXEL_ID) return null;
 

@@ -12,12 +12,14 @@ export async function sendMetaEvent({
   userData = {},
   customData = {},
   eventId,
+  testEventCode,
 }: {
   eventName: string;
   eventSourceUrl: string;
   userData?: Record<string, any>;
   customData?: Record<string, any>;
   eventId?: string;
+  testEventCode?: string;
 }) {
   if (!PIXEL_ID || !ACCESS_TOKEN) {
     console.warn('Meta CAPI: Missing PIXEL_ID or ACCESS_TOKEN');
@@ -33,7 +35,7 @@ export async function sendMetaEvent({
   if (userData.fbc) hashedData.fbc = userData.fbc;
   if (userData.fbp) hashedData.fbp = userData.fbp;
 
-  const payload = {
+  const payload: any = {
     data: [
       {
         event_name: eventName,
@@ -46,6 +48,11 @@ export async function sendMetaEvent({
       },
     ],
   };
+
+  if (testEventCode) {
+    payload.test_event_code = testEventCode;
+  }
+
 
   try {
     const response = await fetch(

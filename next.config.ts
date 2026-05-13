@@ -39,9 +39,9 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: `
               default-src 'self';
-              script-src 'self' 'unsafe-inline' 'unsafe-eval' ajax.googleapis.com modelviewer.dev *.firebaseapp.com *.googleapis.com apis.google.com *.sentry.io https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/;
-              connect-src 'self' modelviewer.dev *.googleapis.com *.firebaseapp.com *.sentry.io *.stripe.io *.stripe.com wss://*.firebaseio.com;
-              img-src 'self' blob: data: modelviewer.dev firebasestorage.googleapis.com *.unsplash.com picsum.photos i.ibb.co placehold.co *.sentry.io;
+              script-src 'self' 'unsafe-inline' 'unsafe-eval' ajax.googleapis.com modelviewer.dev *.firebaseapp.com *.googleapis.com apis.google.com *.sentry.io https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ connect.facebook.net;
+              connect-src 'self' modelviewer.dev *.googleapis.com *.firebaseapp.com *.sentry.io *.stripe.io *.stripe.com wss://*.firebaseio.com *.facebook.com;
+              img-src 'self' blob: data: modelviewer.dev firebasestorage.googleapis.com *.unsplash.com picsum.photos i.ibb.co placehold.co *.sentry.io *.facebook.com;
               frame-src 'self' *.stripe.com https://www.google.com/recaptcha/ *.firebaseapp.com;
               style-src 'self' 'unsafe-inline' fonts.googleapis.com;
               font-src 'self' fonts.gstatic.com data:;
@@ -52,6 +52,7 @@ const nextConfig: NextConfig = {
               frame-ancestors 'none';
             `.replace(/\s{2,}/g, ' ').trim()
           }
+
         ],
       },
     ];

@@ -4,7 +4,7 @@ import { sendMetaEvent } from '@/lib/meta-pixel';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { eventName, eventSourceUrl, userData, customData, eventId } = body;
+    const { eventName, eventSourceUrl, userData, customData, eventId, testEventCode } = body;
 
     if (!eventName) {
       return NextResponse.json({ error: 'Event name is required' }, { status: 400 });
@@ -24,7 +24,9 @@ export async function POST(req: NextRequest) {
       },
       customData,
       eventId,
+      testEventCode,
     });
+
 
     return NextResponse.json({ success: true, result });
   } catch (error) {
