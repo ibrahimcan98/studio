@@ -243,8 +243,24 @@ export function AIAssistant() {
         const isActualUser = user && !user.isAnonymous;
         const ticketId = Math.random().toString(36).substring(7).toUpperCase();
         const convRef = doc(collection(db, 'conversations'));
+        const message = `Merhaba, ben ${formData.name}. Telefon: ${formData.phone}. Konu: ${formData.topic}. Destek No: ${ticketId}`;
 
-        await setDoc(convRef, {
+        // 1. Meta Tracking (Background)
+        trackPixelEvent('Contact', { 
+            type: 'whatsapp',
+            topic: formData.topic
+        }, {
+            em: formData.email,
+            ph: formData.phone,
+            fn: formData.name
+        });
+
+        // 2. Open WhatsApp IMMEDIATELY (To prevent popup blocker)
+        window.open(`https://wa.me/905058029734?text=${encodeURIComponent(message)}`, '_blank');
+        setIsOpen(false);
+
+        // 3. Save to Firestore (Background - no await needed for the user)
+        setDoc(convRef, {
             status: 'open',
             channel: 'whatsapp',
             topic: formData.topic,
@@ -259,24 +275,9 @@ export function AIAssistant() {
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
             ticketId
-        });
-
-        const message = `Merhaba, ben ${formData.name}. Telefon: ${formData.phone}. Konu: ${formData.topic}. Destek No: ${ticketId}`;
-        
-        // Meta Tracking
-        trackPixelEvent('Contact', { 
-            type: 'whatsapp',
-            topic: formData.topic
-        }, {
-            em: formData.email,
-            ph: formData.phone,
-            fn: formData.name
-        });
-
-        window.open(`https://wa.me/905058029734?text=${encodeURIComponent(message)}`, '_blank');
-        setIsOpen(false);
-
+        }).catch(err => console.error("WhatsApp Firestore Error:", err));
     };
+
 
     return (
         <>
