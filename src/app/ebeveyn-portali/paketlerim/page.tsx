@@ -3,7 +3,7 @@
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, useMemo, Suspense } from 'react';
-import { Loader2, Package, ArrowLeft, User, Plus, ShoppingCart, History, Calendar, PlayCircle, CreditCard, ChevronRight, BookOpen } from 'lucide-react';
+import { Loader2, Package, ArrowLeft, User, Plus, ShoppingCart, History, Calendar, PlayCircle, CreditCard, ChevronRight, BookOpen, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { collection, doc, writeBatch, getDoc, updateDoc, increment, arrayRemove, arrayUnion, query, where } from 'firebase/firestore';
@@ -47,6 +47,7 @@ function PaketlerimPageContent() {
     const [amountToAssign, setAmountToAssign] = useState<number>(0);
     const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
 
+
     const userDocRef = useMemoFirebase(() => {
         if (!db || !user?.uid) return null;
         return doc(db, 'users', user.uid);
@@ -81,6 +82,8 @@ function PaketlerimPageContent() {
             router.push('/login');
         }
     }, [user, userLoading, router]);
+
+
 
     useEffect(() => {
         const sessionId = searchParams.get('session_id');
@@ -399,7 +402,7 @@ function PaketlerimPageContent() {
                             </CardHeader>
                             <CardContent className="p-0">
                                 {transactions.length > 0 ? (
-                                    <div className="overflow-x-auto">
+                                    <div className="overflow-x-auto max-h-[300px] overflow-y-auto">
                                         <table className="w-full">
                                             <thead>
                                                 <tr className="border-b border-slate-100 bg-slate-50">
@@ -517,8 +520,62 @@ function PaketlerimPageContent() {
                                 )}
                             </CardContent>
                         </Card>
+
+                        {/* ÖZEL DAVET HEDİYELERİ */}
+                        {userData?.referralGifts && userData.referralGifts.filter((g: any) => g.type !== 'points').length > 0 && (
+                            <Card className="border border-slate-200 shadow-sm bg-white rounded-[24px] overflow-hidden">
+                                <CardHeader className="bg-slate-50/50 border-b pb-4 px-6 pt-6">
+                                    <CardTitle className='flex items-center gap-2 text-slate-800 text-lg'><Gift className="w-5 h-5 text-emerald-500"/> Özel Davet Hediyeleri</CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-6">
+                                    <div className='flex flex-col gap-3 max-h-[240px] overflow-y-auto pr-2'>
+                                        {userData.referralGifts.filter((g: any) => g.type !== 'points').map((gift: any, index: number) => (
+                                            <div key={index} className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-slate-700 text-sm">{gift.from} katılımıyla</span>
+                                                    <span className="text-xs text-slate-500">
+                                                        {gift.courseName?.includes('[Önceki:') 
+                                                            ? gift.courseName.split('[Önceki:')[1].replace(']', '').trim() 
+                                                            : gift.courseName} kursuna +1 ders eklendi
+                                                    </span>
+                                                </div>
+                                                <Badge className="bg-emerald-50 text-emerald-700 border-none">Hediye</Badge>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* PUAN HEDİYELERİ */}
+                        {userData?.referralGifts && userData.referralGifts.filter((g: any) => g.type === 'points').length > 0 && (
+                            <Card className="border border-slate-200 shadow-sm bg-white rounded-[24px] overflow-hidden mt-4">
+                                <CardHeader className="bg-slate-50/50 border-b pb-4 px-6 pt-6">
+                                    <CardTitle className='flex items-center gap-2 text-slate-800 text-lg'><Gift className="w-5 h-5 text-amber-500"/> Puan Hediyeleri</CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-6">
+                                    <div className='flex flex-col gap-3 max-h-[240px] overflow-y-auto pr-2'>
+                                        {userData.referralGifts.filter((g: any) => g.type === 'points').map((gift: any, index: number) => (
+                                            <div key={index} className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-slate-700 text-sm">500 Puan Kullanımı ile</span>
+                                                    <span className="text-xs text-slate-500">
+                                                        {gift.courseName?.includes('[Önceki:') 
+                                                            ? gift.courseName.split('[Önceki:')[1].replace(']', '').trim() 
+                                                            : gift.courseName} kursuna +1 ders eklendi
+                                                    </span>
+                                                </div>
+                                                <Badge className="bg-amber-50 text-amber-700 border-none">Hediye</Badge>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
                     </div>
                 </div>
+
+
 
                 <AlertDialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
                     <AlertDialogContent className="rounded-[24px] border-none shadow-2xl">

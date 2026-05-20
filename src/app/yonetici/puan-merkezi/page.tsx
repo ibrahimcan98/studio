@@ -55,22 +55,22 @@ export default function PuanMerkeziPage() {
 
   const handleResetTasks = async () => {
     if (!db || resetting) return;
-    if (!confirm('Sadece "Evde Türkçe Keyfi" görevleri sıfırlanacak. Bu işlemi onaylıyor musunuz?')) return;
+    if (!confirm('Sadece tekrarlanabilir (Kültür ve Eğlence) görevler sıfırlanacak. Bu işlemi onaylıyor musunuz?')) return;
     
     setResetting(true);
     try {
       const q = query(collection(db, 'users'), where('role', '==', 'parent'));
       const snapshot = await getDocs(q);
       
-      const MISSIONS_HOME_IDS = [
-        'book-reading', 'game-time', 'elders-call', 'kitchen-fun', 'presentation',
-        'lesson-note', 'talking-turkish', 'creative-workshop', 'daily-song', 'culture-joy'
+      const REPEATABLE_MISSION_IDS = [
+        'elders-call', 'traditional-game', 'celebration-joy',
+        'tekerleme-challenge', 'nature-explorer', 'mini-artist', 'book-reading'
       ];
 
       const batch = writeBatch(db);
       snapshot.forEach(userDoc => {
         const updateObj: any = {};
-        MISSIONS_HOME_IDS.forEach(id => {
+        REPEATABLE_MISSION_IDS.forEach(id => {
           updateObj[`taskStatus.${id}`] = deleteField();
         });
         batch.update(userDoc.ref, updateObj);
@@ -83,7 +83,7 @@ export default function PuanMerkeziPage() {
 
       await batch.commit();
 
-      toast({ title: 'Görevler Sıfırlandı!', description: 'Tüm veliler için Evde Türkçe Keyfi görevleri tekrar açıldı.' });
+      toast({ title: 'Görevler Sıfırlandı!', description: 'Tüm veliler için tekrarlanabilir görevler yeniden açıldı.' });
     } catch (error) {
       toast({ title: 'Hata', description: 'Görevler sıfırlanırken hata oluştu.', variant: 'destructive' });
       console.error(error);
@@ -215,7 +215,7 @@ export default function PuanMerkeziPage() {
       </div>
 
       <Tabs defaultValue="requests" className="space-y-6">
-        <TabsList className="bg-white border p-1 rounded-xl h-auto gap-2 flex-wrap">
+        <TabsList className="bg-white border p-1 rounded-xl h-auto gap-2 overflow-x-auto flex-nowrap justify-start">
           <TabsTrigger value="requests" className="rounded-lg px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white">Onay Bekleyenler</TabsTrigger>
           <TabsTrigger value="approved" className="rounded-lg px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white">Onaylananlar</TabsTrigger>
           <TabsTrigger value="manual" className="rounded-lg px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white">Puan Ekle / Sil</TabsTrigger>
@@ -226,11 +226,11 @@ export default function PuanMerkeziPage() {
         <TabsContent value="requests">
           <div className="grid gap-4">
             {requestsLoading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div> : 
-             requests?.filter(r => r.status === 'pending').length === 0 ? (
+             requests?.filter(r => r.status === 'pending' && r.type !== 'gift_lesson_claim').length === 0 ? (
                <Card className="border-dashed py-20 text-center text-slate-400">Onay bekleyen talep bulunmuyor.</Card>
-             ) : requests?.filter(r => r.status === 'pending').map((req) => (
+             ) : requests?.filter(r => r.status === 'pending' && r.type !== 'gift_lesson_claim').map((req) => (
               <Card key={req.id} className={cn("overflow-hidden border-2 transition-all", req.type === 'gift_lesson_claim' ? "border-amber-200 bg-amber-50/20" : "hover:border-primary/20")}>
-                <div className="flex flex-col md:flex-row items-center p-6 gap-6">
+                <div className="flex flex-col min-[1200px]:flex-row items-center p-6 gap-6">
                   <div className={cn("p-4 rounded-2xl shrink-0", req.type === 'gift_lesson_claim' ? "bg-amber-100" : "bg-yellow-100")}>
                       {req.type === 'gift_lesson_claim' ? <Gift className="h-8 w-8 text-amber-600" /> : <Clock className="h-8 w-8 text-yellow-600" />}
                   </div>
@@ -255,7 +255,7 @@ export default function PuanMerkeziPage() {
                         </a>
                     )}
                   </div>
-                  <div className="text-center md:text-right space-y-3 shrink-0">
+                  <div className="text-center min-[1200px]:text-right space-y-3 shrink-0">
                     {req.type === 'gift_lesson_claim' ? (
                         <div className="text-xl font-black text-amber-600">500 PUAN HARCANDI</div>
                     ) : (
@@ -285,7 +285,7 @@ export default function PuanMerkeziPage() {
                <Card className="border-dashed py-20 text-center text-slate-400">Onaylanmış talep bulunmuyor.</Card>
              ) : requests?.filter(r => r.status === 'approved').map((req) => (
               <Card key={req.id} className="overflow-hidden border-2 hover:border-green-500/20 transition-all">
-                <div className="flex flex-col md:flex-row items-center p-6 gap-6">
+                <div className="flex flex-col min-[1200px]:flex-row items-center p-6 gap-6">
                   <div className="bg-green-100 p-4 rounded-2xl shrink-0"><CheckCircle2 className="h-8 w-8 text-green-600" /></div>
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center gap-2">
@@ -302,7 +302,7 @@ export default function PuanMerkeziPage() {
                         </a>
                     )}
                   </div>
-                  <div className="text-center md:text-right space-y-3 shrink-0">
+                  <div className="text-center min-[1200px]:text-right space-y-3 shrink-0">
                     <div className="text-2xl font-black text-green-600">+{req.points} PUAN</div>
                     <Badge className="bg-green-100 text-green-700 border-none font-bold uppercase tracking-widest text-[10px]">Onaylandı</Badge>
                   </div>
@@ -378,11 +378,11 @@ export default function PuanMerkeziPage() {
         <TabsContent value="settings">
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-xl">Evde Türkçe Keyfi Görevleri</CardTitle>
-                    <CardDescription>Evde Türkçe görevleri ayda bir kez yapılabilir. Süre dolduğunda aşağıdaki butona basarak tüm ebeveynler için bu görevlerin yapılmış olma durumunu sıfırlayabilirsiniz.</CardDescription>
+                    <CardTitle className="text-xl">Tekrarlanabilir Görevler</CardTitle>
+                    <CardDescription>Kültür ve Eğlence kategorilerindeki görevler ayda bir kez yapılabilir. Süre dolduğunda aşağıdaki butona basarak tüm ebeveynler için bu görevlerin yapılmış olma durumunu sıfırlayabilirsiniz.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex flex-col min-[1200px]:flex-row items-center justify-between gap-6">
                         <div className="flex items-center gap-4">
                             <div className="p-4 bg-primary/10 rounded-full">
                                 <Clock className="w-8 h-8 text-primary" />
@@ -402,7 +402,7 @@ export default function PuanMerkeziPage() {
                         </div>
                         <Button 
                             size="lg" 
-                            className="w-full md:w-auto font-bold h-14 bg-red-500 hover:bg-red-600 text-white shadow-xl shadow-red-200"
+                            className="w-full min-[1200px]:w-auto font-bold h-14 bg-red-500 hover:bg-red-600 text-white shadow-xl shadow-red-200"
                             onClick={handleResetTasks}
                             disabled={resetting}
                         >

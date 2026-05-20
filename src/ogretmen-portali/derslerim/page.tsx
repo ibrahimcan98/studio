@@ -178,7 +178,11 @@ export default function OgretmenDerslerimPage() {
                             <Loader2 className="h-16 w-16 animate-spin text-primary" />
                         </div>
                     ) : (
-                        <ProgressPanel child={selectedChildData} isEditable={true} />
+                        <ProgressPanel 
+                            child={selectedChildData} 
+                            parentId={selectedLesson.bookedBy}
+                            isEditable={true} 
+                        />
                     )}
                 </DialogContent>
             </Dialog>

@@ -114,15 +114,19 @@ interface Feedback {
 
 interface ProgressPanelProps {
     child: any;
+    parentId?: string;
     lessonId?: string;
     isEditable?: boolean;
     authorRole?: 'teacher' | 'admin' | 'parent';
 }
 
-export function ProgressPanel({ child, lessonId, isEditable = false, authorRole = 'teacher' }: ProgressPanelProps) {
+export function ProgressPanel({ child, parentId, lessonId, isEditable = false, authorRole = 'teacher' }: ProgressPanelProps) {
     const { toast } = useToast();
     const db = useFirestore();
     const [isSaving, setIsSaving] = useState(false);
+    
+    // Determine the correct parent ID to use for Firestore paths
+    const resolvedParentId = parentId || child?.userId;
     const [currentSlide, setCurrentSlide] = useState(0);
     const [carouselApi, setCarouselApi] = useState<any>(null);
 
@@ -186,10 +190,10 @@ export function ProgressPanel({ child, lessonId, isEditable = false, authorRole 
     };
     
     const handleUpdateFeedback = () => {
-        if (!db || !child || !editingFeedback) return;
+        if (!db || !child || !editingFeedback || !resolvedParentId) return;
         
         setIsSaving(true);
-        const childDocRef = doc(db, 'users', child.userId, 'children', child.id);
+        const childDocRef = doc(db, 'users', resolvedParentId, 'children', child.id);
 
         const updatedHistory = feedbackHistory.map(fb => 
             fb.id === editingFeedback.id ? { ...fb, text: editingFeedback.text, createdAt: new Date().toISOString() } : fb
@@ -223,6 +227,7 @@ export function ProgressPanel({ child, lessonId, isEditable = false, authorRole 
             setFeedbackHistory(updatedHistory);
             setEditingFeedback(null);
         }).catch(serverError => {
+             console.error("Error updating feedback:", serverError);
              const permissionError = new FirestorePermissionError({
                 path: childDocRef.path,
                 operation: 'update',
@@ -237,10 +242,21 @@ export function ProgressPanel({ child, lessonId, isEditable = false, authorRole 
 
     const handleSave = () => {
         if (!db || !child) return;
+        
+        if (!resolvedParentId) {
+            console.error("ProgressPanel: parentId/userId is missing", { child, parentId });
+            toast({
+                variant: "destructive",
+                title: "Hata",
+                description: "Veli bilgisi bulunamadı. Lütfen sayfayı yenileyip tekrar deneyin.",
+            });
+            return;
+        }
+
         setIsSaving(true);
         
         const batch = writeBatch(db);
-        const childDocRef = doc(db, 'users', child.userId, 'children', child.id);
+        const childDocRef = doc(db, 'users', resolvedParentId, 'children', child.id);
         
         let updatedFeedbackHistory = [...feedbackHistory];
         const selectedCourseData = COURSES.find(c => c.id === recommendedCourse);
@@ -291,7 +307,7 @@ export function ProgressPanel({ child, lessonId, isEditable = false, authorRole 
             // Send Email Notification if new feedback was added
             if (newFeedback.trim() !== "") {
                 try {
-                    const parentSnap = await getDoc(doc(db, 'users', child.userId));
+                    const parentSnap = await getDoc(doc(db, 'users', resolvedParentId));
                     const parentData = parentSnap.data();
                     const parentEmail = parentData?.email;
 
@@ -318,12 +334,18 @@ export function ProgressPanel({ child, lessonId, isEditable = false, authorRole 
                 setNewFeedback("");
             }
         }).catch(serverError => {
+             console.error("Error saving progress:", serverError);
              const permissionError = new FirestorePermissionError({
                 path: childDocRef.path,
                 operation: 'update',
                 requestResourceData: updatedData,
             });
             errorEmitter.emit('permission-error', permissionError);
+            toast({
+                variant: 'destructive',
+                title: 'Hata',
+                description: 'Veriler kaydedilemedi. Lütfen yetkilerinizi kontrol edin.'
+            });
         }).finally(() => {
             setIsSaving(false);
         });

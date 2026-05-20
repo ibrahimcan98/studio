@@ -25,6 +25,7 @@ import { useAuth, useFirestore, useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { trackPixelEvent } from '@/components/analytics/FacebookPixel';
+import { sendNewRegistrationEmails } from '@/lib/email-service';
 
 
 const adminEmail = 'iletisim@turkcocukakademisi.com';
@@ -149,30 +150,15 @@ export default function RegisterPage() {
           fn: name
       });
 
-      // Notify Admin about new registration
-
+      // Notify Admin & Parent about new registration via email
       if (role === 'parent') {
         try {
-          await fetch('/api/notify/admin', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              title: '🆕 Yeni Veli Kaydoldu!',
-              body: `${name} (${cleanEmail}) aramıza katıldı.`,
-              link: `/yonetici/kullanicilar?userId=${newUser.uid}`,
-              logData: {
-                icon: '🆕',
-                event: 'Yeni Veli Kaydı',
-                details: {
-                  'Veli': name,
-                  'E-posta': cleanEmail,
-                  'Kanal': 'Web Kayıt'
-                }
-              }
-            })
+          await sendNewRegistrationEmails({
+            parentName: name,
+            parentEmail: cleanEmail
           });
         } catch (notifyError) {
-          console.error("Admin notification failed:", notifyError);
+          console.error("Email notification failed:", notifyError);
         }
       }
 

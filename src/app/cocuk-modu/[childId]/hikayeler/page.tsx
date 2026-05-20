@@ -21,7 +21,7 @@ export default function HikayelerPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isLockedDialogOpen, setIsLockedDialogOpen] = useState(false);
-  const { speak, isPlaying } = useTTS();
+  const { speak, stop, isPlaying } = useTTS();
 
   useEffect(() => {
     setIsMounted(true);
@@ -108,6 +108,8 @@ export default function HikayelerPage() {
               {/* Hikaye Kartı: Sarı Top */}
               <div 
                 onClick={() => handleStoryClick(`/cocuk-modu/${childId}/hikayeler/sari-top`, 0)}
+                onMouseEnter={() => speak('/hikayeler/1-sari-top/kapak.m4a')}
+                onMouseLeave={() => stop()}
                 className="group relative bg-white/95 rounded-[45px] p-4 border-[6px] border-amber-200/50 shadow-[0_20px_60px_rgba(0,0,0,0.4)] cursor-pointer transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(251,191,36,0.3)] active:scale-95 overflow-hidden flex flex-col"
               >
                 <div className="relative w-full aspect-[4/3] bg-amber-50/50 rounded-[32px] overflow-hidden">
@@ -121,14 +123,13 @@ export default function HikayelerPage() {
                 </div>
                 
                 <div className="p-4 flex flex-col items-center">
-                   <h3 className="text-2xl font-black text-amber-900 mb-4 uppercase italic tracking-tight">Sarı Top</h3>
+                   <h3 className="text-2xl font-black text-amber-900 mb-4 uppercase italic tracking-tight">Kayıp Sarı Top</h3>
                    <span className="w-full text-center bg-gradient-to-r from-amber-600 to-orange-700 text-white py-4 rounded-2xl text-sm font-black uppercase tracking-widest shadow-lg transform group-hover:translate-y-[-4px] transition-all border-b-4 border-amber-800">
                       MACERAYA BAŞLA
                    </span>
                 </div>
 
-                {/* Dekoratif Yıldızlar */}
-                <div className="absolute top-6 right-6 text-amber-400 animate-pulse drop-shadow-md z-10 text-2xl">⭐</div>
+
               </div>
 
               {/* Hikaye Kartı: Bir İki Üç Başardım */}
@@ -137,6 +138,8 @@ export default function HikayelerPage() {
                 return (
                   <div 
                     onClick={() => handleStoryClick(`/cocuk-modu/${childId}/hikayeler/bir-iki-uc-basardim`, 1)}
+                    onMouseEnter={() => !isLocked && speak('/hikayeler/2-bir-iki-uc-basardim/kapak.m4a')}
+                    onMouseLeave={() => !isLocked && stop()}
                     className={cn(
                       "group relative bg-white/95 rounded-[45px] p-4 border-[6px] shadow-[0_20px_60px_rgba(0,0,0,0.4)] transition-all overflow-hidden flex flex-col",
                       isLocked ? "border-slate-200 cursor-not-allowed opacity-80" : "border-blue-200/50 cursor-pointer hover:scale-105 hover:shadow-[0_0_40px_rgba(59,130,246,0.3)] active:scale-95"
@@ -168,8 +171,95 @@ export default function HikayelerPage() {
                        </span>
                     </div>
 
-                    {/* Dekoratif Yıldızlar */}
-                    {!isLocked && <div className="absolute top-6 right-6 text-blue-400 animate-pulse drop-shadow-md z-10 text-2xl">✨</div>}
+
+                  </div>
+                );
+              })()}
+
+              {/* Hikaye Kartı: Kaptan Kahvaltısı */}
+              {(() => {
+                const isLocked = subscriptionTier === 'free';
+                return (
+                  <div 
+                    onClick={() => handleStoryClick(`/cocuk-modu/${childId}/hikayeler/kaptan-kahvaltisi`, 2)}
+                    onMouseEnter={() => !isLocked && speak('/hikayeler/3-kaptan-kahvaltisi/kapak.m4a')}
+                    onMouseLeave={() => !isLocked && stop()}
+                    className={cn(
+                      "group relative bg-white/95 rounded-[45px] p-4 border-[6px] shadow-[0_20px_60px_rgba(0,0,0,0.4)] transition-all overflow-hidden flex flex-col",
+                      isLocked ? "border-slate-200 cursor-not-allowed opacity-80" : "border-emerald-200/50 cursor-pointer hover:scale-105 hover:shadow-[0_0_40px_rgba(16,185,129,0.3)] active:scale-95"
+                    )}
+                  >
+                    <div className="relative w-full aspect-[4/3] bg-emerald-50/50 rounded-[32px] overflow-hidden">
+                       <Image 
+                         src="/hikayeler/3-kaptan-kahvaltisi/kapak.png" 
+                         fill 
+                         className={cn("object-contain p-4 transition-transform duration-700", !isLocked && "group-hover:scale-110")} 
+                         alt="Kaptan Kahvaltısı Kapak" 
+                       />
+                       {isLocked && (
+                         <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] flex flex-col items-center justify-center p-6 text-center">
+                            <Crown className="w-12 h-12 text-amber-400 mb-3 animate-bounce" />
+                            <p className="text-white font-black text-sm uppercase italic">Premium Üyelik Gerekli</p>
+                         </div>
+                       )}
+                       <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/10 to-transparent" />
+                    </div>
+                    
+                    <div className="p-4 flex flex-col items-center">
+                       <h3 className={cn("text-2xl font-black mb-4 uppercase italic tracking-tight", isLocked ? "text-slate-400" : "text-emerald-900")}>Kaptan Kahvaltısı</h3>
+                       <span className={cn(
+                         "w-full text-center py-4 rounded-2xl text-sm font-black uppercase tracking-widest shadow-lg transform transition-all border-b-4",
+                         isLocked ? "bg-slate-300 text-slate-500 border-slate-400 cursor-not-allowed" : "bg-gradient-to-r from-emerald-600 to-teal-700 text-white border-emerald-800 group-hover:translate-y-[-4px]"
+                       )}>
+                          {isLocked ? "KİLİTLİ" : "MACERAYA BAŞLA"}
+                       </span>
+                    </div>
+
+
+                  </div>
+                );
+              })()}
+
+              {/* Hikaye Kartı: Gökkuşağı Partisi */}
+              {(() => {
+                const isLocked = subscriptionTier === 'free';
+                return (
+                  <div 
+                    onClick={() => handleStoryClick(`/cocuk-modu/${childId}/hikayeler/gokusagi-partisi`, 3)}
+                    onMouseEnter={() => !isLocked && speak('/hikayeler/4-gokusagi-partisi/kapak.m4a')}
+                    onMouseLeave={() => !isLocked && stop()}
+                    className={cn(
+                      "group relative bg-white/95 rounded-[45px] p-4 border-[6px] shadow-[0_20px_60px_rgba(0,0,0,0.4)] transition-all overflow-hidden flex flex-col",
+                      isLocked ? "border-slate-200 cursor-not-allowed opacity-80" : "border-purple-200/50 cursor-pointer hover:scale-105 hover:shadow-[0_0_40px_rgba(147,51,234,0.3)] active:scale-95"
+                    )}
+                  >
+                    <div className="relative w-full aspect-[4/3] bg-purple-50/50 rounded-[32px] overflow-hidden">
+                       <Image 
+                         src="/hikayeler/4-gokusagi-partisi/kapak.png" 
+                         fill 
+                         className={cn("object-contain p-4 transition-transform duration-700", !isLocked && "group-hover:scale-110")} 
+                         alt="Gökkuşağı Partisi Kapak" 
+                       />
+                       {isLocked && (
+                         <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] flex flex-col items-center justify-center p-6 text-center">
+                            <Crown className="w-12 h-12 text-amber-400 mb-3 animate-bounce" />
+                            <p className="text-white font-black text-sm uppercase italic">Premium Üyelik Gerekli</p>
+                         </div>
+                       )}
+                       <div className="absolute inset-0 bg-gradient-to-t from-purple-500/10 to-transparent" />
+                    </div>
+                    
+                    <div className="p-4 flex flex-col items-center">
+                       <h3 className={cn("text-2xl font-black mb-4 uppercase italic tracking-tight", isLocked ? "text-slate-400" : "text-purple-900")}>Gökkuşağı Partisi</h3>
+                       <span className={cn(
+                         "w-full text-center py-4 rounded-2xl text-sm font-black uppercase tracking-widest shadow-lg transform transition-all border-b-4",
+                         isLocked ? "bg-slate-300 text-slate-500 border-slate-400 cursor-not-allowed" : "bg-gradient-to-r from-purple-600 to-fuchsia-700 text-white border-purple-800 group-hover:translate-y-[-4px]"
+                       )}>
+                          {isLocked ? "KİLİTLİ" : "MACERAYA BAŞLA"}
+                       </span>
+                    </div>
+
+
                   </div>
                 );
               })()}

@@ -375,7 +375,7 @@ export default function AdminTeachersPage() {
           ) : (
             <>
                 {/* MOBILE LIST VIEW */}
-                <div className="md:hidden divide-y divide-slate-100">
+                <div className="min-[1200px]:hidden divide-y divide-slate-100">
                     {teachers?.map((teacher) => (
                         <div key={teacher.id} className="p-4 bg-white hover:bg-slate-50 transition-colors">
                             <div className="flex justify-between items-start mb-3">
@@ -438,7 +438,7 @@ export default function AdminTeachersPage() {
                 </div>
 
                 {/* DESKTOP TABLE VIEW */}
-                <div className="hidden md:block">
+                <div className="hidden min-[1200px]:block">
                     <Table>
                     <TableHeader className="bg-slate-50/50">
                         <TableRow className="hover:bg-transparent border-slate-100">

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, updateDoc, serverTimestamp, increment, collection, addDoc, writeBatch, getDoc, query, where } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, increment, collection, addDoc, writeBatch, getDoc, query, where, arrayUnion } from 'firebase/firestore';
 import {
     Star,
     ChevronRight,
@@ -73,9 +73,8 @@ const MISSIONS_CREATIVE = [
 
 // 3. Dijital Büyüme ve Güven
 const MISSIONS_GROWTH = [
-    { id: 'google-review', title: 'Yıldızlı Yorum', points: 200, icon: <MessageSquare className="w-5 h-5" />, desc: 'Google Haritalar veya Trustpilot üzerinden akademimiz hakkındaki samimi düşüncelerinizi yazın, ekran görüntüsünü yükleyin.' },
     { id: 'parent-solidarity', title: 'Veli Dayanışması', points: 150, icon: <UserPlus className="w-5 h-5" />, desc: 'Okulunuzdaki veya mahallenizdeki bir Türk aileyi akademimizle tanıştırın, referansınızı paylaştığınız için bu puan sizin!' },
-    { id: 'follow-us', title: 'Ailemize Katıl', points: 30, icon: <Instagram className="w-5 h-5" />, desc: 'Instagram ve YouTube kanallarımıza abone olun, kocaman bir aile olalım!' },
+    { id: 'follow-us', title: 'Ailemize Katıl', points: 30, icon: <Instagram className="w-5 h-5" />, desc: 'Instagram hesabımızı takip edin, kocaman bir aile olalım!' },
     { id: 'whatsapp-group', title: 'WhatsApp Grubu Paylaşımı', points: 150, icon: <Users className="w-5 h-5" />, desc: 'Yaşadığınız şehrin Türk WhatsApp grubunda bizi ve referans kodunuzu paylaşın!' },
 ];
 
@@ -119,7 +118,21 @@ export default function PuanMerkeziPage() {
 
     const points = userData?.academyPoints || 0;
     const packages = userData?.totalPackagesPurchased || 0;
-    const referralCode = userData?.referralCode || `TCA-${userData?.firstName?.toUpperCase() || 'VELI'}-2026`;
+    const defaultReferralCode = useMemo(() => {
+        if (!user) return 'TCA-VELI-2026';
+        const namePart = userData?.firstName?.toUpperCase() || 'VELI';
+        const uniquePart = user.uid.substring(0, 4).toUpperCase();
+        return `TCA-${namePart}-${uniquePart}`;
+    }, [user, userData?.firstName]);
+
+    const referralCode = userData?.referralCode || defaultReferralCode;
+
+    // Eğer kullanıcının referans kodu veritabanında yoksa otomatik olarak oluşturup kaydet
+    useEffect(() => {
+        if (userData && !userData.referralCode && userDocRef) {
+            updateDoc(userDocRef, { referralCode: defaultReferralCode }).catch(console.error);
+        }
+    }, [userData, defaultReferralCode, userDocRef]);
 
     const isAdmin = user?.email === 'ibrahimcanonder_98@hotmail.com';
 
@@ -174,15 +187,16 @@ export default function PuanMerkeziPage() {
         } finally { setIsSaving(false); }
     };
 
-    const handleClaimFreeLesson = async () => {
-        if (!user || !userDocRef || points < 500 || !selectedChildId || !db) {
+    const handleClaimFreeLesson = async (childIdToUse?: string) => {
+        const childId = childIdToUse || selectedChildId;
+        if (!user || !userDocRef || points < 500 || !childId || !db) {
             toast({ variant: 'destructive', title: 'Hata', description: 'Gerekli bilgiler eksik veya puanınız yetersiz.' });
             return;
         }
         
         setIsSaving(true);
         try {
-            const childDocRef = doc(db, 'users', user.uid, 'children', selectedChildId);
+            const childDocRef = doc(db, 'users', user.uid, 'children', childId);
             const childSnap = await getDoc(childDocRef);
             
             if (!childSnap.exists()) {
@@ -191,10 +205,8 @@ export default function PuanMerkeziPage() {
 
             const childData = childSnap.data();
             const childName = childData?.firstName || 'Öğrenci';
+            const childPackageName = childData?.assignedPackageName || 'Mevcut Kursu';
             
-            const selectedTeacher = allTeachers?.find((t: any) => t.id === effectiveTeacherId);
-            const teacherName = selectedTeacher ? `${selectedTeacher.firstName} ${selectedTeacher.lastName}` : 'Belirtilmedi';
-
             const batch = writeBatch(db);
             
             // 1. Puan Düşür
@@ -202,42 +214,48 @@ export default function PuanMerkeziPage() {
                 academyPoints: increment(-500) 
             });
             
-            // 2. İşlemi Kaydet (Mevcut loyalty-requests koleksiyonunu kullanıyoruz)
+            // 2. Çocuğa Ders Ekle
+            batch.update(childDocRef, {
+                remainingLessons: increment(1)
+            });
+
+            // 2.5. Hediye listesine ekle (Paketlerim sayfasında gözükmesi için)
+            batch.update(userDocRef, {
+                referralGifts: arrayUnion({
+                    id: Math.random().toString(36).substring(7),
+                    from: '500 Puan',
+                    date: new Date().toISOString(),
+                    courseName: childPackageName,
+                    assigned: true,
+                    type: 'points'
+                })
+            });
+            
+            // 3. İşlemi Kaydet (Otomatik tamamlandı olarak)
             const requestRef = doc(collection(db, 'loyalty-requests'));
             batch.set(requestRef, {
                 userId: user.uid,
                 userEmail: user.email,
                 userName: userData?.firstName + " " + userData?.lastName || 'Veli',
-                childId: selectedChildId,
+                childId: childId,
                 childName: childName,
                 type: 'gift_lesson_claim',
                 pointsUsed: 500,
-                description: `🎁 Puan ile 30 Dakikalık Hediye Ders Talebi`,
-                teacherId: effectiveTeacherId,
-                teacherName: teacherName,
-                userNote: requestedTime, // Velinin yazdığı tarih/saat bilgisi
-                status: 'pending',
+                description: `🎁 Puan ile Otomatik Hediye Ders (${childPackageName})`,
+                status: 'completed',
                 createdAt: serverTimestamp()
             });
 
             await batch.commit();
 
-            // WhatsApp Redirection
-            const adminPhone = "905058029734";
-            const message = `Merhaba, 500 Akademi Puanı kullanarak ${childName} (Veli ID: ${user.uid}) için 30 dakikalık hediye dersimi talep ediyorum. \n\n👨‍🏫 Seçilen Öğretmen: ${teacherName}\n⏰ İstediğim tarih/saat: ${requestedTime || 'Belirtilmedi'}`;
-            const whatsappUrl = `https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`;
-            
             toast({ 
-                title: 'Puanlar Başarıyla Harcandı! 🎁', 
-                description: 'WhatsApp\'a yönlendiriliyorsunuz, lütfen mesajı gönderin.', 
+                title: 'Tebrikler! 🎁', 
+                description: `${childName} için 1 bedava ders hesabına eklendi!`, 
                 className: 'bg-green-600 text-white font-bold' 
             });
 
-            setTimeout(() => {
-                window.open(whatsappUrl, '_blank');
-                setIsChildSelectOpen(false);
-                setSelectedChildId('');
-            }, 1000);
+            setIsChildSelectOpen(false);
+            setSelectedChildId('');
 
         } catch (error: any) {
             console.error("Hediye ders talebi hatası:", error);
@@ -305,7 +323,21 @@ export default function PuanMerkeziPage() {
                             <div className="flex items-center gap-3"><Trophy className="w-6 h-6 text-primary" /><h4 className="font-black text-sm uppercase tracking-widest">Sadakat Ödülleri</h4></div>
                             <p className="text-slate-300 text-sm leading-relaxed font-medium italic">500 puana ulaştığınızda bu ekrandan <span className="text-white font-bold underline decoration-primary underline-offset-4">1 Bedava Ders</span> talep edebilirsiniz. 🎉</p>
                             {points >= 500 && (
-                                <Button className="w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold rounded-2xl h-12" onClick={() => setIsChildSelectOpen(true)} disabled={isSaving}>🎁 1 Bedava Ders Hediyemi Al</Button>
+                                <Button 
+                                    className="w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold rounded-2xl h-12" 
+                                    onClick={() => {
+                                        if (children && children.length > 1) {
+                                            setIsChildSelectOpen(true);
+                                        } else if (children && children.length === 1) {
+                                            handleClaimFreeLesson(children[0].id);
+                                        } else {
+                                            toast({ variant: 'destructive', title: 'Hata', description: 'Öğrenci bilgisi yüklenemedi veya çocuk bulunamadı.' });
+                                        }
+                                    }} 
+                                    disabled={isSaving}
+                                >
+                                    🎁 1 Bedava Ders Hediyemi Al
+                                </Button>
                             )}
                         </div>
                     </div>
@@ -372,19 +404,35 @@ export default function PuanMerkeziPage() {
 
                 {/* REFERANS VIP */}
                 <section>
-                    <Card className="bg-gradient-to-br from-indigo-600 via-blue-700 to-indigo-900 text-white border-none shadow-[0_20px_80px_rgba(79,70,229,0.3)] rounded-[40px] overflow-hidden relative group">
-                        <div className="relative p-12">
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-                                <div className="space-y-8">
-                                    <div className="space-y-4"><Badge className="bg-white/20 text-white border-none px-4 py-1 text-[10px] font-black tracking-widest uppercase">🤝 REFERANS SİSTEMİ</Badge><h3 className="text-4xl font-black tracking-tight leading-tight uppercase">Arkadaşını Davet Et, <br />Birlikte Kazanın!</h3><p className="text-white/70 font-medium leading-relaxed max-w-sm italic">Büyük TCA ailemizi birlikte büyütelim! ❤️🇹🇷</p></div>
-                                    <div className="grid grid-cols-2 gap-6">
-                                        <div className="bg-emerald-500/20 p-6 rounded-3xl border border-emerald-500/30 backdrop-blur-sm"><p className="text-[10px] font-black text-emerald-300 uppercase tracking-widest mb-2">Sizin Ödülünüz</p><p className="text-lg font-black leading-tight">1 Hediye Ders <br /><span className="text-xs opacity-60">Tanımlanır</span></p></div>
-                                        <div className="bg-yellow-500/20 p-6 rounded-3xl border border-yellow-500/30 backdrop-blur-sm"><p className="text-[10px] font-black text-yellow-300 uppercase tracking-widest mb-2">Arkadaşın Ödülü</p><p className="text-lg font-black leading-tight">%10 İndirim <br /><span className="text-xs opacity-60">Kurs Alımında</span></p></div>
+                    <Card className="bg-gradient-to-br from-indigo-600 via-blue-700 to-indigo-900 text-white border-none shadow-[0_20px_80px_rgba(79,70,229,0.3)] rounded-[32px] sm:rounded-[40px] overflow-hidden relative group">
+                        <div className="relative p-6 sm:p-12">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+                                <div className="space-y-6 sm:space-y-8">
+                                    <div className="space-y-3 sm:space-y-4">
+                                        <Badge className="bg-white/20 text-white border-none px-4 py-1 text-[10px] font-black tracking-widest uppercase">🤝 REFERANS SİSTEMİ</Badge>
+                                        <h3 className="text-2xl sm:text-4xl font-black tracking-tight leading-tight uppercase">Arkadaşını Davet Et, <br />Birlikte Kazanın!</h3>
+                                        <p className="text-white/70 font-medium leading-relaxed max-w-sm italic text-sm sm:text-base">Büyük TCA ailemizi birlikte büyütelim! ❤️🇹🇷</p>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                                        <div className="bg-emerald-500/20 p-5 sm:p-6 rounded-2xl sm:rounded-3xl border border-emerald-500/30 backdrop-blur-sm">
+                                            <p className="text-[10px] font-black text-emerald-300 uppercase tracking-widest mb-1 sm:mb-2">Sizin Ödülünüz</p>
+                                            <p className="text-base sm:text-lg font-black leading-tight">1 Hediye Ders <br /><span className="text-xs opacity-60">Tanımlanır</span></p>
+                                        </div>
+                                        <div className="bg-yellow-500/20 p-5 sm:p-6 rounded-2xl sm:rounded-3xl border border-yellow-500/30 backdrop-blur-sm">
+                                            <p className="text-[10px] font-black text-yellow-300 uppercase tracking-widest mb-1 sm:mb-2">Arkadaşın Ödülü</p>
+                                            <p className="text-base sm:text-lg font-black leading-tight">%10 İndirim <br /><span className="text-xs opacity-60">Kurs Alımında</span></p>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="space-y-6">
-                                    <div className="bg-white/10 border border-white/20 rounded-[32px] p-8 backdrop-blur-md"><p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-4 text-center">ÖZEL DAVET KODUNUZ</p><div className="flex gap-3"><div className="flex-1 bg-white text-slate-900 font-black text-2xl flex items-center justify-center rounded-2xl h-16 uppercase tracking-wider shadow-inner">{referralCode}</div><Button size="icon" onClick={copyReferralCode} className="h-16 w-16 bg-white/20 hover:bg-white/30 rounded-2xl transition-all active:scale-95 border border-white/10"><Copy className="w-6 h-6" /></Button></div></div>
-                                    <Button className="w-full h-16 bg-green-500 hover:bg-green-600 text-white font-black text-lg rounded-2xl shadow-2xl shadow-slate-900/40 transition-all hover:scale-[1.02] active:scale-95" onClick={shareReferralOnWhatsapp}><MessageCircle className="mr-3 w-7 h-7" /> WHATSAPP'TA PAYLAŞ</Button>
+                                    <div className="bg-white/10 border border-white/20 rounded-[24px] sm:rounded-[32px] p-6 sm:p-8 backdrop-blur-md">
+                                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-3 sm:mb-4 text-center">ÖZEL DAVET KODUNUZ</p>
+                                        <div className="flex gap-3">
+                                            <div className="flex-1 bg-white text-slate-900 font-black text-base sm:text-2xl flex items-center justify-center rounded-xl sm:rounded-2xl h-14 sm:h-16 uppercase tracking-wider shadow-inner px-2">{referralCode}</div>
+                                            <Button size="icon" onClick={copyReferralCode} className="h-14 w-14 sm:h-16 sm:w-16 bg-white/20 hover:bg-white/30 rounded-xl sm:rounded-2xl transition-all active:scale-95 border border-white/10 shrink-0"><Copy className="w-5 h-5 sm:w-6 sm:h-6" /></Button>
+                                        </div>
+                                    </div>
+                                    <Button className="w-full h-14 sm:h-16 bg-green-500 hover:bg-green-600 text-white font-black text-base sm:text-lg rounded-xl sm:rounded-2xl shadow-2xl shadow-slate-900/40 transition-all hover:scale-[1.02] active:scale-95" onClick={shareReferralOnWhatsapp}><MessageCircle className="mr-2 sm:mr-3 w-5 h-5 sm:w-7 sm:h-7" /> WHATSAPP'TA PAYLAŞ</Button>
                                 </div>
                             </div>
                         </div>
@@ -395,90 +443,50 @@ export default function PuanMerkeziPage() {
             {/* CHILD SELECTION DIALOG */}
             <Dialog open={isChildSelectOpen} onOpenChange={setIsChildSelectOpen}>
                 <DialogContent className="rounded-[40px] p-0 overflow-hidden max-w-md border-none shadow-2xl bg-white">
-                    <div className="bg-gradient-to-b from-amber-50/50 to-white p-10 pt-12">
-                        <DialogHeader className="items-center text-center space-y-6">
-                            <div className="w-24 h-24 bg-amber-400/10 rounded-[32px] flex items-center justify-center rotate-3 shadow-inner">
-                                <Gift className="w-12 h-12 text-amber-500" />
+                    <div className="bg-white p-8 pt-10 relative">
+                        {/* Decorative Background Elements */}
+                        <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-amber-50 to-transparent -z-10" />
+                        
+                        <DialogHeader className="items-center text-center space-y-4 mb-6">
+                            <div className="w-20 h-20 bg-gradient-to-br from-amber-100 to-orange-100 rounded-[28px] flex items-center justify-center rotate-3 shadow-sm group-hover:rotate-6 transition-transform">
+                                <Gift className="w-10 h-10 text-orange-500" />
                             </div>
-                            <div className="space-y-2">
-                                <DialogTitle className="text-3xl font-black text-slate-800 uppercase tracking-tight">Hediye Ders Al</DialogTitle>
-                                <DialogDescription className="text-slate-500 font-bold text-sm leading-relaxed px-4">
-                                    500 Puanınızı çocuğunuz için harika bir hediye dersine dönüştürmek üzeresiniz! 🎁✨
+                            <div className="space-y-1">
+                                <DialogTitle className="text-2xl font-extrabold text-slate-900 tracking-tight">Hediye Ders Al</DialogTitle>
+                                <DialogDescription className="text-slate-500 font-medium text-sm leading-relaxed px-2">
+                                    500 Puanınızı çocuğunuzun mevcut paketine uygun harika bir hediye dersine dönüştürmek üzeresiniz! 🎁✨
                                 </DialogDescription>
                             </div>
                         </DialogHeader>
 
-                        <div className="space-y-4">
-                            <div className="space-y-3">
-                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Öğrenci Seçin</label>
+                        <div className="space-y-6 mb-8">
+                            <div className="space-y-2">
+                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Öğrenci Seçin</label>
                                 <Select value={selectedChildId} onValueChange={setSelectedChildId}>
-                                    <SelectTrigger className="h-16 rounded-2xl border-2 border-slate-100 bg-white font-bold text-lg shadow-sm focus:ring-amber-500 focus:border-amber-500 transition-all">
+                                    <SelectTrigger className="h-14 rounded-2xl border-2 border-slate-100 bg-white font-semibold text-slate-700 shadow-sm focus:ring-amber-500 focus:border-amber-500 transition-all">
                                         <SelectValue placeholder="Bir öğrenci seçin..." />
                                     </SelectTrigger>
                                     <SelectContent className="rounded-2xl border-none shadow-2xl p-2">
                                         {children?.map((child: any) => (
-                                            <SelectItem key={child.id} value={child.id} className="font-bold py-4 rounded-xl focus:bg-amber-50 focus:text-amber-700">
+                                            <SelectItem key={child.id} value={child.id} className="font-semibold py-3 rounded-xl focus:bg-amber-50 focus:text-amber-700 cursor-pointer">
                                                 {child.firstName}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
                             </div>
-
-                            <div className="space-y-3">
-                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Öğretmen Seçin</label>
-                                <Select value={effectiveTeacherId || ''} onValueChange={setManualTeacherId}>
-                                    <SelectTrigger className="h-14 rounded-2xl border-2 border-slate-100 bg-white font-bold text-base shadow-sm focus:ring-amber-500 focus:border-amber-500 transition-all">
-                                        <SelectValue placeholder="Bir öğretmen seçin..." />
-                                    </SelectTrigger>
-                                    <SelectContent className="rounded-2xl border-none shadow-2xl p-2">
-                                        {allTeachers?.map((teacher: any) => (
-                                            <SelectItem key={teacher.id} value={teacher.id} className="font-bold py-3 rounded-xl focus:bg-amber-50 focus:text-amber-700">
-                                                {teacher.firstName} {teacher.lastName}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-3">
-                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Tercih Ettiğiniz Tarih ve Saat (TSI)</label>
-                                <Input 
-                                    placeholder="Örn: Pazartesi 18:30" 
-                                    className="h-16 rounded-2xl border-2 border-slate-100 bg-white font-bold text-lg shadow-sm focus:ring-amber-500 focus:border-amber-500 transition-all"
-                                    value={requestedTime}
-                                    onChange={(e) => setRequestedTime(e.target.value)}
-                                />
-                                <p className="text-[10px] text-slate-400 font-bold italic px-1">
-                                    * Lütfen Türkiye saatine (TSI) göre belirtiniz. 🇹🇷
-                                </p>
-                            </div>
-
-                            {/* Replika Öğretmenler İçin Müsaitlik Uyarısı */}
-                            {effectiveTeacherId && (
-                                <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-start gap-3">
-                                    <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                                    <div className="space-y-1">
-                                        <p className="text-xs font-bold text-amber-900">Müsaitlik Bilgisi</p>
-                                        <p className="text-[11px] text-amber-700 leading-relaxed font-medium">
-                                            Seçtiğiniz öğretmenimizin önümüzdeki 7 gün için tüm saatleri doludur. 
-                                            Yine de talebinizi iletebilirsiniz, iptal olan ders olursa sizinle iletişime geçilecektir.
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
                         </div>
 
-                        <div className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-3">
                             <Button 
-                                className="w-full h-16 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 font-black text-base rounded-2xl shadow-xl shadow-amber-200/50 text-white border-none transition-all active:scale-95 group" 
-                                onClick={handleClaimFreeLesson} 
+                                className="w-full h-14 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:from-amber-600 hover:via-orange-600 hover:to-rose-600 font-bold text-base rounded-2xl shadow-lg shadow-orange-200/50 text-white border-none transition-all active:scale-95 group" 
+                                onClick={() => handleClaimFreeLesson()} 
                                 disabled={isSaving || !selectedChildId}
                             >
-                                {isSaving ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-2 w-6 h-6 group-hover:scale-110 transition-transform" />} 
+                                {isSaving ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-2 w-5 h-5 group-hover:scale-110 transition-transform" />} 
                                 PUANLARI KULLAN VE TALEP ET
                             </Button>
-                            <Button variant="ghost" className="w-full h-14 font-black text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-2xl uppercase tracking-widest text-xs" onClick={() => setIsChildSelectOpen(false)}>
+                            <Button variant="ghost" className="w-full h-12 font-bold text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-2xl text-sm" onClick={() => setIsChildSelectOpen(false)}>
                                 Vazgeç
                             </Button>
                         </div>

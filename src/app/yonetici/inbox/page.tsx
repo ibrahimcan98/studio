@@ -143,8 +143,8 @@ export default function InboxPage() {
         <div className="flex h-[calc(100vh-140px)] sm:h-[calc(100vh-160px)] gap-2 sm:gap-4 font-sans max-w-full overflow-hidden">
             {/* Sidebar List */}
             <Card className={cn(
-                "w-full md:w-80 flex flex-col overflow-hidden border-none shadow-md",
-                activeMobileView !== 'list' ? 'hidden md:flex' : 'flex'
+                "w-full min-[992px]:w-80 flex flex-col overflow-hidden border-none shadow-md",
+                activeMobileView !== 'list' ? 'hidden min-[992px]:flex' : 'flex'
             )}>
                 <div className="p-4 border-b bg-white space-y-3">
                     <div className="flex items-center justify-between">
@@ -211,7 +211,7 @@ export default function InboxPage() {
             {/* Chat Area */}
             <Card className={cn(
                 "flex-1 flex flex-col overflow-hidden border-none shadow-md bg-white min-w-0 transition-all",
-                activeMobileView === 'list' ? 'hidden md:flex' : 
+                activeMobileView === 'list' ? 'hidden min-[992px]:flex' : 
                 activeMobileView === 'profile' ? 'hidden lg:flex' : 'flex'
             )}>
                 {selectedConv ? (
@@ -221,7 +221,7 @@ export default function InboxPage() {
                                 <Button 
                                     variant="ghost" 
                                     size="icon" 
-                                    className="md:hidden h-9 w-9 -ml-1 bg-slate-50 rounded-xl"
+                                    className="min-[992px]:hidden h-9 w-9 -ml-1 bg-slate-50 rounded-xl"
                                     onClick={() => setActiveMobileView('list')}
                                 >
                                     <ArrowLeft className="w-5 h-5 text-slate-600" />

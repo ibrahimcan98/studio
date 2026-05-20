@@ -285,7 +285,44 @@ export default function DenetimKaydiPage() {
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <div className="overflow-x-auto">
+                    {/* CARD VIEW - Mobile & Tablets (< 1200px) */}
+                    <div className="min-[1200px]:hidden divide-y divide-slate-100">
+                        {filteredLogs.length === 0 ? (
+                            <div className="p-16 text-center text-slate-400 italic font-bold text-xs uppercase tracking-widest">Kayıt bulunamadı.</div>
+                        ) : (
+                            filteredLogs.map((log) => (
+                                <div key={log.id} className="p-4 sm:p-6 space-y-3 hover:bg-slate-50/50 transition-colors">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center text-xl">
+                                                {log.icon || '📝'}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-slate-800 text-sm leading-tight">{log.event}</p>
+                                                {log.adminEmail && (
+                                                    <p className="text-[10px] font-black text-primary uppercase tracking-tighter mt-0.5">{log.adminEmail}</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+                                            <Clock className="w-3 h-3" /> {formatLogDate(log.createdAt)}
+                                        </div>
+                                    </div>
+                                    <div className="p-3 bg-slate-50 rounded-xl space-y-1">
+                                        {Object.entries(log.details || {}).map(([key, value]) => (
+                                            <div key={key} className="flex items-center gap-2">
+                                                <span className="text-[10px] font-extrabold text-slate-400 uppercase min-w-[80px]">{key}:</span>
+                                                <span className="text-xs font-semibold text-slate-600 truncate">{String(value)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+
+                    {/* TABLE VIEW - Desktop (>= 1200px) */}
+                    <div className="hidden min-[1200px]:block overflow-x-auto">
                         <Table>
                             <TableHeader className="bg-slate-50/50">
                                 <TableRow className="hover:bg-transparent border-slate-100">

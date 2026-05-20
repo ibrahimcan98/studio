@@ -64,6 +64,7 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { SetPinDialog } from '@/components/child-mode/set-pin-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import {
     Tooltip,
@@ -71,7 +72,7 @@ import {
     TooltipTrigger,
     TooltipContent,
 } from "@/components/ui/tooltip"
-import { collection, doc, deleteDoc, updateDoc, query, where, getDocs, writeBatch, increment, arrayUnion } from 'firebase/firestore';
+import { collection, doc, deleteDoc, updateDoc, query, where, getDocs, writeBatch, increment, arrayUnion, addDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { ProgressPanel } from '@/components/shared/progress-panel';
 import { cn } from '@/lib/utils';
@@ -148,7 +149,7 @@ function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUp
                 </div>
             </div>
 
-            <div className='w-full space-y-4 pt-6'>
+            <div className='w-full flex-1 flex flex-col space-y-4 pt-6'>
 
                 <div className='flex justify-between items-center relative'>
                     <span className='text-slate-500 font-medium text-[15px]'>Kalan Ders:</span>
@@ -196,7 +197,7 @@ function ChildCard({ child, isPremium, currentLives, onDelete, userId, onChildUp
                 )}
 
                 {!isProfileIncomplete && (
-                    <div className="pt-3 flex items-center justify-center gap-3">
+                    <div className="pt-3 flex flex-wrap items-center justify-center gap-2 mt-auto">
                         {child.assignedPackage && child.remainingLessons > 0 ? (
                             <Button asChild className="h-10 px-5 text-[13px] font-bold rounded-xl shadow-sm bg-[#4CAF50] text-white hover:bg-[#388E3C] w-auto" variant="default" onClick={(e) => e.stopPropagation()}>
                                 <Link href={`/ebeveyn-portali/ders-planla?childId=${child.id}`}>
@@ -289,6 +290,10 @@ function EbeveynPortaliContent() {
     const [selectedReportChild, setSelectedReportChild] = useState<any | null>(null);
     const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
     const [activeManualNotif, setActiveManualNotif] = useState<any | null>(null);
+    const [isGiftPopupOpen, setIsGiftPopupOpen] = useState(false);
+    const [activeGift, setActiveGift] = useState<any>(null);
+    const [selectedChildForGift, setSelectedChildForGift] = useState<string>('');
+    const [isAssigning, setIsAssigning] = useState(false);
 
     // Note: Manual announcement Firestore checking removed as requested.
 
@@ -416,6 +421,66 @@ function EbeveynPortaliContent() {
             }
         }
     }, [dbNotifications]);
+
+    useEffect(() => {
+        if (userData?.referralGifts && Array.isArray(userData.referralGifts)) {
+            const unassignedGift = userData.referralGifts.find((g: any) => g.assigned === false);
+            if (unassignedGift && !isGiftPopupOpen) {
+                setActiveGift(unassignedGift);
+                setIsGiftPopupOpen(true);
+            }
+        }
+    }, [userData?.referralGifts, isGiftPopupOpen]);
+
+    const handleAssignGift = async () => {
+        if (!activeGift || !selectedChildForGift || !db || !user?.uid) return;
+        setIsAssigning(true);
+        try {
+            const childDocRef = doc(db, 'users', user.uid, 'children', selectedChildForGift);
+            const userDocRef = doc(db, 'users', user.uid);
+            
+            // 1. Update child's lessons
+            await updateDoc(childDocRef, {
+                remainingLessons: increment(1)
+            });
+            
+            // 2. Update the gift record in array
+            const updatedGifts = userData.referralGifts.map((g: any) => {
+                if (g.id === activeGift.id) {
+                    return { ...g, assigned: true };
+                }
+                return g;
+            });
+            
+            await updateDoc(userDocRef, { referralGifts: updatedGifts });
+            
+            // 3. Log to activity-log for admin audit
+            await addDoc(collection(db, 'activity-log'), {
+                event: 'Hediye Ders Tanımlandı',
+                adminEmail: 'Sistem',
+                details: {
+                    parentEmail: user.email,
+                    parentId: user.uid,
+                    childId: selectedChildForGift,
+                    giftId: activeGift.id,
+                    from: activeGift.from,
+                    courseName: activeGift.courseName
+                },
+                createdAt: new Date(),
+                icon: '🎁'
+            });
+            
+            toast({ title: 'Başarılı!', description: 'Hediye ders çocuğunuza tanımlandı.', className: 'bg-green-600 text-white' });
+            setIsGiftPopupOpen(false);
+            setActiveGift(null);
+            setSelectedChildForGift('');
+        } catch (e) {
+            console.error(e);
+            toast({ variant: 'destructive', title: 'Hata', description: 'İşlem sırasında bir hata oluştu.' });
+        } finally {
+            setIsAssigning(false);
+        }
+    };
 
     useEffect(() => {
         if (searchParams.get('cancelled') === 'true') {
@@ -746,6 +811,52 @@ function EbeveynPortaliContent() {
                 </DialogContent>
             </Dialog>
 
+                <AlertDialog open={isGiftPopupOpen} onOpenChange={setIsGiftPopupOpen}>
+                    <AlertDialogContent className="rounded-[24px] border-none shadow-2xl bg-white">
+                        <AlertDialogHeader className="items-center text-center space-y-4">
+                            <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center">
+                                <Gift className="w-8 h-8 text-emerald-500" />
+                            </div>
+                            <div>
+                                <AlertDialogTitle className="text-2xl font-black text-slate-900">Hediye Dersiniz Var! 🎉</AlertDialogTitle>
+                                <AlertDialogDescription className="text-base text-slate-500 font-medium mt-2">
+                                    <span className="font-bold text-slate-700">{activeGift?.from}</span> katılımıyla <span className="font-bold text-emerald-600">+1 ders</span> kazandınız! Hangi çocuğunuza eklemek istersiniz?
+                                </AlertDialogDescription>
+                            </div>
+                        </AlertDialogHeader>
+
+                        <div className="py-4 space-y-3">
+                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Öğrenci Seçin</label>
+                            <Select value={selectedChildForGift} onValueChange={setSelectedChildForGift}>
+                                <SelectTrigger className="h-14 rounded-2xl border-2 border-slate-100 bg-white font-bold text-base shadow-sm focus:ring-emerald-500 focus:border-emerald-500 transition-all">
+                                    <SelectValue placeholder="Bir öğrenci seçin..." />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-2xl border-none shadow-2xl p-2">
+                                    {children?.map((child: any) => (
+                                        <SelectItem key={child.id} value={child.id} className="font-bold py-3 rounded-xl focus:bg-emerald-50 focus:text-emerald-700">
+                                            {child.firstName}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <AlertDialogFooter className="flex-col sm:flex-col gap-2">
+                            <Button 
+                                className="w-full h-14 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 font-black text-base rounded-2xl shadow-xl shadow-emerald-100 text-white border-none transition-all active:scale-95" 
+                                onClick={handleAssignGift} 
+                                disabled={isAssigning || !selectedChildForGift}
+                            >
+                                {isAssigning ? <Loader2 className="animate-spin mr-2" /> : <Gift className="mr-2 w-5 h-5" />} 
+                                DERSI EKLE
+                            </Button>
+                            <Button variant="ghost" className="w-full h-12 font-bold text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-2xl text-sm" onClick={() => setIsGiftPopupOpen(false)}>
+                                Daha Sonra
+                            </Button>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card className="p-6 bg-gradient-to-br from-green-100 to-teal-100 border-green-200 hover:shadow-lg transition-all cursor-pointer group rounded-2xl" onClick={() => router.push('/ebeveyn-portali/paketlerim')}>
                     <h3 className="text-xl font-black flex items-center gap-2 text-slate-800"><Package className="text-green-600 group-hover:scale-110 transition-transform" /> Kurslarım</h3>
@@ -760,14 +871,12 @@ function EbeveynPortaliContent() {
                 </Card>
 
                 {user?.email === 'ibrahimcanonder_98@hotmail.com' && children && children.length > 0 && (
-                  <SetPinDialog childId={children[0].id}>
-                    <Card className="p-6 bg-gradient-to-br from-yellow-100 to-orange-100 border-yellow-200 hover:shadow-lg transition-all cursor-pointer group border-2 border-dashed border-orange-300 relative">
+                    <Card className="p-6 bg-gradient-to-br from-yellow-100 to-orange-100 border-yellow-200 hover:shadow-lg transition-all cursor-pointer group border-2 border-dashed border-orange-300 relative" onClick={() => router.push('/cocuk-modu')}>
                       <div className="absolute -top-2 -right-2 bg-orange-500 text-white text-[10px] font-black px-2 py-1 rounded-full animate-bounce z-10">YENİ AI</div>
                       <h3 className="text-xl font-black flex items-center gap-2 text-slate-800"><MonitorPlay className="text-orange-600 group-hover:scale-110 transition-transform"/> Çocuk Modu</h3>
                       <p className="text-xs text-slate-600 mt-2 font-medium">AI Destekli Yeni Oyun Platformu (Sadece Siz)</p>
                       <ArrowRight className="mt-4 text-orange-600 group-hover:translate-x-2 transition-transform" />
                     </Card>
-                  </SetPinDialog>
                 )}
 
                 <Card 
@@ -818,7 +927,7 @@ function EbeveynPortaliContent() {
                         <Button className="rounded-xl font-black text-xs uppercase tracking-widest"><Plus className="mr-2 h-4 w-4" /> Çocuk Ekle</Button>
                     </AddChildForm>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 min-[992px]:grid-cols-3 min-[1200px]:grid-cols-4 gap-6">
                     {childrenWithEffect?.map(child => (
                         <ChildCard
                             key={child.id}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { 
     collection, 
@@ -90,9 +90,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from '@/hooks/use-toast';
 import { format, addMinutes, isAfter, isSameDay } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { getCourseByCode, COURSES } from '@/data/courses';
+import { sendAdminLessonActionEmails } from '@/lib/email-service';
 import { Label } from "@/components/ui/label";
 
 const getCourseDetailsFromPackageCode = (code: string) => {
@@ -334,6 +336,26 @@ export default function AdminDerslerPage() {
         return { upcomingLessons: upcoming, completedLessons: completed };
     }, [filteredLessons, currentTime]);
 
+    const groupedUpcomingByMonth = useMemo(() => {
+        const groups: { [month: string]: any[] } = {};
+        upcomingLessons.forEach(lesson => {
+            const month = format(lesson.startDateTime, 'MMMM yyyy', { locale: tr });
+            if (!groups[month]) groups[month] = [];
+            groups[month].push(lesson);
+        });
+        return groups;
+    }, [upcomingLessons]);
+
+    const groupedCompletedByMonth = useMemo(() => {
+        const groups: { [month: string]: any[] } = {};
+        completedLessons.forEach(lesson => {
+            const month = format(lesson.startDateTime, 'MMMM yyyy', { locale: tr });
+            if (!groups[month]) groups[month] = [];
+            groups[month].push(lesson);
+        });
+        return groups;
+    }, [completedLessons]);
+
     // Handlers
     const handleCancelLesson = async () => {
         if (!db || !lessonToCancel || !lessonToCancel.slotIds) return;
@@ -388,6 +410,27 @@ export default function AdminDerslerPage() {
             });
             
             await batch.commit();
+
+            // Notify via email (Admin action)
+            try {
+                const parent = users?.find(u => u.uid === lessonToCancel.bookedBy);
+                const teacher = users?.find(u => u.uid === lessonToCancel.teacherId);
+                
+                await sendAdminLessonActionEmails('cancelled', {
+                    studentName: lessonToCancel.studentName || '-',
+                    teacherName: lessonToCancel.teacherName || '-',
+                    teacherFirestoreEmail: teacher?.email || undefined,
+                    parentEmail: parent?.email || undefined,
+                    date: format(lessonToCancel.startDateTime, 'dd MMMM yyyy', { locale: tr }),
+                    time: format(lessonToCancel.startDateTime, 'HH:mm', { locale: tr }),
+                    parentDate: parent?.timezone ? formatInTimeZone(lessonToCancel.startDateTime, parent.timezone, 'dd MMMM yyyy', { locale: tr }) : undefined,
+                    parentTime: parent?.timezone ? formatInTimeZone(lessonToCancel.startDateTime, parent.timezone, 'HH:mm', { locale: tr }) : undefined,
+                    isTrial: lessonToCancel.isTrial,
+                });
+            } catch (err) {
+                console.error("Admin cancel email error:", err);
+            }
+
             toast({ title: 'Ders İptal Edildi', description: `${lessonToCancel.duration} dakikalık oturum başarıyla iptal edildi ve hak iadesi yapıldı.` });
             refetchLessons();
         } catch (e) {
@@ -545,74 +588,28 @@ export default function AdminDerslerPage() {
 
             await batch.commit();
 
-            // Notify via Email & Push (Non-blocking)
+            // Notify via Email (Non-blocking)
             const handleNotifications = async () => {
                 try {
                     const parent = users?.find(u => u.uid === parentId);
                     const teacher = users?.find(u => u.uid === selectedTeacherId);
                     const childName = childInfo?.firstName || '-';
-                    const lessonTime = format(startTime, 'dd MMMM yyyy, HH:mm', { locale: tr });
                     const details = getCourseDetailsFromPackageCode(packageCode);
 
-                    // 1. Send Email to Parent
-                    if (parent?.email) {
-                        fetch('/api/emails/send', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                to: parent.email,
-                                subject: 'Yeni Dersiniz Planlandı',
-                                templateName: 'lesson-planned',
-                                data: {
-                                    studentName: childName,
-                                    teacherName: `${teacher?.firstName} ${teacher?.lastName || ''}`,
-                                    courseName: details?.courseName || 'Akademik Ders',
-                                    duration: details?.duration || 45,
-                                    date: format(startTime, 'dd MMMM yyyy', { locale: tr }),
-                                    time: format(startTime, 'HH:mm', { locale: tr }),
-                                    startTime: startTime.toISOString(),
-                                    role: 'parent'
-                                }
-                            })
-                        }).catch(e => console.error("Parent email error:", e));
-                    }
-
-                    // 2. Send Email to Teacher
-                    if (teacher?.email) {
-                        fetch('/api/emails/send', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                to: teacher.email,
-                                subject: 'Yeni Bir Dersiniz Var',
-                                templateName: 'lesson-planned',
-                                data: {
-                                    studentName: childName,
-                                    teacherName: `${teacher?.firstName} ${teacher?.lastName || ''}`,
-                                    courseName: details?.courseName || 'Akademik Ders',
-                                    duration: details?.duration || 45,
-                                    date: format(startTime, 'dd MMMM yyyy', { locale: tr }),
-                                    time: format(startTime, 'HH:mm', { locale: tr }),
-                                    startTime: startTime.toISOString(),
-                                    role: 'teacher'
-                                }
-                            })
-                        }).catch(e => console.error("Teacher email error:", e));
-                    }
-
-                    // 3. Push Notification to Parent
-                    if (parentId) {
-                        fetch('/api/notify/user', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                userId: parentId,
-                                title: '📅 Yeni Ders Atandı',
-                                body: `${childName} için ${lessonTime} saatine bir ders atandı. Keyifli dersler dileriz! ✨`,
-                                link: '/ebeveyn-portali/derslerim'
-                            })
-                        }).catch(console.error);
-                    }
+                    await sendAdminLessonActionEmails('planned', {
+                        studentName: childName,
+                        teacherName: `${teacher?.firstName} ${teacher?.lastName || ''}`,
+                        teacherFirestoreEmail: teacher?.email || undefined,
+                        parentEmail: parent?.email || undefined,
+                        courseName: details?.courseName || 'Akademik Ders',
+                        duration: details?.duration || 45,
+                        date: format(startTime, 'dd MMMM yyyy', { locale: tr }),
+                        time: format(startTime, 'HH:mm', { locale: tr }),
+                        parentDate: parent?.timezone ? formatInTimeZone(startTime, parent.timezone, 'dd MMMM yyyy', { locale: tr }) : undefined,
+                        parentTime: parent?.timezone ? formatInTimeZone(startTime, parent.timezone, 'HH:mm', { locale: tr }) : undefined,
+                        startTime: startTime.toISOString(),
+                        isTrial: packageCode === 'FREE_TRIAL',
+                    });
                 } catch (err) {
                     console.error("Manual assignment notification error:", err);
                 }
@@ -705,25 +702,34 @@ export default function AdminDerslerPage() {
                         </CardHeader>
                         <CardContent className="p-0">
                             {/* MOBILE LIST */}
-                            <div className="md:hidden divide-y divide-slate-100">
+                            <div className="min-[1200px]:hidden divide-y divide-slate-100">
                                 {upcomingLessons.length === 0 ? (
                                     <div className="p-10 text-center text-slate-400 italic text-xs uppercase tracking-widest font-bold">Yaklaşan ders bulunmuyor.</div>
-                                ) : upcomingLessons.map((lesson, idx) => (
-                                    <LessonCard 
-                                        key={lesson.id || idx} 
-                                        lesson={lesson} 
-                                        currentTime={currentTime} 
-                                        onCancel={() => setLessonToCancel(lesson)} 
-                                        onShowFeedback={(fb) => {
-                                            setSelectedFeedback(fb);
-                                            setIsFeedbackDialogOpen(true);
-                                        }}
-                                    />
+                                ) : Object.entries(groupedUpcomingByMonth).map(([month, lessons]) => (
+                                    <div key={month} className="space-y-0">
+                                        <div className="bg-slate-50/80 px-4 py-2 border-y border-slate-100 sticky top-0 z-10 backdrop-blur-sm">
+                                            <span className="text-[10px] font-black text-primary uppercase tracking-widest">{month}</span>
+                                        </div>
+                                        <div className="divide-y divide-slate-100">
+                                            {lessons.map((lesson, idx) => (
+                                                <LessonCard 
+                                                    key={lesson.id || idx} 
+                                                    lesson={lesson} 
+                                                    currentTime={currentTime} 
+                                                    onCancel={() => setLessonToCancel(lesson)} 
+                                                    onShowFeedback={(fb) => {
+                                                        setSelectedFeedback(fb);
+                                                        setIsFeedbackDialogOpen(true);
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
 
                             {/* DESKTOP TABLE */}
-                            <div className="hidden md:block">
+                            <div className="hidden min-[1200px]:block">
                                 <Table>
                                     <TableHeader>
                                         <TableRow className="bg-slate-50/50 hover:bg-slate-50/50 border-b">
@@ -736,17 +742,30 @@ export default function AdminDerslerPage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {upcomingLessons.map((lesson, idx) => (
-                                            <LessonRow 
-                                                key={lesson.id || idx} 
-                                                lesson={lesson} 
-                                                currentTime={currentTime} 
-                                                onCancel={() => setLessonToCancel(lesson)}
-                                                onShowFeedback={(fb) => {
-                                                    setSelectedFeedback(fb);
-                                                    setIsFeedbackDialogOpen(true);
-                                                }}
-                                            />
+                                        {upcomingLessons.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell colSpan={6} className="h-24 text-center text-slate-400 font-medium italic">Yaklaşan ders bulunmuyor.</TableCell>
+                                            </TableRow>
+                                        ) : Object.entries(groupedUpcomingByMonth).map(([month, lessons]) => (
+                                            <React.Fragment key={month}>
+                                                <TableRow className="bg-slate-50/30 hover:bg-slate-50/30 border-y">
+                                                    <TableCell colSpan={6} className="py-2 px-6">
+                                                        <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/5 px-2 py-0.5 rounded">{month}</span>
+                                                    </TableCell>
+                                                </TableRow>
+                                                {lessons.map((lesson, idx) => (
+                                                    <LessonRow 
+                                                        key={lesson.id || idx} 
+                                                        lesson={lesson} 
+                                                        currentTime={currentTime} 
+                                                        onCancel={() => setLessonToCancel(lesson)}
+                                                        onShowFeedback={(fb) => {
+                                                            setSelectedFeedback(fb);
+                                                            setIsFeedbackDialogOpen(true);
+                                                        }}
+                                                    />
+                                                ))}
+                                            </React.Fragment>
                                         ))}
                                     </TableBody>
                                 </Table>
@@ -773,25 +792,34 @@ export default function AdminDerslerPage() {
                         </CardHeader>
                         <CardContent className="p-0">
                              {/* MOBILE LIST */}
-                                    <div className="md:hidden divide-y divide-slate-100">
+                                    <div className="min-[1200px]:hidden divide-y divide-slate-100">
                                 {completedLessons.length === 0 ? (
                                     <div className="p-10 text-center text-slate-400 italic text-xs uppercase tracking-widest font-bold">Tamamlanmış ders bulunmuyor.</div>
-                                ) : completedLessons.map((lesson, idx) => (
-                                    <LessonCard 
-                                        key={lesson.id || idx} 
-                                        lesson={lesson} 
-                                        currentTime={currentTime} 
-                                        onCancel={() => setLessonToCancel(lesson)} 
-                                        onShowFeedback={(fb) => {
-                                            setSelectedFeedback(fb);
-                                            setIsFeedbackDialogOpen(true);
-                                        }}
-                                    />
+                                ) : Object.entries(groupedCompletedByMonth).map(([month, lessons]) => (
+                                    <div key={month} className="space-y-0">
+                                        <div className="bg-slate-50/80 px-4 py-2 border-y border-slate-100 sticky top-0 z-10 backdrop-blur-sm">
+                                            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{month}</span>
+                                        </div>
+                                        <div className="divide-y divide-slate-100">
+                                            {lessons.map((lesson, idx) => (
+                                                <LessonCard 
+                                                    key={lesson.id || idx} 
+                                                    lesson={lesson} 
+                                                    currentTime={currentTime} 
+                                                    onCancel={() => setLessonToCancel(lesson)} 
+                                                    onShowFeedback={(fb) => {
+                                                        setSelectedFeedback(fb);
+                                                        setIsFeedbackDialogOpen(true);
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
 
                             {/* DESKTOP TABLE */}
-                            <div className="hidden md:block">
+                            <div className="hidden min-[1200px]:block">
                                 <Table>
                                     <TableHeader>
                                         <TableRow className="bg-slate-50/50 hover:bg-slate-50/50 border-b">
@@ -804,17 +832,30 @@ export default function AdminDerslerPage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {completedLessons.map((lesson, idx) => (
-                                            <LessonRow 
-                                                key={lesson.id || idx} 
-                                                lesson={lesson} 
-                                                currentTime={currentTime} 
-                                                onCancel={() => setLessonToCancel(lesson)} 
-                                                onShowFeedback={(fb) => {
-                                                    setSelectedFeedback(fb);
-                                                    setIsFeedbackDialogOpen(true);
-                                                }}
-                                            />
+                                        {completedLessons.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell colSpan={6} className="h-24 text-center text-slate-400 font-medium italic">Tamamlanmış ders bulunmuyor.</TableCell>
+                                            </TableRow>
+                                        ) : Object.entries(groupedCompletedByMonth).map(([month, lessons]) => (
+                                            <React.Fragment key={month}>
+                                                <TableRow className="bg-slate-50/30 hover:bg-slate-50/30 border-y">
+                                                    <TableCell colSpan={6} className="py-2 px-6">
+                                                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded">{month}</span>
+                                                    </TableCell>
+                                                </TableRow>
+                                                {lessons.map((lesson, idx) => (
+                                                    <LessonRow 
+                                                        key={lesson.id || idx} 
+                                                        lesson={lesson} 
+                                                        currentTime={currentTime} 
+                                                        onCancel={() => setLessonToCancel(lesson)} 
+                                                        onShowFeedback={(fb) => {
+                                                            setSelectedFeedback(fb);
+                                                            setIsFeedbackDialogOpen(true);
+                                                        }}
+                                                    />
+                                                ))}
+                                            </React.Fragment>
                                         ))}
                                     </TableBody>
                                 </Table>

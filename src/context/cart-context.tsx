@@ -239,6 +239,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             itemDiscount += (item.price * item.quantity * referralDiscountPct);
         }
         
+        // İndirim, ürünün kendi fiyatını aşamaz (Negatif fiyatı engellemek için)
+        itemDiscount = Math.min(itemDiscount, item.price * item.quantity);
+        
         return total + itemDiscount;
     }, 0);
 

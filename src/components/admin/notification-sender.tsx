@@ -150,7 +150,7 @@ export function NotificationSender() {
       </CardHeader>
       <CardContent className="p-8 space-y-8">
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 min-[1200px]:grid-cols-2 gap-8">
           <div className="space-y-6">
             {/* Audience Selection */}
             <div className="space-y-3">

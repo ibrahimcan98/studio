@@ -29,6 +29,7 @@ import {
     AlertDialogTrigger 
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
+import { sendLessonCancelledEmails } from '@/lib/email-service';
 
 const getCourseDetailsFromPackageCode = (code?: string) => {
     if (!code) return null;
@@ -115,9 +116,10 @@ function CancellationButtons({ lesson, timeZone }: { lesson: any, timeZone: stri
 
             // Store in Activity Log (Frontend side for auth)
             addDoc(collection(db, 'activity-log'), {
-                event: '❌ Ders İptal Edildi',
-                icon: '❌',
+                event: '❌ Ders İptal Edildi (Veli)',
+                icon: '👨‍👩‍👧',
                 details: {
+                    'İptal Eden': 'Veli',
                     'Öğrenci': lesson.childName || lesson.childId || '-',
                     'Ders Saati': lessonTimeFormatted,
                     'Ders Türü': lesson.packageCode || '-',
@@ -125,96 +127,24 @@ function CancellationButtons({ lesson, timeZone }: { lesson: any, timeZone: stri
                 createdAt: Timestamp.fromDate(new Date())
             }).catch(console.error);
 
-            // Email Notification (Resend)
-            const teacherSnap = await getDocs(query(collection(db, 'users'), where('uid', '==', lesson.teacherId)));
-            const teacherData = teacherSnap.docs[0]?.data();
-            const teacherEmail = teacherData?.email;
-
-            if (teacherEmail || user.email) {
-                const commonEmailData = {
-                    studentName: lesson.childName || 'Öğrenci',
-                    teacherName: teacherData?.firstName + ' ' + teacherData?.lastName || 'Eğitmen',
-                };
-
-                const parentEmailData = {
-                    ...commonEmailData,
-                    date: formatInTimeZone(startTime, timeZone, 'dd MMMM yyyy', { locale: tr }),
-                    time: formatInTimeZone(startTime, timeZone, 'HH:mm', { locale: tr }),
-                    role: 'parent' as const,
-                };
-
-                const teacherEmailData = {
-                    ...commonEmailData,
-                    date: formatInTimeZone(startTime, 'Europe/Istanbul', 'dd MMMM yyyy', { locale: tr }),
-                    time: formatInTimeZone(startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr }),
-                    role: 'teacher' as const,
-                };
-
-                // Send to Parent
-                if (user.email) {
-                    fetch('/api/emails/send', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            to: user.email,
-                            subject: 'Ders İptal Onayı',
-                            templateName: 'lesson-cancelled',
-                            data: parentEmailData
-                        })
-                    }).catch(console.error);
-                }
-
-                // Send to Teacher
-                if (teacherEmail) {
-                    fetch('/api/emails/send', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            to: teacherEmail,
-                            subject: 'Bir Dersiniz İptal Edildi',
-                            templateName: 'lesson-cancelled',
-                            data: teacherEmailData
-                        })
-                    }).catch(console.error);
-                }
-            }
-
-            // Admin notification (Push + Email if trial)
+            // ─── E-posta Bildirimleri (Merkezi Servis) ───────────────
+            const teacherSnap2 = await getDocs(query(collection(db, 'users'), where('uid', '==', lesson.teacherId)));
+            const teacherData = teacherSnap2.docs[0]?.data();
+            const teacherFullName = teacherData?.firstName && teacherData?.lastName
+                ? `${teacherData.firstName} ${teacherData.lastName}`
+                : (teacherData?.firstName || 'Eğitmen');
             const isTrial = lesson.packageCode === 'FREE_TRIAL';
-            fetch('/api/notify/admin', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    title: isTrial ? '🚨 Deneme Dersi İptal Edildi' : '❌ Ders İptal Edildi',
-                    body: `${lesson.childName || 'Öğrenci'} için ${lessonTimeFormatted} saatindeki ders veli tarafından iptal edildi.`,
-                    link: '/yonetici/dersler',
-                    sendEmail: isTrial,
-                    logData: {
-                        icon: '❌',
-                        event: isTrial ? 'Deneme Dersi İptali' : 'Ders İptali',
-                        details: {
-                            studentName: lesson.childName || 'Öğrenci',
-                            teacherName: teacherData?.firstName + ' ' + teacherData?.lastName || 'Öğretmen',
-                            date: formatInTimeZone(startTime, 'Europe/Istanbul', 'dd MMMM yyyy', { locale: tr }),
-                            time: formatInTimeZone(startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr }),
-                            isTrial: isTrial
-                        }
-                    }
-                })
-            }).catch(console.error);
 
-            // Notify Admin (Email - existing legacy)
-            fetch('/api/notify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    event: '❌ Ders İptal Edildi',
-                    details: {
-                        'Öğrenci': lesson.childName || lesson.childId || '-',
-                        'Ders Saati': lessonTimeFormatted,
-                        'Ders Türü': lesson.packageCode || '-',
-                    }
-                })
+            sendLessonCancelledEmails({
+                studentName: lesson.childName || 'Öğrenci',
+                teacherName: teacherFullName,
+                teacherFirestoreEmail: teacherData?.email,
+                parentEmail: user.email || undefined,
+                date: formatInTimeZone(startTime, 'Europe/Istanbul', 'dd MMMM yyyy', { locale: tr }),
+                time: formatInTimeZone(startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr }),
+                parentDate: formatInTimeZone(startTime, timeZone, 'dd MMMM yyyy', { locale: tr }),
+                parentTime: formatInTimeZone(startTime, timeZone, 'HH:mm', { locale: tr }),
+                isTrial,
             }).catch(console.error);
             toast({ title: 'Ders İptal Edildi', description: 'Ders krediniz iade edildi.', className: 'bg-green-500 text-white' });
         } catch (error) {
@@ -490,24 +420,39 @@ export default function DerslerimPage() {
             };
         });
     }, [lessonSlots]);
-    
     const { upcomingLessons, pastLessons } = useMemo(() => {
-        const now = new Date();
         const upcoming: any[] = [];
         const past: any[] = [];
-        groupedLessons.forEach(lesson => {
-            if (lesson.status === 'cancelled') {
-                past.push(lesson); // Show cancelled in past tab even if start time is future, or you can keep it in upcoming
-            } else if (lesson.endTime > now) {
-                upcoming.push(lesson);
-            } else {
+        const now = new Date();
+        groupedLessons.forEach((lesson: any) => {
+            if (lesson.endTime < now) {
                 past.push(lesson);
+            } else {
+                upcoming.push(lesson);
             }
         });
-        upcoming.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
-        past.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
         return { upcomingLessons: upcoming, pastLessons: past };
     }, [groupedLessons]);
+
+    const groupedUpcomingByMonth = useMemo(() => {
+        const groups: { [month: string]: any[] } = {};
+        upcomingLessons.forEach(lesson => {
+            const month = formatInTimeZone(lesson.startTime, timeZone, 'MMMM yyyy', { locale: tr });
+            if (!groups[month]) groups[month] = [];
+            groups[month].push(lesson);
+        });
+        return groups;
+    }, [upcomingLessons, timeZone]);
+
+    const groupedPastByMonth = useMemo(() => {
+        const groups: { [month: string]: any[] } = {};
+        pastLessons.forEach(lesson => {
+            const month = formatInTimeZone(lesson.startTime, timeZone, 'MMMM yyyy', { locale: tr });
+            if (!groups[month]) groups[month] = [];
+            groups[month].push(lesson);
+        });
+        return groups;
+    }, [pastLessons, timeZone]);
 
     const handleShowProgress = (lesson: any) => {
         setSelectedLesson(lesson);
@@ -541,16 +486,44 @@ export default function DerslerimPage() {
                     <TabsTrigger value="past"><History className="mr-2 h-4 w-4" />Geçmiş Dersler ({pastLessons.length})</TabsTrigger>
                 </TabsList>
                 <TabsContent value="upcoming">
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mt-4">
-                        {upcomingLessons.map(lesson => <LessonCard key={lesson.id} lesson={lesson} timeZone={timeZone} onShowProgress={handleShowProgress} />)}
-                        {upcomingLessons.length === 0 && <div className="col-span-full text-center py-20 bg-white rounded-xl border border-dashed text-muted-foreground">Henüz planlanmış bir dersiniz bulunmuyor.</div>}
-                    </div>
+                    {upcomingLessons.length === 0 ? (
+                        <div className="col-span-full text-center py-20 bg-white rounded-xl border border-dashed text-muted-foreground mt-4">Henüz planlanmış bir dersiniz bulunmuyor.</div>
+                    ) : (
+                        <div className="space-y-8 mt-4">
+                            {Object.entries(groupedUpcomingByMonth).map(([month, lessons]) => (
+                                <div key={month} className="space-y-4">
+                                    <h3 className="text-sm font-black text-primary uppercase tracking-widest flex items-center gap-2">
+                                        <div className="h-px bg-primary/20 flex-1" />
+                                        {month}
+                                        <div className="h-px bg-primary/20 flex-1" />
+                                    </h3>
+                                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                                        {lessons.map(lesson => <LessonCard key={lesson.id} lesson={lesson} timeZone={timeZone} onShowProgress={handleShowProgress} />)}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </TabsContent>
                 <TabsContent value="past">
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mt-4">
-                        {pastLessons.map(lesson => <LessonCard key={lesson.id} lesson={lesson} timeZone={timeZone} onShowProgress={handleShowProgress} />)}
-                        {pastLessons.length === 0 && <div className="col-span-full text-center py-20 bg-white rounded-xl border border-dashed text-muted-foreground">Henüz tamamlanmış bir dersiniz bulunmuyor.</div>}
-                    </div>
+                    {pastLessons.length === 0 ? (
+                        <div className="col-span-full text-center py-20 bg-white rounded-xl border border-dashed text-muted-foreground mt-4">Henüz tamamlanmış bir dersiniz bulunmuyor.</div>
+                    ) : (
+                        <div className="space-y-8 mt-4">
+                            {Object.entries(groupedPastByMonth).map(([month, lessons]) => (
+                                <div key={month} className="space-y-4">
+                                    <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                        <div className="h-px bg-slate-200 flex-1" />
+                                        {month}
+                                        <div className="h-px bg-slate-200 flex-1" />
+                                    </h3>
+                                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                                        {lessons.map(lesson => <LessonCard key={lesson.id} lesson={lesson} timeZone={timeZone} onShowProgress={handleShowProgress} />)}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </TabsContent>
             </Tabs>
 
@@ -569,7 +542,13 @@ export default function DerslerimPage() {
                         {isChildDataLoading || !selectedChildData || !selectedLesson ? (
                             <div className="flex h-64 items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>
                         ) : (
-                            <ProgressPanel child={selectedChildData} lessonId={selectedLesson.id} isEditable={false} authorRole="parent" />
+                            <ProgressPanel 
+                                child={selectedChildData} 
+                                parentId={user.uid}
+                                lessonId={selectedLesson.id} 
+                                isEditable={false} 
+                                authorRole="parent" 
+                            />
                         )}
                     </div>
                 </DialogContent>

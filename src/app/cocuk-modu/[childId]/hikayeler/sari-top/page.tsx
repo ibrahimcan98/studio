@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
-import { Loader2, ChevronLeft, ChevronRight, X, Volume2, BookOpen, Brain } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, X, Volume2, BookOpen, Brain, Smartphone } from 'lucide-react';
 import Image from 'next/image';
 import useEmblaCarousel from 'embla-carousel-react';
 import { Button } from '@/components/ui/button';
@@ -30,16 +30,15 @@ const SOCIAL_BADGES = [
 ];
 
 // Örnek hikaye verisi (Daha sonra bir JSON'dan gelebilir)
-// Örnek hikaye verisi (Gerçek metinleri buraya eklemelisin)
 const storyContent = [
   { id: 1, image: "/hikayeler/1-sari-top/1.png", text: "Ela bahçede top oynuyordu. Bir yandan topunu havaya fırlatıp tutuyor, bir yandan da mutfaktaki pencereden gelen mis gibi tarçınlı kek kokusunu çekiyordu içine. Babası mutfakta ona taze bir bardak süt ve kek hazırlıyordu. Ela bir kez daha topunu var gücüyle yukarı fırlattı. Ancak top, beklenmedik bir hızla çitlerin arkasına yuvarlanıp gözden kayboldu." },
   { id: 2, image: "/hikayeler/1-sari-top/2.png", text: "Ela hemen çitlerin arasından baktı. Çitler, küçük birer geçit gibiydi. Dikkatlice arasından baktığında masmavi çiçeklerle dolu bir bahçe gördü. 'Topum burada mı acaba?' diye fısıldadı. Çiçeklerin arasında ağır ağır yürüdü, ancak topu orada bulamadı. Çiçekler rüzgarda usulca sallanıp Ela’ya 'burada değiliz' der gibi gülümsüyordu." },
-  { id: 3, image: "/hikayeler/1-sari-top/3.png", text: "Ela biraz daha ilerleyince büyük bir elma ağacının gölgesine ulaştı. Yerde kıpkırmızı, kocaman bir elma duruyordu. Güneşin altında pırıl pırıl parlıyordu. Ela heyecanla eğildi, 'Acaba topum bu mu?' diye düşündü. Dokunduğunda elmanın sert ve serin olduğunu fark etti. Topu değildi ama elma çok güzel kokuyordu. Ela, elmayı olduğu gibi bırakıp yoluna devam etti." },
+  { id: 3, image: "/hikayeler/1-sari-top/3.png", text: "Ela biraz daha ilerleyince büyük bir elma ağacının gölgesine ulaştı. Yerde kıpkırmızı, kocaman bir elma duruyordu. Güneşin altında pırıl pırıl parlıyordu. Ela heyecanla eğildi, 'Acaba topum bu mu?' diye düşündü. Dokunduğunda elmanın sert ve soğuk olduğunu fark etti. Topu o değildi ama elma çok güzel kokuyordu. Ela, elmayı olduğu gibi bırakıp yoluna devam etti." },
   { id: 4, image: "/hikayeler/1-sari-top/4.png", text: "Derken bir ses duydu: 'Vırak, vırak!' Bir nilüferin üzerinde yeşil, benekli bir kurbağa oturuyordu. Ela usulca yaklaştı, 'Kurbağa kardeş, sarı bir top gördün mü?' diye sordu. Kurbağa, büyük gözlerini kırpıştırıp bir anda suya atladı. 'Şıp!' diye bir ses çıktı ve suyun üzerinde halkalar oluştu. Ela, suyun sakinleşmesini beklemeden yoluna devam etti." },
-  { id: 5, image: "/hikayeler/1-sari-top/5.png", text: "Ela biraz ilerledikten sonra fındığını keyifle kemiren tüylü bir sincap gördü. Ela onu görünce durdu. Sincap fındığını bir kenara bırakıp patisiyle bir yönü işaret etti ve 'Sarı topun mu? Havada yükselip şu tarafa doğru gitti!' dedi. Ela, sincabın gösterdiği yöne doğru yola koyuldu." },
+  { id: 5, image: "/hikayeler/1-sari-top/5.png", text: "Ela biraz ilerledikten sonra fındığını keyifle kemiren tüylü bir sincap gördü. Sincap fındığını bir kenara bırakıp patisiyle bir yönü işaret etti ve 'Sarı topunu mu arıyorsun? Havada yükselip şu tarafa doğru gitti!' dedi. Ela, sincabın gösterdiği yöne doğru yola koyuldu." },
   { id: 6, image: "/hikayeler/1-sari-top/6.png", text: "Sincabın gösterdiği yönde yürürken nehrin kıyısında sarı bir şeyin parladığını gördü. 'İşte topum!' dedi ve heyecanla koştu. Eğilip elini uzattı ama parmaklarına çarpan şey yumuşaktı. Bu bir top değil, suya düşmüş sarı bir sonbahar yaprağıydı. Ela hafifçe gülümsedi; doğa sanki onunla saklambaç oynuyordu." },
-  { id: 7, image: "/hikayeler/1-sari-top/7.png", text: "Ela, yoluna devam etti ama artık çok yorulmuştu. Görkemli ve yaşlı bir ağacın altına oturdu. Sırtını kalın gövdeye yasladı, gözlerini kapattı. Babamın keki şimdi fırından çıkmıştır. diye düşündü. Tam o sırada, ağacın üst dallarından bir tık diye bir ses duydu." },
-  { id: 8, image: "/hikayeler/1-sari-top/8.png", text: "Ela başını yukarı kaldırdı. Ağacın en tepesindeki kuş yuvasının sağ tarafına sıkışmış sarı bir parıltı gördü. Topu, kuşlar tarafından yuvaya taşınmıştı! Ela, ağaca yavaşça tırmandı ve topunu nazikçe yuvadan aldı. Kuşlar neşeyle öttü." },
+  { id: 7, image: "/hikayeler/1-sari-top/7.png", text: "Ela, yoluna devam etti ama artık çok yorulmuştu. Görkemli ve yaşlı bir ağacın altına oturdu. Sırtını kalın gövdeye yasladı, gözlerini kapattı. 'Babamın keki şimdi fırından çıkmıştır...' diye düşündü. Tam o sırada, ağacın üst dallarından bir 'çıt' diye bir ses duydu." },
+  { id: 8, image: "/hikayeler/1-sari-top/8.png", text: "Ela başını yukarı kaldırdı. Ağacın en tepesindeki kuş yuvasının sağ tarafına sıkışmış sarı bir parıltı gördü. Topu, kuşlar tarafından yuvaya taşınmıştı! Ela ağaca yavaşça tırmandı ve topunu nazikçe yuvadan aldı. Kuşlar neşeyle öttü." },
   { id: 9, image: "/hikayeler/1-sari-top/9.png", text: "Ela topuna kavuşmuştu. Artık eve dönme vaktiydi; mutfaktan gelen o tatlı kek kokusu Ela'yı çoktan evine çağırıyordu." },
 ];
 
@@ -65,6 +64,21 @@ export default function SariTopPage() {
   const [newlyUnlockedBadge, setNewlyUnlockedBadge] = useState<any>(null);
   const [isQuizOpen, setIsQuizOpen] = useState(false);
   const completionTracked = useRef(false);
+  const [isPortrait, setIsPortrait] = useState(false);
+
+  useEffect(() => {
+    const mql = window.matchMedia("(orientation: portrait)");
+    setIsPortrait(mql.matches);
+    const handler = (e: MediaQueryListEvent) => setIsPortrait(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
+
+  useEffect(() => {
+    if (isPortrait) {
+      speak("Lütfen hikayeyi daha iyi görebilmek için tabletinizi yan çevirin.");
+    }
+  }, [isPortrait, speak]);
 
   // Firestore referansı
   const childDocRef = useMemoFirebase(() => {
@@ -180,26 +194,26 @@ export default function SariTopPage() {
 
   // Sayfa değiştiğinde SADECE OTOMATİK OYNATMA AÇIKSA seslendir
   useEffect(() => {
-    if (isAutoPlaying && storyContent[currentIndex]?.text) {
+    if (isAutoPlaying) {
       setLastPlayedIndex(currentIndex);
-      speak(storyContent[currentIndex].text, {
-        onStart: () => {
-          if (currentIndex < storyContent.length - 1) {
-            preload(storyContent[currentIndex + 1].text);
-          }
-        },
-        onEnd: () => {
-          if (isAutoPlaying && currentIndex < storyContent.length - 1) {
-            setTimeout(() => {
-              scrollNext();
-            }, 300);
-          } else if (currentIndex === storyContent.length - 1) {
-            setIsAutoPlaying(false);
-          }
-        }
-      });
+      speak(`/hikayeler/1-sari-top/${currentIndex + 1}.m4a`);
     }
-  }, [currentIndex, speak, preload, scrollNext]);
+  }, [currentIndex, isAutoPlaying, speak]);
+
+  // Otomatik Oynatma Mantığı (Sayfa Geçişi)
+  useEffect(() => {
+    if (isAutoPlaying && !isPlaying && hasStarted) {
+      const timer = setTimeout(() => {
+        if (currentIndex < storyContent.length - 1) {
+          scrollNext();
+        } else {
+          setIsAutoPlaying(false);
+        }
+      }, 2000); // Ses bittikten 2 saniye sonra geç
+
+      return () => clearTimeout(timer);
+    }
+  }, [isAutoPlaying, isPlaying, currentIndex, scrollNext, hasStarted]);
 
   // Otomatik oynatmayı başlat/durdur
   const toggleAutoPlay = () => {
@@ -215,7 +229,7 @@ export default function SariTopPage() {
         if (currentIndex === storyContent.length - 1 && lastPlayedIndex !== -1) {
           emblaApi?.scrollTo(0);
         } else {
-          speak(storyContent[currentIndex].text);
+          speak(`/hikayeler/1-sari-top/${currentIndex + 1}.m4a`);
           setLastPlayedIndex(currentIndex);
         }
       } else {
@@ -247,8 +261,8 @@ export default function SariTopPage() {
         />
       )}
       {/* Üst Bar */}
-      <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-50">
-        <div className="flex items-center">
+      <div className="absolute top-0 left-0 right-0 p-3 sm:p-6 grid grid-cols-3 items-center z-50">
+        <div className="flex justify-start">
           <Button
             variant="ghost"
             size="icon"
@@ -256,24 +270,26 @@ export default function SariTopPage() {
               stop();
               router.push(`/cocuk-modu/${childId}/hikayeler`);
             }}
-            className="bg-white/80 hover:bg-white rounded-2xl w-14 h-14 shadow-lg border-2 border-orange-200 text-orange-600"
+            className="bg-white/80 hover:bg-white rounded-2xl w-10 h-10 sm:w-14 sm:h-14 shadow-lg border-2 border-orange-200 text-orange-600"
           >
-            <X className="w-8 h-8" />
+            <X className="w-5 h-5 sm:w-8 sm:h-8" />
           </Button>
         </div>
 
-        {/* Ortadaki Başlık - Mutlak Konumlandırıldı */}
-        <div className="absolute left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-md px-8 py-3 rounded-3xl border-2 border-orange-200 shadow-lg flex items-center gap-3">
-          <BookOpen className="w-6 h-6 text-orange-500" />
-          <span className="text-xl font-black text-orange-800 uppercase italic">Sarı Top</span>
-          <span className="ml-4 text-orange-400 font-black">{currentIndex + 1} / {storyContent.length}</span>
+        {/* Ortadaki Başlık */}
+        <div className="flex justify-center">
+          <div className="bg-white/80 backdrop-blur-md px-3 py-1.5 sm:px-6 sm:py-3 rounded-2xl sm:rounded-3xl border-2 border-orange-200 shadow-lg flex items-center gap-1 sm:gap-2 whitespace-nowrap">
+            <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
+            <span className="text-xs sm:text-base font-black text-orange-800 uppercase italic">Sarı Top</span>
+            <span className="ml-1 text-orange-400 font-black text-xs sm:text-sm">{currentIndex + 1} / {storyContent.length}</span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex justify-end">
           <Button 
             onClick={toggleAutoPlay}
             className={cn(
-              "relative h-16 px-8 rounded-full border-4 shadow-2xl transition-all duration-500 group overflow-hidden",
+              "relative h-10 px-4 sm:h-16 sm:px-8 rounded-full border-2 sm:border-4 shadow-2xl transition-all duration-500 group overflow-hidden",
               isAutoPlaying 
                 ? "bg-gradient-to-r from-red-500 to-rose-600 border-red-200 text-white hover:scale-105 active:scale-95" 
                 : "bg-white border-orange-200 text-orange-600 hover:bg-orange-50 hover:scale-105 active:scale-95"
@@ -284,25 +300,25 @@ export default function SariTopPage() {
               <div className="absolute inset-0 bg-white/20 animate-pulse" />
             )}
             
-            <div className="relative z-10 flex items-center gap-3">
+            <div className="relative z-10 flex items-center gap-1 sm:gap-3">
               <div className={cn(
-                "p-2 rounded-xl transition-colors",
+                "p-1 sm:p-2 rounded-lg sm:rounded-xl transition-colors",
                 isAutoPlaying ? "bg-white/20" : "bg-orange-100"
               )}>
                 {isLoading ? (
-                  <Loader2 className="w-6 h-6 animate-spin" />
+                  <Loader2 className="w-4 h-4 sm:w-6 sm:h-6 animate-spin" />
                 ) : (
-                  <Volume2 className={cn("w-6 h-6", isPlaying && "animate-bounce")} />
+                  <Volume2 className={cn("w-4 h-4 sm:w-6 sm:h-6", isPlaying && "animate-bounce")} />
                 )}
               </div>
-              <span className="text-sm font-black uppercase tracking-wider">
+              <span className="text-xs sm:text-sm font-black uppercase tracking-wider">
                 {isLoading 
-                  ? "YÜKLENİYOR..." 
+                  ? "..." 
                   : isAutoPlaying 
-                    ? "DURDUR" 
+                    ? "DUR" 
                     : hasStarted 
-                      ? "DEVAM ET" 
-                      : "HİKAYEYİ DİNLE"
+                      ? "DEVAM" 
+                      : "DİNLE"
                 }
               </span>
             </div>
@@ -318,8 +334,16 @@ export default function SariTopPage() {
       </div>
 
       {/* Hikaye Alanı */}
-      <div className="h-full w-full flex flex-col items-center justify-center pt-24 pb-12 px-6">
-        <div className="relative w-full max-w-5xl aspect-[16/10] bg-white rounded-[60px] shadow-2xl border-[8px] border-white overflow-hidden group">
+      <div className="h-full w-full flex flex-col items-center justify-center pt-16 pb-4 sm:pt-24 sm:pb-12 px-2 sm:px-6">
+        <div className="relative w-full max-w-5xl aspect-[16/10] bg-white rounded-3xl sm:rounded-[60px] shadow-2xl border-4 sm:border-[8px] border-white overflow-hidden group">
+          {/* Portrait Warning Overlay */}
+          <div className="absolute inset-0 bg-white/80 backdrop-blur-md z-[40] flex flex-col items-center justify-center p-4 text-center portrait:flex hidden cursor-pointer" onClick={() => speak("Lütfen hikayeyi daha iyi görebilmek için tabletinizi yan çevirin.")}>
+            <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-2 animate-bounce">
+              <Smartphone className="w-6 h-6 text-orange-500 rotate-90" />
+            </div>
+            <h3 className="text-sm sm:text-lg font-black text-slate-800 uppercase tracking-tight mb-1">Lütfen Cihazınızı Yan Çevirin</h3>
+            <p className="text-slate-500 font-medium max-w-xs text-xs">Hikayeyi daha iyi okuyabilmek için cihazınızı yatay konuma getirin. 📖</p>
+          </div>
           <div className="overflow-hidden h-full" ref={emblaRef}>
             <div className="flex h-full">
               {storyContent.map((slide) => (
@@ -329,7 +353,7 @@ export default function SariTopPage() {
                       src={slide.image}
                       alt={`Slide ${slide.id}`}
                       fill
-                      className="object-cover"
+                      className="object-contain"
                       priority
                     />
                     {/* Görsel yüklenmemişse gösterilecek placeholder */}
@@ -348,22 +372,22 @@ export default function SariTopPage() {
             onClick={scrollPrev}
             disabled={!canScrollPrev}
             className={cn(
-              "absolute left-6 top-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-white/90 shadow-xl border-4 border-orange-100 flex items-center justify-center text-orange-500 transition-all hover:scale-110 active:scale-90 disabled:opacity-0 z-20",
+              "absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-16 sm:h-16 rounded-full bg-white/90 shadow-xl border-2 sm:border-4 border-orange-100 flex items-center justify-center text-orange-500 transition-all hover:scale-110 active:scale-90 disabled:opacity-0 z-20",
               !canScrollPrev && "pointer-events-none"
             )}
           >
-            <ChevronLeft className="w-10 h-10" />
+            <ChevronLeft className="w-6 h-6 sm:w-10 sm:h-10" />
           </button>
 
           <button
             onClick={scrollNext}
             disabled={!canScrollNext}
             className={cn(
-              "absolute right-6 top-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-white/90 shadow-xl border-4 border-orange-100 flex items-center justify-center text-orange-500 transition-all hover:scale-110 active:scale-90 disabled:opacity-0 z-20",
+              "absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-16 sm:h-16 rounded-full bg-white/90 shadow-xl border-2 sm:border-4 border-orange-100 flex items-center justify-center text-orange-500 transition-all hover:scale-110 active:scale-90 disabled:opacity-0 z-20",
               !canScrollNext && "pointer-events-none"
             )}
           >
-            <ChevronRight className="w-10 h-10" />
+            <ChevronRight className="w-6 h-6 sm:w-10 sm:h-10" />
           </button>
 
           {/* Test Çöz Butonu (Son Sayfada Çıkar) */}
@@ -384,6 +408,8 @@ export default function SariTopPage() {
           )}
         </div>
       </div>
+
+
 
       {/* Arkaplan Dekorasyonu */}
       <div className="fixed -bottom-20 -left-20 w-80 h-80 bg-orange-200/30 rounded-full blur-3xl -z-10" />

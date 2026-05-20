@@ -435,7 +435,7 @@ export default function AdminStudentsPage() {
           ) : (
             <div className="min-h-[400px]">
                 {/* CARD VIEW - Mobile (xs, sm) */}
-                <div className="md:hidden divide-y divide-slate-100">
+                <div className="min-[1200px]:hidden divide-y divide-slate-100">
                     {filteredStudents.length > 0 ? (
                         filteredStudents.map((student) => (
                             <div key={student.id} className="p-4 sm:p-6 space-y-4 hover:bg-slate-50/50 transition-colors">
@@ -518,7 +518,7 @@ export default function AdminStudentsPage() {
                 </div>
 
                 {/* TABLE VIEW - Desktop (md, lg, xl) */}
-                <div className="hidden md:block overflow-x-auto">
+                <div className="hidden min-[1200px]:block overflow-x-auto">
                     <Table>
                         <TableHeader className="bg-slate-50/30">
                             <TableRow className="hover:bg-transparent border-slate-100">

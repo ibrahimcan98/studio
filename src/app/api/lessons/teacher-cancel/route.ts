@@ -1,7 +1,6 @@
+import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
-import { notifyAdmin } from '@/lib/notifications';
-import { sendAdminNotification } from '@/lib/notify';
 
 export async function POST(req: Request) {
   try {
@@ -67,39 +66,34 @@ export async function POST(req: Request) {
 
     await batch.commit();
 
-    // 3. Activity Log & Teacher Data
     const teacherSnap = await db.collection('users').doc(teacherId).get();
     const teacherData = teacherSnap.exists ? teacherSnap.data() : null;
     const teacherFullName = (teacherData?.firstName && teacherData?.lastName) 
         ? `${teacherData.firstName} ${teacherData.lastName}` 
         : 'Eğitmen';
 
-    // 4. Admin Notification (Professional Email if trial, always Push)
-    const isTrial = packageCode === 'FREE_TRIAL';
-    const notifyTitle = isTrial ? '🚨 Deneme Dersi İptal Edildi (Öğretmen)' : '❌ Ders İptal Edildi (Öğretmen)';
-    const notifyBody = `${studentName} için ${startTime} saatindeki ders öğretmen (${teacherFullName}) tarafından iptal edildi.`;
-
-    // Send Admin Notification via the internal helper (which handles Push and professional Email)
+    // Activity Log
     try {
-        // Send email via notify helper if trial
-        if (isTrial) {
-             await sendAdminNotification({
-                event: notifyTitle,
-                details: {
-                    'İşlem': 'İptal (Öğretmen)',
-                    'Öğrenci': studentName,
-                    'Eğitmen': teacherFullName,
-                    'Ders Zamanı': startTime || '-',
-                    'Mazeret': cancelReason
-                }
-            });
-        }
-        
-        // Always send push
-        await notifyAdmin(notifyTitle, notifyBody, '/yonetici/dersler');
-    } catch (e) {
-        console.error('Admin notify error in teacher-cancel:', e);
+      const lessonTimeFormatted = startTime 
+          ? new Date(startTime).toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }) 
+          : 'Bilinmiyor';
+
+      await db.collection('activity-log').add({
+        event: '❌ Ders İptal Edildi (Öğretmen)',
+        icon: '👩‍🏫',
+        details: {
+          'İptal Eden': teacherFullName,
+          'Öğrenci': studentName || 'Bilinmiyor',
+          'Ders Saati': lessonTimeFormatted,
+          'Mazeret': cancelReason || 'Belirtilmedi'
+        },
+        createdAt: FieldValue.serverTimestamp()
+      });
+    } catch (logErr) {
+      console.error('Failed to write activity log:', logErr);
     }
+
+    // 4. Admin Notification removed, handled on client side via sendLessonCancelledEmails
 
     return NextResponse.json({ 
         success: true, 

@@ -26,9 +26,11 @@ export function useTTS() {
         audioRef.current = null;
       }
 
-      // Doğrudan URL üzerinden çalmak en performanslı ve garantili yöntemdir
+      // Eğer text bir dosya yolu ise (örn: /hikayeler/...) doğrudan o dosyayı çal
       const voiceId = options?.voiceId || '';
-      const url = `/api/ai/tts?text=${encodeURIComponent(text)}${voiceId ? `&voiceId=${voiceId}` : ''}`;
+      const url = text.startsWith('/') 
+        ? text 
+        : `/api/ai/tts?text=${encodeURIComponent(text)}${voiceId ? `&voiceId=${voiceId}` : ''}`;
       
       const audio = new Audio(url);
       audioRef.current = audio;

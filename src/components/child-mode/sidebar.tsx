@@ -61,6 +61,16 @@ const SOCIAL_BADGES = [
   { id: 'duzenli-calisan', name: 'Düzenli Çalışkan', description: '5 gün üst üste sisteme giriş yapana verilir.', icon: '/rozetler/sosyal/duzenli-calisan.png', requirement: 5 },
 ];
 
+const TURKCE_HAZINEM_BADGES = [
+  { id: 'ilk-hazine', name: 'İlk Hazine', description: 'İlk Türkçe Hazinem sandığını başarıyla açana verilir.', icon: '/rozetler/hazine/ilk-hazine.png', requirement: 1, type: 'all' },
+  { id: 'okuma-sevdalisi', name: 'Okuma Sevdalısı', description: '10 Türkçe Hazinem "Okuyorum Anlıyorum" görevini tamamlayana.', icon: '/rozetler/hazine/okuma-sevdalisi.png', requirement: 10, type: 'story' },
+  { id: 'dil-ustasi', name: 'Dil Ustası', description: '10 Türkçe Hazinem "Dilimi Geliştiriyorum" görevini tamamlayana.', icon: '/rozetler/hazine/dil-ustasi.png', requirement: 10, type: 'lang' },
+  { id: 'turkiye-sevdalisi', name: 'Türkiye Sevdalısı', description: '10 Türkçe Hazinem "Ülkemi Tanıyorum" görevini tamamlayana.', icon: '/rozetler/hazine/turkiye-sevdalisi.png', requirement: 10, type: 'country' },
+  { id: 'kelime-uzmani', name: 'Kelime Uzmanı', description: '10 tam Türkçe Hazinem sandığı bitirene verilir.', icon: '/rozetler/hazine/kelime-uzmani.png', requirement: 10, type: 'all' },
+  { id: 'kultur-elcisi', name: 'Kültür Elçisi', description: '20 tam Türkçe Hazinem sandığı bitiren kaşiflere.', icon: '/rozetler/hazine/kultur-elcisi.png', requirement: 20, type: 'all' },
+  { id: 'hazine-avcisi', name: 'Hazine Avcısı', description: 'Tüm 30 Türkçe Hazinem sandığını tamamlayan büyük kaşiflere!', icon: '/rozetler/hazine/hazine-avcisi.png', requirement: 30, type: 'all' },
+];
+
 export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -441,6 +451,54 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
                       })}
                     </div>
                   </div>
+
+                  {/* 5. Kategori: Türkçe Hazinem */}
+                  <div>
+                    <div className="flex items-center gap-3 mb-6 px-4">
+                      <div className="bg-rose-400 p-2 rounded-xl shadow-md rotate-3">
+                        <Trophy className="w-5 h-5 text-white" />
+                      </div>
+                      <h4 className="text-2xl font-black text-rose-600 italic uppercase tracking-tight">🏆 TÜRKÇE HAZİNEM</h4>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
+                      {TURKCE_HAZINEM_BADGES.map((badge) => {
+                        let isUnlocked = false;
+                        if (badge.type === 'all') {
+                          isUnlocked = (childData?.completedTopics || []).filter((t: string) => t.startsWith('chest-') && t.endsWith('-3')).length >= badge.requirement;
+                        } else if (badge.type === 'story') {
+                          isUnlocked = (childData?.completedTopics || []).filter((t: string) => t.startsWith('chest-') && t.endsWith('-1')).length >= badge.requirement;
+                        } else if (badge.type === 'lang') {
+                          isUnlocked = (childData?.completedTopics || []).filter((t: string) => t.startsWith('chest-') && t.endsWith('-2')).length >= badge.requirement;
+                        } else if (badge.type === 'country') {
+                          isUnlocked = (childData?.completedTopics || []).filter((t: string) => t.startsWith('chest-') && t.endsWith('-3')).length >= badge.requirement;
+                        }
+
+                        return (
+                          <div
+                            key={badge.id}
+                            className={cn(
+                              "aspect-square bg-white/80 rounded-[35px] flex flex-col items-center justify-center border-4 border-white shadow-lg transition-all group relative p-6",
+                              !isUnlocked && "grayscale opacity-30"
+                            )}
+                          >
+                            <div className="relative w-full h-full mb-3 flex items-center justify-center">
+                              <div className="absolute inset-0 bg-rose-100 rounded-full shadow-inner opacity-50 scale-75" />
+                              <Image src={badge.icon} fill alt={badge.name} className="object-contain z-10 drop-shadow-md" />
+                            </div>
+                            <div className="text-center z-10">
+                              <p className="text-xs font-black text-rose-600 uppercase italic tracking-tighter mb-1">{badge.name}</p>
+                              <p className="text-[9px] font-bold text-slate-400 leading-tight px-1">{badge.description}</p>
+                            </div>
+                            {!isUnlocked && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-[1px] rounded-[35px] z-20">
+                                <div className="bg-rose-600/90 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg">KİLİTLİ 🔒</div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </DialogContent>
             </Dialog>
@@ -604,6 +662,22 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
 
           <Button
             variant="outline"
+            onClick={() => router.push(`/cocuk-modu/${childId}/turkce-hazinem`)}
+            className={cn(
+              "w-full justify-start gap-3 h-12 rounded-[20px] border-[3px] font-black text-sm transition-transform hover:scale-105 shadow-md",
+              pathname.includes('/turkce-hazinem')
+                ? "border-amber-400 bg-amber-100/90 text-amber-700 hover:bg-amber-200"
+                : "border-white/60 bg-white/40 text-slate-600 hover:bg-white/60 backdrop-blur-sm"
+            )}
+          >
+            <div className="bg-white p-1.5 rounded-xl shadow-sm">
+              <Trophy className={cn("w-5 h-5", pathname.includes('/turkce-hazinem') ? "text-amber-500" : "text-slate-400")} />
+            </div>
+            Türkçe Hazinem
+          </Button>
+
+          <Button
+            variant="outline"
             onClick={() => router.push(`/cocuk-modu/${childId}/hikayeler`)}
             className={cn(
               "w-full justify-start gap-3 h-12 rounded-[20px] border-[3px] font-black text-sm transition-transform hover:scale-105 shadow-md",
@@ -649,6 +723,19 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
             <Map className="w-6 h-6" />
           </div>
           <span className="text-[10px] font-black uppercase">Harita</span>
+        </button>
+
+        <button
+          onClick={() => router.push(`/cocuk-modu/${childId}/turkce-hazinem`)}
+          className={cn(
+            "flex-1 flex flex-col items-center gap-1 transition-all",
+            pathname.includes('/turkce-hazinem') ? "text-amber-600 scale-110" : "text-slate-400"
+          )}
+        >
+          <div className={cn("p-2 rounded-2xl", pathname.includes('/turkce-hazinem') ? "bg-amber-50" : "bg-transparent")}>
+            <Trophy className="w-6 h-6" />
+          </div>
+          <span className="text-[10px] font-black uppercase">Hazinem</span>
         </button>
 
         <button
@@ -915,6 +1002,55 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
                               })}
                             </div>
                           </div>
+
+                          {/* 5. Kategori: Türkçe Hazinem */}
+                          <div>
+                            <div className="flex items-center gap-3 mb-6 px-4">
+                              <div className="bg-rose-400 p-2 rounded-xl shadow-md rotate-3">
+                                <Trophy className="w-5 h-5 text-white" />
+                              </div>
+                              <h4 className="text-2xl font-black text-rose-600 italic uppercase tracking-tight">🏆 TÜRKÇE HAZİNEM</h4>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                              {TURKCE_HAZINEM_BADGES.map((badge) => {
+                                let isUnlocked = false;
+                                if (badge.type === 'all') {
+                                  isUnlocked = (childData?.completedTopics || []).filter((t: string) => t.startsWith('chest-') && t.endsWith('-3')).length >= badge.requirement;
+                                } else if (badge.type === 'story') {
+                                  isUnlocked = (childData?.completedTopics || []).filter((t: string) => t.startsWith('chest-') && t.endsWith('-1')).length >= badge.requirement;
+                                } else if (badge.type === 'lang') {
+                                  isUnlocked = (childData?.completedTopics || []).filter((t: string) => t.startsWith('chest-') && t.endsWith('-2')).length >= badge.requirement;
+                                } else if (badge.type === 'country') {
+                                  isUnlocked = (childData?.completedTopics || []).filter((t: string) => t.startsWith('chest-') && t.endsWith('-3')).length >= badge.requirement;
+                                }
+
+                                return (
+                                  <div
+                                    key={badge.id}
+                                    className={cn(
+                                      "aspect-square bg-white/80 rounded-[35px] flex flex-col items-center justify-center border-4 border-white shadow-lg transition-all group relative p-6",
+                                      !isUnlocked && "grayscale opacity-30"
+                                    )}
+                                  >
+                                    <div className="relative w-full h-full mb-3 flex items-center justify-center">
+                                      <div className="absolute inset-0 bg-rose-100 rounded-full shadow-inner opacity-50 scale-75" />
+                                      <Image src={badge.icon} fill alt={badge.name} className="object-contain z-10 drop-shadow-md" />
+                                    </div>
+                                    <div className="text-center z-10">
+                                      <p className="text-xs font-black text-rose-600 uppercase italic tracking-tighter mb-1">{badge.name}</p>
+                                      <p className="text-[9px] font-bold text-slate-400 leading-tight px-1">{badge.description}</p>
+                                    </div>
+                                    {!isUnlocked && (
+                                      <div className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-[1px] rounded-[35px] z-20">
+                                        <div className="bg-rose-600/90 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg">KİLİTLİ 🔒</div>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
                         </div>
                       </DialogContent>
                     </Dialog>

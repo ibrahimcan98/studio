@@ -173,14 +173,14 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 min-[992px]:grid-cols-4">
         <GrowthCard title="Yeni Öğrenci" value={metrics?.activeStudents || 0} subValue="Bu ay eklenen" icon={Baby} color="bg-indigo-500" />
         <GrowthCard title="Gerçekleşen Satış" value={metrics?.totalPaidLessons || 0} subValue="Ders İşlendi" icon={DollarSign} color="bg-emerald-500" />
         <GrowthCard title="Dönüşüm Oranı" value={`%${metrics?.conversionRate || 0}`} subValue="Trial → Paket" icon={TrendingUp} color="bg-amber-500" />
         <GrowthCard title="Gerçekleşen Deneme" value={metrics?.totalFreeTrials || 0} subValue="Ders İşlendi" icon={CalendarCheck} color="bg-blue-500" />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3 items-start">
+      <div className="grid gap-6 min-[992px]:grid-cols-3 items-start">
         <div className="lg:col-span-1 space-y-6">
           <Card className="border-none shadow-md overflow-hidden bg-gradient-to-br from-primary/5 to-transparent">
             <CardHeader className="border-b pb-4">

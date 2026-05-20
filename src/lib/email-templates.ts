@@ -312,4 +312,38 @@ export const getPaymentReceiptTemplate = (data: { studentName: string; packageNa
   `);
 };
 
+export const getWelcomeTemplate = (data: { name: string }) =>
+  getBaseTemplate(`
+    <h2 style="color: #0f172a; font-size: 22px; margin-top: 0; text-align: center;">Hoş Geldiniz! 🎉</h2>
+    <p>Merhaba <strong>${data.name}</strong>,</p>
+    <p>Türk Çocuk Akademisi ailesine katıldığınız için çok mutluyuz! Çocuğunuzun dil gelişimi için en iyi deneyimi sunmaya hazırız.</p>
+    <p>Hemen başlamak için veli panelinden çocuğunuzu ekleyebilir ve ilk deneme dersinizi planlayabilirsiniz.</p>
+    ${getButtonHtml('Veli Paneline Git', 'https://turkcocukakademisi.com/ebeveyn-portali', '#059669')}
+  `);
 
+export const getAdminNewUserTemplate = (data: { parentName: string; parentEmail: string }) =>
+  getBaseTemplate(`
+    <h2 style="color: #0ea5e9; font-size: 22px; margin-top: 0;">🆕 Yeni Veli Kaydı</h2>
+    <p>Sisteme yeni bir veli kayıt oldu.</p>
+    <div style="background-color: #f0f9ff; padding: 24px; border-radius: 20px; border: 1px solid #e0f2fe; margin: 24px 0;">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr><td style="padding: 4px 0; color: #0369a1;"><strong>Ad Soyad:</strong> ${data.parentName}</td></tr>
+        <tr><td style="padding: 4px 0; color: #0369a1;"><strong>E-posta:</strong> ${data.parentEmail}</td></tr>
+      </table>
+    </div>
+    ${getButtonHtml('Kullanıcıları Görüntüle', 'https://turkcocukakademisi.com/yonetici/kullanicilar', '#0ea5e9')}
+  `);
+
+export const getAdminChildAddedTemplate = (data: { parentName: string; parentEmail: string; childName: string }) =>
+  getBaseTemplate(`
+    <h2 style="color: #8b5cf6; font-size: 22px; margin-top: 0;">👶 Yeni Öğrenci Eklendi</h2>
+    <p>Bir veli sisteme yeni bir öğrenci ekledi.</p>
+    <div style="background-color: #faf5ff; padding: 24px; border-radius: 20px; border: 1px solid #e9d5ff; margin: 24px 0;">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr><td style="padding: 4px 0; color: #6d28d9;"><strong>Öğrenci Adı:</strong> ${data.childName}</td></tr>
+        <tr><td style="padding: 4px 0; color: #6d28d9;"><strong>Veli:</strong> ${data.parentName}</td></tr>
+        <tr><td style="padding: 4px 0; color: #6d28d9;"><strong>Veli E-posta:</strong> ${data.parentEmail}</td></tr>
+      </table>
+    </div>
+    ${getButtonHtml('Kullanıcıları Görüntüle', 'https://turkcocukakademisi.com/yonetici/kullanicilar', '#8b5cf6')}
+  `);

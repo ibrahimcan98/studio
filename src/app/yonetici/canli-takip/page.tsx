@@ -138,7 +138,7 @@ export default function CanliTakipPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 min-[1200px]:grid-cols-3">
         {filteredUsers.map((user) => (
             <Card key={user.id} className="border-none shadow-md overflow-hidden relative group transition-all hover:scale-[1.02] ring-2 ring-emerald-500/20">
                 <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
@@ -164,18 +164,16 @@ export default function CanliTakipPage() {
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="flex justify-between items-start gap-2">
-                        <div className="space-y-2 flex-1">
-                            <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                                <MousePointer2 className="h-3 w-3 text-primary" />
-                                <span className="text-slate-400">Durum:</span>
-                                <span className="font-bold text-slate-900">{user.status || 'Geziniyor'}</span>
-                            </div>
+                    <div className="flex flex-col min-[1200px]:flex-row min-[1200px]:items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                            <MousePointer2 className="h-3 w-3 text-primary" />
+                            <span className="text-slate-400">Durum:</span>
+                            <span className="font-bold text-slate-900">{user.status || 'Geziniyor'}</span>
                         </div>
                         <Button 
                             variant="destructive" 
                             size="sm" 
-                            className="h-7 px-2 text-[10px] font-bold border-none shadow-none bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                            className="h-7 px-2 text-[10px] font-bold border-none shadow-none bg-red-50 text-red-600 hover:bg-red-100 transition-colors w-full min-[1200px]:w-auto flex items-center justify-center"
                             onClick={() => handleDisconnect(user.id)}
                         >
                             <LogOut className="h-3 w-3 mr-1" /> Bağlantıyı Kes

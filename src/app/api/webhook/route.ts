@@ -132,7 +132,7 @@ export async function POST(req: Request) {
 
             if (txData.referrerId) {
                 const referrerRef = db.collection('users').doc(txData.referrerId);
-                batch.update(referrerRef, { academyPoints: FieldValue.increment(25) });
+                batch.update(referrerRef, { academyPoints: FieldValue.increment(500) });
             }
 
             batch.update(txRef, { status: 'completed', fulfilledAt: FieldValue.serverTimestamp() });

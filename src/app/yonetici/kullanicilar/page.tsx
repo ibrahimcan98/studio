@@ -287,7 +287,12 @@ function UsersPageContent() {
             const parentRef = doc(db, 'users', selectedParentForLessons.id);
             const snap = await getDoc(parentRef);
             if (snap.exists()) {
-                setSelectedParentForLessons({ ...snap.data(), id: snap.id } as ParentData);
+                const data = snap.data();
+                setSelectedParentForLessons({ 
+                    ...data, 
+                    id: snap.id,
+                    enrolledPackages: (data.enrolledPackages || []).filter((p: any) => p && typeof p === 'string')
+                } as ParentData);
             }
         } catch (e) {
             console.error("Error fetching fresh parent:", e);
@@ -405,6 +410,7 @@ function UsersPageContent() {
 
         return {
             ...parent,
+            enrolledPackages: (parent.enrolledPackages || []).filter((p: any) => p && typeof p === 'string'),
             countryName: parent.manualCountry || getCountryFromPhone(parent.phoneNumber),
             computedTags: Array.from(tags).map(t => t.toLowerCase()).filter(t => !hiddenTags.includes(t)),
             manualTags: manualTags,
@@ -1127,7 +1133,7 @@ function UsersPageContent() {
             ) : (
                 <>
                     {/* MOBILE CARDS VIEW */}
-                    <div className="md:hidden divide-y divide-slate-100">
+                    <div className="min-[1200px]:hidden divide-y divide-slate-100">
                         {filteredParents.map((parent) => (
                             <ParentCard 
                                 key={parent.id} 
@@ -1150,7 +1156,7 @@ function UsersPageContent() {
                     </div>
 
                     {/* DESKTOP TABLE VIEW */}
-                    <div className="hidden md:block">
+                    <div className="hidden min-[1200px]:block">
                         <Table>
                             <TableHeader className="bg-slate-50/50">
                                 <TableRow className="hover:bg-transparent border-slate-100">
@@ -1377,7 +1383,7 @@ function UsersPageContent() {
                                     
                                     // Sadece havuzdaki paketlerden herhangi biri çocuğun paketiyle AYNIYSA uyarı göster
                                     // (Çünkü farklıysa bu bizim 'Akıllı Geçiş' bekleyen paketimizdir, hata değildir)
-                                    const hasSameTypeInPool = selectedParent.enrolledPackages?.some((p: string) => p.replace(/[0-9]/g, '') === childPrefix);
+                                    const hasSameTypeInPool = selectedParent.enrolledPackages?.some((p: string) => p && typeof p === 'string' && p.replace(/[0-9]/g, '') === childPrefix);
                                     
                                     if (!hasSameTypeInPool) return null;
 
@@ -1934,6 +1940,7 @@ function UsersPageContent() {
                 {selectedChildForProgress && (
                     <ProgressPanel 
                         child={selectedChildForProgress} 
+                        parentId={selectedChildForProgress.parentId}
                         isEditable={true} 
                         authorRole="admin"
                     />

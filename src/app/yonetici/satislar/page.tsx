@@ -116,7 +116,7 @@ export default function SalesPage() {
 
   const renderTransactionList = (data: any[]) => (
     <>
-      <div className="md:hidden divide-y">
+      <div className="min-[1200px]:hidden divide-y">
         {data.length > 0 ? (
           data.map((t) => (
             <div key={t.id} className="p-4 bg-white hover:bg-slate-50 transition-colors">
@@ -180,7 +180,7 @@ export default function SalesPage() {
         )}
       </div>
 
-      <div className="hidden md:block">
+      <div className="hidden min-[1200px]:block">
         <Table>
             <TableHeader className="bg-slate-50/50">
             <TableRow className="hover:bg-transparent border-slate-100">
@@ -281,7 +281,7 @@ export default function SalesPage() {
 
   return (
     <div className="space-y-4 sm:space-y-8 p-2 sm:p-8 pt-6 font-sans">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="flex flex-col min-[992px]:flex-row min-[992px]:items-end justify-between gap-4">
         <div>
             <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-slate-900">Satış Paneli</h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1">Platformdaki tüm Sterlin bazlı tahsilatlar ve paket alımları.</p>
@@ -346,7 +346,7 @@ export default function SalesPage() {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:gap-6 grid-cols-1 sm:grid-cols-3">
+      <div className="grid gap-3 sm:gap-6 grid-cols-1 md:grid-cols-2 min-[992px]:grid-cols-3">
         <Card className="border-none shadow-md bg-white overflow-hidden relative">
             <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
             <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-6">
@@ -382,11 +382,11 @@ export default function SalesPage() {
       <Card className="border-none shadow-xl overflow-hidden rounded-[24px]">
         <Tabs defaultValue="sales" className="w-full">
             <CardHeader className="bg-white border-b pb-0 px-4 sm:px-8">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 sm:pb-6">
+            <div className="flex flex-col min-[992px]:flex-row min-[992px]:items-center justify-between gap-4 pb-4 sm:pb-6">
                 <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-slate-800">
                     <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-primary" /> Tahsilat Detayları
                 </CardTitle>
-                <TabsList className="bg-slate-100 rounded-xl p-1 w-full sm:w-auto">
+                <TabsList className="bg-slate-100 rounded-xl p-1 w-full min-[992px]:w-auto">
                     <TabsTrigger value="sales" className="rounded-lg text-[10px] sm:text-xs font-bold data-[state=active]:bg-white data-[state=active]:text-primary">Gerçek Satışlar ({realSales.length})</TabsTrigger>
                     <TabsTrigger value="admin" className="rounded-lg text-[10px] sm:text-xs font-bold data-[state=active]:bg-white data-[state=active]:text-primary">Admin Atamaları ({adminAssignments.length})</TabsTrigger>
                 </TabsList>

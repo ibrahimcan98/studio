@@ -30,6 +30,24 @@ export async function POST(req: Request) {
       case 'feedback':
         html = templates.getFeedbackTemplate(data);
         break;
+      case 'payment-receipt':
+        html = templates.getPaymentReceiptTemplate(data);
+        break;
+      case 'admin-purchase':
+        html = templates.getAdminPurchaseTemplate(data);
+        break;
+      case 'welcome':
+        html = templates.getWelcomeTemplate(data);
+        break;
+      case 'admin-new-user':
+        html = templates.getAdminNewUserTemplate(data);
+        break;
+      case 'admin-child-added':
+        html = templates.getAdminChildAddedTemplate(data);
+        break;
+      case 'admin-lesson-action':
+        html = templates.getAdminLessonActionTemplate(data);
+        break;
       default:
         return NextResponse.json({ error: 'Geçersiz şablon ismi.' }, { status: 400 });
     }

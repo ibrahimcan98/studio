@@ -27,6 +27,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ProgressPanel } from '@/components/shared/progress-panel';
 import { LessonQuickChat } from '@/components/shared/lesson-quick-chat';
 import { cn } from '@/lib/utils';
+import { sendLessonCancelledEmails } from '@/lib/email-service';
 
 const getCourseDetailsFromPackageCode = (code?: string) => {
     if (!code) return null;
@@ -208,26 +209,22 @@ function TeacherCancellationModal({ lesson, childName }: { lesson: any, childNam
 
             const data = await response.json();
 
-            // Email Notification to Parent
-            if (parentEmail) {
-                fetch('/api/emails/send', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        to: parentEmail,
-                        subject: 'Ders İptal Edildi (Öğretmen Mesajı İçerir)',
-                        templateName: 'lesson-cancelled',
-                        data: {
-                            studentName: childName,
-                            teacherName: data.teacherFullName || 'Eğitmen',
-                            date: formatInTimeZone(lesson.startTime, parentTimezone, 'dd MMMM yyyy', { locale: tr }),
-                            time: formatInTimeZone(lesson.startTime, parentTimezone, 'HH:mm', { locale: tr }),
-                            reason: excuse,
-                            role: 'parent'
-                        }
-                    })
-                }).catch(console.error);
-            }
+            // ─── E-posta Bildirimleri (Merkezi Servis) ───────────────
+            // Öğretmen adını ogretmen-portali'de user'dan alabilmek için
+            // TeacherCancellationModal lesson.teacherId ile çalışıyor;
+            // teacherFullName server'dan dönüyor (data.teacherFullName)
+            sendLessonCancelledEmails({
+                studentName: childName,
+                teacherName: data.teacherFullName || 'Eğitmen',
+                teacherFirestoreEmail: undefined, // Öğretmen kendi iptali yapıyor, kendine mail gitmez
+                parentEmail: parentEmail || undefined,
+                date: formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'dd MMMM yyyy', { locale: tr }),
+                time: formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr }),
+                parentDate: formatInTimeZone(lesson.startTime, parentTimezone, 'dd MMMM yyyy', { locale: tr }),
+                parentTime: formatInTimeZone(lesson.startTime, parentTimezone, 'HH:mm', { locale: tr }),
+                isTrial: lesson.packageCode === 'FREE_TRIAL',
+                reason: excuse,
+            }).catch(console.error);
 
             const toastDesc = data.refundTarget === 'parent_pool' 
                 ? 'İade velinin atanmamış kurslarına (havuza) aktarıldı.' 
@@ -393,41 +390,60 @@ function OgretmenDerslerimPageContent() {
                     feedback: feedbackSlot ? feedbackSlot.feedback : null,
                     slots: lesson.slots,
                     isLive: liveInfoSlot ? liveInfoSlot.isLive : false,
-                    liveLessonUrl: liveInfoSlot ? liveInfoSlot.liveLessonUrl : null,
+                liveLessonUrl: liveInfoSlot ? liveInfoSlot.liveLessonUrl : null,
                 };
             });
         });
     }, [lessonSlots]);
 
     const { upcomingLessons, pastLessons, cancelledLessons } = useMemo(() => {
-        const now = new Date();
         const upcoming: any[] = [];
         const past: any[] = [];
         const cancelled: any[] = [];
-        
-        groupedLessons.forEach(lesson => {
-            const isCancelled = lesson.slots.some((s: any) => s.status === 'cancelled');
-            
-            if (isCancelled) {
+        const now = new Date();
+        groupedLessons.forEach((lesson: any) => {
+            // First check if it's explicitly cancelled (which means the whole lesson is cancelled)
+            // We check the first slot's status since they share the same status
+            if (lesson.slots && lesson.slots[0]?.status === 'cancelled') {
                 cancelled.push(lesson);
-            } else if (isBefore(now, lesson.endTime)) { // Use isBefore for better date comparison
-                upcoming.push(lesson);
-            } else {
+            } else if (lesson.endTime < now) {
                 past.push(lesson);
+            } else {
+                upcoming.push(lesson);
             }
-        });
-        
-        upcoming.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
-        cancelled.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
-        past.sort((a, b) => {
-            const aNeedsFeedback = !a.feedback;
-            const bNeedsFeedback = !b.feedback;
-            if (aNeedsFeedback && !bNeedsFeedback) return -1;
-            if (!aNeedsFeedback && bNeedsFeedback) return 1;
-            return b.startTime.getTime() - a.startTime.getTime();
         });
         return { upcomingLessons: upcoming, pastLessons: past, cancelledLessons: cancelled };
     }, [groupedLessons]);
+
+    const groupedUpcomingByMonth = useMemo(() => {
+        const groups: { [month: string]: any[] } = {};
+        upcomingLessons.forEach(lesson => {
+            const month = formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'MMMM yyyy', { locale: tr });
+            if (!groups[month]) groups[month] = [];
+            groups[month].push(lesson);
+        });
+        return groups;
+    }, [upcomingLessons]);
+
+    const groupedPastByMonth = useMemo(() => {
+        const groups: { [month: string]: any[] } = {};
+        pastLessons.forEach(lesson => {
+            const month = formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'MMMM yyyy', { locale: tr });
+            if (!groups[month]) groups[month] = [];
+            groups[month].push(lesson);
+        });
+        return groups;
+    }, [pastLessons]);
+
+    const groupedCancelledByMonth = useMemo(() => {
+        const groups: { [month: string]: any[] } = {};
+        cancelledLessons.forEach(lesson => {
+            const month = formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'MMMM yyyy', { locale: tr });
+            if (!groups[month]) groups[month] = [];
+            groups[month].push(lesson);
+        });
+        return groups;
+    }, [cancelledLessons]);
 
     const handleJoinLesson = async (lesson: any) => {
         try {
@@ -498,72 +514,108 @@ function OgretmenDerslerimPageContent() {
                     <TabsTrigger value="cancelled" className="text-red-500 data-[state=active]:text-red-600"><AlertCircle className="mr-2 h-4 w-4" />İptal Edilenler ({cancelledLessons.length})</TabsTrigger>
                 </TabsList>
                 <TabsContent value="upcoming" className="pt-4">
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {upcomingLessons.map(lesson => (
-                            <LessonCard key={lesson.id} lesson={lesson} onOpenProgressPanel={() => { setSelectedLesson(lesson); setIsProgressPanelOpen(true); }} onJoinLesson={handleJoinLesson} />
-                        ))}
-                    </div>
-                    {upcomingLessons.length === 0 && (
+                    {upcomingLessons.length === 0 ? (
                         <Card className="p-12">
                             <div className="text-center text-muted-foreground">
                                 <Calendar className="w-12 h-12 mx-auto mb-4 opacity-20" />
                                 <p className="text-lg font-medium">Yaklaşan dersiniz bulunmuyor.</p>
                             </div>
                         </Card>
+                    ) : (
+                        <div className="space-y-8">
+                            {Object.entries(groupedUpcomingByMonth).map(([month, lessons]) => (
+                                <div key={month} className="space-y-4">
+                                    <h3 className="text-sm font-black text-primary uppercase tracking-widest flex items-center gap-2">
+                                        <div className="h-px bg-primary/20 flex-1" />
+                                        {month}
+                                        <div className="h-px bg-primary/20 flex-1" />
+                                    </h3>
+                                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                        {lessons.map(lesson => (
+                                            <LessonCard key={lesson.id} lesson={lesson} onOpenProgressPanel={() => { setSelectedLesson(lesson); setIsProgressPanelOpen(true); }} onJoinLesson={handleJoinLesson} />
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     )}
                 </TabsContent>
                 <TabsContent value="past" className="pt-4">
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {pastLessons.map(lesson => (
-                            <LessonCard key={lesson.id} lesson={lesson} onOpenProgressPanel={() => { setSelectedLesson(lesson); setIsProgressPanelOpen(true); }} onJoinLesson={handleJoinLesson} />
-                        ))}
-                    </div>
-                    {pastLessons.length === 0 && (
+                    {pastLessons.length === 0 ? (
                         <Card className="p-12">
                             <div className="text-center text-muted-foreground">
                                 <History className="w-12 h-12 mx-auto mb-4 opacity-20" />
                                 <p className="text-lg font-medium">Henüz tamamlanmış bir dersiniz yok.</p>
                             </div>
                         </Card>
+                    ) : (
+                        <div className="space-y-8">
+                            {Object.entries(groupedPastByMonth).map(([month, lessons]) => (
+                                <div key={month} className="space-y-4">
+                                    <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                        <div className="h-px bg-slate-200 flex-1" />
+                                        {month}
+                                        <div className="h-px bg-slate-200 flex-1" />
+                                    </h3>
+                                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                        {lessons.map(lesson => (
+                                            <LessonCard key={lesson.id} lesson={lesson} onOpenProgressPanel={() => { setSelectedLesson(lesson); setIsProgressPanelOpen(true); }} onJoinLesson={handleJoinLesson} />
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     )}
                 </TabsContent>
                 <TabsContent value="cancelled" className="pt-4">
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {cancelledLessons.map(lesson => {
-                            const firstSlot = lesson.slots[0];
-                            return (
-                                <Card key={lesson.id} className="opacity-75 border-red-50 hover:opacity-100 transition-opacity">
-                                    <CardHeader className="pb-3">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <Badge variant="destructive">İptal Edildi</Badge>
-                                            <span className="text-[10px] font-bold text-slate-400">
-                                                {formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'dd MMM, HH:mm', { locale: tr })}
-                                            </span>
-                                        </div>
-                                        <CardTitle className="text-base font-bold">{getCourseDetailsFromPackageCode(lesson.packageCode)?.courseName || 'Ders'}</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-2 pb-4">
-                                        {firstSlot.cancelReason && (
-                                            <div className="bg-red-50 p-2 rounded-lg mt-2">
-                                                <p className="text-[10px] font-black text-red-700 uppercase tracking-widest mb-1">Mazeret:</p>
-                                                <p className="text-xs italic text-red-600">"{firstSlot.cancelReason}"</p>
-                                            </div>
-                                        )}
-                                        <div className="text-[10px] text-slate-400 mt-2 font-bold">
-                                            Öğrenci: <StudentName bookedBy={lesson.bookedBy} childId={lesson.childId} />
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            )
-                        })}
-                    </div>
-                    {cancelledLessons.length === 0 && (
+                    {cancelledLessons.length === 0 ? (
                         <Card className="p-12">
                             <div className="text-center text-muted-foreground">
                                 <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-20" />
                                 <p className="text-lg font-medium">İptal edilen dersiniz bulunmuyor.</p>
                             </div>
                         </Card>
+                    ) : (
+                        <div className="space-y-8">
+                            {Object.entries(groupedCancelledByMonth).map(([month, lessons]) => (
+                                <div key={month} className="space-y-4">
+                                    <h3 className="text-sm font-black text-red-400 uppercase tracking-widest flex items-center gap-2">
+                                        <div className="h-px bg-red-100 flex-1" />
+                                        {month}
+                                        <div className="h-px bg-red-100 flex-1" />
+                                    </h3>
+                                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                        {lessons.map(lesson => {
+                                            const firstSlot = lesson.slots[0];
+                                            return (
+                                                <Card key={lesson.id} className="opacity-75 border-red-50 hover:opacity-100 transition-opacity">
+                                                    <CardHeader className="pb-3">
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <Badge variant="destructive">İptal Edildi</Badge>
+                                                            <span className="text-[10px] font-bold text-slate-400">
+                                                                {formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'dd MMM, HH:mm', { locale: tr })}
+                                                            </span>
+                                                        </div>
+                                                        <CardTitle className="text-base font-bold">{getCourseDetailsFromPackageCode(lesson.packageCode)?.courseName || 'Ders'}</CardTitle>
+                                                    </CardHeader>
+                                                    <CardContent className="space-y-2 pb-4">
+                                                        {firstSlot.cancelReason && (
+                                                            <div className="bg-red-50 p-2 rounded-lg mt-2">
+                                                                <p className="text-[10px] font-black text-red-700 uppercase tracking-widest mb-1">Mazeret:</p>
+                                                                <p className="text-xs italic text-red-600">"{firstSlot.cancelReason}"</p>
+                                                            </div>
+                                                        )}
+                                                        <div className="text-[10px] text-slate-400 mt-2 font-bold">
+                                                            Öğrenci: <StudentName bookedBy={lesson.bookedBy} childId={lesson.childId} />
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     )}
                 </TabsContent>
             </Tabs>
@@ -579,7 +631,12 @@ function OgretmenDerslerimPageContent() {
                     {isChildDataLoading || !selectedChildData || !selectedLesson ? (
                         <div className="flex h-full items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>
                     ) : (
-                        <ProgressPanel child={selectedChildData} lessonId={selectedLesson.id} isEditable={true} />
+                        <ProgressPanel 
+                            child={selectedChildData} 
+                            parentId={selectedLesson.bookedBy}
+                            lessonId={selectedLesson.id} 
+                            isEditable={true} 
+                        />
                     )}
                 </DialogContent>
             </Dialog>

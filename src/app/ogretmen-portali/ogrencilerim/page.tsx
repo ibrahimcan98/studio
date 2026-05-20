@@ -205,7 +205,11 @@ const StudentCard = ({ student, lessons, teacherData }: { student: any, lessons:
                             <Loader2 className="h-16 w-16 animate-spin text-primary" />
                         </div>
                     ) : (
-                        <ProgressPanel child={childData} isEditable={true} />
+                        <ProgressPanel 
+                            child={childData} 
+                            parentId={student.userId}
+                            isEditable={true} 
+                        />
                     )}
                 </DialogContent>
             </Dialog>

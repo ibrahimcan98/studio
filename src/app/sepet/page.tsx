@@ -114,7 +114,11 @@ export default function SepetPage() {
 
     const handleApplyReferralCode = async () => {
         if (!referralInput) return;
-        if (!db || !user) return;
+        if (!db) return;
+        if (!user) {
+            toast({ variant: 'destructive', title: 'Giriş Gerekli', description: 'İndirim kodunu kullanabilmek için önce giriş yapmalısınız.' });
+            return;
+        }
         
         try {
             const usersRef = collection(db, 'users');
@@ -128,11 +132,11 @@ export default function SepetPage() {
                     return;
                 }
                 
-                // %5 indirim uygula
-                applyReferral(referralInput, 0.05, referrerDoc.id);
+                // %10 indirim uygula
+                applyReferral(referralInput, 0.10, referrerDoc.id);
                 toast({
                     title: 'Referans Kodu Uygulandı!',
-                    description: `"${referralInput.toUpperCase()}" koduyla %5 indirim kazandınız!`,
+                    description: `"${referralInput.toUpperCase()}" koduyla %10 indirim kazandınız!`,
                     className: 'bg-green-500 text-white'
                 });
                 return;
@@ -194,8 +198,8 @@ export default function SepetPage() {
             const transactionRef = collection(db, "transactions");
             const txDoc = await addDoc(transactionRef, {
                 userId: user.uid,
-                userName: user.displayName,
-                userEmail: user.email,
+                userName: user.displayName || 'Veli',
+                userEmail: user.email || '',
                 amount: payableTotalGbp * rate,
                 amountGbp: payableTotalGbp,
                 currency: selectedCurrency,
@@ -215,56 +219,26 @@ export default function SepetPage() {
             });
 
             if (payableTotalGbp <= 0) {
-               // Full balance coverage, skip Stripe
-               const childrenRef = collection(db, "users", user.uid, "children");
-               const childrenSnap = await getDocs(childrenRef);
-               const children = childrenSnap.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
-               const isSingleChild = children.length === 1;
+               // Call secure backend API to bypass client permission issues
+               const response = await fetch('/api/checkout/zero-balance', {
+                   method: 'POST',
+                   headers: { 'Content-Type': 'application/json' },
+                   body: JSON.stringify({
+                       userId: user.uid,
+                       referrerId: referrerId || null,
+                       newPackages,
+                       totalLessonsToAdd,
+                       balanceUsedGbp
+                   })
+               });
 
-               const batch = writeBatch(db);
-
-               if (isSingleChild) {
-                   const child = children[0];
-                   const childDocRef = doc(db, "users", user.uid, "children", child.id);
-                   const firstPackage = newPackages[0]; 
-                   const prefix = firstPackage.replace(/[0-9]/g, '');
-                   
-                   const courseNames: { [key: string]: string } = {
-                       'B': 'Başlangıç Kursu (Pre A1)',
-                       'K': 'Konuşma Kursu (A1)',
-                       'A': 'Akademik Kurs (A2)',
-                       'G': 'Gelişim Kursu (B1)',
-                       'GCSE': 'GCSE Türkçe Kursu'
-                   };
-                   const courseName = courseNames[prefix] || 'Standart Kurs';
-
-                   batch.update(childDocRef, {
-                       remainingLessons: increment(totalLessonsToAdd),
-                       assignedPackage: `${prefix}${totalLessonsToAdd / newPackages.length}`, 
-                       assignedPackageName: courseName,
-                       updatedAt: serverTimestamp()
-                   });
-
-                   batch.update(userDocRef, {
-                       walletBalanceGbp: increment(-balanceUsedGbp),
-                   });
-               } else {
-                   batch.update(userDocRef, {
-                       walletBalanceGbp: increment(-balanceUsedGbp),
-                       remainingLessons: increment(totalLessonsToAdd),
-                       enrolledPackages: arrayUnion(...newPackages)
-                   });
+               const data = await response.json();
+               if (!response.ok) {
+                   throw new Error(data.error || 'İşlem sunucuda onaylanamadı.');
                }
-               
-               if (referrerId) {
-                   const referrerRef = doc(db, 'users', referrerId);
-                   batch.update(referrerRef, { walletBalanceEur: increment(30) });
-               }
-
-               await batch.commit();
 
                clearCart();
-               toast({ title: 'Tebrikler!', description: isSingleChild ? `Siparişiniz ${children[0].firstName} hesabına otomatik olarak tanımlandı.` : 'Siparişiniz bakiyeniz kullanılarak tamamlandı.', className: 'bg-green-500 text-white' });
+               toast({ title: 'Tebrikler!', description: 'Siparişiniz başarıyla tamamlandı.', className: 'bg-green-500 text-white' });
                router.push('/ebeveyn-portali/dersler');
                return;
             }
@@ -296,9 +270,9 @@ export default function SepetPage() {
                 setIsProcessing(false);
             }
 
-        } catch (error) {
+        } catch (error: any) {
             console.error("Checkout error:", error);
-            toast({ variant: 'destructive', title: 'Hata', description: 'Ödeme sırasında bir sorun oluştu.' });
+            toast({ variant: 'destructive', title: 'Hata', description: `Sistem Hatası: ${error.message}` });
         } finally {
             setIsProcessing(false);
         }
@@ -439,7 +413,7 @@ export default function SepetPage() {
                                             <div className="flex items-center justify-between gap-2">
                                                 <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200">
                                                     <Tag className="w-3 h-3 mr-1"/>
-                                                    {appliedReferralCode} (%5 Davet)
+                                                    {appliedReferralCode} (%10 Davet)
                                                 </Badge>
                                                 <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={removeReferral}>
                                                     <XCircle className="w-4 h-4"/>

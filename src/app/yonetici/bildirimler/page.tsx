@@ -33,9 +33,9 @@ export default function BildirimlerPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 min-[1200px]:grid-cols-3 gap-8">
         {/* Main Sender Area */}
-        <div className="xl:col-span-2 space-y-8">
+        <div className="min-[1200px]:col-span-2 space-y-8">
           <NotificationSender />
         </div>
 
@@ -166,7 +166,7 @@ function NotificationHistory() {
       </Card>
 
       <Dialog open={!!selectedLog} onOpenChange={(open) => !open && setSelectedLog(null)}>
-        <DialogContent className="max-w-2xl rounded-[32px]">
+        <DialogContent className="max-w-2xl rounded-[32px] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-black">{selectedLog?.title}</DialogTitle>
             <DialogDescription className="font-medium">Bildirim Detayları ve Gönderim Raporu</DialogDescription>
