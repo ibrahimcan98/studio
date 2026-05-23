@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { useTTS } from '@/hooks/use-tts';
 import { BadgeUnlockModal } from '@/components/child-mode/badge-unlock-modal';
 import { StoryQuiz } from '@/components/child-mode/story-quiz';
+import { StoryCompletionCelebration } from '@/components/child-mode/story-completion-celebration';
 import { arrayUnion } from 'firebase/firestore';
 
 const STORY_BADGES = [
@@ -57,9 +58,11 @@ export default function BirIkiUcBasardimPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(true);
-  const [newlyUnlockedBadge, setNewlyUnlockedBadge] = useState<any>(null);
+  const [unlockedBadgesQueue, setUnlockedBadgesQueue] = useState<any[]>([]);
   const [isQuizOpen, setIsQuizOpen] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
   const completionTracked = useRef(false);
+  const celebrationShown = useRef(false);
   const [isPortrait, setIsPortrait] = useState(false);
 
   useEffect(() => {
@@ -103,13 +106,13 @@ export default function BirIkiUcBasardimPage() {
       // Dikkatli Gözler (İlk denemede full doğru)
       if (allCorrect && currentAttempts === 1 && !earnedBadges.includes('dikkatli-gozler')) {
         updates.earnedBadges = arrayUnion('dikkatli-gozler');
-        setNewlyUnlockedBadge(STORY_BADGES.find(b => b.id === 'dikkatli-gozler'));
+        setUnlockedBadgesQueue(prev => [...prev, STORY_BADGES.find(b => b.id === 'dikkatli-gozler')]);
       }
 
       // Azimli Kaplumbağa (3. denemede başarı)
       if (allCorrect && currentAttempts === 3 && !earnedBadges.includes('azimli-kaplumbaga')) {
         updates.earnedBadges = arrayUnion('azimli-kaplumbaga');
-        setNewlyUnlockedBadge(SOCIAL_BADGES.find(b => b.id === 'azimli-kaplumbaga'));
+        setUnlockedBadgesQueue(prev => [...prev, SOCIAL_BADGES.find(b => b.id === 'azimli-kaplumbaga')]);
       }
 
       if (allCorrect) {
@@ -145,7 +148,7 @@ export default function BirIkiUcBasardimPage() {
           
           if (newlyEarned) {
             updateData.earnedBadges = arrayUnion(badge.id);
-            setNewlyUnlockedBadge(newlyEarned);
+            setUnlockedBadgesQueue(prev => [...prev, newlyEarned]);
             break;
           }
         }
@@ -165,6 +168,22 @@ export default function BirIkiUcBasardimPage() {
       hasInitialScrolled.current = true;
     }
   }, [childData, emblaApi]);
+
+  // Kutlama Gösterimi İçin useEffect
+  useEffect(() => {
+    if (currentIndex === storyContent.length - 1) {
+      if (isPlaying || isLoading || isAutoPlaying) return;
+      
+      const timer = setTimeout(() => {
+        if (!celebrationShown.current) {
+          celebrationShown.current = true;
+          setShowCelebration(true);
+        }
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [currentIndex, isPlaying, isLoading, isAutoPlaying]);
 
   const onSelect = useCallback(() => {
     if (!emblaApi) return;
@@ -236,11 +255,16 @@ export default function BirIkiUcBasardimPage() {
     );
   }
 
+  const currentBadgeToShow = (!showCelebration && !isQuizOpen && unlockedBadgesQueue.length > 0) ? unlockedBadgesQueue[0] : null;
+
   return (
-    <div className="h-screen w-full overflow-hidden bg-gradient-to-b from-blue-50 to-cyan-100 font-sans relative">
+    <div className={cn(
+      "h-screen w-full overflow-hidden font-sans relative",
+      isPortrait ? "bg-amber-100" : "bg-gradient-to-b from-blue-50 to-cyan-100"
+    )}>
       <BadgeUnlockModal 
-        badge={newlyUnlockedBadge} 
-        onClose={() => setNewlyUnlockedBadge(null)} 
+        badge={currentBadgeToShow} 
+        onClose={() => setUnlockedBadgesQueue(prev => prev.slice(1))} 
       />
       {isQuizOpen && (
         <StoryQuiz 
@@ -249,6 +273,13 @@ export default function BirIkiUcBasardimPage() {
           onClose={() => setIsQuizOpen(false)}
         />
       )}
+      <StoryCompletionCelebration 
+        show={showCelebration} 
+        onAction={() => {
+          setShowCelebration(false);
+          setIsQuizOpen(true);
+        }} 
+      />
       <div className="absolute top-0 left-0 right-0 p-3 sm:p-6 grid grid-cols-3 items-center z-50">
         <div className="flex justify-start">
           <Button
@@ -326,12 +357,12 @@ export default function BirIkiUcBasardimPage() {
           <button onClick={scrollPrev} disabled={!canScrollPrev} className={cn("absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-16 sm:h-16 rounded-full bg-white/90 shadow-xl border-2 sm:border-4 border-blue-100 flex items-center justify-center text-blue-500 transition-all hover:scale-110 active:scale-90 disabled:opacity-0 z-20", !canScrollPrev && "pointer-events-none")}>
             <ChevronLeft className="w-6 h-6 sm:w-10 sm:h-10" />
           </button>
-          <button onClick={scrollNext} disabled={!canScrollNext} className={cn("absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-16 sm:h-16 rounded-full bg-white/90 shadow-xl border-2 sm:border-4 border-blue-100 flex items-center justify-center text-blue-500 transition-all hover:scale-110 active:scale-90 disabled:opacity-0 z-20", !canScrollNext && "pointer-events-none")}>
+          <button onClick={scrollNext} disabled={!canScrollNext} className={cn("absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-16 sm:h-16 rounded-full bg-white/90 shadow-xl border-2 sm:border-4 border-blue-100 flex items-center justify-center text-blue-500 transition-all hover:scale-110 active:scale-90 disabled:opacity-0 z-20", !canScrollNext && "pointer-events-none")}          >
             <ChevronRight className="w-6 h-6 sm:w-10 sm:h-10" />
           </button>
 
-          {/* Test Çöz Butonu (Son Sayfada Çıkar) */}
-          {currentIndex === storyContent.length - 1 && (
+          {/* Test Çöz Butonu (Sadece Quiz daha önce çözüldüyse) */}
+          {currentIndex === storyContent.length - 1 && ((childData as any)?.stats?.story?.['bir-iki-uc-basardim']?.attempts > 0) && (
             <motion.div 
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}

@@ -112,6 +112,7 @@ const tagStyles: { [key: string]: string } = {
     ak: 'bg-purple-100 text-purple-800',
     gk: 'bg-cyan-100 text-cyan-800',
     gcse: 'bg-blue-600 text-white',
+    gr: 'bg-purple-600 text-white font-bold',
     positive: 'bg-pink-100 text-pink-700',
     problem: 'bg-black text-white',
     discountlover: 'bg-amber-100 text-amber-900',
@@ -346,7 +347,9 @@ function UsersPageContent() {
 
 
         allPackageCodes.forEach(code => {
-            if (code.includes('GCSE')) tags.add('gcse');
+            if (code === 'FREE_TRIAL') tags.add('deneme dersi');
+            else if (code.includes('GCSE')) tags.add('gcse');
+            else if (code.toUpperCase().includes('GRUP')) tags.add('gr');
             else if (code.includes('G')) tags.add('gk');
             
             if (code.includes('B')) tags.add('bk');
@@ -608,7 +611,7 @@ function UsersPageContent() {
             const isSingleChild = parentChildren.length === 1;
 
             const prefixes: { [key: string]: string } = {
-                'baslangic': 'B', 'konusma': 'K', 'akademik': 'A', 'gelisim': 'G', 'gcse': 'GCSE', 'hediye': 'GIFT'
+                'baslangic': 'B', 'konusma': 'K', 'akademik': 'A', 'gelisim': 'G', 'gcse': 'GCSE', 'hediye': 'GIFT', 'grup': 'GRUP'
             };
             const courseNames: { [key: string]: string } = {
                 'baslangic': 'Başlangıç Kursu (Pre A1)',
@@ -616,11 +619,12 @@ function UsersPageContent() {
                 'akademik': 'Akademik Kurs (A2)',
                 'gelisim': 'Gelişim Kursu (B1)',
                 'gcse': 'GCSE Türkçe Kursu',
-                'hediye': 'Hediye Ders'
+                'hediye': 'Hediye Ders',
+                'grup': 'Grup Dersi'
             };
             const prefix = prefixes[selectedCourseId] || 'B';
             const courseName = courseNames[selectedCourseId] || 'Hediye Kurs';
-            const packageCode = `${prefix}${lessonCount}`;
+            const packageCode = selectedCourseId === 'grup' ? `${lessonCount}GRUP` : `${prefix}${lessonCount}`;
 
             // Eğer değer NEGATİFSE her zaman havuzda işlem yap (Çocuğu düşürme, havuzu dengele)
             if (lessonCount < 0) {
@@ -647,12 +651,13 @@ function UsersPageContent() {
                 // MANTIK: Eğer çocuğun dersi varsa VE yeni paket farklı bir türdeyse -> Havuza at
                 const currentPackagePrefix = child.assignedPackage ? child.assignedPackage.replace(/[0-9]/g, '') : '';
                 const isDifferentType = currentPackagePrefix && currentPackagePrefix !== prefix;
+                const isGroupPackage = selectedCourseId === 'grup';
 
-                if ((child.remainingLessons || 0) > 0 && isDifferentType) {
-                    // HAVUZA AT
+                if (isGroupPackage || (child.remainingLessons > 0 && isDifferentType)) {
+                    // GRUP PAKETLERİ VE FARKLI TÜR PAKETLER HAVUZA ATILIR
                     batch.update(parentRef, {
-                        remainingLessons: (selectedParentForLessons.remainingLessons || 0) + lessonCount,
-                        enrolledPackages: [...(selectedParentForLessons.enrolledPackages || []), packageCode]
+                        enrolledPackages: [...(selectedParentForLessons.enrolledPackages || []), packageCode],
+                        remainingLessons: (selectedParentForLessons.remainingLessons || 0) + (isGroupPackage ? 0 : lessonCount)
                     });
 
                     // TX for pool
@@ -690,8 +695,9 @@ function UsersPageContent() {
                     });
                 }
             } else {
+                const isGroupPackage = selectedCourseId === 'grup';
                 batch.update(parentRef, {
-                    remainingLessons: (selectedParentForLessons.remainingLessons || 0) + lessonCount,
+                    remainingLessons: (selectedParentForLessons.remainingLessons || 0) + (isGroupPackage ? 0 : lessonCount),
                     enrolledPackages: [...(selectedParentForLessons.enrolledPackages || []), packageCode]
                 });
             }
@@ -1883,6 +1889,7 @@ function UsersPageContent() {
                                 <option value="akademik">Akademik Kurs (A2)</option>
                                 <option value="gelisim">Gelişim Kursu (B1)</option>
                                 <option value="gcse">GCSE Türkçe Kursu</option>
+                                <option value="grup" className="bg-purple-50 text-purple-700 font-bold">👥 Grup Dersi (45 Dakika)</option>
                                 <option value="hediye" className="bg-emerald-50 text-emerald-700 font-bold">🎁 Hediye Ders (30 Dakika)</option>
                             </select>
                         </div>

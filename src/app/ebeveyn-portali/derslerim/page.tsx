@@ -1,11 +1,11 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, writeBatch, increment, getDocs, Timestamp, addDoc } from 'firebase/firestore';
 import { Loader2, ArrowLeft, Calendar, Clock, User, BookOpen, Baby, History, MessageSquare, Video, ClipboardList, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatInTimeZone } from 'date-fns-tz';
@@ -13,6 +13,7 @@ import { tr } from 'date-fns/locale';
 import { addMinutes, startOfDay, format } from 'date-fns';
 import { COURSES } from '@/data/courses';
 import { Badge } from '@/components/ui/badge';
+import { Users } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ProgressPanel } from '@/components/shared/progress-panel';
@@ -298,20 +299,27 @@ function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZon
                     <div className="flex flex-col w-full gap-2">
                         <Button 
                             onClick={handleJoin} 
-                            disabled={!lesson.isLive} 
-                            className={cn("w-full h-11 font-bold", lesson.isLive ? "bg-red-600 hover:bg-red-700" : "")}
+                            disabled={!lesson.isLive && lesson.status !== 'scheduled'} 
+                            className={cn("w-full h-11 font-bold", lesson.isLive || lesson.status === 'scheduled' ? "bg-red-600 hover:bg-red-700" : "")}
                         >
                             <Video className="w-4 h-4 mr-2" />
                             {lesson.isLive ? 'Derse Katıl' : 'Dersin Başlaması Bekleniyor'}
                         </Button>
 
-                        {/* Cancellation / Rescheduling Buttons */}
-                        <div className="flex gap-2 w-full">
-                           <CancellationButtons lesson={{ ...lesson, childName: childData?.firstName }} timeZone={timeZone} />
-                        </div>
+                        {/* Cancellation / Rescheduling Buttons (only for 1-on-1) */}
+                        {!lesson.isGroupSession && (
+                            <div className="flex gap-2 w-full">
+                               <CancellationButtons lesson={{ ...lesson, childName: childData?.firstName }} timeZone={timeZone} />
+                            </div>
+                        )}
+                        {lesson.isGroupSession && (
+                            <div className="text-center w-full">
+                                <span className="text-[10px] text-purple-600 font-bold uppercase tracking-widest bg-purple-50 px-2 py-1 rounded-full">Grup Dersleri İptal Edilemez</span>
+                            </div>
+                        )}
                     </div>
                 )}
-                {isPast && (
+                {isPast && !lesson.isGroupSession && (
                     <Button 
                         onClick={() => onShowProgress(lesson)}
                         variant="outline"
@@ -357,6 +365,48 @@ export default function DerslerimPage() {
     }, [user, db]);
 
     const { data: lessonSlots, isLoading: lessonsLoading } = useCollection(bookedLessonsQuery);
+
+    // Group Enrollments
+    const groupEnrollmentsQuery = useMemoFirebase(() => {
+        if (!user || !db) return null;
+        return query(collection(db, 'groupCourseEnrollments'), where('parentId', '==', user.uid));
+    }, [user, db]);
+    const { data: groupEnrollments } = useCollection(groupEnrollmentsQuery);
+
+    const childrenQuery = useMemoFirebase(() => {
+        if (!user || !db) return null;
+        return collection(db, 'users', user.uid, 'children');
+    }, [user, db]);
+    const { data: children } = useCollection(childrenQuery);
+
+    const groupPackageIds = useMemo(() => {
+        if (!groupEnrollments) return [];
+        return [...new Set(groupEnrollments.map((e: any) => e.packageId))];
+    }, [groupEnrollments]);
+
+    const groupSessionsQuery = useMemoFirebase(() => {
+        if (!db || groupPackageIds.length === 0) return null;
+        return query(collection(db, 'groupCourseSessions'), where('packageId', 'in', groupPackageIds.slice(0, 10)));
+    }, [db, groupPackageIds]);
+    const { data: groupSessions } = useCollection(groupSessionsQuery);
+
+    const groupPackagesQuery = useMemoFirebase(() => {
+        if (!db || groupPackageIds.length === 0) return null;
+        return query(collection(db, 'groupCoursePackages'), where('__name__', 'in', groupPackageIds.slice(0, 10)));
+    }, [db, groupPackageIds]);
+    const { data: groupPackages } = useCollection(groupPackagesQuery);
+
+    const groupAnnouncementsQuery = useMemoFirebase(() => {
+        if (!db || groupPackageIds.length === 0) return null;
+        return query(collection(db, 'groupAnnouncements'), where('packageId', 'in', groupPackageIds.slice(0, 10)));
+    }, [db, groupPackageIds]);
+    const { data: groupAnnouncementsRaw } = useCollection(groupAnnouncementsQuery);
+
+    const groupAnnouncements = useMemo(() => {
+        if (!groupAnnouncementsRaw) return [];
+        return [...groupAnnouncementsRaw].sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    }, [groupAnnouncementsRaw]);
+
 
     const groupedLessons = useMemo(() => {
         if (!lessonSlots) return [];
@@ -420,19 +470,51 @@ export default function DerslerimPage() {
             };
         });
     }, [lessonSlots]);
+
+    const allCombinedLessons = useMemo(() => {
+        const combined = [...groupedLessons];
+        
+        // Add Group Sessions mapped to format
+        if (groupSessions && groupEnrollments && groupPackages) {
+            groupSessions.forEach((session: any) => {
+                const enrollmentsForThisSession = groupEnrollments.filter((e: any) => e.packageId === session.packageId);
+                const pkg = groupPackages.find((p: any) => p.id === session.packageId);
+                
+                enrollmentsForThisSession.forEach((enrollment: any) => {
+                    combined.push({
+                        id: `${session.id}-${enrollment.studentId}`,
+                        startTime: session.startTime.toDate ? session.startTime.toDate() : new Date(session.startTime),
+                        endTime: session.endTime.toDate ? session.endTime.toDate() : new Date(session.endTime),
+                        childId: enrollment.studentId,
+                        teacherId: session.teacherId,
+                        bookedBy: enrollment.parentId,
+                        packageCode: `GRUP_DERS`,
+                        courseName: pkg?.title || 'Türkçe Konuşma Kulübü Grup Dersi',
+                        isLive: session.status === 'live',
+                        liveLessonUrl: pkg?.googleMeetLink || null, // Group packages have a google meet link on the package!
+                        status: session.status,
+                        isGroupSession: true
+                    });
+                });
+            });
+        }
+        
+        return combined.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+    }, [groupedLessons, groupSessions, groupEnrollments, groupPackages]);
+
     const { upcomingLessons, pastLessons } = useMemo(() => {
         const upcoming: any[] = [];
         const past: any[] = [];
         const now = new Date();
-        groupedLessons.forEach((lesson: any) => {
+        allCombinedLessons.forEach((lesson: any) => {
             if (lesson.endTime < now) {
                 past.push(lesson);
-            } else {
+            } else if (!lesson.isGroupSession) {
                 upcoming.push(lesson);
             }
         });
         return { upcomingLessons: upcoming, pastLessons: past };
-    }, [groupedLessons]);
+    }, [allCombinedLessons]);
 
     const groupedUpcomingByMonth = useMemo(() => {
         const groups: { [month: string]: any[] } = {};
@@ -481,9 +563,10 @@ export default function DerslerimPage() {
             </div>
 
             <Tabs defaultValue="upcoming" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="upcoming"><Calendar className="mr-2 h-4 w-4" />Yaklaşan Dersler ({upcomingLessons.length})</TabsTrigger>
                     <TabsTrigger value="past"><History className="mr-2 h-4 w-4" />Geçmiş Dersler ({pastLessons.length})</TabsTrigger>
+                    <TabsTrigger value="group"><Users className="mr-2 h-4 w-4" />Grup Dersleri</TabsTrigger>
                 </TabsList>
                 <TabsContent value="upcoming">
                     {upcomingLessons.length === 0 ? (
@@ -522,6 +605,64 @@ export default function DerslerimPage() {
                                     </div>
                                 </div>
                             ))}
+                        </div>
+                    )}
+                </TabsContent>
+                <TabsContent value="group">
+                    {(!groupEnrollments || groupEnrollments.length === 0) ? (
+                        <div className="col-span-full text-center py-20 bg-white rounded-xl border border-dashed text-muted-foreground mt-4">Kayıtlı olduğunuz bir grup dersi bulunmuyor.</div>
+                    ) : (
+                        <div className="space-y-6 mt-4">
+                            {groupEnrollments.map((enrollment: any) => {
+                                const child = children?.find((c: any) => c.id === enrollment.studentId);
+                                const pkg = groupPackages?.find((p: any) => p.id === enrollment.packageId);
+                                
+                                return (
+                                    <div key={enrollment.id} className="p-6 border border-purple-200 rounded-[20px] bg-white shadow-sm flex flex-col md:flex-row gap-6 items-center">
+                                        <div className='flex gap-4 items-center md:w-1/3'>
+                                            <div className="w-14 h-14 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-black text-xl border-2 border-purple-200">
+                                                {child?.firstName?.charAt(0) || '?'}
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-xl text-slate-900">{child?.firstName || 'Bilinmeyen'}</h3>
+                                                <p className="text-sm text-purple-600 font-bold uppercase tracking-wider text-[10px]">Öğrenci</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex-1 w-full border-t md:border-t-0 md:border-l border-purple-100 pt-4 md:pt-0 md:pl-6">
+                                            <h4 className="font-black text-purple-900 text-lg mb-1">{pkg?.title || 'Yükleniyor...'}</h4>
+                                            <p className="text-sm text-slate-500 mb-4">{pkg?.description}</p>
+                                            
+                                            <div className="space-y-3 mb-6">
+                                                <h5 className="text-xs font-bold uppercase tracking-wider text-purple-600 flex items-center gap-2"><BookOpen className="w-3 h-3"/> Son Duyurular ve Materyaller</h5>
+                                                {(() => {
+                                                    const pkgAnnouncements = groupAnnouncements.filter((a: any) => a.packageId === pkg?.id);
+                                                    if (pkgAnnouncements.length === 0) {
+                                                        return <p className="text-xs italic text-slate-400 p-2 bg-slate-50 rounded-lg">Henüz bir duyuru veya materyal paylaşılmadı.</p>;
+                                                    }
+                                                    return pkgAnnouncements.slice(0, 3).map((ann: any) => (
+                                                        <div key={ann.id} className="text-sm bg-purple-50/50 p-3 rounded-xl border border-purple-100">
+                                                            <div className="flex justify-between items-start mb-1">
+                                                                <span className="font-bold text-purple-900">{ann.title}</span>
+                                                                <span className="text-[10px] font-bold text-purple-400">
+                                                                    {formatInTimeZone(ann.createdAt?.toDate() || new Date(), 'Europe/Istanbul', 'dd MMM', { locale: tr })}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-slate-600 whitespace-pre-wrap">{ann.content}</p>
+                                                        </div>
+                                                    ));
+                                                })()}
+                                            </div>
+
+                                            {pkg?.googleMeetLink && (
+                                                <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white shadow-md font-bold" asChild>
+                                                    <a href={pkg.googleMeetLink} target="_blank" rel="noopener noreferrer"><Video className="w-4 h-4 mr-2" /> Canlı Derse Katıl</a>
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                )
+                            })}
                         </div>
                     )}
                 </TabsContent>

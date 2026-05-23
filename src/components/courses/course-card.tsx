@@ -29,7 +29,8 @@ export const CourseCard = ({ course }: { course: Course }) => {
     return (
         <div className={cn(
             "relative p-8 rounded-3xl overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:scale-[1.03] flex flex-col",
-            course.cta.backgroundColor
+            course.cta.backgroundColor,
+            course.isGroupClass && "border-4 border-purple-400 shadow-lg shadow-purple-200/50"
         )}>
             
             <div className="relative z-10 flex flex-col h-full">

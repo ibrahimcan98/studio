@@ -66,6 +66,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     { id: 'satislar', href: '/yonetici/satislar', label: 'Satışlar', icon: CreditCard },
     { id: 'ogretmenler', href: '/yonetici/ogretmenler', label: 'Öğretmenler', icon: Presentation },
     { id: 'dersler', href: '/yonetici/dersler', label: 'Dersler', icon: Calendar },
+    { id: 'grup-paketleri', href: '/yonetici/grup-paketleri', label: 'Grup Paketleri', icon: Users },
     { id: 'kullanicilar', href: '/yonetici/kullanicilar', label: 'Veliler', icon: Users },
     { id: 'aramalar', href: '/yonetici/aramalar', label: 'Aramalar', icon: PhoneCall },
     { id: 'ogrenciler', href: '/yonetici/ogrenciler', label: 'Öğrenciler', icon: Baby },

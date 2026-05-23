@@ -67,17 +67,14 @@ export function StoryQuiz({ questions, onComplete, onClose }: StoryQuizProps) {
         setIsFinished(true);
         const allCorrect = wrongAnswers === 0 && correct;
         
-        // Tebrik mesajını seslendir
+        const finishQuiz = () => onComplete(allCorrect);
+        
+        // Tebrik mesajını seslendir ve bitmesini bekle
         if (allCorrect) {
-          speak("Harikasın! Bütün soruları doğru bildin ve testi başarıyla tamamladın!");
+          speak("/hikayeler/test-harikasin.mp3", { onEnd: finishQuiz, onError: finishQuiz });
         } else {
-          speak("Tebrikler! Hikaye testini tamamladın. Harika bir iş çıkardın!");
+          speak("/hikayeler/test-tebrikler.mp3", { onEnd: finishQuiz, onError: finishQuiz });
         }
-
-        // 3 saniye sonra asıl tamamlama fonksiyonunu çağır
-        setTimeout(() => {
-          onComplete(allCorrect);
-        }, 4000);
       }
     }, 1500);
   };

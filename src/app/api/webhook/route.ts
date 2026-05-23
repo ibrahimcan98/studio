@@ -107,12 +107,13 @@ export async function POST(req: Request) {
                 // Eğer dersi yoksa VEYA aynı tür paketse -> Çocuğa ekle
                 const currentPackagePrefix = child.assignedPackage ? child.assignedPackage.replace(/[0-9]/g, '') : '';
                 const isDifferentType = currentPackagePrefix && currentPackagePrefix !== prefix;
+                const isGroupPackage = prefix.toLowerCase().includes('grup');
 
-                if (child.remainingLessons > 0 && isDifferentType) {
-                    // HAVUZA AT
+                if (isGroupPackage || (child.remainingLessons > 0 && isDifferentType)) {
+                    // GRUP PAKETLERİ VE FARKLI TÜR PAKETLER HAVUZA ATILIR
                     batch.update(userRef, {
                         enrolledPackages: FieldValue.arrayUnion(...newPackages),
-                        remainingLessons: FieldValue.increment(totalLessonsToAdd),
+                        remainingLessons: FieldValue.increment(isGroupPackage ? 0 : totalLessonsToAdd), // Grup dersleri birebir havuza eklenmez!
                     });
                 } else {
                     // ÇOCUĞA DOĞRUDAN EKLE
@@ -124,9 +125,10 @@ export async function POST(req: Request) {
                     });
                 }
             } else {
+                const isGroupPackage = newPackages.some((p: string) => p.toLowerCase().includes('grup'));
                 batch.update(userRef, {
                     enrolledPackages: FieldValue.arrayUnion(...newPackages),
-                    remainingLessons: FieldValue.increment(totalLessonsToAdd),
+                    remainingLessons: FieldValue.increment(isGroupPackage ? 0 : totalLessonsToAdd),
                 });
             }
 

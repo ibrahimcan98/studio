@@ -67,6 +67,7 @@ export default function TurkceHazinemPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [selectedChest, setSelectedChest] = useState<typeof CHEST_DATA[0] | null>(null);
   const [showLockedPopup, setShowLockedPopup] = useState(false);
+  const [lockedPopupType, setLockedPopupType] = useState<'paywall' | 'progress'>('paywall');
 
   // Firestore'dan parent (user) verilerini al (Paket bilgisi için)
   const userDocRef = useMemo(() => {
@@ -90,27 +91,58 @@ export default function TurkceHazinemPage() {
   const chests = useMemo(() => {
     const list = [];
     const subscriptionTier = (userData?.subscriptionTier as string) || 'free';
+    const completedTopics = childData?.completedTopics || [];
     let chestCount = 0;
+    
+    const isChestCompleted = (cId: string | number) => {
+       const content = CHESTS_CONTENT[String(cId)];
+       if (!content) return false;
+       if (content.story && !completedTopics.includes(`chest-${cId}-1`)) return false;
+       if (content.lang && !completedTopics.includes(`chest-${cId}-2`)) return false;
+       if (content.country && !completedTopics.includes(`chest-${cId}-3`)) return false;
+       return true;
+    };
+
+    let previousChestCompleted = true; // The first chest is always unlocked structurally
 
     for (let i = 0; i < CHEST_DATA.length; i++) {
-      const isLocked = subscriptionTier === 'free' && chestCount >= 3;
+      const chestId = CHEST_DATA[i].id;
+      const isPaywallLocked = subscriptionTier === 'free' && chestCount >= 3;
+      
+      let lockedReason: 'none' | 'paywall' | 'progress' = 'none';
+      if (isPaywallLocked) lockedReason = 'paywall';
+      else if (!previousChestCompleted) lockedReason = 'progress';
+
       list.push({
         ...CHEST_DATA[i],
         isReview: false,
-        isLocked: isLocked,
+        isLocked: lockedReason !== 'none',
+        lockedReason
       });
       chestCount++;
+      
+      previousChestCompleted = isChestCompleted(chestId);
 
       // Her 5 sandıkta bir tekrar sandığı ekle
       if ((i + 1) % 5 === 0) {
+        const tekrarId = `tekrar-${(i + 1) / 5}`;
+        const isTekrarPaywallLocked = subscriptionTier === 'free';
+        
+        let tekrarLockedReason: 'none' | 'paywall' | 'progress' = 'none';
+        if (isTekrarPaywallLocked) tekrarLockedReason = 'paywall';
+        else if (!previousChestCompleted) tekrarLockedReason = 'progress';
+
         list.push({
-          id: `tekrar-${(i + 1) / 5}`,
+          id: tekrarId,
           title: `Genel Tekrar Sandığı ${(i + 1) / 5}`,
           category: 'Genel Tekrar',
           questions: 10,
           isReview: true,
-          isLocked: subscriptionTier === 'free', // Tekrar sandıkları her zaman 3'ten sonraya denk gelir
+          isLocked: tekrarLockedReason !== 'none',
+          lockedReason: tekrarLockedReason,
         });
+        
+        previousChestCompleted = isChestCompleted(tekrarId);
       }
     }
 
@@ -183,7 +215,6 @@ export default function TurkceHazinemPage() {
       <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10">
         
         <div className="relative" style={{ minHeight: `${totalHeight}px` }}>
-          {/* Başlık Bölümü */}
           <div className="w-full flex justify-center pt-12 flex-shrink-0">
             <div className="text-center bg-white/90 p-6 rounded-[30px] shadow-lg border-4 border-amber-300 backdrop-blur-sm max-w-xl">
               <div className="inline-flex items-center gap-3 bg-amber-100/80 px-6 py-2 rounded-full border-2 border-amber-300 shadow-md mb-4">
@@ -199,7 +230,6 @@ export default function TurkceHazinemPage() {
             </div>
           </div>
 
-          {/* Harita Yolu (SVG) */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 5 }}>
             <path 
               d={pathD} 
@@ -238,6 +268,7 @@ export default function TurkceHazinemPage() {
                   if (!chest.isLocked) {
                     router.push(`/cocuk-modu/${childId}/turkce-hazinem/${chest.id}`);
                   } else {
+                    setLockedPopupType(chest.lockedReason as 'paywall' | 'progress');
                     setShowLockedPopup(true);
                   }
                 }}
@@ -249,6 +280,13 @@ export default function TurkceHazinemPage() {
                 )}>
                   {chest.isReview ? "⭐" : chest.id}
                 </div>
+
+                {/* Premium Sembolü */}
+                {chest.lockedReason === 'paywall' && (
+                  <div className="absolute -top-2 -right-2 z-30 bg-white rounded-full p-2 border-2 border-amber-400 shadow-lg animate-bounce">
+                    <Gem className="w-8 h-8 text-amber-500 drop-shadow-md" />
+                  </div>
+                )}
 
                 {/* Sandık Görseli */}
                 <div className="relative w-56 h-56 flex items-center justify-center">
@@ -318,9 +356,20 @@ export default function TurkceHazinemPage() {
               <h2 className="text-2xl font-black text-amber-900 mb-3 uppercase tracking-wide">
                 Sandık Kilitli! 🔒
               </h2>
-              <p className="text-lg text-amber-800 font-medium leading-relaxed">
-                Bu hazineyi açabilmen için Ebeveyninin <b className="text-amber-900">Maceracı</b> veya <b className="text-amber-900">Kahraman</b> paketine geçmesi gerekiyor! ✨
-              </p>
+              {lockedPopupType === 'paywall' ? (
+                <div className="space-y-4 w-full">
+                  <p className="text-lg text-amber-800 font-medium leading-relaxed">
+                    Bu harika maceraya devam etmek ve daha fazla şey öğrenmek ister misin? 🌟
+                  </p>
+                  <p className="text-xl text-amber-900 font-bold leading-relaxed bg-amber-100 p-4 rounded-xl border border-amber-300">
+                    Anne veya babana <br/> <span className="text-purple-700">"Ben Türk Çocuk Akademisi'ni çok sevdim!"</span> <br/> diyebilirsin! 🥰
+                  </p>
+                </div>
+              ) : (
+                <p className="text-lg text-amber-800 font-medium leading-relaxed">
+                  Bu sandığı açabilmek için <b className="text-amber-900">önceki sandığı</b> tamamlaman gerekiyor! Maceraya kaldığın yerden devam et! 🗺️
+                </p>
+              )}
               
               <div className="mt-8">
                 <button 

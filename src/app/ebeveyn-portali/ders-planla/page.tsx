@@ -314,6 +314,9 @@ export default function DersPlanlaPage() {
     const lessonSlotsRef = useMemoFirebase(() => (db && selectedTeacherId) ? query(collection(db, 'lesson-slots'), where('teacherId', '==', selectedTeacherId)) : null, [db, selectedTeacherId]);
     const { data: allTeacherSlots, isLoading: areSlotsLoading } = useCollection(lessonSlotsRef);
 
+    const teacherGroupSessionsRef = useMemoFirebase(() => (db && selectedTeacherId) ? query(collection(db, 'groupCourseSessions'), where('teacherId', '==', selectedTeacherId)) : null, [db, selectedTeacherId]);
+    const { data: teacherGroupSessions } = useCollection(teacherGroupSessionsRef);
+
     const weekDays = useMemo(() => {
         return eachDayOfInterval({
             start: currentWeekStart,
@@ -330,8 +333,26 @@ export default function DersPlanlaPage() {
             if (!map[dayKey]) map[dayKey] = {};
             map[dayKey][timeKey] = slot;
         });
+
+        teacherGroupSessions?.forEach(session => {
+            if (!session.startTime || !session.endTime) return;
+            const startUtc = session.startTime.toDate ? session.startTime.toDate() : new Date(session.startTime);
+            const endUtc = session.endTime.toDate ? session.endTime.toDate() : new Date(session.endTime);
+            
+            // Generate 5-min intervals between start and end
+            let current = startUtc;
+            while (current < endUtc) {
+                const date = toZonedTime(current, selectedTimeZone);
+                const dayKey = format(date, 'yyyy-MM-dd');
+                const timeKey = format(date, 'HH:mm');
+                if (!map[dayKey]) map[dayKey] = {};
+                map[dayKey][timeKey] = { status: 'group_class' };
+                current = addMinutes(current, 5);
+            }
+        });
+
         return map;
-    }, [allTeacherSlots, selectedTimeZone]);
+    }, [allTeacherSlots, teacherGroupSessions, selectedTimeZone]);
 
     const timeSlots = useMemo(() => {
         const slots: string[] = [];
@@ -795,6 +816,7 @@ export default function DersPlanlaPage() {
                                     <div className="flex items-center gap-6 text-[11px] font-black text-slate-400 uppercase tracking-widest px-6 py-3 bg-slate-50/50 rounded-2xl border border-slate-100">
                                         <div className="flex items-center gap-2.5"><div className="w-3.5 h-3.5 bg-emerald-500 rounded-md"></div> Müsait</div>
                                         <div className="flex items-center gap-2.5"><div className="w-3.5 h-3.5 bg-red-400 rounded-md"></div> Dolu</div>
+                                        <div className="flex items-center gap-2.5"><div className="w-3.5 h-3.5 bg-purple-500 rounded-md"></div> Grup Dersi</div>
                                         <div className="flex items-center gap-2.5"><div className="w-3.5 h-3.5 bg-slate-200 rounded-md"></div> Kapalı</div>
                                     </div>
                                 </div>
@@ -852,13 +874,13 @@ export default function DersPlanlaPage() {
                                                             const slot = daySlots[time];
                                                             const isFullHour = i % 12 === 0;
                                                             
-                                                            const timeDate = slot?.startTime.toDate();
+                                                            const timeDate = slot?.startTime?.toDate ? slot.startTime.toDate() : (slot?.startTime ? new Date(slot.startTime) : null);
                                                             const isPast = timeDate ? timeDate < addHours(new Date(), 12) : false;
                                                             let bgColor = "hover:bg-slate-50/50";
                                                             let isClickable = false;
 
                                                             if (slot?.status === 'available') {
-                                                                if (isPast || isTrialLocked) {
+                                                                if (isPast || isTrialLocked || !selectedPackage) {
                                                                     bgColor = (isTrialLocked && !isPast) ? "bg-amber-100/50 cursor-not-allowed border-amber-200/20" : "bg-slate-200/40 cursor-not-allowed border-slate-300/10";
                                                                 } else {
                                                                     bgColor = "bg-emerald-500/80 hover:bg-emerald-500 cursor-pointer shadow-[inset_0_0_0_1.5px_rgba(255,255,255,0.15)]";
@@ -866,6 +888,8 @@ export default function DersPlanlaPage() {
                                                                 }
                                                             } else if (slot?.status === 'booked') {
                                                                 bgColor = "bg-red-400/80 cursor-not-allowed shadow-[inset_0_0_0_1.5px_rgba(255,255,255,0.15)]";
+                                                            } else if (slot?.status === 'group_class') {
+                                                                bgColor = "bg-purple-500/80 cursor-not-allowed shadow-[inset_0_0_0_1.5px_rgba(255,255,255,0.15)]";
                                                             }
 
                                                             return (
@@ -883,6 +907,11 @@ export default function DersPlanlaPage() {
                                                                     {hoveredSlot === `${dayKey}-${time}` && isClickable && (
                                                                         <div className="absolute inset-0 flex items-center justify-center bg-white/25 pointer-events-none">
                                                                             <div className="bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-xl z-20 transform scale-110 tracking-widest">{time}</div>
+                                                                        </div>
+                                                                    )}
+                                                                    {hoveredSlot === `${dayKey}-${time}` && slot?.status === 'group_class' && (
+                                                                        <div className="absolute inset-0 flex items-center justify-center bg-white/25 pointer-events-none z-30">
+                                                                            <div className="bg-purple-900 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-xl whitespace-nowrap -mt-6">Bu derse katılmak için aktif grup dersi paketiniz bulunmamaktadır.</div>
                                                                         </div>
                                                                     )}
                                                                 </div>

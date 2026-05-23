@@ -85,6 +85,7 @@ export default function CocukModuPage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [newlyUnlockedBadge, setNewlyUnlockedBadge] = useState<any>(null);
   const [isLockedDialogOpen, setIsLockedDialogOpen] = useState(false);
+  const [lockedReason, setLockedReason] = useState<'paywall' | 'progress'>('paywall');
   const loginTracked = useRef(false);
 
   const childDocRef = useMemoFirebase(() => {
@@ -222,6 +223,7 @@ export default function CocukModuPage() {
       <LockedFeatureDialog
         isOpen={isLockedDialogOpen}
         onClose={() => setIsLockedDialogOpen(false)}
+        reason={lockedReason}
       />
 
       {/* Sabit Arkaplan (Kaydırmadan Etkilenmez) */}
@@ -347,6 +349,7 @@ export default function CocukModuPage() {
                     isPremiumLocked={isSubscriptionLocked}
                     onClick={() => {
                       if (isLocked) {
+                        setLockedReason(isSubscriptionLocked ? 'paywall' : 'progress');
                         setIsLockedDialogOpen(true);
                       } else {
                         localStorage.setItem('last-topic', topic.id);

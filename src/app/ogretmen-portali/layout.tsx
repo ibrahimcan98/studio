@@ -62,6 +62,7 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
     { href: '/ogretmen-portali/takvim', label: 'Takvim', icon: Calendar },
     { href: '/ogretmen-portali/derslerim', label: 'Derslerim', icon: Briefcase },
     { href: '/ogretmen-portali/ogrencilerim', label: 'Öğrencilerim', icon: Users },
+    { href: '/ogretmen-portali/grup-siniflari', label: 'Grup Sınıflarım', icon: Users },
     { href: '/ogretmen-portali/profil', label: 'Profilim', icon: User }
   ];
   

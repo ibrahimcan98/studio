@@ -20,12 +20,12 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, TierDetails> = {
         name: 'Ücretsiz',
         price: '0 €',
         features: [
-            'İlk 2 Ada Ücretsiz',
+            'İlk 3 Hazine Sandığı Ücretsiz',
             'İlk 1 Hikaye Ücretsiz',
             'Günlük 2 Dakika AI Sohbet',
             'Temel Rozetler'
         ],
-        maxIslands: 2,
+        maxIslands: 3,
         maxStories: 1,
         maxAiHours: 0.033, // Günlük 2 dk (aylık ~1 saat)
         color: 'bg-slate-100',

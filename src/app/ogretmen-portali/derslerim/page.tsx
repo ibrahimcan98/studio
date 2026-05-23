@@ -16,6 +16,7 @@ import { tr } from 'date-fns/locale';
 import { addMinutes, startOfDay, isBefore } from 'date-fns';
 import { COURSES } from '@/data/courses';
 import { Badge } from '@/components/ui/badge';
+import { Users } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -97,7 +98,7 @@ function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any
         <Card className={cn('flex flex-col h-full overflow-hidden shadow-sm hover:shadow-md transition-shadow', needsFeedback && 'border-destructive ring-1 ring-destructive')}>
             <CardHeader className="pb-4">
                 <CardTitle className="flex justify-between items-start gap-2">
-                    <span className="text-lg font-bold leading-tight">{packageDetails?.courseName || 'Ders'}</span>
+                    <span className="text-lg font-bold leading-tight">{lesson.courseName || packageDetails?.courseName || 'Ders'}</span>
                     <Badge variant={isPast ? "secondary" : "default"} className="shrink-0">{isPast ? 'Tamamlandı' : 'Sıradaki'}</Badge>
                 </CardTitle>
                 <CardDescription className="text-xs font-semibold">
@@ -107,12 +108,12 @@ function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any
             </CardHeader>
             <CardContent className="space-y-3 text-xs flex-grow pb-4">
                 <div className="flex items-center gap-2">
-                    <Baby className="w-3.5 h-3.5 text-primary" />
-                    <span><strong>Öğrenci:</strong> {childData?.firstName || 'Yükleniyor...'}</span>
+                    {lesson.isGroupSession ? <Users className="w-3.5 h-3.5 text-purple-600" /> : <Baby className="w-3.5 h-3.5 text-primary" />}
+                    <span><strong>{lesson.isGroupSession ? 'Sınıf' : 'Öğrenci'}:</strong> {lesson.isGroupSession ? 'Grup Dersi Sınıfı' : (childData?.firstName || 'Yükleniyor...')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span><strong>Paket:</strong> {lesson.packageCode === 'FREE_TRIAL' ? 'Deneme Dersi' : packageDetails?.courseName}</span>
+                    <span><strong>Paket:</strong> {lesson.packageCode === 'FREE_TRIAL' ? 'Deneme Dersi' : (lesson.courseName || packageDetails?.courseName)}</span>
                 </div>
                 {needsFeedback && (
                     <div className="bg-destructive/10 text-destructive text-[10px] font-black px-2 py-1 rounded flex items-center gap-1 mt-2 uppercase tracking-wider">
@@ -121,7 +122,7 @@ function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any
                     </div>
                 )}
 
-                {!isPast && (
+                {!isPast && !lesson.isGroupSession && (
                     <div className="mt-4 pt-4 border-t">
                         <LessonQuickChat
                             lessonId={lesson.id}
@@ -145,13 +146,20 @@ function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any
                             {lesson.isLive ? 'Derse Gir' : 'Dersi Başlat'}
                         </Button>
 
-                        {/* Teacher Cancellation Button */}
-                        <TeacherCancellationModal lesson={lesson} childName={childData?.firstName || 'Öğrenci'} />
+                        {/* Teacher Cancellation Button (Only for 1-on-1) */}
+                        {!lesson.isGroupSession && (
+                            <TeacherCancellationModal lesson={lesson} childName={childData?.firstName || 'Öğrenci'} />
+                        )}
+                        {lesson.isGroupSession && (
+                             <div className="text-center w-full mt-2">
+                                <span className="text-[10px] text-purple-600 font-bold uppercase tracking-widest bg-purple-50 px-2 py-1 rounded-full">Grup Dersleri İptal Edilemez</span>
+                            </div>
+                        )}
                     </div>
                 ) : (
-                    <Button onClick={onOpenProgressPanel} variant={needsFeedback ? "destructive" : "outline"} className='w-full font-bold'>
+                    <Button onClick={onOpenProgressPanel} variant={needsFeedback ? "destructive" : "outline"} className='w-full font-bold' disabled={lesson.isGroupSession}>
                         <Edit className='w-4 h-4 mr-2' />
-                        {needsFeedback ? "Geri Bildirim Ekle" : "İlerlemeyi Gör"}
+                        {lesson.isGroupSession ? "Grup Dersi Geri Bildirimi (Yakında)" : (needsFeedback ? "Geri Bildirim Ekle" : "İlerlemeyi Gör")}
                     </Button>
                 )}
             </CardFooter>
@@ -302,6 +310,24 @@ function OgretmenDerslerimPageContent() {
     }, [user, db]);
     const { data: teacherData, isLoading: teacherLoading } = useDoc(teacherDocRef);
 
+    // Group Sessions
+    const groupSessionsQuery = useMemoFirebase(() => {
+        if (!user || !db) return null;
+        return query(collection(db, 'groupCourseSessions'), where('teacherId', '==', user.uid));
+    }, [user, db]);
+    const { data: groupSessions } = useCollection(groupSessionsQuery);
+
+    const groupPackageIds = useMemo(() => {
+        if (!groupSessions) return [];
+        return [...new Set(groupSessions.map((s: any) => s.packageId))];
+    }, [groupSessions]);
+
+    const groupPackagesQuery = useMemoFirebase(() => {
+        if (!db || groupPackageIds.length === 0) return null;
+        return query(collection(db, 'groupCoursePackages'), where('__name__', 'in', groupPackageIds.slice(0, 10)));
+    }, [db, groupPackageIds]);
+    const { data: groupPackages } = useCollection(groupPackagesQuery);
+
 
     const childDocRef = useMemoFirebase(() => {
         if (!db || !selectedLesson?.bookedBy || !selectedLesson?.childId) return null;
@@ -396,24 +422,56 @@ function OgretmenDerslerimPageContent() {
         });
     }, [lessonSlots]);
 
-    const { upcomingLessons, pastLessons, cancelledLessons } = useMemo(() => {
+    const allCombinedLessons = useMemo(() => {
+        const combined = [...groupedLessons];
+
+        // Add Group Sessions mapped to format
+        if (groupSessions && groupPackages) {
+            groupSessions.forEach((session: any) => {
+                const pkg = groupPackages.find((p: any) => p.id === session.packageId);
+                
+                combined.push({
+                    id: session.id,
+                    startTime: session.startTime.toDate ? session.startTime.toDate() : new Date(session.startTime),
+                    endTime: session.endTime.toDate ? session.endTime.toDate() : new Date(session.endTime),
+                    teacherId: session.teacherId,
+                    packageCode: `GRUP_DERS`,
+                    courseName: pkg?.title || 'Türkçe Konuşma Kulübü Grup Dersi',
+                    isLive: session.status === 'live',
+                    liveLessonUrl: pkg?.googleMeetLink || null, // Group packages have a google meet link on the package!
+                    status: session.status,
+                    isGroupSession: true,
+                    // mock values so the rest of the component works
+                    childId: 'group',
+                    bookedBy: 'group'
+                });
+            });
+        }
+
+        return combined.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+    }, [groupedLessons, groupSessions, groupPackages]);
+
+    const { upcomingLessons, pastLessons, cancelledLessons, groupLessons } = useMemo(() => {
         const upcoming: any[] = [];
         const past: any[] = [];
         const cancelled: any[] = [];
+        const group: any[] = [];
         const now = new Date();
-        groupedLessons.forEach((lesson: any) => {
+        allCombinedLessons.forEach((lesson: any) => {
             // First check if it's explicitly cancelled (which means the whole lesson is cancelled)
             // We check the first slot's status since they share the same status
             if (lesson.slots && lesson.slots[0]?.status === 'cancelled') {
                 cancelled.push(lesson);
             } else if (lesson.endTime < now) {
                 past.push(lesson);
+            } else if (lesson.isGroupSession) {
+                group.push(lesson);
             } else {
                 upcoming.push(lesson);
             }
         });
-        return { upcomingLessons: upcoming, pastLessons: past, cancelledLessons: cancelled };
-    }, [groupedLessons]);
+        return { upcomingLessons: upcoming, pastLessons: past, cancelledLessons: cancelled, groupLessons: group };
+    }, [allCombinedLessons]);
 
     const groupedUpcomingByMonth = useMemo(() => {
         const groups: { [month: string]: any[] } = {};
@@ -424,6 +482,16 @@ function OgretmenDerslerimPageContent() {
         });
         return groups;
     }, [upcomingLessons]);
+
+    const groupedGroupLessonsByMonth = useMemo(() => {
+        const groups: { [month: string]: any[] } = {};
+        groupLessons.forEach(lesson => {
+            const month = formatInTimeZone(lesson.startTime, 'Europe/Istanbul', 'MMMM yyyy', { locale: tr });
+            if (!groups[month]) groups[month] = [];
+            groups[month].push(lesson);
+        });
+        return groups;
+    }, [groupLessons]);
 
     const groupedPastByMonth = useMemo(() => {
         const groups: { [month: string]: any[] } = {};
@@ -447,6 +515,18 @@ function OgretmenDerslerimPageContent() {
 
     const handleJoinLesson = async (lesson: any) => {
         try {
+            const msDiff = lesson.startTime.getTime() - new Date().getTime();
+            const minutesDiff = msDiff / (1000 * 60);
+            
+            if (minutesDiff > 5) {
+                toast({
+                    variant: "destructive",
+                    title: "Erken Giriş",
+                    description: "Dersi başlatmak için derse en fazla 5 dakika kalmış olması gerekir.",
+                });
+                return;
+            }
+
             if (!teacherData?.googleMeetLink) {
                 toast({
                     variant: 'destructive',
@@ -464,6 +544,22 @@ function OgretmenDerslerimPageContent() {
 
             if (!db || isStartingLesson) return;
             setIsStartingLesson(true);
+
+            if (lesson.isGroupSession) {
+                // For group sessions, the google meet link is in the group course package
+                const liveLessonUrl = lesson.liveLessonUrl || teacherData.googleMeetLink;
+                const sessionRef = doc(db, 'groupCourseSessions', lesson.id);
+                await updateDoc(sessionRef, {
+                    status: 'live'
+                });
+                toast({
+                    title: 'Grup Dersi Başlatıldı!',
+                    description: 'Öğrencileriniz artık derse katılabilir. Google Meet linki açılıyor...',
+                });
+                window.open(liveLessonUrl, '_blank');
+                setIsStartingLesson(false);
+                return;
+            }
 
             const liveLessonUrl = teacherData.googleMeetLink;
             const batch = writeBatch(db);
@@ -508,10 +604,11 @@ function OgretmenDerslerimPageContent() {
                     setTimeout(() => window.scrollTo({ top: 0, behavior: 'instant' }), 0);
                 }}
             >
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="upcoming"><Calendar className="mr-2 h-4 w-4" />Yaklaşan ({upcomingLessons.length})</TabsTrigger>
                     <TabsTrigger value="past"><History className="mr-2 h-4 w-4" />Geçmiş ({pastLessons.length})</TabsTrigger>
-                    <TabsTrigger value="cancelled" className="text-red-500 data-[state=active]:text-red-600"><AlertCircle className="mr-2 h-4 w-4" />İptal Edilenler ({cancelledLessons.length})</TabsTrigger>
+                    <TabsTrigger value="group" className="text-purple-600 data-[state=active]:text-purple-700"><Users className="mr-2 h-4 w-4" />Grup Dersleri ({groupLessons.length})</TabsTrigger>
+                    <TabsTrigger value="cancelled" className="text-red-500 data-[state=active]:text-red-600"><AlertCircle className="mr-2 h-4 w-4" />İptal ({cancelledLessons.length})</TabsTrigger>
                 </TabsList>
                 <TabsContent value="upcoming" className="pt-4">
                     {upcomingLessons.length === 0 ? (
@@ -612,6 +709,33 @@ function OgretmenDerslerimPageContent() {
                                                 </Card>
                                             )
                                         })}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </TabsContent>
+                <TabsContent value="group" className="pt-4">
+                    {groupLessons.length === 0 ? (
+                        <Card className="p-12">
+                            <div className="text-center text-muted-foreground">
+                                <Users className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                                <p className="text-lg font-medium">Yaklaşan grup dersiniz bulunmuyor.</p>
+                            </div>
+                        </Card>
+                    ) : (
+                        <div className="space-y-8">
+                            {Object.entries(groupedGroupLessonsByMonth).map(([month, lessons]) => (
+                                <div key={month} className="space-y-4">
+                                    <h3 className="text-sm font-black text-purple-600 uppercase tracking-widest flex items-center gap-2">
+                                        <div className="h-px bg-purple-200 flex-1" />
+                                        {month}
+                                        <div className="h-px bg-purple-200 flex-1" />
+                                    </h3>
+                                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                        {lessons.map(lesson => (
+                                            <LessonCard key={lesson.id} lesson={lesson} onOpenProgressPanel={() => { setSelectedLesson(lesson); setIsProgressPanelOpen(true); }} onJoinLesson={handleJoinLesson} />
+                                        ))}
                                     </div>
                                 </div>
                             ))}

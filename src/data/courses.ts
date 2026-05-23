@@ -25,6 +25,7 @@ export type Course = {
         gains: string[];
         longDescription?: string;
     };
+    isGroupClass?: boolean;
     academicSteps?: AcademicStep[];
     pricing: {
         perLesson: {
@@ -263,6 +264,38 @@ export const COURSES: Course[] = [
             ],
         },
     },
+    {
+        id: "grup",
+        title: "Türkçe Konuşma Kulübü Grup Dersi",
+        ageGroup: "Seviyeye ve yaş grubuna göre küçük gruplar",
+        shortDescription: "Çocukların Türkçe konuşma pratiği yapmasını, akranlarıyla sosyalleşmesini ve Türkiye’ye dair kültürel konuları keyifli bir ortamda öğrenmesini destekler.",
+        isGroupClass: true,
+        cta: {
+            backgroundColor: "bg-purple-100",
+            iconBgColor: "bg-purple-200",
+            iconTextColor: "text-purple-600",
+            badgeColor: "bg-purple-500",
+            badgeTextColor: "text-white",
+            linkTextColor: "text-purple-600",
+        },
+        details: {
+            duration: "45 dakika",
+            gains: [
+                "Türkçe konuşma pratiği yapar",
+                "Akranlarıyla Türkçe iletişim kurar",
+                "Günlük hayat konuları üzerine konuşur",
+                "Türkiye, kültür, gelenekler ve özel günler hakkında bilgi edinir",
+                "Grup içinde kendini ifade etme özgüveni kazanır"
+            ],
+            longDescription: "Grup dersleri 4 haftalık periyotlar halinde satılır. Paket devredilemez. Öğrencinin derse katılamaması durumunda ders hakkı kullanılmış sayılır. Bunun sebebi, grup derslerinin belirli bir grup ve takvim üzerinden ilerlemesi ve her zaman uygun bir telafi grubu bulunamamasıdır."
+        },
+        pricing: {
+            perLesson: { '4': 20 },
+            packages: [
+                { lessons: 4, price: 80 }
+            ],
+        },
+    },
 ];
 
 export const getCourseByCode = (code?: string): Course | undefined => {
@@ -272,7 +305,8 @@ export const getCourseByCode = (code?: string): Course | undefined => {
         'K': 'konusma', 
         'G': 'gelisim', 
         'A': 'akademik',
-        'GCSE': 'gcse'
+        'GCSE': 'gcse',
+        'GRUP': 'grup'
     };
     const courseKey = code.replace(/[0-9]/g, '');
     const courseId = courseMap[courseKey as keyof typeof courseMap];

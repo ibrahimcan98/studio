@@ -25,6 +25,7 @@ const getCourseCode = (courseId: string) => {
         case 'gelisim': return 'G';
         case 'akademik': return 'A';
         case 'gcse': return 'GCSE';
+        case 'grup': return 'GRUP';
         default: return '';
     }
 }
@@ -239,7 +240,7 @@ export default function SepetPage() {
 
                clearCart();
                toast({ title: 'Tebrikler!', description: 'Siparişiniz başarıyla tamamlandı.', className: 'bg-green-500 text-white' });
-               router.push('/ebeveyn-portali/dersler');
+               router.push('/ebeveyn-portali/paketlerim');
                return;
             }
 

@@ -10,10 +10,11 @@ import { useCart, currencyDetails } from "@/context/cart-context";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser, doc, useDoc } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { trackPixelEvent } from '@/components/analytics/FacebookPixel';
+import { isGroupClassesEnabled } from '@/lib/feature-flags';
 
 
 type KurslarClientPageProps = {
@@ -32,11 +33,20 @@ export function KurslarClientPage({
     const { addToCart, selectedCurrency, setSelectedCurrency, exchangeRates } = useCart();
     
     const db = useFirestore();
+    const { user } = useUser();
+    
+    const userDocRef = useMemoFirebase(() => {
+        if (!user || !db) return null;
+        return doc(db, 'users', user.uid);
+    }, [user, db]);
+    const { data: userData } = useDoc(userDocRef);
+
+    const showGroupClasses = isGroupClassesEnabled(user?.email, userData?.role);
+
     const globalCouponsQuery = useMemoFirebase(() => 
         db ? query(collection(db, 'coupons'), where('isPublicDisplay', '==', true), where('isActive', '==', true)) : null
     , [db]);
     const { data: globalCoupons } = useCollection(globalCouponsQuery);
-    // Remove taking only the first one, use the whole list for matching
     
     useEffect(() => {
         trackPixelEvent('ViewContent', {
@@ -222,6 +232,9 @@ export function KurslarClientPage({
     const akademikKursu = COURSES.find(c => c.id === 'akademik');
     const gelisimKursu = COURSES.find(c => c.id === 'gelisim');
     const gcseKursu = COURSES.find(c => c.id === 'gcse');
+    const grupKursu = COURSES.find(c => c.id === 'grup');
+
+    const visibleCourses = COURSES.filter(c => c.id !== 'grup' || showGroupClasses);
 
     return (
         <main className="container pb-24">
@@ -250,7 +263,7 @@ export function KurslarClientPage({
             </div>
 
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
-                {COURSES.map((course) => (
+                {visibleCourses.map((course) => (
                     <CourseCard key={course.id} course={course} />
                 ))}
             </div>
@@ -531,6 +544,61 @@ export function KurslarClientPage({
                                             <p className="text-gray-600 mt-2">{pkg.lessons} derslik paket</p>
                                             <PriceDisplay price={pkg.price} courseId={gcseKursu.id} packageLessons={pkg.lessons} />
                                             <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleAddToCart(gcseKursu, pkg)}>
+                                                <ShoppingCart className="w-4 h-4 mr-2" />
+                                                Sepete Ekle
+                                            </Button>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            )}
+
+            {showGroupClasses && grupKursu && (
+                <section id="grup-detay" className="mt-16 py-16 md:py-24 rounded-3xl bg-purple-50 border-4 border-purple-200">
+                    <div className="container max-w-6xl mx-auto">
+                        <div className="text-center mb-12">
+                            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-purple-900">{grupKursu.title}</h2>
+                            <div className="flex items-center justify-center gap-4 text-purple-700/70">
+                                <span>Süre: {grupKursu.details.duration}</span>
+                                <span>|</span>
+                                <span>Yaş grubu: {grupKursu.ageGroup}</span>
+                            </div>
+                        </div>
+
+                        <div className="grid md:grid-cols-1 gap-8 items-center mb-16">
+                            <div className="bg-white p-8 rounded-2xl shadow-lg border-2 border-purple-100">
+                                <h3 className="font-bold text-lg mb-2">{grupKursu.details.longDescription}</h3>
+                                <p className="font-semibold text-md mb-4 text-gray-700 mt-6">Bu derste çocuklar:</p>
+                                <ul className="space-y-3 text-gray-600">
+                                    {grupKursu.details.gains.map((gain, index) => (
+                                        <li key={index} className="flex items-start gap-3">
+                                            <CheckCircle className="w-5 h-5 text-purple-500 mt-1 flex-shrink-0" />
+                                            <span>{gain}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h3 className="text-3xl md:text-4xl font-bold mb-8 text-center text-purple-900">{grupKursu.title} - Katılım Paketi</h3>
+                            <div className="flex justify-center">
+                                {grupKursu.pricing.packages.map((pkg) => {
+                                    const perLessonPrice = grupKursu.pricing.perLesson?.[String(pkg.lessons) as keyof typeof grupKursu.pricing.perLesson];
+                                    if (!perLessonPrice) return null;
+                                    return (
+                                        <div key={pkg.lessons} className="border-2 border-purple-200 rounded-2xl p-8 flex flex-col items-center text-center bg-white shadow-md hover:shadow-xl hover:scale-105 transition-all w-full max-w-xs">
+                                            <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-purple-100 mb-4">
+                                                <BookOpen className="w-8 h-8 text-purple-600"/>
+                                            </div>
+                                            <h4 className="font-bold text-gray-800">{grupKursu.title}</h4>
+                                            <p className="text-sm text-gray-500">({grupKursu.details.duration})</p>
+                                            <p className="text-purple-600 mt-2 font-bold">{pkg.lessons} haftalık grup paketi</p>
+                                            <PriceDisplay price={pkg.price} courseId={grupKursu.id} packageLessons={pkg.lessons} />
+                                            <Button className="w-full mt-auto bg-purple-600 text-white hover:bg-purple-700 shadow-lg shadow-purple-200" onClick={() => handleAddToCart(grupKursu, pkg)}>
                                                 <ShoppingCart className="w-4 h-4 mr-2" />
                                                 Sepete Ekle
                                             </Button>

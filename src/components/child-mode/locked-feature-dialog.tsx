@@ -12,11 +12,14 @@ import { useEffect } from "react";
 interface LockedFeatureDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  reason?: 'paywall' | 'progress';
 }
 
-export function LockedFeatureDialog({ isOpen, onClose }: LockedFeatureDialogProps) {
+export function LockedFeatureDialog({ isOpen, onClose, reason = 'paywall' }: LockedFeatureDialogProps) {
   const { speak, stop, isPlaying } = useTTS();
-  const message = "Daha fazla oyun oynamak istersen annene veya babana Türk Çocuk Akademisi'nde çok daha fazla oyun oynamak istiyorum diyebilirsin!";
+  const message = reason === 'progress'
+    ? "Bu maceraya atılmak için önceki görevlerini tamamlamalısın! Haydi, yarım kalan işleri bitirelim!"
+    : "Daha fazla oyun oynamak istersen annene veya babana Türk Çocuk Akademisi'nde çok daha fazla oyun oynamak istiyorum diyebilirsin!";
 
   useEffect(() => {
     if (isOpen) {
@@ -44,12 +47,16 @@ export function LockedFeatureDialog({ isOpen, onClose }: LockedFeatureDialogProp
           </div>
 
           <h2 className="text-3xl font-black text-slate-800 mb-4 uppercase italic tracking-tighter leading-tight">
-            Yeni Maceralar Seni Bekliyor! 🚀
+            {reason === 'progress' ? "Önceki Görevleri Bitir! 🗺️" : "Yeni Maceralar Seni Bekliyor! 🚀"}
           </h2>
 
           <div className="bg-slate-50 p-6 rounded-[35px] border-2 border-slate-100 mb-8">
             <p className="text-lg md:text-xl font-bold text-slate-600 leading-relaxed italic">
-              "Daha fazla oyun oynamak istersen annene veya babana <span className="text-purple-600 font-black">Türk Çocuk Akademisi</span>'nde çok daha fazla oyun oynamak istiyorum diyebilirsin! ✨"
+              {reason === 'progress' ? (
+                <span>"Bu adaya geçmeden önce <span className="text-amber-600 font-black">önceki maceranı</span> tamamlamalısın! Başarabilirsin! ✨"</span>
+              ) : (
+                <span>"Daha fazla oyun oynamak istersen annene veya babana <span className="text-purple-600 font-black">Türk Çocuk Akademisi</span>'nde çok daha fazla oyun oynamak istiyorum diyebilirsin! ✨"</span>
+              )}
             </p>
           </div>
 

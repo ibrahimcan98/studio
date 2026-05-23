@@ -3,7 +3,7 @@
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, useMemo, Suspense } from 'react';
-import { Loader2, Package, ArrowLeft, User, Plus, ShoppingCart, History, Calendar, PlayCircle, CreditCard, ChevronRight, BookOpen, Gift } from 'lucide-react';
+import { Loader2, Package, ArrowLeft, User, Plus, ShoppingCart, History, Calendar, PlayCircle, CreditCard, ChevronRight, BookOpen, Gift, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { collection, doc, writeBatch, getDoc, updateDoc, increment, arrayRemove, arrayUnion, query, where } from 'firebase/firestore';
@@ -12,6 +12,9 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from '@/hooks/use-toast';
+import { GroupCoursePackage } from '@/types/group-classes';
+import { formatInTimeZone } from 'date-fns-tz';
+import { tr } from 'date-fns/locale';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,10 +25,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useCart } from '@/context/cart-context';
 import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
-import { tr } from 'date-fns/locale';
 import { trackPixelEvent } from '@/components/analytics/FacebookPixel';
 
 const BOOK_IMAGE = "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=200&h=200&auto=format&fit=crop";
@@ -41,13 +44,33 @@ function PaketlerimPageContent() {
     const { addToCart } = useCart();
 
     const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
+    const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+    const [isGroupAssignDialogOpen, setIsGroupAssignDialogOpen] = useState(false);
     const [isAssigning, setIsAssigning] = useState(false);
     const [selectedPackageToAssign, setSelectedPackageToAssign] = useState<string>('');
     const [childToAssign, setChildToAssign] = useState<string>('');
     const [amountToAssign, setAmountToAssign] = useState<number>(0);
-    const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+    
+    // Group course specific state
+    const [selectedGroupPackageId, setSelectedGroupPackageId] = useState<string>('');
 
+    const groupPackagesRef = useMemoFirebase(() => {
+        if (!db) return null;
+        return query(collection(db, 'groupCoursePackages'), where('status', '==', 'published'));
+    }, [db]);
+    const { data: availableGroupPackages } = useCollection(groupPackagesRef);
 
+    const availableGroupSessionsRef = useMemoFirebase(() => {
+        if (!db || !availableGroupPackages || availableGroupPackages.length === 0) return null;
+        const ids = availableGroupPackages.map((p: any) => p.id).slice(0, 10);
+        return query(collection(db, 'groupCourseSessions'), where('packageId', 'in', ids));
+    }, [db, availableGroupPackages]);
+    const { data: availableGroupSessionsRaw } = useCollection(availableGroupSessionsRef);
+
+    const availableGroupSessions = useMemo(() => {
+        if (!availableGroupSessionsRaw) return [];
+        return [...availableGroupSessionsRaw].sort((a: any, b: any) => (a.startTime?.seconds || 0) - (b.startTime?.seconds || 0));
+    }, [availableGroupSessionsRaw]);
     const userDocRef = useMemoFirebase(() => {
         if (!db || !user?.uid) return null;
         return doc(db, 'users', user.uid);
@@ -76,6 +99,38 @@ function PaketlerimPageContent() {
             .filter((t: any) => t.status !== 'pending') 
             .sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
     }, [transactionsRaw]);
+
+    // Fetch Group Course Enrollments
+    const groupEnrollmentsRef = useMemoFirebase(() => {
+        if (!db || !user?.uid) return null;
+        return query(collection(db, 'groupCourseEnrollments'), where('parentId', '==', user.uid));
+    }, [db, user?.uid]);
+    const { data: groupEnrollments } = useCollection(groupEnrollmentsRef);
+
+    // Fetch Group Packages corresponding to the enrollments
+    const enrolledPackageIds = useMemo(() => {
+        if (!groupEnrollments) return [];
+        return [...new Set(groupEnrollments.map((e: any) => e.packageId))];
+    }, [groupEnrollments]);
+
+    const enrolledGroupPackagesRef = useMemoFirebase(() => {
+        if (!db || enrolledPackageIds.length === 0) return null;
+        // Firestore 'in' query has a max of 10 items, this is fine for now
+        return query(collection(db, 'groupCoursePackages'), where('__name__', 'in', enrolledPackageIds.slice(0, 10)));
+    }, [db, enrolledPackageIds]);
+    const { data: enrolledGroupPackages } = useCollection(enrolledGroupPackagesRef);
+
+    // Fetch Announcements for enrolled packages
+    const groupAnnouncementsRef = useMemoFirebase(() => {
+        if (!db || enrolledPackageIds.length === 0) return null;
+        return query(collection(db, 'groupAnnouncements'), where('packageId', 'in', enrolledPackageIds.slice(0, 10)));
+    }, [db, enrolledPackageIds]);
+    const { data: groupAnnouncementsRaw } = useCollection(groupAnnouncementsRef);
+
+    const groupAnnouncements = useMemo(() => {
+        if (!groupAnnouncementsRaw) return [];
+        return [...groupAnnouncementsRaw].sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    }, [groupAnnouncementsRaw]);
 
     useEffect(() => {
         if (!userLoading && !user) {
@@ -133,9 +188,75 @@ function PaketlerimPageContent() {
     
         const childDocRef = doc(db, 'users', user.uid, 'children', childToAssign);
         const childSnap = await getDoc(childDocRef);
-    
-        const lessonsInPackage = parseInt(selectedPackageToAssign.replace(/\D/g, ''), 10);
-        const prefix = selectedPackageToAssign.replace(/[0-9]/g, '');
+        const lessonsInPackage = parseInt(selectedPackageToAssign.replace(/\D/g, ''), 10) || 4; // 'grup4' will have 4
+        let prefix = selectedPackageToAssign.replace(/[0-9]/g, '');
+        if (prefix === '' || prefix === 'GRUP') prefix = 'grup'; // Normalization for legacy packages
+
+        // Check if it's a group assignment
+        if (prefix === 'grup') {
+            if (!selectedGroupPackageId) {
+                toast({ variant: 'destructive', title: 'Hata', description: 'Lütfen atama yapılacak grup sınıfını seçin.' });
+                return;
+            }
+            setIsAssigning(true);
+            const batch = writeBatch(db);
+
+            // Calculate how many credits to deduct based on the number of sessions in the group class
+            const sessionsForClass = availableGroupSessions?.filter((s: any) => s.packageId === selectedGroupPackageId) || [];
+            const creditsToDeduct = sessionsForClass.length > 0 ? sessionsForClass.length : 1;
+            
+            if (lessonsInPackage < creditsToDeduct) {
+                toast({ variant: 'destructive', title: 'Yetersiz Kredi', description: `Seçtiğiniz sınıf ${creditsToDeduct} derslik, ancak bu paketinizde ${lessonsInPackage} kredi var.` });
+                setIsAssigning(false);
+                return;
+            }
+
+            // Create enrollment
+            const enrollmentRef = doc(collection(db, 'groupCourseEnrollments'));
+            batch.set(enrollmentRef, {
+                packageId: selectedGroupPackageId,
+                studentId: childToAssign,
+                parentId: user.uid,
+                paymentStatus: 'paid',
+                enrolledAt: new Date()
+            });
+
+            // Increment enrolled count
+            const groupPackageRef = doc(db, 'groupCoursePackages', selectedGroupPackageId);
+            batch.update(groupPackageRef, {
+                enrolledCount: increment(1)
+            });
+
+            // Update Parent (deduct credits instead of removing the whole token if there are remaining credits)
+            const remainingLessons = lessonsInPackage - creditsToDeduct;
+            const updatedPackages = [...(userData.enrolledPackages || [])];
+            const indexToRemove = updatedPackages.indexOf(selectedPackageToAssign);
+            if (indexToRemove !== -1) {
+                if (remainingLessons > 0) {
+                    updatedPackages[indexToRemove] = `${remainingLessons}GRUP`;
+                } else {
+                    updatedPackages.splice(indexToRemove, 1);
+                }
+            }
+            batch.update(userDocRef, {
+                enrolledPackages: updatedPackages
+            });
+
+            try {
+                await batch.commit();
+                toast({ title: 'Gruba Kayıt Başarılı!', description: `Öğrenci grup sınıfına başarıyla eklendi.`, className: 'bg-purple-600 text-white' });
+            } catch (error) {
+                toast({ variant: 'destructive', title: 'Hata', description: 'Kayıt sırasında hata oluştu.' });
+            } finally {
+                setIsAssigning(false);
+                setIsAssignDialogOpen(false);
+                setIsGroupAssignDialogOpen(false);
+                setSelectedPackageToAssign('');
+                setChildToAssign('');
+                setSelectedGroupPackageId('');
+            }
+            return;
+        }
 
         if (childSnap.exists() && childSnap.data()?.assignedPackage && (childSnap.data()?.remainingLessons || 0) > 0) {
             const currentPackage = childSnap.data().assignedPackage;
@@ -476,50 +597,103 @@ function PaketlerimPageContent() {
                                 <CardTitle className='flex items-center gap-2 text-slate-800 text-lg'><Package className="w-5 h-5 text-indigo-500"/> Atanmamış Kurslar</CardTitle>
                             </CardHeader>
                             <CardContent className="p-6">
-                                <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl mb-6 flex justify-between items-center">
-                                    <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Kredi Havuzu</p>
-                                    <p className="text-2xl font-black text-indigo-600">{totalUnassignedLessons} <span className="text-sm font-bold text-slate-400">Ders</span></p>
-                                </div>
+                                {(() => {
+                                    const regularPackages = unassignedPackages.filter(pkg => {
+                                        const normalizedPkg = /^\d+$/.test(pkg) ? `${pkg}GRUP` : pkg;
+                                        return !normalizedPkg.toLowerCase().includes('grup');
+                                    });
+                                    const totalRegularLessons = regularPackages.reduce((acc: number, pkg: string) => acc + (parseInt(pkg.replace(/\D/g, ''), 10) || 0), 0);
 
-                                {unassignedPackages.length > 0 ? (
-                                    <div className='flex flex-col gap-2'>
-                                        {unassignedPackages.map((pkg: string, index: number) => {
-                                            const course = getCourseByCode(pkg);
-                                            const lessons = parseInt(pkg.replace(/\D/g, ''), 10);
-                                            return (
-                                                <div key={`${pkg}-${index}`} className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
-                                                    <div className="flex items-center gap-2">
-                                                        <PlayCircle className="w-4 h-4 text-indigo-400" />
-                                                        <span className="font-bold text-slate-700 text-sm">{course ? `${course.title}` : `Bilinmeyen`}</span>
+                                    return (
+                                        <>
+                                            <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl mb-6 flex justify-between items-center">
+                                                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Kredi Havuzu</p>
+                                                <p className="text-2xl font-black text-indigo-600">{totalRegularLessons} <span className="text-sm font-bold text-slate-400">Ders</span></p>
+                                            </div>
+                                            {regularPackages.length > 0 ? (
+                                        <div className='flex flex-col gap-2'>
+                                            {regularPackages.map((pkg: string, index: number) => {
+                                                const course = getCourseByCode(pkg);
+                                                const lessons = parseInt(pkg.replace(/\D/g, ''), 10);
+                                                return (
+                                                    <div key={`reg-${pkg}-${index}`} className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
+                                                        <div className="flex items-center gap-2">
+                                                            <PlayCircle className="w-4 h-4 text-indigo-400" />
+                                                            <span className="font-bold text-slate-700 text-sm">{course ? `${course.title}` : `Bilinmeyen`}</span>
+                                                        </div>
+                                                        <Badge className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100">{lessons} Ders</Badge>
                                                     </div>
-                                                    <Badge className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100">{lessons} Ders</Badge>
-                                                </div>
-                                            )
-                                        })}
+                                                )
+                                            })}
 
-                                        {childrenWithoutPackages.length > 0 && (
-                                            <Button className="w-full mt-4 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold rounded-xl h-12 shadow-sm" onClick={() => {
-                                                 if (unassignedPackages.length > 0) {
-                                                     const pkg = unassignedPackages[0];
+                                            {childrenWithoutPackages.length > 0 && (
+                                                <Button className="w-full mt-4 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold rounded-xl h-12 shadow-sm" onClick={() => {
+                                                     const pkg = regularPackages[0];
                                                      setSelectedPackageToAssign(pkg);
                                                      setAmountToAssign(parseInt(pkg.replace(/\D/g, ''), 10) || 0);
-                                                 }
-                                                 setIsAssignDialogOpen(true);
-                                             }}>
-                                                <Plus className='mr-2 h-5 w-5' /> Şimdi Kurs Ata
+                                                     setIsAssignDialogOpen(true);
+                                                 }}>
+                                                    <Plus className='mr-2 h-5 w-5' /> Şimdi Kurs Ata
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-4">
+                                            <p className='text-slate-500 font-medium text-sm mb-4'>Şu anda atama bekleyen yeni bir standart kursunuz bulunmuyor.</p>
+                                            <Button asChild className="w-full font-bold rounded-xl shadow-sm border-slate-200 text-slate-700" variant="outline">
+                                                <Link href="/kurslar">Yeni Kredi Satın Al</Link>
                                             </Button>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="text-center py-4">
-                                        <p className='text-slate-500 font-medium text-sm mb-4'>Şu anda atama bekleyen yeni bir kursunuz bulunmuyor.</p>
-                                        <Button asChild className="w-full font-bold rounded-xl shadow-sm border-slate-200 text-slate-700" variant="outline">
-                                            <Link href="/kurslar">Yeni Kredi Satın Al</Link>
-                                        </Button>
-                                    </div>
-                                )}
+                                        </div>
+                                    )}
+                                    </>
+                                    );
+                                })()}
                             </CardContent>
                         </Card>
+
+                        {(() => {
+                            const groupPackages = unassignedPackages.filter(pkg => {
+                                const normalizedPkg = /^\d+$/.test(pkg) ? `${pkg}GRUP` : pkg;
+                                return normalizedPkg.toLowerCase().includes('grup');
+                            });
+
+                            if (groupPackages.length === 0) return null;
+
+                            return (
+                                <Card className="border border-purple-200 shadow-sm bg-white rounded-[24px] overflow-hidden">
+                                    <CardHeader className="bg-purple-50/50 border-b border-purple-100 pb-4 px-6 pt-6">
+                                        <CardTitle className='flex items-center gap-2 text-purple-900 text-lg'><Users className="w-5 h-5 text-purple-500"/> Grup Derslerim</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="p-6">
+                                        <div className='flex flex-col gap-2'>
+                                            {groupPackages.map((pkg: string, index: number) => {
+                                                const normalizedPkg = /^\d+$/.test(pkg) ? `${pkg}GRUP` : pkg;
+                                                const course = getCourseByCode(normalizedPkg);
+                                                const lessons = parseInt(normalizedPkg.replace(/\D/g, ''), 10);
+                                                return (
+                                                    <div key={`grp-${pkg}-${index}`} className="flex justify-between items-center bg-purple-50 p-3 rounded-lg border border-purple-100 shadow-sm">
+                                                        <div className="flex items-center gap-2">
+                                                            <PlayCircle className="w-4 h-4 text-purple-400" />
+                                                            <span className="font-bold text-purple-900 text-sm">{course ? `${course.title}` : `Bilinmeyen Grup Dersi`}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-200">Grup Paketi ({lessons} Ders)</Badge>
+                                                            {children && children.length > 0 && (
+                                                                <Button size="sm" className="h-7 text-xs bg-purple-600 text-white hover:bg-purple-700 shadow-sm" onClick={() => {
+                                                                    setSelectedPackageToAssign(pkg);
+                                                                    setAmountToAssign(lessons);
+                                                                    setIsGroupAssignDialogOpen(true);
+                                                                }}>Planla</Button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )
+                        })()}
 
                         {/* ÖZEL DAVET HEDİYELERİ */}
                         {userData?.referralGifts && userData.referralGifts.filter((g: any) => g.type !== 'points').length > 0 && (
@@ -596,12 +770,18 @@ function PaketlerimPageContent() {
                                         <SelectValue placeholder="Kurs Seçin" />
                                     </SelectTrigger>
                                     <SelectContent className="rounded-xl border-none shadow-xl">
-                                        {unassignedPackages.map((pkg: string, index: number) => {
-                                            const course = getCourseByCode(pkg);
-                                            const lessons = parseInt(pkg.replace(/\D/g, ''), 10);
-                                            return (
-                                                 <SelectItem key={`${pkg}-${index}`} value={pkg} className="py-3 font-semibold text-slate-700">{course?.title} ({lessons} ders)</SelectItem>
-                                            )
+                                        {unassignedPackages
+                                            .filter((pkg: string) => {
+                                                const normalizedPkg = /^\d+$/.test(pkg) ? `${pkg}GRUP` : pkg;
+                                                return !normalizedPkg.toLowerCase().includes('grup');
+                                            })
+                                            .map((pkg: string, index: number) => {
+                                                const normalizedPkg = /^\d+$/.test(pkg) ? `${pkg}GRUP` : pkg;
+                                                const course = getCourseByCode(normalizedPkg);
+                                                const lessons = parseInt(normalizedPkg.replace(/\D/g, ''), 10);
+                                                return (
+                                                     <SelectItem key={`${pkg}-${index}`} value={pkg} className="py-3 font-semibold text-slate-700">{course?.title} ({lessons} ders)</SelectItem>
+                                                )
                                         })}
                                     </SelectContent>
                                 </Select>
@@ -620,7 +800,28 @@ function PaketlerimPageContent() {
                                 </Select>
                             </div>
                             
-                             {selectedPackageToAssign && (
+                            {selectedPackageToAssign.startsWith('grup') && (
+                                <div>
+                                    <label htmlFor="group-package-select" className='text-sm font-bold text-slate-700 uppercase tracking-widest'>Grup Sınıfı Seçin</label>
+                                    <Select value={selectedGroupPackageId} onValueChange={setSelectedGroupPackageId}>
+                                        <SelectTrigger id="group-package-select" className="mt-2 h-14 rounded-xl border-slate-200 bg-purple-50 font-semibold focus:ring-purple-500 focus:border-purple-500">
+                                            <SelectValue placeholder="Uygun Grup Sınıfları" />
+                                        </SelectTrigger>
+                                        <SelectContent className="rounded-xl border-none shadow-xl">
+                                            {availableGroupPackages?.filter((p: any) => p.enrolledCount < p.capacity).map((pkg: any) => (
+                                                 <SelectItem key={pkg.id} value={pkg.id} className="py-3 font-semibold text-purple-900">
+                                                    {pkg.title} (Kontenjan: {pkg.capacity - pkg.enrolledCount} boş)
+                                                 </SelectItem>
+                                            ))}
+                                            {(!availableGroupPackages || availableGroupPackages.filter((p: any) => p.enrolledCount < p.capacity).length === 0) && (
+                                                <div className="p-4 text-sm text-slate-500 italic text-center">Şu anda uygun boş grup sınıfı bulunmuyor.</div>
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
+
+                             {selectedPackageToAssign && !selectedPackageToAssign.startsWith('grup') && (
                                 <div className='space-y-3 pt-2'>
                                     <div className="flex justify-between items-center">
                                         <label className='text-sm font-bold text-slate-700 uppercase tracking-widest'>Atanacak Ders Sayısı</label>
@@ -655,7 +856,7 @@ function PaketlerimPageContent() {
                                 </div>
                              )}
 
-                             {selectedPackageToAssign && (
+                             {selectedPackageToAssign && !selectedPackageToAssign.startsWith('grup') && (
                                 <div className="font-bold p-4 bg-emerald-50 text-emerald-800 rounded-xl flex items-center justify-between border border-emerald-100">
                                     <span>Atanacak Toplam Kredi:</span>
                                     <Badge className="bg-emerald-500 text-white border-none py-1">{amountToAssign} Ders</Badge>
@@ -664,13 +865,87 @@ function PaketlerimPageContent() {
                         </div>
                         <AlertDialogFooter className="pt-2">
                             <AlertDialogCancel className="h-12 rounded-xl font-bold border-slate-200 w-full sm:w-auto">İptal</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleAssignPackage} disabled={isAssigning || !selectedPackageToAssign || !childToAssign} className="h-12 w-full sm:w-auto rounded-xl font-bold bg-primary text-white shadow-md">
+                            <AlertDialogAction onClick={handleAssignPackage} disabled={isAssigning || !selectedPackageToAssign || !childToAssign || (selectedPackageToAssign.startsWith('grup') && !selectedGroupPackageId)} className="h-12 w-full sm:w-auto rounded-xl font-bold bg-primary text-white shadow-md">
                                 {isAssigning && <Loader2 className='animate-spin mr-2 h-5 w-5' />}
-                                Kursu Tanımla
+                                {selectedPackageToAssign.startsWith('grup') ? 'Gruba Kaydet' : 'Kursu Tanımla'}
                             </AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
+
+                {/* Grup Sınıfı Seçim Dialogu */}
+                <Dialog open={isGroupAssignDialogOpen} onOpenChange={setIsGroupAssignDialogOpen}>
+                    <DialogContent className="sm:max-w-[425px] rounded-3xl p-0 overflow-hidden border-0 shadow-2xl">
+                        <div className="bg-gradient-to-br from-purple-500 to-indigo-600 p-8 text-white text-center relative overflow-hidden">
+                            <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay"></div>
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+                            <DialogHeader>
+                                <DialogTitle className="text-2xl font-black mb-2 relative z-10 flex flex-col items-center gap-3">
+                                    <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md">
+                                        <Users className="w-8 h-8 text-white" />
+                                    </div>
+                                    Grup Sınıfı Seçin
+                                </DialogTitle>
+                                <DialogDescription className="text-purple-100 font-medium relative z-10">
+                                    Satın aldığınız grup dersi hakkınızı kullanmak için bir sınıf ve öğrenci seçin.
+                                </DialogDescription>
+                            </DialogHeader>
+                        </div>
+                        <div className="p-8 bg-slate-50 space-y-6">
+                            <div>
+                                <label className='text-sm font-bold text-slate-700 uppercase tracking-widest'>Öğrenci</label>
+                                <Select value={childToAssign} onValueChange={setChildToAssign}>
+                                    <SelectTrigger className="mt-2 h-14 rounded-xl border-slate-200 bg-white font-semibold focus:ring-purple-500">
+                                        <SelectValue placeholder="Çocuk Seçin" />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-xl border-none shadow-xl">
+                                        {children && children.map((child: any) => (
+                                             <SelectItem key={child.id} value={child.id} className="py-3 font-semibold text-slate-700">{child.firstName}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            
+                            <div>
+                                <label className='text-sm font-bold text-slate-700 uppercase tracking-widest'>Uygun Grup Sınıfları</label>
+                                <Select value={selectedGroupPackageId} onValueChange={setSelectedGroupPackageId}>
+                                    <SelectTrigger className="mt-2 h-14 rounded-xl border-slate-200 bg-white font-semibold focus:ring-purple-500">
+                                        <SelectValue placeholder="Sınıf Seçin" />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-xl border-none shadow-xl">
+                                        {availableGroupPackages?.filter((p: any) => p.enrolledCount < p.capacity).map((pkg: any) => {
+                                             const firstSession = availableGroupSessions?.find((s: any) => s.packageId === pkg.id && s.startTime);
+                                             let scheduleText = '';
+                                             if (firstSession) {
+                                                 try {
+                                                     scheduleText = ` - ${formatInTimeZone(firstSession.startTime.toDate(), Intl.DateTimeFormat().resolvedOptions().timeZone, "d MMMM EEEE HH:mm", { locale: tr })}`;
+                                                 } catch (e) {
+                                                     scheduleText = '';
+                                                 }
+                                             }
+                                             return (
+                                                 <SelectItem key={pkg.id} value={pkg.id} className="py-3 font-semibold text-purple-900">
+                                                    {pkg.title}{scheduleText} (Kontenjan: {pkg.capacity - pkg.enrolledCount} boş)
+                                                 </SelectItem>
+                                             );
+                                        })}
+                                        {(!availableGroupPackages || availableGroupPackages.filter((p: any) => p.enrolledCount < p.capacity).length === 0) && (
+                                            <div className="p-4 text-sm text-slate-500 italic text-center">Şu anda uygun boş grup sınıfı bulunmuyor.</div>
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <Button 
+                                onClick={handleAssignPackage} 
+                                disabled={isAssigning || !childToAssign || !selectedGroupPackageId}
+                                className="w-full h-14 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-lg shadow-lg shadow-purple-200"
+                            >
+                                {isAssigning ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Sınıfa Katıl'}
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
         </div>
     );
 }
