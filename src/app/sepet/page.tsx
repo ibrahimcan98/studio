@@ -88,16 +88,18 @@ export default function SepetPage() {
             
             if (couponSnap.exists() && couponSnap.data().isActive) {
                  const data = couponSnap.data();
-                 const pct = data.discountPct;
-                 applyStandardDiscount(
-                     coupon.toUpperCase(), 
-                     pct, 
-                     data.applicableCourseId, 
-                     data.applicablePackage
-                 );
+                 applyStandardDiscount(data);
+                 
+                 let discountDisplay = '';
+                 if (data.discountType === 'fixed_amount' && data.discountAmount) {
+                     discountDisplay = `£${data.discountAmount}`;
+                 } else {
+                     discountDisplay = `%${((data.discountPct || 0)*100).toFixed(0)}`;
+                 }
+
                  toast({
                      title: 'Kupon Uygulandı!',
-                     description: `"${coupon.toUpperCase()}" koduyla %${(pct*100).toFixed(0)} indirim kazandınız.`,
+                     description: `"${coupon.toUpperCase()}" koduyla ${discountDisplay} indirim kazandınız.`,
                      className: 'bg-green-500 text-white'
                  });
             } else {

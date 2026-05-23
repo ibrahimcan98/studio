@@ -25,7 +25,9 @@ export default function IndirimlerPage() {
   const { toast } = useToast();
   
   const [code, setCode] = useState('');
+  const [discountType, setDiscountType] = useState<'percentage' | 'fixed_amount'>('percentage');
   const [discountPct, setDiscountPct] = useState('20');
+  const [discountAmount, setDiscountAmount] = useState('20');
   const [isPublicDisplay, setIsPublicDisplay] = useState(false);
   const [applicableCourseIds, setApplicableCourseIds] = useState<string[]>([]);
   const [applicablePackages, setApplicablePackages] = useState<number[]>([]);
@@ -36,7 +38,8 @@ export default function IndirimlerPage() {
     { id: 'konusma', label: 'Konuşma' },
     { id: 'akademik', label: 'Akademik' },
     { id: 'gelisim', label: 'Gelişim' },
-    { id: 'gcse', label: 'GCSE' }
+    { id: 'gcse', label: 'GCSE' },
+    { id: 'grup', label: 'Grup Dersi' }
   ];
 
   const PACKAGES_LIST = [4, 8, 12, 24];
@@ -53,8 +56,14 @@ export default function IndirimlerPage() {
     const uppercaseCode = code.toUpperCase().trim();
     const pct = parseFloat(discountPct);
     
-    if (pct <= 0 || pct > 100) {
+    if (discountType === 'percentage' && (pct <= 0 || pct > 100)) {
         toast({ variant: 'destructive', title: 'Hata', description: 'İndirim yüzdesi 1 ile 100 arasında olmalıdır.' });
+        return;
+    }
+    
+    const amt = parseFloat(discountAmount);
+    if (discountType === 'fixed_amount' && (amt <= 0)) {
+        toast({ variant: 'destructive', title: 'Hata', description: 'İndirim tutarı 0\'dan büyük olmalıdır.' });
         return;
     }
 
@@ -62,7 +71,9 @@ export default function IndirimlerPage() {
     try {
         await setDoc(doc(db, 'coupons', uppercaseCode), {
             code: uppercaseCode,
-            discountPct: pct / 100, // Convert to decimal e.g., 20 -> 0.20
+            discountType,
+            discountPct: discountType === 'percentage' ? pct / 100 : null, // Convert to decimal e.g., 20 -> 0.20
+            discountAmount: discountType === 'fixed_amount' ? amt : null,
             isActive: true,
             isPublicDisplay,
             applicableCourseIds: applicableCourseIds.length > 0 ? applicableCourseIds : null,
@@ -72,6 +83,8 @@ export default function IndirimlerPage() {
         toast({ title: 'Başarılı', description: 'İndirim kodu oluşturuldu.' });
         setCode('');
         setDiscountPct('20');
+        setDiscountAmount('20');
+        setDiscountType('percentage');
         setIsPublicDisplay(false);
         setApplicableCourseIds([]);
         setApplicablePackages([]);
@@ -140,10 +153,29 @@ export default function IndirimlerPage() {
                      <Label htmlFor="code">Kupon Kodu</Label>
                      <Input id="code" placeholder="Örn: YAZINDİRİMİ" value={code} onChange={e => setCode(e.target.value.toUpperCase())} required />
                   </div>
-                  <div className="space-y-2 flex-1">
-                     <Label htmlFor="pct">İndirim Yüzdesi (%)</Label>
-                     <Input id="pct" type="number" min="1" max="100" placeholder="Örn: 20" value={discountPct} onChange={e => setDiscountPct(e.target.value)} required />
+                  <div className="space-y-2 flex-1 min-w-[150px]">
+                     <Label>İndirim Tipi</Label>
+                     <Select value={discountType} onValueChange={(v: any) => setDiscountType(v)}>
+                         <SelectTrigger>
+                             <SelectValue placeholder="Tipi Seçin" />
+                         </SelectTrigger>
+                         <SelectContent>
+                             <SelectItem value="percentage">Yüzde (%) İndirim</SelectItem>
+                             <SelectItem value="fixed_amount">Sabit Tutar (£) İndirim</SelectItem>
+                         </SelectContent>
+                     </Select>
                   </div>
+                  {discountType === 'percentage' ? (
+                      <div className="space-y-2 flex-1 min-w-[120px]">
+                         <Label htmlFor="pct">Yüzde (%)</Label>
+                         <Input id="pct" type="number" min="1" max="100" placeholder="Örn: 20" value={discountPct} onChange={e => setDiscountPct(e.target.value)} required />
+                      </div>
+                  ) : (
+                      <div className="space-y-2 flex-1 min-w-[120px]">
+                         <Label htmlFor="amt">Tutar (£)</Label>
+                         <Input id="amt" type="number" min="1" placeholder="Örn: 20" value={discountAmount} onChange={e => setDiscountAmount(e.target.value)} required />
+                      </div>
+                  )}
                   <Button type="submit" disabled={isProcessing} className="font-bold sm:w-auto w-full h-10 px-8">
                      {isProcessing ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
                      Kodu Oluştur
@@ -226,7 +258,11 @@ export default function IndirimlerPage() {
                                        {coupon.isPublicDisplay && (
                                            <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-200 border-none">VİTRİN KAMPANYASI</Badge>
                                        )}
-                                       <span className="text-sm font-bold text-green-600">%{(coupon.discountPct * 100).toFixed(0)} İndirim</span>
+                                       {coupon.discountType === 'fixed_amount' ? (
+                                           <span className="text-sm font-bold text-green-600">£{coupon.discountAmount} İndirim</span>
+                                       ) : (
+                                           <span className="text-sm font-bold text-green-600">%{(coupon.discountPct * 100).toFixed(0)} İndirim</span>
+                                       )}
                                     </div>
                                     <div className="flex flex-wrap gap-2 mt-2">
                                         {(() => {

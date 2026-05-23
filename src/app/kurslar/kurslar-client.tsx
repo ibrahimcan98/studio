@@ -136,7 +136,12 @@ export function KurslarClientPage({
             const matchingCoupons = globalCoupons.filter((coupon: any) => isCouponMatching(coupon));
             
             if (matchingCoupons.length > 0) {
-                discountPct = Math.max(...matchingCoupons.map((c: any) => c.discountPct || 0));
+                discountPct = Math.max(...matchingCoupons.map((c: any) => {
+                    if (c.discountType === 'fixed_amount' && c.discountAmount) {
+                        return c.discountAmount / price;
+                    }
+                    return c.discountPct || 0;
+                }));
             }
         }
         
@@ -204,7 +209,13 @@ export function KurslarClientPage({
             const matchingCoupons = globalCoupons.filter((coupon: any) => isCouponMatching(coupon));
             
             if (matchingCoupons.length > 0) {
-                discountPct = Math.max(...matchingCoupons.map((c: any) => c.discountPct || 0));
+                discountPct = Math.max(...matchingCoupons.map((c: any) => {
+                    if (c.discountType === 'fixed_amount' && c.discountAmount) {
+                        const estimatedPrice = perLessonPriceInGbp * packageLessons;
+                        return c.discountAmount / estimatedPrice;
+                    }
+                    return c.discountPct || 0;
+                }));
             }
         }
         
