@@ -11,6 +11,7 @@ import { Loader2, Calendar, History, BookOpen, Baby, Edit, AlertCircle, Video, M
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { formatInTimeZone } from 'date-fns-tz';
 import { tr } from 'date-fns/locale';
 import { addMinutes, startOfDay, isBefore } from 'date-fns';
@@ -470,6 +471,10 @@ function OgretmenDerslerimPageContent() {
                 upcoming.push(lesson);
             }
         });
+
+        // Sort past lessons descending (newest first)
+        past.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
+
         return { upcomingLessons: upcoming, pastLessons: past, cancelledLessons: cancelled, groupLessons: group };
     }, [allCombinedLessons]);
 
@@ -646,21 +651,27 @@ function OgretmenDerslerimPageContent() {
                             </div>
                         </Card>
                     ) : (
-                        <div className="space-y-8">
-                            {Object.entries(groupedPastByMonth).map(([month, lessons]) => (
-                                <div key={month} className="space-y-4">
-                                    <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                        <div className="h-px bg-slate-200 flex-1" />
-                                        {month}
-                                        <div className="h-px bg-slate-200 flex-1" />
-                                    </h3>
-                                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                        {lessons.map(lesson => (
-                                            <LessonCard key={lesson.id} lesson={lesson} onOpenProgressPanel={() => { setSelectedLesson(lesson); setIsProgressPanelOpen(true); }} onJoinLesson={handleJoinLesson} />
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
+                        <div className="space-y-4">
+                            <Accordion type="multiple" defaultValue={[formatInTimeZone(new Date(), 'Europe/Istanbul', 'MMMM yyyy', { locale: tr })]} className="w-full space-y-4">
+                                {Object.entries(groupedPastByMonth).map(([month, lessons]) => (
+                                    <AccordionItem key={month} value={month} className="border-none bg-transparent shadow-none">
+                                        <AccordionTrigger className="hover:no-underline py-2">
+                                            <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 w-full text-left">
+                                                <div className="h-px bg-slate-200 flex-1" />
+                                                {month}
+                                                <div className="h-px bg-slate-200 flex-1" />
+                                            </h3>
+                                        </AccordionTrigger>
+                                        <AccordionContent className="pt-4 pb-2">
+                                            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                                {lessons.map(lesson => (
+                                                    <LessonCard key={lesson.id} lesson={lesson} onOpenProgressPanel={() => { setSelectedLesson(lesson); setIsProgressPanelOpen(true); }} onJoinLesson={handleJoinLesson} />
+                                                ))}
+                                            </div>
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                ))}
+                            </Accordion>
                         </div>
                     )}
                 </TabsContent>

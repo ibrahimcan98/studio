@@ -114,6 +114,7 @@ export function GrupPaketleriClient() {
   const [selectedPackage, setSelectedPackage] = useState<any>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [sessionStartTime, setSessionStartTime] = useState('');
+  const [isFourWeekSession, setIsFourWeekSession] = useState(true);
   const [isAddingSession, setIsAddingSession] = useState(false);
 
   // Fetch Sessions for selected package
@@ -284,20 +285,29 @@ export function GrupPaketleriClient() {
   const handleAddSession = async () => {
     if (!db || !selectedPackage || !sessionStartTime) return;
     
-    const startDate = new Date(sessionStartTime);
-    const endDate = new Date(startDate.getTime() + 45 * 60000); // 45 min duration
-
     setIsAddingSession(true);
     try {
-      await addDoc(collection(db, 'groupCourseSessions'), {
-        packageId: selectedPackage.id,
-        teacherId: selectedPackage.teacherId, // Associate session directly with the teacher for calendar
-        startTime: startDate,
-        endTime: endDate,
-        status: 'scheduled',
-        createdAt: serverTimestamp()
-      });
-      toast({ title: 'Başarılı', description: 'Oturum eklendi.' });
+      const batch = writeBatch(db);
+      const weeksToCreate = isFourWeekSession ? 4 : 1;
+
+      for (let i = 0; i < weeksToCreate; i++) {
+        const startDate = new Date(sessionStartTime);
+        startDate.setDate(startDate.getDate() + (i * 7)); // Add i weeks
+        const endDate = new Date(startDate.getTime() + 45 * 60000); // 45 min duration
+
+        const sessionRef = doc(collection(db, 'groupCourseSessions'));
+        batch.set(sessionRef, {
+          packageId: selectedPackage.id,
+          teacherId: selectedPackage.teacherId,
+          startTime: startDate,
+          endTime: endDate,
+          status: 'scheduled',
+          createdAt: serverTimestamp()
+        });
+      }
+
+      await batch.commit();
+      toast({ title: 'Başarılı', description: isFourWeekSession ? '4 haftalık oturum eklendi.' : 'Oturum eklendi.' });
       setSessionStartTime('');
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Hata', description: error.message });
@@ -547,13 +557,17 @@ export function GrupPaketleriClient() {
 
                             {/* SESSIONS TAB */}
                             <TabsContent value="sessions" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-                                    <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2"><CalendarIcon className="w-5 h-5 text-purple-600"/> Yeni Oturum Planla</h3>
-                                    <div className="flex gap-3">
+                                <div className="flex flex-col gap-3 p-6 bg-white border border-slate-100 rounded-2xl shadow-sm">
+                                    <div className="flex items-center gap-3">
                                         <Input type="datetime-local" className="flex-1 h-12 rounded-xl bg-slate-50 border-slate-200 font-medium" value={sessionStartTime} onChange={(e) => setSessionStartTime(e.target.value)} />
                                         <Button onClick={handleAddSession} disabled={!sessionStartTime || isAddingSession} className="h-12 px-6 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold shadow-lg shadow-purple-600/20">
-                                            {isAddingSession ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
+                                            {isAddingSession ? <Loader2 className="w-5 h-5 animate-spin"/> : <Plus className="w-5 h-5 mr-2" />}
+                                            Planla
                                         </Button>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <input type="checkbox" id="fourWeekSession" checked={isFourWeekSession} onChange={(e) => setIsFourWeekSession(e.target.checked)} className="w-4 h-4 text-purple-600 rounded border-slate-300 focus:ring-purple-500" />
+                                        <label htmlFor="fourWeekSession" className="text-sm font-semibold text-slate-700">Otomatik 4 haftalık oturum oluştur (Aynı gün ve saatte)</label>
                                     </div>
                                 </div>
 

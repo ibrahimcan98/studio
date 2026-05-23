@@ -816,7 +816,6 @@ export default function DersPlanlaPage() {
                                     <div className="flex items-center gap-6 text-[11px] font-black text-slate-400 uppercase tracking-widest px-6 py-3 bg-slate-50/50 rounded-2xl border border-slate-100">
                                         <div className="flex items-center gap-2.5"><div className="w-3.5 h-3.5 bg-emerald-500 rounded-md"></div> Müsait</div>
                                         <div className="flex items-center gap-2.5"><div className="w-3.5 h-3.5 bg-red-400 rounded-md"></div> Dolu</div>
-                                        <div className="flex items-center gap-2.5"><div className="w-3.5 h-3.5 bg-purple-500 rounded-md"></div> Grup Dersi</div>
                                         <div className="flex items-center gap-2.5"><div className="w-3.5 h-3.5 bg-slate-200 rounded-md"></div> Kapalı</div>
                                     </div>
                                 </div>
@@ -889,7 +888,7 @@ export default function DersPlanlaPage() {
                                                             } else if (slot?.status === 'booked') {
                                                                 bgColor = "bg-red-400/80 cursor-not-allowed shadow-[inset_0_0_0_1.5px_rgba(255,255,255,0.15)]";
                                                             } else if (slot?.status === 'group_class') {
-                                                                bgColor = "bg-purple-500/80 cursor-not-allowed shadow-[inset_0_0_0_1.5px_rgba(255,255,255,0.15)]";
+                                                                bgColor = "bg-slate-200/40 cursor-not-allowed border-slate-300/10";
                                                             }
 
                                                             return (
@@ -909,11 +908,7 @@ export default function DersPlanlaPage() {
                                                                             <div className="bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-xl z-20 transform scale-110 tracking-widest">{time}</div>
                                                                         </div>
                                                                     )}
-                                                                    {hoveredSlot === `${dayKey}-${time}` && slot?.status === 'group_class' && (
-                                                                        <div className="absolute inset-0 flex items-center justify-center bg-white/25 pointer-events-none z-30">
-                                                                            <div className="bg-purple-900 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-xl whitespace-nowrap -mt-6">Bu derse katılmak için aktif grup dersi paketiniz bulunmamaktadır.</div>
-                                                                        </div>
-                                                                    )}
+
                                                                 </div>
                                                             );
                                                         })}

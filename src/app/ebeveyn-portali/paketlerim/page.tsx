@@ -3,7 +3,7 @@
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, useMemo, Suspense } from 'react';
-import { Loader2, Package, ArrowLeft, User, Plus, ShoppingCart, History, Calendar, PlayCircle, CreditCard, ChevronRight, BookOpen, Gift, Users } from 'lucide-react';
+import { Loader2, Package, ArrowLeft, User, Plus, ShoppingCart, History, Calendar, PlayCircle, CreditCard, ChevronRight, BookOpen, Gift, Users, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { collection, doc, writeBatch, getDoc, updateDoc, increment, arrayRemove, arrayUnion, query, where } from 'firebase/firestore';
@@ -818,6 +818,10 @@ function PaketlerimPageContent() {
                                             )}
                                         </SelectContent>
                                     </Select>
+                                    <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl flex gap-3 items-start shadow-sm">
+                                        <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                                        <p className="text-xs text-amber-800 font-medium leading-relaxed">Bu işlem ile 4 haftalık toplu ders ataması yapmış olacaksınız. Grup derslerini daha sonra değiştirmek isterseniz lütfen WhatsApp üzerinden bizimle iletişime geçin.</p>
+                                    </div>
                                 </div>
                             )}
 
@@ -934,6 +938,11 @@ function PaketlerimPageContent() {
                                         )}
                                     </SelectContent>
                                 </Select>
+                            </div>
+
+                            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex gap-3 items-start shadow-sm">
+                                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                                <p className="text-xs text-amber-800 font-medium leading-relaxed">Bu işlem ile 4 haftalık toplu ders ataması yapmış olacaksınız. Grup derslerini daha sonra değiştirmek isterseniz lütfen WhatsApp üzerinden bizimle iletişime geçin.</p>
                             </div>
 
                             <Button 

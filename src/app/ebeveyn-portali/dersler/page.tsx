@@ -533,7 +533,7 @@ function DerslerimPageContent() {
 
             if (isCancelled) {
                 cancelled.push(lesson);
-            } else if (isBefore(now, lesson.endTime)) {
+            } else if (isBefore(lesson.endTime, now)) {
                 past.push(lesson);
             } else if (!lesson.isGroupSession) {
                 upcoming.push(lesson);
@@ -676,7 +676,8 @@ function DerslerimPageContent() {
                                 
                                 const now = new Date();
                                 const activeSession = pkgSessions.find((s: any) => s.status === 'live' && isBefore(now, s.endTimeDate));
-                                const upcomingSession = pkgSessions.find((s: any) => isBefore(now, s.endTimeDate));
+                                const allUpcomingSessions = pkgSessions.filter((s: any) => isBefore(now, s.endTimeDate));
+                                const upcomingSession = allUpcomingSessions[0];
                                 
                                 return (
                                     <div key={enrollment.id} className="p-6 border border-purple-200 rounded-[20px] bg-white shadow-sm flex flex-col gap-6 items-center text-center">
@@ -715,16 +716,26 @@ function DerslerimPageContent() {
                                                 })()}
                                             </div>
 
-                                            {upcomingSession && (
-                                                <div className="mb-4 bg-purple-50 rounded-xl p-3 border border-purple-100 flex items-center gap-3">
-                                                    <div className="bg-purple-200 p-2 rounded-lg text-purple-700">
-                                                        <Calendar className="w-5 h-5" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[10px] font-black uppercase tracking-widest text-purple-600 mb-0.5">Sıradaki Ders</p>
-                                                        <p className="text-sm font-bold text-purple-900">
-                                                            {formatInTimeZone(upcomingSession.startTimeDate, timeZone, 'dd MMMM yyyy, HH:mm', { locale: tr })}
-                                                        </p>
+                                            {allUpcomingSessions.length > 0 && (
+                                                <div className="mb-4 bg-purple-50 rounded-xl p-3 border border-purple-100 space-y-2 text-left">
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-purple-600 border-b border-purple-200/50 pb-1.5 flex items-center gap-1.5">
+                                                        <Calendar className="w-3.5 h-3.5" />
+                                                        Tüm Ders Programı ({allUpcomingSessions.length} Ders)
+                                                    </p>
+                                                    <div className="space-y-1.5 max-h-[120px] overflow-y-auto pr-1">
+                                                        {allUpcomingSessions.map((session: any, index: number) => (
+                                                            <div key={session.id} className="flex items-center gap-2">
+                                                                <div className={cn("w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold shrink-0", index === 0 ? "bg-purple-600 text-white" : "bg-purple-200 text-purple-700")}>
+                                                                    {index + 1}
+                                                                </div>
+                                                                <div className="flex-1">
+                                                                    <p className={cn("text-xs font-bold", index === 0 ? "text-purple-900" : "text-purple-700/70")}>
+                                                                        {formatInTimeZone(session.startTimeDate, timeZone, 'dd MMMM yyyy, HH:mm', { locale: tr })}
+                                                                    </p>
+                                                                </div>
+                                                                {index === 0 && <Badge className="text-[9px] bg-purple-200 text-purple-800 border-none px-1.5 py-0 h-4">Sıradaki</Badge>}
+                                                            </div>
+                                                        ))}
                                                     </div>
                                                 </div>
                                             )}
