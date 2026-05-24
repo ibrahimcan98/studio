@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
 interface TTSOptions {
   voiceId?: string;
@@ -7,10 +7,24 @@ interface TTSOptions {
   onError?: (error: Error) => void;
 }
 
+let activeGlobalAudio: HTMLAudioElement | null = null;
+
 export function useTTS() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      if (activeGlobalAudio === audioRef.current) {
+        activeGlobalAudio = null;
+      }
+    };
+  }, []);
 
   const speak = useCallback(async (text: string, options?: TTSOptions) => {
     if (!text) return;
@@ -20,10 +34,10 @@ export function useTTS() {
       setIsPlaying(true);
       options?.onStart?.();
 
-      // Eski sesi durdur
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
+      // Eski sesi durdur (Global)
+      if (activeGlobalAudio) {
+        activeGlobalAudio.pause();
+        activeGlobalAudio = null;
       }
 
       // Eğer text bir dosya yolu ise (örn: /hikayeler/...) doğrudan o dosyayı çal
@@ -34,6 +48,7 @@ export function useTTS() {
       
       const audio = new Audio(url);
       audioRef.current = audio;
+      activeGlobalAudio = audio;
 
       audio.onplay = () => {
         setIsPlaying(true);

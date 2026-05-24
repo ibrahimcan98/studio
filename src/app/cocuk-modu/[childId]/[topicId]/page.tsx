@@ -545,7 +545,7 @@ export default function TopicPage() {
 
                 {/* Floating "Next" Button overlay if completed */}
                 {childData?.completedTopics?.includes(`${topicId}-${stage}`) && stage !== 'quiz' && (
-                    <div className="absolute bottom-10 left-0 right-0 flex justify-center z-40 pointer-events-none">
+                    <div className="absolute top-8 left-0 right-0 flex justify-center z-40 pointer-events-none">
                         <Button
                             className="pointer-events-auto bg-white text-sky-600 hover:bg-sky-50 font-black rounded-full px-12 h-20 text-xl shadow-[0_20px_40px_rgba(0,0,0,0.1)] border-b-8 border-gray-100 active:border-b-0 active:translate-y-2 transition-all group animate-bounce"
                             onClick={() => {

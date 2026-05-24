@@ -47,13 +47,12 @@ export function VoiceMatching({ wordList, onComplete }: VoiceMatchingProps) {
         "Denemeye devam! Bir tane daha seç bakalım."
     ];
 
-    // YENİ KURAL: Kelimeyi bükmüyoruz, sonuna "kelimesi" ekliyoruz.
     const promptPhrases = [
-        "Hadi bakalım, şimdi {target} kelimesi nerede?",
-        "Acaba {target} kelimesi hangisi? Onu bana gösterebilir misin?",
-        "Gözlerim {target} kelimesini arıyor, hadi onu bulalım!",
-        "Bakalım {target} kelimesi hangi kartın arkasına saklanmış?",
-        "Şimdi sıra {target} kelimesini bulmakta! Haydi bastır!"
+        "Hadi bakalım, şimdi {target} nerede?",
+        "Acaba hangisi {target}? Onu bana gösterebilir misin?",
+        "Birlikte {target} resmini bulalım!",
+        "Sence {target} nerede saklanmış?",
+        "Şimdi sıra {target} resmini seçmekte!"
     ];
 
     const generateOptions = useCallback(() => {
@@ -85,7 +84,7 @@ export function VoiceMatching({ wordList, onComplete }: VoiceMatchingProps) {
     }, [playAudio]);
 
     const handleAnswer = (answer: Word) => {
-        if (selectedAnswer || isTTSSpeaking) return;
+        if (selectedAnswer) return;
 
         setSelectedAnswer(answer);
         const correct = answer.word === currentWord.word;
@@ -123,13 +122,12 @@ export function VoiceMatching({ wordList, onComplete }: VoiceMatchingProps) {
                     size="icon"
                     className="w-20 h-20 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-none shadow-lg border-b-8 border-blue-800 active:border-b-0 active:translate-y-1 transition-all"
                     onClick={playAudio}
-                    disabled={isTTSSpeaking}
                 >
                     <Volume2 className={cn("w-10 h-10", isTTSSpeaking && "animate-pulse")} />
                 </Button>
                 <div className="flex flex-col">
                     <span className="text-blue-400 text-sm font-black uppercase tracking-widest italic">Dinle ve Seç</span>
-                    <h2 className="text-3xl font-black text-gray-800 uppercase italic tracking-tighter">"{currentWord.word}" kelimesi nerede?</h2>
+                    <h2 className="text-3xl font-black text-gray-800 uppercase italic tracking-tighter">"{currentWord.word}" nerede?</h2>
                 </div>
             </div>
 
