@@ -80,3 +80,29 @@ export function getCountryFromPhone(phone: string | undefined | null) {
   // Provide a generic fallback with the first 4 characters of the area code
   return "🌍 Diğer (" + cleanPhone.substring(0, 4) + "..)";
 }
+
+const DETAILS_KEY_ORDER = [
+  'Ders Zamanı',
+  'Öğrenci',
+  'Öğrenci Adı',
+  'Ders Türü',
+  'Öğretmen',
+  'Paket',
+  'Tutar',
+  'Veli',
+  'İsim',
+  'E-posta',
+  'Sebep',
+  'İptal Eden'
+];
+
+export function sortLogDetails(entries: [string, any][]) {
+  return entries.sort(([keyA], [keyB]) => {
+    let indexA = DETAILS_KEY_ORDER.indexOf(keyA);
+    let indexB = DETAILS_KEY_ORDER.indexOf(keyB);
+    if (indexA === -1) indexA = 999;
+    if (indexB === -1) indexB = 999;
+    if (indexA !== indexB) return indexA - indexB;
+    return keyA.localeCompare(keyB);
+  });
+}

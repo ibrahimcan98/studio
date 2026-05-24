@@ -8,7 +8,7 @@ import {
   createUserWithEmailAndPassword,
   updateProfile,
 } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc, addDoc, collection } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -129,6 +129,21 @@ export default function RegisterPage() {
 
       // First, create the Firestore document
       await setDoc(userDocRef, userData, { merge: true });
+
+      // Log registration to activity-log
+      try {
+        await addDoc(collection(db, 'activity-log'), {
+            event: role === 'teacher' ? 'Yeni Öğretmen Kaydı' : (role === 'admin' ? 'Yeni Admin Kaydı' : 'Yeni Veli Kaydı'),
+            details: { 
+                'İsim': name,
+                'E-posta': cleanEmail
+            },
+            icon: role === 'teacher' ? '👨‍🏫' : '👋',
+            createdAt: serverTimestamp()
+        });
+      } catch (logErr) {
+        console.error('Failed to log activity:', logErr);
+      }
 
       // Meta Tracking
       trackPixelEvent('CompleteRegistration', {

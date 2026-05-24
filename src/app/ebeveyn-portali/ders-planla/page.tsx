@@ -513,8 +513,8 @@ export default function DersPlanlaPage() {
                 try {
                     // Store in Activity Log
                     addDoc(collection(db, 'activity-log'), {
-                        event: rescheduleId ? '🔄 Ders Değiştirildi' : '📅 Ders Planlandı',
-                        icon: rescheduleId ? '🔄' : '📅',
+                        event: rescheduleId ? '🔄 Ders Değiştirildi' : (selectedPackage === 'FREE_TRIAL' ? '🎯 Deneme Dersi Planlandı' : '📅 Ders Planlandı'),
+                        icon: rescheduleId ? '🔄' : (selectedPackage === 'FREE_TRIAL' ? '🎯' : '📅'),
                         details: {
                             'Ders Türü': selectedPackage || '-',
                             'Öğrenci': childName,

@@ -319,14 +319,17 @@ function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZon
                         )}
                     </div>
                 )}
-                {isPast && !lesson.isGroupSession && (
+                {isPast && (
                     <Button 
                         onClick={() => onShowProgress(lesson)}
                         variant="outline"
-                        className="w-full h-11 font-semibold border-primary/20 text-primary hover:bg-primary/5"
+                        className={cn("w-full h-11 font-semibold", lesson.feedback ? "border-primary text-primary hover:bg-primary/5" : "border-slate-200 text-slate-400")}
                     >
-                        <ClipboardList className="w-4 h-4 mr-2" />
-                        İlerleme Raporunu Gör
+                        {lesson.feedback ? (
+                            <><ClipboardList className="w-4 h-4 mr-2" /> İlerleme Raporunu Gör</>
+                        ) : (
+                            <><Clock className="w-4 h-4 mr-2" /> {lesson.isGroupSession ? 'Geri Bildirim Bekleniyor' : 'Gelişim Raporu Bekleniyor'}</>
+                        )}
                     </Button>
                 )}
             </CardFooter>
@@ -340,7 +343,7 @@ export default function DerslerimPage() {
     const db = useFirestore();
 
     const [selectedLesson, setSelectedLesson] = useState<any | null>(null);
-    const [isProgressOpen, setIsProgressOpen] = useState(false);
+    const [isProgressPanelOpen, setIsProgressPanelOpen] = useState(false);
     const [timeZone, setTimeZone] = useState('');
 
     const userDocRef = useMemoFirebase(() => {
@@ -381,7 +384,16 @@ export default function DerslerimPage() {
 
     const groupPackageIds = useMemo(() => {
         if (!groupEnrollments) return [];
-        return [...new Set(groupEnrollments.map((e: any) => e.packageId))];
+        const ids = new Set<string>();
+        groupEnrollments.forEach((e: any) => {
+            ids.add(e.packageId);
+            if (e.makeupLessons && Array.isArray(e.makeupLessons)) {
+                e.makeupLessons.forEach((m: any) => {
+                    if (m.makeupPackageId) ids.add(m.makeupPackageId);
+                });
+            }
+        });
+        return [...ids];
     }, [groupEnrollments]);
 
     const groupSessionsQuery = useMemoFirebase(() => {
@@ -493,7 +505,8 @@ export default function DerslerimPage() {
                         isLive: session.status === 'live',
                         liveLessonUrl: pkg?.googleMeetLink || null, // Group packages have a google meet link on the package!
                         status: session.status,
-                        isGroupSession: true
+                        isGroupSession: true,
+                        feedback: session.feedback || null
                     });
                 });
             });
@@ -510,6 +523,9 @@ export default function DerslerimPage() {
             if (lesson.endTime < now) {
                 past.push(lesson);
             } else if (!lesson.isGroupSession) {
+                upcoming.push(lesson);
+            } else {
+                 // Include upcoming group sessions
                 upcoming.push(lesson);
             }
         });
@@ -538,7 +554,7 @@ export default function DerslerimPage() {
 
     const handleShowProgress = (lesson: any) => {
         setSelectedLesson(lesson);
-        setIsProgressOpen(true);
+        setIsProgressPanelOpen(true);
     };
 
     const selectedChildDocRef = useMemoFirebase(() => {
@@ -668,30 +684,35 @@ export default function DerslerimPage() {
                 </TabsContent>
             </Tabs>
 
-            <Dialog open={isProgressOpen} onOpenChange={setIsProgressOpen}>
-                <DialogContent className="max-w-5xl h-[90vh] p-0 overflow-hidden">
-                    <DialogHeader className="p-6 border-b">
-                        <DialogTitle className="text-2xl font-bold font-headline">
-                            {isChildDataLoading || !selectedChildData ? 'Yükleniyor...' : `${selectedChildData.firstName} - Ders İlerleme Raporu`}
+            <Dialog open={isProgressPanelOpen} onOpenChange={setIsProgressPanelOpen}>
+                <DialogContent className={cn("max-w-5xl", selectedLesson?.isGroupSession ? "h-auto max-w-2xl" : "h-[90vh]")}>
+                    <DialogHeader>
+                        <DialogTitle className="text-3xl font-bold font-headline">
+                            {selectedLesson?.isGroupSession 
+                                ? 'Grup Dersi Geri Bildirimi'
+                                : (isChildDataLoading || !selectedChildData ? 'Yükleniyor...' : `${selectedChildData.firstName} İlerleme Paneli`)}
                         </DialogTitle>
                         <DialogDescription>
-                            Öğretmenin bu ders için hazırladığı detaylı analiz ve geri bildirimler.
+                            {selectedLesson?.isGroupSession 
+                                ? 'Sınıfın genel ilerleme değerlendirmesi.' 
+                                : 'Çocuğun gelişimini izleyin ve geri bildirimleri inceleyin.'}
                         </DialogDescription>
                     </DialogHeader>
-                    
-                    <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
-                        {isChildDataLoading || !selectedChildData || !selectedLesson ? (
-                            <div className="flex h-64 items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>
-                        ) : (
-                            <ProgressPanel 
-                                child={selectedChildData} 
-                                parentId={user.uid}
-                                lessonId={selectedLesson.id} 
-                                isEditable={false} 
-                                authorRole="parent" 
-                            />
-                        )}
-                    </div>
+                    {selectedLesson?.isGroupSession ? (
+                        <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl min-h-[150px]">
+                            <p className="whitespace-pre-wrap text-slate-700">{selectedLesson.feedback}</p>
+                        </div>
+                    ) : (isChildDataLoading || !selectedChildData || !selectedLesson) ? (
+                        <div className="flex h-full items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>
+                    ) : (
+                        <ProgressPanel 
+                            child={selectedChildData} 
+                            parentId={user?.uid || ''}
+                            lessonId={selectedLesson.id} 
+                            isEditable={false} 
+                            authorRole="parent" 
+                        />
+                    )}
                 </DialogContent>
             </Dialog>
         </div>

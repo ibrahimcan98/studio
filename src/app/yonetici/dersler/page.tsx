@@ -550,8 +550,8 @@ export default function AdminDerslerPage() {
             // Record assignment to Activity Log
             const activityRef = doc(collection(db, 'activity-log'));
             batch.set(activityRef, {
-                event: '👨‍💼 Manuel Ders Atandı',
-                icon: '👨‍💼',
+                event: packageCode === 'FREE_TRIAL' ? '👨‍💼 Manuel Deneme Dersi Atandı' : '👨‍💼 Manuel Ders Atandı',
+                icon: packageCode === 'FREE_TRIAL' ? '🎯' : '👨‍💼',
                 details: {
                     'Ders Türü': packageCode,
                     'Öğrenci': childInfo?.firstName || '-',

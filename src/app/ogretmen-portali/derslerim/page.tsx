@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, query, where, doc, writeBatch, getDoc, serverTimestamp, increment, arrayUnion, addDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch, getDoc, updateDoc, serverTimestamp, increment, arrayUnion, addDoc, Timestamp } from 'firebase/firestore';
 import { Loader2, Calendar, History, BookOpen, Baby, Edit, AlertCircle, Video, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -65,6 +65,51 @@ function StudentName({ bookedBy, childId }: { bookedBy: string, childId: string 
     }, [db, bookedBy, childId]);
     const { data: childData } = useDoc(childDocRef);
     return <span>{childData?.firstName || '...'}</span>;
+}
+
+function GroupFeedbackPanel({ lessonId, initialFeedback, onClose }: { lessonId: string, initialFeedback: string, onClose: () => void }) {
+    const [feedback, setFeedback] = useState(initialFeedback || '');
+    const [isSaving, setIsSaving] = useState(false);
+    const db = useFirestore();
+    const { toast } = useToast();
+
+    const handleSave = async () => {
+        if (!db) return;
+        setIsSaving(true);
+        try {
+            const lessonRef = doc(db, 'groupCourseSessions', lessonId);
+            await updateDoc(lessonRef, { feedback, updatedAt: serverTimestamp() });
+            toast({ title: 'Başarılı', description: 'Grup dersi geri bildirimi başarıyla kaydedildi.' });
+            onClose();
+        } catch (error) {
+            console.error('Error saving feedback:', error);
+            toast({ title: 'Hata', description: 'Geri bildirim kaydedilirken bir hata oluştu.', variant: 'destructive' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <div className="flex flex-col h-full space-y-4 p-2">
+            <div className="flex-grow">
+                <Label htmlFor="group-feedback" className="mb-2 block font-bold text-slate-700">Ders Değerlendirmesi / Notlar</Label>
+                <Textarea 
+                    id="group-feedback"
+                    placeholder="Bu derste neler yapıldı? Öğrencilerin genel katılımı nasıldı? Sınıf genelindeki başarı ve eksiklikleri buraya yazabilirsiniz..."
+                    className="w-full h-48 md:h-64 resize-none rounded-xl"
+                    value={feedback}
+                    onChange={(e) => setFeedback(e.target.value)}
+                />
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button variant="outline" onClick={onClose} disabled={isSaving} className="rounded-xl">İptal</Button>
+                <Button onClick={handleSave} disabled={isSaving} className="rounded-xl font-bold">
+                    {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                    Kaydet
+                </Button>
+            </div>
+        </div>
+    );
 }
 
 function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any, onOpenProgressPanel: () => void, onJoinLesson: (lesson: any) => void }) {
@@ -158,9 +203,9 @@ function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any
                         )}
                     </div>
                 ) : (
-                    <Button onClick={onOpenProgressPanel} variant={needsFeedback ? "destructive" : "outline"} className='w-full font-bold' disabled={lesson.isGroupSession}>
+                    <Button onClick={onOpenProgressPanel} variant={needsFeedback ? "destructive" : "outline"} className='w-full font-bold'>
                         <Edit className='w-4 h-4 mr-2' />
-                        {lesson.isGroupSession ? "Grup Dersi Geri Bildirimi (Yakında)" : (needsFeedback ? "Geri Bildirim Ekle" : "İlerlemeyi Gör")}
+                        {needsFeedback ? "Geri Bildirim Ekle" : (lesson.isGroupSession ? "Geri Bildirimi Gör" : "İlerlemeyi Gör")}
                     </Button>
                 )}
             </CardFooter>
@@ -442,6 +487,7 @@ function OgretmenDerslerimPageContent() {
                     liveLessonUrl: pkg?.googleMeetLink || null, // Group packages have a google meet link on the package!
                     status: session.status,
                     isGroupSession: true,
+                    feedback: session.feedback || null,
                     // mock values so the rest of the component works
                     childId: 'group',
                     bookedBy: 'group'
@@ -583,12 +629,12 @@ function OgretmenDerslerimPageContent() {
                 description: 'Öğrenciniz artık derse katılabilir. Google Meet linki açılıyor...',
             });
             window.open(liveLessonUrl, '_blank');
-        } catch (error) {
+        } catch (error: any) {
             console.error("Ders başlatma hatası:", error);
             toast({
                 variant: 'destructive',
                 title: 'Hata',
-                description: 'Ders başlatılamadı. Lütfen tekrar deneyin.',
+                description: `Ders başlatılamadı: ${error?.message || 'Bilinmeyen hata'}.`,
             });
         } finally {
             setIsStartingLesson(false);
@@ -756,14 +802,26 @@ function OgretmenDerslerimPageContent() {
             </Tabs>
 
             <Dialog open={isProgressPanelOpen} onOpenChange={setIsProgressPanelOpen}>
-                <DialogContent className="max-w-5xl h-[90vh]">
+                <DialogContent className={cn("max-w-5xl", selectedLesson?.isGroupSession ? "h-auto" : "h-[90vh]")}>
                     <DialogHeader>
                         <DialogTitle className="text-3xl font-bold font-headline">
-                            {isChildDataLoading || !selectedChildData ? 'Yükleniyor...' : `${selectedChildData.firstName} İlerleme Paneli`}
+                            {selectedLesson?.isGroupSession 
+                                ? 'Grup Dersi Geri Bildirimi'
+                                : (isChildDataLoading || !selectedChildData ? 'Yükleniyor...' : `${selectedChildData.firstName} İlerleme Paneli`)}
                         </DialogTitle>
-                        <DialogDescription>Çocuğun ilerlemesini izleyin ve geri bildirim verin.</DialogDescription>
+                        <DialogDescription>
+                            {selectedLesson?.isGroupSession 
+                                ? 'Sınıfın genel ilerlemesini değerlendirin.' 
+                                : 'Çocuğun ilerlemesini izleyin ve geri bildirim verin.'}
+                        </DialogDescription>
                     </DialogHeader>
-                    {isChildDataLoading || !selectedChildData || !selectedLesson ? (
+                    {selectedLesson?.isGroupSession ? (
+                        <GroupFeedbackPanel
+                            lessonId={selectedLesson.id}
+                            initialFeedback={selectedLesson.feedback || ''}
+                            onClose={() => setIsProgressPanelOpen(false)}
+                        />
+                    ) : (isChildDataLoading || !selectedChildData || !selectedLesson) ? (
                         <div className="flex h-full items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>
                     ) : (
                         <ProgressPanel 

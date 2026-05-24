@@ -39,7 +39,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from "@/components/ui/input";
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
+import { cn, sortLogDetails } from '@/lib/utils';
 import {
     Collapsible,
     CollapsibleContent,
@@ -309,7 +309,7 @@ export default function DenetimKaydiPage() {
                                         </div>
                                     </div>
                                     <div className="p-3 bg-slate-50 rounded-xl space-y-1">
-                                        {Object.entries(log.details || {}).map(([key, value]) => (
+                                        {sortLogDetails(Object.entries(log.details || {})).map(([key, value]) => (
                                             <div key={key} className="flex items-center gap-2">
                                                 <span className="text-[10px] font-extrabold text-slate-400 uppercase min-w-[80px]">{key}:</span>
                                                 <span className="text-xs font-semibold text-slate-600 truncate">{String(value)}</span>
@@ -391,7 +391,7 @@ function LogItem({ log, formatDate }: { log: any, formatDate: (t: any) => string
                 <Collapsible open={isOpen} onOpenChange={setIsOpen}>
                     <div className="flex items-start gap-4">
                         <div className="flex-1 space-y-1">
-                            {Object.entries(log.details || {}).slice(0, isOpen ? undefined : 2).map(([key, value]) => (
+                            {sortLogDetails(Object.entries(log.details || {})).slice(0, isOpen ? undefined : 2).map(([key, value]) => (
                                 <div key={key} className="flex items-center gap-2">
                                     <span className="text-[10px] font-extrabold text-slate-400 uppercase min-w-[80px]">{key}:</span>
                                     <span className="text-xs font-semibold text-slate-600 truncate">{String(value)}</span>

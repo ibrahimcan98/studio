@@ -38,12 +38,98 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { formatInTimeZone } from 'date-fns-tz';
 
-function StudentRow({ enrollment, db }: { enrollment: any, db: any }) {
+function StudentRow({ enrollment, db, packages, currentPackageId }: { enrollment: any, db: any, packages: any[], currentPackageId: string }) {
   const [parentName, setParentName] = useState('...');
   const [studentName, setStudentName] = useState('...');
   const [loading, setLoading] = useState(true);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [targetPackageId, setTargetPackageId] = useState('');
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [transferMode, setTransferMode] = useState<'full' | 'makeup'>('full');
+  
+  // For Makeup Mode
+  const [currentSessions, setCurrentSessions] = useState<any[]>([]);
+  const [targetSessions, setTargetSessions] = useState<any[]>([]);
+  const [selectedOriginalSessionId, setSelectedOriginalSessionId] = useState('');
+  const [selectedMakeupSessionId, setSelectedMakeupSessionId] = useState('');
+
+  const { toast } = useToast();
+
+  const availablePackages = packages.filter(p => p.id !== currentPackageId && p.status !== 'completed');
+
+  useEffect(() => {
+    if (isTransferModalOpen) {
+      getDocs(query(collection(db, 'groupCourseSessions'), where('packageId', '==', currentPackageId), orderBy('startTime', 'asc')))
+        .then(snap => setCurrentSessions(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+        .catch(console.error);
+    }
+  }, [isTransferModalOpen, currentPackageId, db]);
+
+  useEffect(() => {
+    if (transferMode === 'makeup' && targetPackageId && targetPackageId !== 'none') {
+      getDocs(query(collection(db, 'groupCourseSessions'), where('packageId', '==', targetPackageId), orderBy('startTime', 'asc')))
+        .then(snap => setTargetSessions(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+        .catch(console.error);
+    } else {
+      setTargetSessions([]);
+      setSelectedMakeupSessionId('');
+    }
+  }, [targetPackageId, transferMode, db]);
+
+  const handleTransfer = async () => {
+    if (!targetPackageId || targetPackageId === 'none') return;
+    setIsTransferring(true);
+    try {
+      const targetPkg = packages.find(p => p.id === targetPackageId);
+      if (!targetPkg) throw new Error("Paket bulunamadı.");
+
+      const batch = writeBatch(db);
+      const enrolRef = doc(db, 'groupCourseEnrollments', enrollment.id);
+
+      if (transferMode === 'full') {
+        batch.update(enrolRef, { packageId: targetPackageId, updatedAt: serverTimestamp() });
+  
+        const newPkgRef = doc(db, 'groupCoursePackages', targetPackageId);
+        batch.update(newPkgRef, { enrolledCount: (targetPkg.enrolledCount || 0) + 1 });
+  
+        const oldPkg = packages.find(p => p.id === currentPackageId);
+        if (oldPkg) {
+           const oldPkgRef = doc(db, 'groupCoursePackages', currentPackageId);
+           batch.update(oldPkgRef, { enrolledCount: Math.max(0, (oldPkg.enrolledCount || 0) - 1) });
+        }
+      } else {
+        if (!selectedOriginalSessionId || !selectedMakeupSessionId) throw new Error("Lütfen tüm alanları doldurun.");
+        
+        const currentMakeupLessons = enrollment.makeupLessons || [];
+        const newMakeup = {
+            originalSessionId: selectedOriginalSessionId,
+            makeupPackageId: targetPackageId,
+            makeupSessionId: selectedMakeupSessionId,
+            assignedAt: new Date()
+        };
+        
+        batch.update(enrolRef, { 
+            makeupLessons: [...currentMakeupLessons, newMakeup],
+            updatedAt: serverTimestamp() 
+        });
+      }
+
+      await batch.commit();
+
+      toast({ title: "Başarılı", description: transferMode === 'full' ? "Öğrenci yeni gruba aktarıldı." : "Telafi dersi başarıyla atandı." });
+      setIsTransferModalOpen(false);
+      setTransferMode('full');
+      setTargetPackageId('');
+      setSelectedOriginalSessionId('');
+      setSelectedMakeupSessionId('');
+    } catch (e: any) {
+      console.error(e);
+      toast({ title: "Hata", description: "Grup değiştirilirken bir hata oluştu.", variant: "destructive" });
+    } finally {
+      setIsTransferring(false);
+    }
+  };
 
   useEffect(() => {
     if (!db || !enrollment.parentId || !enrollment.studentId) return;
@@ -74,9 +160,110 @@ function StudentRow({ enrollment, db }: { enrollment: any, db: any }) {
            <p className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-0.5"><Users className="w-3 h-3"/> Veli: {parentName}</p>
         </div>
       </div>
-      <div className="text-right">
+      <div className="flex flex-col items-end gap-1">
         <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 font-bold px-3 py-1">Kayıtlı</Badge>
-        <p className="text-[10px] text-slate-400 mt-1.5 font-bold uppercase tracking-wider">{enrollment.enrolledAt?.toDate ? format(enrollment.enrolledAt.toDate(), 'dd MMM yyyy') : ''}</p>
+        
+        <Dialog open={isTransferModalOpen} onOpenChange={setIsTransferModalOpen}>
+           <DialogTrigger asChild>
+             <Button variant="ghost" size="sm" className="h-6 text-[10px] text-blue-600 font-bold hover:bg-blue-50 px-2">Grup Değiştir</Button>
+           </DialogTrigger>
+           <DialogContent>
+             <DialogHeader>
+               <DialogTitle>İşlemler (Aktar / Telafi)</DialogTitle>
+               <DialogDescription>
+                 {studentName} adlı öğrenci için işlem seçin.
+               </DialogDescription>
+             </DialogHeader>
+             <Tabs value={transferMode} onValueChange={(v: any) => setTransferMode(v)} className="w-full">
+               <TabsList className="grid w-full grid-cols-2 mb-4">
+                 <TabsTrigger value="full">Tüm Paketi Aktar</TabsTrigger>
+                 <TabsTrigger value="makeup">Telafi Dersi Ata</TabsTrigger>
+               </TabsList>
+
+               <TabsContent value="full" className="space-y-4">
+                 <div className="space-y-2">
+                   <p className="text-sm font-medium">Hedef Paket</p>
+                   <Select value={targetPackageId} onValueChange={setTargetPackageId}>
+                     <SelectTrigger>
+                       <SelectValue placeholder="Aktarılacak grubu seçin..." />
+                     </SelectTrigger>
+                     <SelectContent>
+                       {availablePackages.length > 0 ? availablePackages.map(pkg => (
+                         <SelectItem key={pkg.id} value={pkg.id}>{pkg.title} ({pkg.enrolledCount || 0}/{pkg.capacity})</SelectItem>
+                       )) : (
+                         <SelectItem value="none" disabled>Başka aktif grup bulunamadı.</SelectItem>
+                       )}
+                     </SelectContent>
+                   </Select>
+                 </div>
+               </TabsContent>
+
+               <TabsContent value="makeup" className="space-y-4">
+                 <div className="space-y-2">
+                   <p className="text-sm font-medium">Kaçırılan Ders (Mevcut Grup)</p>
+                   <Select value={selectedOriginalSessionId} onValueChange={setSelectedOriginalSessionId}>
+                     <SelectTrigger><SelectValue placeholder="Ders seçin..." /></SelectTrigger>
+                     <SelectContent>
+                       {currentSessions.map((s, i) => (
+                         <SelectItem key={s.id} value={s.id}>
+                           {i + 1}. Ders - {s.startTime?.toDate ? format(s.startTime.toDate(), 'dd MMM yyyy, HH:mm') : ''}
+                         </SelectItem>
+                       ))}
+                     </SelectContent>
+                   </Select>
+                 </div>
+                 
+                 <div className="space-y-2">
+                   <p className="text-sm font-medium">Telafi Grubu (Hedef Paket)</p>
+                   <Select value={targetPackageId} onValueChange={setTargetPackageId}>
+                     <SelectTrigger><SelectValue placeholder="Hedef grubu seçin..." /></SelectTrigger>
+                     <SelectContent>
+                       {availablePackages.map(pkg => (
+                         <SelectItem key={pkg.id} value={pkg.id}>{pkg.title} ({pkg.enrolledCount || 0}/{pkg.capacity})</SelectItem>
+                       ))}
+                     </SelectContent>
+                   </Select>
+                 </div>
+
+                 {targetPackageId && targetPackageId !== 'none' && (
+                   <div className="space-y-2">
+                     <p className="text-sm font-medium">Telafi Dersi (Hedef Gruptan)</p>
+                     <Select value={selectedMakeupSessionId} onValueChange={setSelectedMakeupSessionId}>
+                       <SelectTrigger><SelectValue placeholder="Telafi oturumunu seçin..." /></SelectTrigger>
+                       <SelectContent>
+                         {targetSessions.length > 0 ? targetSessions.map((s, i) => (
+                           <SelectItem key={s.id} value={s.id}>
+                             {i + 1}. Ders - {s.startTime?.toDate ? format(s.startTime.toDate(), 'dd MMM yyyy, HH:mm') : ''}
+                           </SelectItem>
+                         )) : (
+                           <SelectItem value="none" disabled>Bu grupta oturum bulunamadı.</SelectItem>
+                         )}
+                       </SelectContent>
+                     </Select>
+                   </div>
+                 )}
+               </TabsContent>
+             </Tabs>
+             
+             <DialogFooter className="mt-4">
+               <Button variant="outline" onClick={() => setIsTransferModalOpen(false)}>İptal</Button>
+               <Button 
+                  onClick={handleTransfer} 
+                  disabled={
+                    transferMode === 'full' 
+                      ? (!targetPackageId || targetPackageId === 'none' || isTransferring)
+                      : (!targetPackageId || targetPackageId === 'none' || !selectedOriginalSessionId || !selectedMakeupSessionId || isTransferring)
+                  } 
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+               >
+                 {isTransferring && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                 {transferMode === 'full' ? 'Aktar' : 'Telafiyi Ata'}
+               </Button>
+             </DialogFooter>
+           </DialogContent>
+        </Dialog>
+
+        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">{enrollment.enrolledAt?.toDate ? format(enrollment.enrolledAt.toDate(), 'dd MMM yyyy') : ''}</p>
       </div>
     </div>
   );
@@ -549,7 +736,7 @@ export function GrupPaketleriClient() {
                                 ) : (
                                     <div className="space-y-3">
                                         {enrollments.map((enrol: any) => (
-                                            <StudentRow key={enrol.id} enrollment={enrol} db={db} />
+                                            <StudentRow key={enrol.id} enrollment={enrol} db={db} packages={packages || []} currentPackageId={selectedPackage.id} />
                                         ))}
                                     </div>
                                 )}

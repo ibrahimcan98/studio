@@ -29,6 +29,12 @@ export interface GroupCourseEnrollment {
   parentId: string; // The parent's ID who bought the package
   paymentStatus: 'paid' | 'pending';
   enrolledAt: Date | any;
+  makeupLessons?: {
+    originalSessionId: string;
+    makeupPackageId: string;
+    makeupSessionId: string;
+    assignedAt: Date | any;
+  }[];
 }
 
 export interface GroupAnnouncement {

@@ -300,7 +300,7 @@ function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZon
                 {isPast && !lesson.feedback && (
                     <Button variant="outline" className="w-full font-bold opacity-70" disabled>
                         <Clock className="w-4 h-4 mr-2" />
-                        Gelişim Raporu Bekleniyor
+                        {lesson.isGroupSession ? 'Geri Bildirim Bekleniyor' : 'Gelişim Raporu Bekleniyor'}
                     </Button>
                 )}
             </CardFooter>
@@ -380,7 +380,16 @@ function DerslerimPageContent() {
 
     const groupPackageIds = useMemo(() => {
         if (!groupEnrollments) return [];
-        return [...new Set(groupEnrollments.map((e: any) => e.packageId))];
+        const ids = new Set<string>();
+        groupEnrollments.forEach((e: any) => {
+            ids.add(e.packageId);
+            if (e.makeupLessons && Array.isArray(e.makeupLessons)) {
+                e.makeupLessons.forEach((m: any) => {
+                    if (m.makeupPackageId) ids.add(m.makeupPackageId);
+                });
+            }
+        });
+        return [...ids];
     }, [groupEnrollments]);
 
     const groupSessionsQuery = useMemoFirebase(() => {
@@ -509,10 +518,10 @@ function DerslerimPageContent() {
                         courseName: pkg?.title || 'Grup Dersi',
                         isLive: session.status === 'live',
                         liveLessonUrl: pkg?.googleMeetLink || null,
-                        status: session.status,
                         childId: enrollment.studentId,
                         bookedBy: user?.uid,
                         isGroupSession: true,
+                        feedback: session.feedback || null,
                         slots: []
                     });
                 });
@@ -666,18 +675,43 @@ function DerslerimPageContent() {
                                 const child = children?.find((c: any) => c.id === enrollment.studentId);
                                 const pkg = groupPackages?.find((p: any) => p.id === enrollment.packageId);
                                 
-                                const pkgSessions = groupSessions?.filter((s: any) => s.packageId === pkg?.id)
-                                    .map((s: any) => ({
-                                        ...s,
-                                        startTimeDate: s.startTime?.toDate ? s.startTime.toDate() : new Date(s.startTime),
-                                        endTimeDate: s.endTime?.toDate ? s.endTime.toDate() : new Date(s.endTime)
-                                    }))
-                                    .sort((a: any, b: any) => a.startTimeDate.getTime() - b.startTimeDate.getTime()) || [];
+                                const makeupMapping = enrollment.makeupLessons || [];
+                                
+                                // Get the regular sessions for this package
+                                const regularSessions = groupSessions?.filter((s: any) => s.packageId === pkg?.id)
+                                    .map((s: any) => {
+                                        const isCancelled = makeupMapping.some((m: any) => m.originalSessionId === s.id);
+                                        return {
+                                            ...s,
+                                            isCancelled,
+                                            startTimeDate: s.startTime?.toDate ? s.startTime.toDate() : new Date(s.startTime),
+                                            endTimeDate: s.endTime?.toDate ? s.endTime.toDate() : new Date(s.endTime)
+                                        };
+                                    }) || [];
+
+                                // Get the makeup sessions for this enrollment
+                                const makeupSessions = makeupMapping.map((m: any) => {
+                                    const sessionData = groupSessions?.find((s: any) => s.id === m.makeupSessionId);
+                                    if (!sessionData) return null;
+                                    return {
+                                        ...sessionData,
+                                        isMakeup: true,
+                                        originalSessionId: m.originalSessionId,
+                                        startTimeDate: sessionData.startTime?.toDate ? sessionData.startTime.toDate() : new Date(sessionData.startTime),
+                                        endTimeDate: sessionData.endTime?.toDate ? sessionData.endTime.toDate() : new Date(sessionData.endTime)
+                                    };
+                                }).filter(Boolean) as any[];
+
+                                const pkgSessions = [...regularSessions, ...makeupSessions]
+                                    .sort((a: any, b: any) => a.startTimeDate.getTime() - b.startTimeDate.getTime());
                                 
                                 const now = new Date();
-                                const activeSession = pkgSessions.find((s: any) => s.status === 'live' && isBefore(now, s.endTimeDate));
-                                const allUpcomingSessions = pkgSessions.filter((s: any) => isBefore(now, s.endTimeDate));
-                                const upcomingSession = allUpcomingSessions[0];
+                                const activeSession = pkgSessions.find((s: any) => s.status === 'live' && isBefore(now, s.endTimeDate) && !s.isCancelled);
+                                const allUpcomingSessions = pkgSessions; // We will show all of them here, even past ones? Wait, the screenshot says "Tüm Ders Programı (4 Ders)" and it includes past and future.
+                                // The code says allUpcomingSessions = pkgSessions.filter(isBefore), but I will just use pkgSessions for "Tüm Ders Programı"
+                                // The previous code filtered it.
+                                const futureSessions = pkgSessions.filter((s: any) => isBefore(now, s.endTimeDate) && !s.isCancelled);
+                                const upcomingSession = futureSessions[0];
                                 
                                 return (
                                     <div key={enrollment.id} className="p-6 border border-purple-200 rounded-[20px] bg-white shadow-sm flex flex-col gap-6 items-center text-center">
@@ -716,26 +750,33 @@ function DerslerimPageContent() {
                                                 })()}
                                             </div>
 
-                                            {allUpcomingSessions.length > 0 && (
+                                            {pkgSessions.length > 0 && (
                                                 <div className="mb-4 bg-purple-50 rounded-xl p-3 border border-purple-100 space-y-2 text-left">
                                                     <p className="text-[10px] font-black uppercase tracking-widest text-purple-600 border-b border-purple-200/50 pb-1.5 flex items-center gap-1.5">
                                                         <Calendar className="w-3.5 h-3.5" />
-                                                        Tüm Ders Programı ({allUpcomingSessions.length} Ders)
+                                                        Tüm Ders Programı ({pkgSessions.length} Ders)
                                                     </p>
                                                     <div className="space-y-1.5 max-h-[120px] overflow-y-auto pr-1">
-                                                        {allUpcomingSessions.map((session: any, index: number) => (
-                                                            <div key={session.id} className="flex items-center gap-2">
-                                                                <div className={cn("w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold shrink-0", index === 0 ? "bg-purple-600 text-white" : "bg-purple-200 text-purple-700")}>
-                                                                    {index + 1}
+                                                        {pkgSessions.map((session: any, index: number) => {
+                                                            const isPast = !isBefore(now, session.endTimeDate);
+                                                            const isNext = upcomingSession && session.id === upcomingSession.id;
+                                                            
+                                                            return (
+                                                                <div key={session.id} className="flex items-center gap-2">
+                                                                    <div className={cn("w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold shrink-0", isNext ? "bg-purple-600 text-white" : session.isCancelled ? "bg-red-100 text-red-500" : "bg-purple-200 text-purple-700")}>
+                                                                        {session.isMakeup ? 'T' : index + 1}
+                                                                    </div>
+                                                                    <div className="flex-1">
+                                                                        <p className={cn("text-xs font-bold", isNext ? "text-purple-900" : "text-purple-700/70", session.isCancelled && "line-through opacity-50")}>
+                                                                            {formatInTimeZone(session.startTimeDate, timeZone, 'dd MMMM yyyy, HH:mm', { locale: tr })}
+                                                                        </p>
+                                                                    </div>
+                                                                    {isNext && <Badge className="text-[9px] bg-purple-200 text-purple-800 border-none px-1.5 py-0 h-4">Sıradaki</Badge>}
+                                                                    {session.isCancelled && <Badge className="text-[9px] bg-red-100 text-red-600 border-none px-1.5 py-0 h-4">İptal/Telafi</Badge>}
+                                                                    {session.isMakeup && <Badge className="text-[9px] bg-blue-100 text-blue-600 border-none px-1.5 py-0 h-4">Telafi Dersi</Badge>}
                                                                 </div>
-                                                                <div className="flex-1">
-                                                                    <p className={cn("text-xs font-bold", index === 0 ? "text-purple-900" : "text-purple-700/70")}>
-                                                                        {formatInTimeZone(session.startTimeDate, timeZone, 'dd MMMM yyyy, HH:mm', { locale: tr })}
-                                                                    </p>
-                                                                </div>
-                                                                {index === 0 && <Badge className="text-[9px] bg-purple-200 text-purple-800 border-none px-1.5 py-0 h-4">Sıradaki</Badge>}
-                                                            </div>
-                                                        ))}
+                                                            );
+                                                        })}
                                                     </div>
                                                 </div>
                                             )}
@@ -752,6 +793,7 @@ function DerslerimPageContent() {
                                                 >
                                                     <Video className="w-4 h-4 mr-2" /> 
                                                     {activeSession ? 'Canlı Derse Katıl' : 'Öğretmen Bekleniyor...'}
+                                                    {activeSession ? 'Canlı Derse Katıl' : 'Ders Başlamadı'}
                                                 </Button>
                                             ) : null}
                                         </div>
@@ -763,24 +805,34 @@ function DerslerimPageContent() {
                 </TabsContent>
             </Tabs>
              <Dialog open={isProgressPanelOpen} onOpenChange={setIsProgressPanelOpen}>
-                <DialogContent className="max-w-5xl h-[90vh] rounded-3xl overflow-hidden p-0">
-                    <div className="p-6 pb-0">
-                        <DialogHeader>
-                            <DialogTitle className="text-3xl font-black font-headline text-slate-800">
-                                {isChildDataLoading || !selectedChildData ? 'Yükleniyor...' : `${selectedChildData.firstName} İlerleme Paneli`}
-                            </DialogTitle>
-                            <DialogDescription className="font-medium text-slate-500">
-                                {isChildDataLoading || !selectedChildData ? 'Öğrenci verileri yükleniyor...' : `Bu ders için öğretmen geri bildirimini ve öğrencinin genel gelişimini görün.`}
-                            </DialogDescription>
-                        </DialogHeader>
-                    </div>
-                    <div className="flex-1 overflow-y-auto min-h-0">
-                        {isChildDataLoading || !selectedChildData || !selectedLesson ? (
-                            <div className="flex h-full items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>
-                        ) : (
-                            <ProgressPanel child={selectedChildData} lessonId={selectedLesson.id} isEditable={false} authorRole="parent" />
-                        )}
-                    </div>
+                <DialogContent className={cn("max-w-5xl", selectedLesson?.isGroupSession ? "h-auto max-w-2xl" : "h-[90vh]")}>
+                    <DialogHeader>
+                        <DialogTitle className="text-3xl font-bold font-headline">
+                            {selectedLesson?.isGroupSession 
+                                ? 'Grup Dersi Geri Bildirimi'
+                                : (isChildDataLoading || !selectedChildData ? 'Yükleniyor...' : `${selectedChildData.firstName} İlerleme Paneli`)}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {selectedLesson?.isGroupSession 
+                                ? 'Sınıfın genel ilerleme değerlendirmesi.' 
+                                : 'Çocuğun gelişimini izleyin ve geri bildirimleri inceleyin.'}
+                        </DialogDescription>
+                    </DialogHeader>
+                    {selectedLesson?.isGroupSession ? (
+                        <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl min-h-[150px]">
+                            <p className="whitespace-pre-wrap text-slate-700">{selectedLesson.feedback}</p>
+                        </div>
+                    ) : (isChildDataLoading || !selectedChildData || !selectedLesson) ? (
+                        <div className="flex h-full items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>
+                    ) : (
+                        <ProgressPanel 
+                            child={selectedChildData} 
+                            parentId={user?.uid || ''}
+                            lessonId={selectedLesson.id} 
+                            isEditable={false} 
+                            authorRole="parent" 
+                        />
+                    )}
                 </DialogContent>
             </Dialog>
         </div>

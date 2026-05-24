@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { cn, getCountryFromPhone } from '@/lib/utils';
+import { cn, getCountryFromPhone, sortLogDetails } from '@/lib/utils';
 import { useMemo, useState } from 'react';
 import { addMonths, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -264,7 +264,7 @@ export default function AdminDashboard() {
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-slate-900">{log.event}</p>
                             <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1">
-                                {Object.entries(log.details || {}).map(([k, v]: any) => (
+                                {sortLogDetails(Object.entries(log.details || {})).map(([k, v]: any) => (
                                     <p key={k} className="text-[11px] text-slate-500">
                                         <span className="font-semibold text-slate-600">{k}:</span> {v}
                                     </p>
