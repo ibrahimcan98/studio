@@ -107,8 +107,13 @@ function CancellationButtons({ lesson, timeZone }: { lesson: any, timeZone: stri
             });
 
             const childDocRef = doc(db, 'users', lesson.bookedBy, 'children', lesson.childId);
+            const parentDocRef = doc(db, 'users', lesson.bookedBy);
+
             if (lesson.packageCode !== 'FREE_TRIAL') {
                 batch.update(childDocRef, { remainingLessons: increment(1) });
+            } else {
+                batch.update(childDocRef, { hasUsedFreeTrial: false });
+                batch.update(parentDocRef, { freeTrialsUsed: increment(-1) });
             }
 
             await batch.commit();

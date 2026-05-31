@@ -324,7 +324,7 @@ export default function PuanMerkeziPage() {
                             <p className="text-slate-300 text-sm leading-relaxed font-medium italic">500 puana ulaştığınızda bu ekrandan <span className="text-white font-bold underline decoration-primary underline-offset-4">1 Bedava Ders</span> talep edebilirsiniz. 🎉</p>
                             {points >= 500 && (
                                 <Button 
-                                    className="w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold rounded-2xl h-12" 
+                                    className="w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold rounded-2xl h-auto py-3 whitespace-normal text-sm sm:text-base" 
                                     onClick={() => {
                                         if (children && children.length > 1) {
                                             setIsChildSelectOpen(true);
@@ -353,10 +353,18 @@ export default function PuanMerkeziPage() {
                             const status = userData?.taskStatus?.[mission.id];
                             return (
                                 <Card key={mission.id} className="border-none shadow-md hover:shadow-2xl transition-all duration-300 rounded-3xl group overflow-hidden bg-white">
-                                    <div className="flex items-center p-5 gap-5">
-                                        <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-all transform group-hover:rotate-6">{mission.icon}</div>
-                                        <div className="flex-1 min-w-0"><div className="flex items-center gap-2 mb-1"><h4 className="font-bold text-sm text-slate-800 truncate">{mission.title}</h4><Badge className="bg-yellow-400/20 text-yellow-700 text-[9px] font-black border-none">+{mission.points}🌟</Badge></div><p className="text-[10px] text-slate-500 line-clamp-2 leading-relaxed font-medium">{mission.desc}</p></div>
-                                        <Button size="sm" variant={status === 'completed' ? 'secondary' : status === 'pending' ? 'outline' : 'default'} className="rounded-xl h-9 px-5 font-black text-[10px] uppercase tracking-widest shrink-0" disabled={!!status} onClick={() => handleMissionAction(mission)}>{status === 'completed' ? '✅ Tamamlandı' : status === 'pending' ? '⏳ Onayda' : 'Yaptım!'}</Button>
+                                    <div className="flex flex-col lg:flex-row lg:items-center p-5 gap-4 lg:gap-5">
+                                        <div className="flex items-start gap-4 flex-1">
+                                            <div className="w-14 h-14 shrink-0 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-all transform group-hover:rotate-6">{mission.icon}</div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center flex-wrap gap-2 mb-1.5">
+                                                    <h4 className="font-bold text-sm lg:text-base text-slate-800 leading-tight">{mission.title}</h4>
+                                                    <Badge className="bg-yellow-400/20 text-yellow-700 text-[10px] font-black border-none px-2 py-0.5">+{mission.points}🌟</Badge>
+                                                </div>
+                                                <p className="text-xs text-slate-500 leading-relaxed font-medium">{mission.desc}</p>
+                                            </div>
+                                        </div>
+                                        <Button size="sm" variant={status === 'completed' ? 'secondary' : status === 'pending' ? 'outline' : 'default'} className="w-full lg:w-auto mt-2 lg:mt-0 rounded-xl h-10 px-6 font-black text-xs uppercase tracking-widest shrink-0" disabled={!!status} onClick={() => handleMissionAction(mission)}>{status === 'completed' ? '✅ Tamamlandı' : status === 'pending' ? '⏳ Onayda' : 'Yaptım!'}</Button>
                                     </div>
                                 </Card>
                             )
@@ -372,10 +380,18 @@ export default function PuanMerkeziPage() {
                             const status = userData?.taskStatus?.[mission.id];
                             return (
                                 <Card key={mission.id} className="border-none shadow-md hover:shadow-2xl transition-all duration-300 rounded-3xl group overflow-hidden bg-white">
-                                    <div className="flex items-center p-5 gap-5">
-                                        <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all transform group-hover:rotate-6">{mission.icon}</div>
-                                        <div className="flex-1 min-w-0"><div className="flex items-center gap-2 mb-1"><h4 className="font-bold text-sm text-slate-800 truncate">{mission.title}</h4><Badge className="bg-yellow-400/20 text-yellow-700 text-[9px] font-black border-none">+{mission.points}🌟</Badge></div><p className="text-[10px] text-slate-500 line-clamp-2 leading-relaxed font-medium">{mission.desc}</p></div>
-                                        <Button size="sm" variant={status === 'completed' ? 'secondary' : status === 'pending' ? 'outline' : 'default'} className="rounded-xl h-9 px-5 font-black text-[10px] uppercase tracking-widest shrink-0" disabled={!!status} onClick={() => handleMissionAction(mission)}>{status === 'completed' ? '✅ Tamamlandı' : status === 'pending' ? '⏳ Onayda' : 'Yaptım!'}</Button>
+                                    <div className="flex flex-col lg:flex-row lg:items-center p-5 gap-4 lg:gap-5">
+                                        <div className="flex items-start gap-4 flex-1">
+                                            <div className="w-14 h-14 shrink-0 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all transform group-hover:rotate-6">{mission.icon}</div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center flex-wrap gap-2 mb-1.5">
+                                                    <h4 className="font-bold text-sm lg:text-base text-slate-800 leading-tight">{mission.title}</h4>
+                                                    <Badge className="bg-yellow-400/20 text-yellow-700 text-[10px] font-black border-none px-2 py-0.5">+{mission.points}🌟</Badge>
+                                                </div>
+                                                <p className="text-xs text-slate-500 leading-relaxed font-medium">{mission.desc}</p>
+                                            </div>
+                                        </div>
+                                        <Button size="sm" variant={status === 'completed' ? 'secondary' : status === 'pending' ? 'outline' : 'default'} className="w-full lg:w-auto mt-2 lg:mt-0 rounded-xl h-10 px-6 font-black text-xs uppercase tracking-widest shrink-0" disabled={!!status} onClick={() => handleMissionAction(mission)}>{status === 'completed' ? '✅ Tamamlandı' : status === 'pending' ? '⏳ Onayda' : 'Yaptım!'}</Button>
                                     </div>
                                 </Card>
                             )
@@ -391,10 +407,18 @@ export default function PuanMerkeziPage() {
                             const status = userData?.taskStatus?.[mission.id];
                             return (
                                 <Card key={mission.id} className="border-none shadow-md hover:shadow-2xl transition-all duration-300 rounded-3xl group overflow-hidden bg-white border-l-4 border-emerald-500">
-                                    <div className="flex items-center p-5 gap-5">
-                                        <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all transform group-hover:rotate-6">{mission.icon}</div>
-                                        <div className="flex-1 min-w-0"><div className="flex items-center gap-2 mb-1"><h4 className="font-bold text-sm text-slate-800 truncate">{mission.title}</h4><Badge className="bg-emerald-500/20 text-emerald-700 text-[9px] font-black border-none">+{mission.points}🌟</Badge></div><p className="text-[10px] text-slate-500 line-clamp-2 leading-relaxed font-medium">{mission.desc}</p></div>
-                                        <Button size="sm" variant={status === 'completed' ? 'secondary' : status === 'pending' ? 'outline' : 'default'} className="rounded-xl h-9 px-5 font-black text-[10px] uppercase tracking-widest shrink-0" disabled={!!status} onClick={() => handleMissionAction(mission)}>{status === 'completed' ? '✅ Tamamlandı' : status === 'pending' ? '⏳ Onayda' : 'Yaptım!'}</Button>
+                                    <div className="flex flex-col lg:flex-row lg:items-center p-5 gap-4 lg:gap-5">
+                                        <div className="flex items-start gap-4 flex-1">
+                                            <div className="w-14 h-14 shrink-0 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all transform group-hover:rotate-6">{mission.icon}</div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center flex-wrap gap-2 mb-1.5">
+                                                    <h4 className="font-bold text-sm lg:text-base text-slate-800 leading-tight">{mission.title}</h4>
+                                                    <Badge className="bg-emerald-500/20 text-emerald-700 text-[10px] font-black border-none px-2 py-0.5">+{mission.points}🌟</Badge>
+                                                </div>
+                                                <p className="text-xs text-slate-500 leading-relaxed font-medium">{mission.desc}</p>
+                                            </div>
+                                        </div>
+                                        <Button size="sm" variant={status === 'completed' ? 'secondary' : status === 'pending' ? 'outline' : 'default'} className="w-full lg:w-auto mt-2 lg:mt-0 rounded-xl h-10 px-6 font-black text-xs uppercase tracking-widest shrink-0" disabled={!!status} onClick={() => handleMissionAction(mission)}>{status === 'completed' ? '✅ Tamamlandı' : status === 'pending' ? '⏳ Onayda' : 'Yaptım!'}</Button>
                                     </div>
                                 </Card>
                             )

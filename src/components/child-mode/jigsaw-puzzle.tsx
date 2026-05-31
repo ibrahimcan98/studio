@@ -31,9 +31,9 @@ export function JigsawPuzzle({ wordList, onComplete }: JigsawPuzzleProps) {
     const [isSolved, setIsSolved] = useState(false);
     const { speak } = useTTS();
 
-    // Sadece 3 tane kelimeyi rastgele seçelim (eğer liste çok uzunsa)
+    // Tüm kelimeleri rastgele karışık sırayla alalım
     const activeWords = useMemo(() => {
-        return [...wordList].sort(() => 0.5 - Math.random()).slice(0, 3);
+        return [...wordList].sort(() => 0.5 - Math.random());
     }, [wordList]);
 
     const currentWord = activeWords[currentWordIndex];
@@ -98,27 +98,27 @@ export function JigsawPuzzle({ wordList, onComplete }: JigsawPuzzleProps) {
     };
 
     return (
-        <div className="w-full max-w-5xl mx-auto flex flex-col gap-10 items-center">
+        <div className="w-full max-w-5xl mx-auto flex flex-col gap-2 md:gap-10 items-center">
             
-            <div className="text-center space-y-2">
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-100 text-purple-600 font-black text-sm uppercase tracking-widest mb-4">
-                    <Sparkles className="w-4 h-4" />
+            <div className="text-center space-y-0 md:space-y-2">
+                <div className="hidden md:inline-flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1 md:py-1.5 rounded-full bg-purple-100 text-purple-600 font-black text-xs md:text-sm uppercase tracking-widest mb-2 md:mb-4">
+                    <Sparkles className="w-3 h-3 md:w-4 md:h-4" />
                     Yapboz Zamanı
                 </div>
-                <h2 className="text-5xl font-black text-gray-800 italic tracking-tighter uppercase">
+                <h2 className="text-2xl md:text-5xl font-black text-gray-800 italic tracking-tighter uppercase">
                     RESMİ TAMAMLA
                 </h2>
-                <p className="text-xl font-bold text-slate-500 uppercase">
+                <p className="hidden md:block text-sm md:text-xl font-bold text-slate-500 uppercase">
                     Parçaları doğru yerlere yerleştir!
                 </p>
             </div>
 
-            <div className="flex flex-col lg:flex-row items-center justify-center gap-12 w-full">
+            <div className="flex flex-col lg:flex-row items-center justify-center gap-2 md:gap-12 w-full">
                 
                 {/* SOL: Hedef Grid */}
                 <div className="relative group">
                     <div className="absolute inset-0 bg-purple-500/10 blur-3xl rounded-full scale-110" />
-                    <div className="relative w-[320px] h-[320px] md:w-[400px] md:h-[400px] grid grid-cols-2 grid-rows-2 gap-2 bg-white/50 p-2 rounded-[40px] shadow-2xl border-[6px] border-white backdrop-blur-sm overflow-hidden">
+                    <div className="relative w-[220px] h-[220px] md:w-[400px] md:h-[400px] grid grid-cols-2 grid-rows-2 gap-1 md:gap-2 bg-white/50 p-1 md:p-2 rounded-[20px] md:rounded-[40px] shadow-2xl border-4 md:border-[6px] border-white backdrop-blur-sm overflow-hidden">
                         {/* Arka planda silik resim (ipucu) */}
                         <div className="absolute inset-0 opacity-10 pointer-events-none">
                             <Image src={currentWord.image} fill className="object-cover p-4" alt="hint" unoptimized />
@@ -153,18 +153,18 @@ export function JigsawPuzzle({ wordList, onComplete }: JigsawPuzzleProps) {
                 </div>
 
                 {/* SAĞ: Parçalar */}
-                <div className="grid grid-cols-2 gap-4 md:gap-6 bg-white/30 p-6 rounded-[40px] backdrop-blur-md border-4 border-white/50 shadow-xl">
+                <div className="grid grid-cols-2 gap-2 md:gap-6 bg-white/30 p-2 md:p-6 rounded-[20px] md:rounded-[40px] backdrop-blur-md border-2 md:border-4 border-white/50 shadow-xl">
                     {shuffledPieces.map((p, i) => (
-                        <div key={i} className="relative w-[140px] h-[140px] md:w-[160px] md:h-[160px]">
+                        <div key={i} className="relative w-[100px] h-[100px] md:w-[160px] md:h-[160px]">
                             {p !== null ? (
                                 <motion.div 
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => handleSelectPiece(i)} 
                                     className={cn(
-                                        "w-full h-full rounded-[30px] cursor-pointer transition-all border-[6px] shadow-xl overflow-hidden",
+                                        "w-full h-full rounded-[16px] md:rounded-[30px] cursor-pointer transition-all border-4 md:border-[6px] shadow-xl overflow-hidden",
                                         selectedPieceIndex === i 
-                                            ? 'border-purple-500 ring-8 ring-purple-500/20 scale-105 z-50' 
+                                            ? 'border-purple-500 ring-4 md:ring-8 ring-purple-500/20 scale-105 z-50' 
                                             : 'border-white hover:border-purple-200'
                                     )} 
                                     style={{ 
@@ -174,7 +174,7 @@ export function JigsawPuzzle({ wordList, onComplete }: JigsawPuzzleProps) {
                                     }} 
                                 />
                             ) : (
-                                <div className="w-full h-full bg-slate-200/30 rounded-[30px] border-4 border-dashed border-slate-200" />
+                                <div className="w-full h-full bg-slate-200/30 rounded-[16px] md:rounded-[30px] border-2 md:border-4 border-dashed border-slate-200" />
                             )}
                         </div>
                     ))}

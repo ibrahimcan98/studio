@@ -12,7 +12,7 @@ export function GlobalChildExitButton() {
   if (!childId) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 z-50">
+    <div className="hidden md:block fixed bottom-4 right-4 md:bottom-8 md:right-8 z-50">
       <ExitDialog childId={childId}>
         <Button 
           size="icon" 

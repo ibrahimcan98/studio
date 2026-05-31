@@ -30,29 +30,41 @@ export async function POST(req: Request) {
             const firstPackage = newPackages[0];
             const prefix = firstPackage ? firstPackage.replace(/[0-9]/g, '') : 'B';
             
-            const courseNames: any = { 
-                'B': 'Başlangıç Kursu (Pre A1)', 
-                'K': 'Konuşma Kursu (A1)', 
-                'A': 'Akademik Kurs (A2)', 
-                'G': 'Gelişim Kursu (B1)', 
-                'GCSE': 'GCSE Türkçe Kursu' 
-            };
+            const isGroupPackage = prefix.toLowerCase().includes('grup');
             
-            batch.update(childRef, {
-                remainingLessons: FieldValue.increment(totalLessonsToAdd),
-                assignedPackage: `${prefix}${totalLessonsToAdd / newPackages.length}`, 
-                assignedPackageName: courseNames[prefix] || 'Standart Kurs',
-                updatedAt: FieldValue.serverTimestamp()
-            });
+            if (isGroupPackage) {
+                const updatedPackages = [...(userData?.enrolledPackages || []), ...newPackages];
+                batch.update(userRef, {
+                    walletBalanceGbp: FieldValue.increment(-balanceUsedGbp),
+                    enrolledPackages: updatedPackages
+                });
+            } else {
+                const courseNames: any = { 
+                    'B': 'Başlangıç Kursu (Pre A1)', 
+                    'K': 'Konuşma Kursu (A1)', 
+                    'A': 'Akademik Kurs (A2)', 
+                    'G': 'Gelişim Kursu (B1)', 
+                    'GCSE': 'GCSE Türkçe Kursu' 
+                };
+                
+                batch.update(childRef, {
+                    remainingLessons: FieldValue.increment(totalLessonsToAdd),
+                    assignedPackage: `${prefix}${totalLessonsToAdd / newPackages.length}`, 
+                    assignedPackageName: courseNames[prefix] || 'Standart Kurs',
+                    updatedAt: FieldValue.serverTimestamp()
+                });
 
-            batch.update(userRef, {
-                walletBalanceGbp: FieldValue.increment(-balanceUsedGbp),
-            });
+                batch.update(userRef, {
+                    walletBalanceGbp: FieldValue.increment(-balanceUsedGbp),
+                });
+            }
         } else {
+            const updatedPackages = [...(userData?.enrolledPackages || []), ...newPackages];
+            const isGroupPackage = newPackages.some((p: string) => p.toLowerCase().includes('grup'));
             batch.update(userRef, {
                 walletBalanceGbp: FieldValue.increment(-balanceUsedGbp),
-                remainingLessons: FieldValue.increment(totalLessonsToAdd),
-                enrolledPackages: FieldValue.arrayUnion(...newPackages)
+                remainingLessons: FieldValue.increment(isGroupPackage ? 0 : totalLessonsToAdd),
+                enrolledPackages: updatedPackages
             });
         }
 

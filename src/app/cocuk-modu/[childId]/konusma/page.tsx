@@ -337,7 +337,7 @@ export default function KonusmaPage() {
       <main className="h-full w-full flex flex-col md:flex-row relative z-10">
         <ChildSidebar childId={childId} childData={childData} />
 
-        <div className="flex-1 relative flex flex-col items-center justify-center px-4 py-4 md:py-8 overflow-y-auto custom-scrollbar">
+        <div className="flex-1 relative flex flex-col items-center px-4 pt-20 md:pt-12 overflow-y-auto custom-scrollbar">
           {/* Back Button for easier navigation */}
           <button
             onClick={() => router.push(`/cocuk-modu/${childId}`)}
@@ -346,7 +346,7 @@ export default function KonusmaPage() {
             <ArrowLeft className="w-5 h-5" /> <span className="hidden md:inline">Haritaya Dön</span>
           </button>
 
-          <div className="w-full max-w-4xl flex flex-col items-center gap-2 md:gap-4">
+          <div className="w-full max-w-4xl flex flex-col items-center gap-2 md:gap-4 shrink-0">
 
             {/* Speech Bubble - More Compact */}
             <AnimatePresence mode="wait">
@@ -384,8 +384,11 @@ export default function KonusmaPage() {
             </div>
           </div>
 
+          {/* Spacer to push controls to the bottom naturally */}
+          <div className="flex-1 min-h-[2rem] w-full" />
+
           {/* Controls - More Compact */}
-          <div className="w-full max-w-xl flex flex-col items-center gap-2 md:gap-4 mt-2 md:mt-4 relative z-[200]">
+          <div className="w-full max-w-xl flex flex-col items-center gap-2 md:gap-4 mt-2 md:mt-4 relative z-[200] shrink-0">
 
             {/* Transcript - Integrated better */}
             <div className={cn(
@@ -395,8 +398,34 @@ export default function KonusmaPage() {
               {transcript}
             </div>
 
+            {/* Kalan Süre - Centered and slightly higher */}
+            <div className={cn(
+              "mb-4 px-4 py-2 rounded-2xl border-2 flex items-center gap-2 transition-all duration-500 shadow-sm",
+              (subscriptionTier === 'free' && usageSeconds > 100) ? "bg-red-50 border-red-200 text-red-600 animate-pulse" : "bg-sky-50 border-sky-100 text-sky-600"
+            )}>
+              <div className="w-2 h-2 rounded-full bg-current" />
+              <span className="font-black text-xs uppercase tracking-wider italic">
+                {(() => {
+                  // Toplam saniyeyi pakete göre belirle
+                  let totalSeconds = 120; // Default free
+                  if (subscriptionTier === 'adventurer') totalSeconds = 5 * 3600;
+                  if (subscriptionTier === 'hero') totalSeconds = 20 * 3600;
+                  
+                  const remaining = Math.max(0, totalSeconds - usageSeconds);
+                  const hrs = Math.floor(remaining / 3600);
+                  const mins = Math.floor((remaining % 3600) / 60);
+                  const secs = remaining % 60;
+                  
+                  if (hrs > 0) {
+                    return `Kalan: ${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                  }
+                  return `Kalan: ${mins}:${secs.toString().padStart(2, '0')}`;
+                })()}
+              </span>
+            </div>
+
             {/* Buttons Row */}
-            <div className="flex items-end gap-8">
+            <div className="flex items-end justify-center gap-8 md:gap-12 w-full">
 
               {/* Repeat Button */}
               <div className="flex flex-col items-center gap-2 mb-2">
@@ -417,30 +446,6 @@ export default function KonusmaPage() {
 
               {/* Mic Button - More Compact Size */}
               <div className="flex flex-col items-center gap-2">
-                <div className={cn(
-                  "mb-4 px-4 py-2 rounded-2xl border-2 flex items-center gap-2 transition-all duration-500",
-                  (subscriptionTier === 'free' && usageSeconds > 100) ? "bg-red-50 border-red-200 text-red-600 animate-pulse" : "bg-sky-50 border-sky-100 text-sky-600"
-                )}>
-                  <div className="w-2 h-2 rounded-full bg-current" />
-                  <span className="font-black text-xs uppercase tracking-wider italic">
-                    {(() => {
-                      // Toplam saniyeyi pakete göre belirle
-                      let totalSeconds = 120; // Default free
-                      if (subscriptionTier === 'adventurer') totalSeconds = 5 * 3600;
-                      if (subscriptionTier === 'hero') totalSeconds = 20 * 3600;
-                      
-                      const remaining = Math.max(0, totalSeconds - usageSeconds);
-                      const hrs = Math.floor(remaining / 3600);
-                      const mins = Math.floor((remaining % 3600) / 60);
-                      const secs = remaining % 60;
-                      
-                      if (hrs > 0) {
-                        return `Kalan: ${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-                      }
-                      return `Kalan: ${mins}:${secs.toString().padStart(2, '0')}`;
-                    })()}
-                  </span>
-                </div>
                 <div className="relative">
                   {isListening && (
                     <motion.div
@@ -472,6 +477,9 @@ export default function KonusmaPage() {
               <div className="w-16 h-16 hidden md:block" />
             </div>
           </div>
+
+          {/* Explicit Bottom Spacer */}
+          <div className="h-8 md:h-8 w-full shrink-0" />
         </div>
       </main>
     </div>

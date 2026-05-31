@@ -116,27 +116,27 @@ export function VoiceMatching({ wordList, onComplete }: VoiceMatchingProps) {
     };
 
     return (
-        <div className="w-full max-w-4xl mx-auto flex flex-col gap-8 items-center">
-            <div className="flex items-center gap-6 bg-white p-6 rounded-3xl shadow-xl">
+        <div className="w-full max-w-4xl mx-auto flex flex-col gap-4 md:gap-8 max-md:landscape:gap-2 items-center">
+            <div className="flex items-center gap-4 md:gap-6 max-md:landscape:gap-3 bg-white p-4 md:p-6 max-md:landscape:p-2 max-md:landscape:px-4 rounded-3xl max-md:landscape:rounded-2xl shadow-xl">
                 <Button
                     size="icon"
-                    className="w-20 h-20 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-none shadow-lg border-b-8 border-blue-800 active:border-b-0 active:translate-y-1 transition-all"
+                    className="w-16 h-16 md:w-20 md:h-20 max-md:landscape:w-12 max-md:landscape:h-12 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-none shadow-lg border-b-[6px] md:border-b-8 max-md:landscape:border-b-4 border-blue-800 active:border-b-0 active:translate-y-1 transition-all"
                     onClick={playAudio}
                 >
-                    <Volume2 className={cn("w-10 h-10", isTTSSpeaking && "animate-pulse")} />
+                    <Volume2 className={cn("w-8 h-8 md:w-10 md:h-10 max-md:landscape:w-6 max-md:landscape:h-6", isTTSSpeaking && "animate-pulse")} />
                 </Button>
                 <div className="flex flex-col">
-                    <span className="text-blue-400 text-sm font-black uppercase tracking-widest italic">Dinle ve Seç</span>
-                    <h2 className="text-3xl font-black text-gray-800 uppercase italic tracking-tighter">"{currentWord.word}" nerede?</h2>
+                    <span className="text-blue-400 text-xs md:text-sm max-md:landscape:text-[10px] font-black uppercase tracking-widest italic">Dinle ve Seç</span>
+                    <h2 className="text-2xl md:text-3xl max-md:landscape:text-xl font-black text-gray-800 uppercase italic tracking-tighter">"{currentWord.word}" nerede?</h2>
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-6 w-full max-w-2xl">
+            <div className="grid grid-cols-2 gap-4 md:gap-6 max-md:landscape:gap-2 w-full max-w-2xl">
                 {options.map((option, index) => (
                     <Card
                         key={index}
                         onClick={() => handleAnswer(option)}
-                        className={`relative aspect-square rounded-[40px] overflow-hidden cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-2xl flex items-center justify-center p-8 bg-white border-4 border-white shadow-md
+                        className={`relative aspect-square rounded-[30px] md:rounded-[40px] max-md:landscape:rounded-[20px] overflow-hidden cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-2xl flex items-center justify-center p-4 md:p-8 max-md:landscape:p-2 bg-white border-4 border-white shadow-md
                             ${selectedAnswer?.word === option.word && isCorrect === true ? 'ring-8 ring-green-500 scale-105' : ''}
                             ${selectedAnswer?.word === option.word && isCorrect === false ? 'ring-8 ring-red-500 animate-shake' : ''}
                         `}

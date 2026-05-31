@@ -45,7 +45,7 @@ export function getCompletedChestsCount(completedTopics: string[]): number {
 }
 
 export function hasCompletedTekrar(topics: string[], tekrarId: number): boolean {
-  // Tekrar sandıkları sadece "Ülkemi Tanıyorum" (country = -3) bölümüne sahip.
+  // Tekrar sandıkları sadece "Ülkemi Öğreniyorum" (country = -3) bölümüne sahip.
   // Bu yüzden sadece chest-tekrar-X-3 anahtarını kontrol ediyoruz.
   const key3 = `chest-tekrar-${tekrarId}-3`;
   const key2 = `chest-tekrar-${tekrarId}-2`;

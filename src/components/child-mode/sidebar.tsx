@@ -36,7 +36,6 @@ const ISLAND_BADGES = [
   { id: 'takim-takim', name: 'Takım Takım', description: 'İlk 10 adayı bitirenler için.', icon: '/rozetler/ada/takim-takim.png', requirement: 10 },
   { id: 'kesif-ustasi', name: 'Keşif Ustası', description: '20 adayı tamamlayan kaşiflere.', icon: '/rozetler/ada/kesif-ustasi.png', requirement: 20 },
   { id: 'harita-fatihi', name: 'Harita Fatihi', description: 'Tüm 36 adayı bitirenlere verilen en prestijli rozet.', icon: '/rozetler/ada/harita-fatihi.png', requirement: 36 },
-  { id: 'gizli-gecit', name: 'Gizli Geçit', description: 'Bir ada içinde saklı olan bir yan görevi bulanlara.', icon: '/rozetler/ada/gizli-gecit.png', requirement: 999 },
 ];
 
 const AI_BADGES = [
@@ -64,8 +63,8 @@ const SOCIAL_BADGES = [
 const TURKCE_HAZINEM_BADGES = [
   { id: 'ilk-hazine', name: 'İlk Hazine', description: 'İlk Türkçe Hazinem sandığını başarıyla açana verilir.', icon: '/rozetler/hazine/ilk-hazine.png', requirement: 1, type: 'all' },
   { id: 'okuma-sevdalisi', name: 'Okuma Sevdalısı', description: '10 Türkçe Hazinem "Okuyorum Anlıyorum" görevini tamamlayana.', icon: '/rozetler/hazine/okuma-sevdalisi.png', requirement: 10, type: 'story' },
-  { id: 'dil-ustasi', name: 'Dil Ustası', description: '10 Türkçe Hazinem "Dilimi Geliştiriyorum" görevini tamamlayana.', icon: '/rozetler/hazine/dil-ustasi.png', requirement: 10, type: 'lang' },
-  { id: 'turkiye-sevdalisi', name: 'Türkiye Sevdalısı', description: '10 Türkçe Hazinem "Ülkemi Tanıyorum" görevini tamamlayana.', icon: '/rozetler/hazine/turkiye-sevdalisi.png', requirement: 10, type: 'country' },
+  { id: 'dil-ustasi', name: 'Dil Ustası', description: '10 Türkçe Hazinem "Dilimi Öğreniyorum" görevini tamamlayana.', icon: '/rozetler/hazine/dil-ustasi.png', requirement: 10, type: 'lang' },
+  { id: 'turkiye-sevdalisi', name: 'Türkiye Sevdalısı', description: '10 Türkçe Hazinem "Ülkemi Öğreniyorum" görevini tamamlayana.', icon: '/rozetler/hazine/turkiye-sevdalisi.png', requirement: 10, type: 'country' },
   { id: 'kelime-uzmani', name: 'Kelime Uzmanı', description: '10 tam Türkçe Hazinem sandığı bitirene verilir.', icon: '/rozetler/hazine/kelime-uzmani.png', requirement: 10, type: 'all' },
   { id: 'kultur-elcisi', name: 'Kültür Elçisi', description: '20 tam Türkçe Hazinem sandığı bitiren kaşiflere.', icon: '/rozetler/hazine/kultur-elcisi.png', requirement: 20, type: 'all' },
   { id: 'hazine-avcisi', name: 'Hazine Avcısı', description: 'Tüm 30 Türkçe Hazinem sandığını tamamlayan büyük kaşiflere!', icon: '/rozetler/hazine/hazine-avcisi.png', requirement: 30, type: 'all' },
@@ -590,7 +589,7 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
                               <Image src={url} fill alt="Sticker Big" className="object-contain" />
                             </div>
                             <div className="mt-8 bg-slate-50 px-6 py-2 rounded-full border-2 border-slate-100 shadow-sm">
-                              <p className="text-slate-600 font-black text-lg">HARİKA BİR ÇIKARTMA! ✨</p>
+                              <p className="text-slate-600 font-black text-lg whitespace-nowrap">HARİKA BİR ÇIKARTMA! ✨</p>
                             </div>
                           </div>
                         </DialogContent>
@@ -624,7 +623,7 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
                         <Image src={stickerUrl} fill alt="Sticker Big" className="object-contain" />
                       </div>
                       <div className="mt-8 bg-slate-50 px-6 py-2 rounded-full border-2 border-slate-100 shadow-sm">
-                        <p className="text-slate-600 font-black text-lg">HARİKA BİR ÇIKARTMA! ✨</p>
+                        <p className="text-slate-600 font-black text-lg whitespace-nowrap">HARİKA BİR ÇIKARTMA! ✨</p>
                       </div>
                     </div>
                   </DialogContent>
@@ -711,7 +710,7 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
       </div>
 
       {/* 2. MOBİL ALT NAVİGASYON BAR (5'li Sistem: Harita, Hikaye, Konuşma, Profil, Çıkış) */}
-      <div className="flex lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[95%] max-w-lg h-18 bg-white/95 backdrop-blur-2xl rounded-[35px] border-2 border-white shadow-[0_20px_40px_rgba(0,0,0,0.15)] z-[100] px-3 items-center justify-between py-2">
+      <div className={cn("fixed bottom-6 left-1/2 -translate-x-1/2 w-[95%] max-w-lg h-18 bg-white/95 backdrop-blur-2xl rounded-[35px] border-2 border-white shadow-[0_20px_40px_rgba(0,0,0,0.15)] z-[100] px-3 items-center justify-between py-2", pathname.includes('/konusma') ? "hidden" : "flex lg:hidden")}>
         <button
           onClick={() => router.push(`/cocuk-modu/${childId}`)}
           className={cn(
@@ -788,18 +787,62 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
                     <Image src={`/cerceveler/${rank.id}.png`} fill className="object-fill" alt="Frame" />
                   </div>
                   <div className="absolute inset-0 z-20 flex flex-col items-center">
-                    <div className={cn("absolute w-full flex justify-center", rank.avatarTop)}>
-                      <div className="relative w-32 h-32 bg-white rounded-full border-0 border-white/40 shadow-xl overflow-hidden">
-                        <Image src={childData.avatarUrl || "/images/child-mode/avatar_fox.png"} fill className="object-contain scale-110" alt="Avatar" />
-                      </div>
-                      <div className={cn("absolute bottom-0 right-[28%] bg-gradient-to-r text-white w-10 h-10 rounded-full flex items-center justify-center font-black text-sm border-4 border-white shadow-lg", rank.badge)}>
-                        {level}
-                      </div>
+                    <div className={cn("absolute w-full flex justify-center mt-2", rank.avatarTop)}>
+                      <Dialog open={isAvatarDialogOpen} onOpenChange={setIsAvatarDialogOpen}>
+                        <DialogTrigger asChild>
+                          <div className="relative group cursor-pointer">
+                            <div className="relative w-36 h-36 bg-white rounded-full border-0 border-white/40 shadow-xl overflow-hidden">
+                              <Image src={childData.avatarUrl || "/images/child-mode/avatar_fox.png"} fill className="object-contain scale-110 group-hover:scale-125 transition-all duration-500" alt="Avatar" />
+                              <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+                                <Edit2 className="text-white w-8 h-8" />
+                              </div>
+                            </div>
+                            <div className={cn("absolute bottom-0 right-[15%] bg-gradient-to-r text-white w-10 h-10 rounded-full flex items-center justify-center font-black text-sm border-4 border-white shadow-lg z-50", rank.badge)}>
+                              {level}
+                            </div>
+                          </div>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl rounded-[40px] p-8 border-none bg-white z-[1100]">
+                          <DialogTitle className="text-2xl font-black text-blue-600 mb-2 text-center uppercase">Karakterini Seç!</DialogTitle>
+                          <div className="grid grid-cols-3 md:grid-cols-4 gap-6 max-h-[50vh] overflow-y-auto p-4 custom-scrollbar">
+                            {stickers.map((url: any, i) => (
+                              <div key={i} onClick={() => handleSelectAvatar(url)} className="aspect-square bg-slate-50 rounded-3xl flex items-center justify-center border-2 border-slate-100 p-3 hover:scale-110 transition-transform cursor-pointer">
+                                <Image src={url} width={120} height={120} alt="Sticker" className="object-contain" />
+                              </div>
+                            ))}
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     </div>
                     <div className="absolute bottom-[12%] w-full px-8 flex flex-col items-center space-y-2">
-                      <div className={cn("inline-flex px-4 py-1 rounded-full border shadow-sm", rank.bg, rank.border)}>
-                        <span className={cn("text-xs font-black uppercase italic", rank.color)}>{rank.title}</span>
-                      </div>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <div className={cn("inline-flex px-4 py-1 rounded-full border shadow-sm cursor-help hover:scale-105 transition-all", rank.bg, rank.border)}>
+                            <span className={cn("text-xs font-black uppercase italic", rank.color)}>{rank.title}</span>
+                          </div>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-md rounded-[40px] p-8 border-none bg-white z-[1100]">
+                          <DialogTitle className="text-2xl font-black text-center mb-6 uppercase italic">Yolculuk Haritası</DialogTitle>
+                          <div className="space-y-2">
+                            {[
+                              { l: "1-5", t: "🌱 Filiz Kaşif", d: "Maceraya yeni başlayanlar" },
+                              { l: "6-12", t: "🐾 Pati Dostu", d: "Pati ile arkadaş olanlar" },
+                              { l: "13-20", t: "🏹 Orman Rehberi", d: "Yolları keşfeden rehberler" },
+                              { l: "21-28", t: "🛡️ Cesur Gezgin", d: "Zorlukları aşan gezginler" },
+                              { l: "29-35", t: "💎 Bilge Muhafız", d: "Bilginin koruyucuları" },
+                              { l: "36+", t: "👑 Efsanevi Kahraman", d: "Maceranın efsanesi!" },
+                            ].map((r, i) => (
+                              <div key={i} className={cn("flex items-center gap-3 p-3 rounded-xl border-2", level >= parseInt(r.l.split('-')[0]) ? "bg-amber-50 border-amber-200" : "opacity-30 grayscale")}>
+                                <div className="flex-1">
+                                  <p className="text-[10px] font-black text-slate-400">SEVİYE {r.l}</p>
+                                  <h4 className="font-black text-slate-700">{r.t}</h4>
+                                </div>
+                                {level >= parseInt(r.l.split('-')[0]) ? <CheckCircle className="text-green-500 w-5 h-5" /> : <Star className="text-slate-300 w-5 h-5" />}
+                              </div>
+                            ))}
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                       <div className="w-full space-y-1.5">
                         <div className="flex justify-between items-center px-1">
                           <span className={cn("text-[10px] font-black uppercase tracking-widest", rank.xpText)}>Puan: {xp}</span>
@@ -1111,7 +1154,7 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
                                     <Image src={url} fill alt="Sticker Big" className="object-contain" />
                                   </div>
                                   <div className="mt-8 bg-slate-50 px-6 py-2 rounded-full border-2 border-slate-100 shadow-sm">
-                                    <p className="text-slate-600 font-black text-lg">HARİKA BİR ÇIKARTMA! ✨</p>
+                                    <p className="text-slate-600 font-black text-lg whitespace-nowrap">HARİKA BİR ÇIKARTMA! ✨</p>
                                   </div>
                                 </div>
                               </DialogContent>
@@ -1136,7 +1179,7 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
                               <Image src={url} fill alt="Sticker Big" className="object-contain" />
                             </div>
                             <div className="mt-8 bg-slate-50 px-6 py-2 rounded-full border-2 border-slate-100 shadow-sm">
-                              <p className="text-slate-600 font-black text-lg">HARİKA BİR ÇIKARTMA! ✨</p>
+                              <p className="text-slate-600 font-black text-lg whitespace-nowrap">HARİKA BİR ÇIKARTMA! ✨</p>
                             </div>
                           </div>
                         </DialogContent>
@@ -1152,7 +1195,7 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
 
         <div className="w-px h-8 bg-slate-200 mx-1" />
 
-        <ExitDialog>
+        <ExitDialog childId={childId}>
           <button className="flex-1 flex flex-col items-center gap-1 text-red-500 hover:scale-110 transition-all">
             <div className="p-2 rounded-2xl bg-red-50">
               <LogOut className="w-6 h-6" />

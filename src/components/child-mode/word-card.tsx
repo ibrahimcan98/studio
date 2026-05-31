@@ -116,46 +116,46 @@ export function WordCard({ wordList, childId, topicId, onComplete }: WordCardPro
                 />
             </div>
 
-            <div className="bg-white p-8 rounded-t-[40px] shadow-[0_-20px_50px_rgba(0,0,0,0.05)]">
-                <div className="flex items-center justify-center gap-4 mb-10">
+            <div className="bg-white p-4 md:p-8 rounded-t-[30px] md:rounded-t-[40px] shadow-[0_-20px_50px_rgba(0,0,0,0.05)]">
+                <div className="flex items-center justify-center gap-2 md:gap-4 mb-6 md:mb-10">
                     <Button
                         size="icon"
                         variant="outline"
                         className="rounded-full w-16 h-16 bg-green-100 hover:bg-green-200 text-green-600 border-none shadow-md transition-all active:scale-90"
                         onClick={triggerAudio}
                     >
-                        <Volume2 className={cn("w-8 h-8", isTTSSpeaking && "animate-pulse")} />
+                        <Volume2 className={cn("w-6 h-6 md:w-8 md:h-8", isTTSSpeaking && "animate-pulse")} />
                     </Button>
-                    <h2 className="text-5xl font-black text-slate-800 tracking-tight italic">{currentWord.word}</h2>
+                    <h2 className="text-4xl md:text-5xl font-black text-slate-800 tracking-tight italic">{currentWord.word}</h2>
                     <audio ref={audioRef} />
                 </div>
                 
-                <div className="flex justify-between items-center gap-4">
+                <div className="flex justify-between items-center gap-2 md:gap-4">
                     <Button
                         variant="outline"
-                        className="flex-1 rounded-[24px] py-8 px-8 font-black text-xl border-4 border-slate-100 hover:bg-slate-50 transition-all active:scale-95 disabled:opacity-30"
+                        className="flex-1 rounded-[20px] md:rounded-[24px] py-6 px-4 md:py-8 md:px-8 font-black text-base md:text-xl border-4 border-slate-100 hover:bg-slate-50 transition-all active:scale-95 disabled:opacity-30"
                         onClick={goToPrevious}
                         disabled={isFirstWord}
                     >
-                        <ArrowLeft className="mr-3 w-6 h-6" />
+                        <ArrowLeft className="mr-1 md:mr-3 w-5 h-5 md:w-6 md:h-6" />
                         GERİ
                     </Button>
                     
                     {isLastWord ? (
                         <Button
-                            className="flex-[1.5] rounded-[24px] py-8 px-8 font-black text-xl bg-green-500 hover:bg-green-600 shadow-lg shadow-green-200 transition-all active:scale-95 border-b-8 border-green-700"
+                            className="flex-[1.5] rounded-[20px] md:rounded-[24px] py-6 px-4 md:py-8 md:px-8 font-black text-base md:text-xl bg-green-500 hover:bg-green-600 shadow-lg shadow-green-200 transition-all active:scale-95 border-b-[6px] md:border-b-8 border-green-700"
                             onClick={goToNextStage}
                         >
-                            OYUNA BAŞLA!
-                            <Gamepad2 className="ml-3 w-6 h-6" />
+                            BAŞLA!
+                            <Gamepad2 className="ml-1 md:ml-3 w-5 h-5 md:w-6 md:h-6" />
                         </Button>
                     ) : (
                         <Button
-                            className="flex-[1.5] rounded-[24px] py-8 px-8 font-black text-xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-95 border-b-8 border-primary/70"
+                            className="flex-[1.5] rounded-[20px] md:rounded-[24px] py-6 px-4 md:py-8 md:px-8 font-black text-base md:text-xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-95 border-b-[6px] md:border-b-8 border-primary/70"
                             onClick={goToNext}
                         >
                             İLERİ
-                            <ArrowRight className="ml-3 w-6 h-6" />
+                            <ArrowRight className="ml-1 md:ml-3 w-5 h-5 md:w-6 md:h-6" />
                         </Button>
                     )}
                 </div>

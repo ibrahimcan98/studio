@@ -98,6 +98,14 @@ export default function TopicPage() {
 
     const { speak } = useTTS();
     const [isShowingSuccess, setIsShowingSuccess] = useState(false);
+    const [hasSpokenReward, setHasSpokenReward] = useState(false);
+
+    useEffect(() => {
+        if (stage === 'map' && childData?.completedTopics?.includes(`${topicId}-quiz`) && !childData?.stickers?.[topicId as string] && !hasSpokenReward) {
+            speak("Harikasın! Tüm görevleri bitirdin. Şimdi aşağıdaki gizemli sandığa dokun ve sürpriz ödülünü al!");
+            setHasSpokenReward(true);
+        }
+    }, [stage, childData, topicId, speak, hasSpokenReward]);
 
     const handleStageComplete = async (currentStage: GameStage) => {
         if (childDocRef && topicId) {
@@ -130,7 +138,7 @@ export default function TopicPage() {
                 } else if (currentStage === 'quiz') {
                     setStage('completed');
                 }
-            }, 3500);
+            }, 6000);
         }
     };
 
@@ -180,25 +188,24 @@ export default function TopicPage() {
         return (
             <div className="bg-sky-400 h-screen flex flex-col items-center justify-center p-8 text-center overflow-hidden">
                 <Confetti width={width} height={height} />
-                <div className="relative mb-8">
+                <div className="relative mb-4 md:mb-8">
                     <div className="absolute inset-0 bg-white/20 blur-3xl rounded-full scale-150 animate-pulse" />
-                    <div className="relative w-48 h-48 bg-white rounded-full flex items-center justify-center shadow-[0_20px_50px_rgba(0,0,0,0.2)] border-b-[10px] border-gray-100">
-                        <Trophy className="w-24 h-24 text-yellow-400 animate-bounce" />
+                    <div className="relative w-32 h-32 md:w-48 md:h-48 bg-white rounded-full flex items-center justify-center shadow-[0_20px_50px_rgba(0,0,0,0.2)] border-b-[6px] md:border-b-[10px] border-gray-100">
+                        <Trophy className="w-16 h-16 md:w-24 md:h-24 text-yellow-400 animate-bounce" />
                     </div>
-                    <div className="absolute -top-4 -right-4 w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg animate-bounce delay-100">
-                        <Star className="w-8 h-8 text-white fill-current" />
+                    <div className="absolute -top-2 -right-2 md:-top-4 md:-right-4 w-12 h-12 md:w-16 md:h-16 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg animate-bounce delay-100">
+                        <Star className="w-6 h-6 md:w-8 md:h-8 text-white fill-current" />
                     </div>
                 </div>
-
-                <div className="space-y-4 max-w-xl">
-                    <h1 className="text-6xl font-black text-white uppercase italic tracking-tighter drop-shadow-lg">HARİKA İŞ!</h1>
-                    <p className="text-2xl font-bold text-sky-100 uppercase tracking-widest drop-shadow-md">
+                <div className="space-y-2 md:space-y-4 max-w-xl">
+                    <h1 className="text-4xl md:text-6xl font-black text-white uppercase italic tracking-tighter drop-shadow-lg">HARİKA İŞ!</h1>
+                    <p className="text-lg md:text-2xl font-bold text-sky-100 uppercase tracking-widest drop-shadow-md px-4">
                         "{topic.name.toUpperCase()}" KONUSUNU TAMAMLADIN VE SEVİYE ATLADIN!
                     </p>
                 </div>
 
                 <Button
-                    className="mt-12 h-20 px-12 rounded-[32px] text-2xl font-black bg-white text-sky-500 hover:bg-sky-50 hover:scale-105 transition-all shadow-2xl border-b-[6px] border-gray-200 active:border-b-0 active:translate-y-1"
+                    className="mt-6 md:mt-12 h-14 md:h-20 px-6 md:px-12 rounded-[24px] md:rounded-[32px] text-lg md:text-2xl font-black bg-white text-sky-500 hover:bg-sky-50 hover:scale-105 transition-all shadow-2xl border-b-4 md:border-b-[6px] border-gray-200 active:border-b-0 active:translate-y-1"
                     onClick={() => router.push(`/cocuk-modu/${childId}`)}
                 >
                     MACERAYA DEVAM ET
@@ -253,10 +260,10 @@ export default function TopicPage() {
                         <Trophy className="w-24 h-24 text-yellow-400" />
                     </div>
                 </div>
-                <h2 className="mt-12 text-6xl font-black text-white italic uppercase tracking-tighter drop-shadow-lg animate-in zoom-in duration-500 delay-200">
+                <h2 className="mt-12 text-5xl md:text-6xl font-black text-white italic uppercase tracking-tighter drop-shadow-lg animate-in zoom-in duration-500 delay-200 text-center px-2">
                     Mükemmel! ✨
                 </h2>
-                <p className="mt-4 text-2xl font-bold text-white/90 uppercase tracking-widest animate-in slide-in-from-bottom duration-500 delay-300">
+                <p className="mt-4 text-lg md:text-2xl font-bold text-white/90 uppercase tracking-widest animate-in slide-in-from-bottom duration-500 delay-300 text-center px-4">
                     Sıradaki bölüme geçiyoruz...
                 </p>
             </div>
@@ -294,13 +301,13 @@ export default function TopicPage() {
                     <Cloud className="hidden md:absolute top-[35%] left-0 w-32 h-32 md:w-48 md:h-48 text-white/30 fill-white/30 cloud-2 drop-shadow-lg" />
                 </div>
 
-                {/* Başlık: Yatay modda çok daha küçük */}
-                <h1 className="text-sm md:text-3xl lg:text-5xl font-black text-white drop-shadow-lg mt-4 md:mt-12 z-20 bg-white/20 px-4 md:px-10 py-1 md:py-4 rounded-full backdrop-blur-md border-2 md:border-4 border-white/40 uppercase tracking-tighter">
+                {/* Başlık: Yatay modda çok daha küçük, mobilde butonun altında kalsın diye mt-16 */}
+                <h1 className="text-sm md:text-3xl lg:text-5xl font-black text-white drop-shadow-lg max-md:mt-16 mt-4 md:mt-12 z-20 bg-white/20 px-4 md:px-10 py-1 md:py-4 rounded-full backdrop-blur-md border-2 md:border-4 border-white/40 uppercase tracking-tighter">
                     {topic.name} ADASI
                 </h1>
 
                 {/* Harita Yolu */}
-                <div className="relative flex-1 w-full max-w-4xl flex items-center justify-center mt-4 md:mt-12 mb-10 md:mb-20 z-20 min-h-[500px] md:min-h-[700px]">
+                <div className="relative flex-1 w-full max-w-4xl flex items-center justify-center max-md:mt-8 max-md:mb-4 mt-12 mb-20 z-20 min-h-[400px] md:min-h-[700px] max-md:h-[75vh]">
 
                     {/* Level 1: Öğrenme (Sol Üst) */}
                     <div className="absolute left-[5%] md:left-[15%] top-[0%] flex flex-col items-center group cursor-pointer z-20" onClick={() => setStage('learning')}>
@@ -458,9 +465,9 @@ export default function TopicPage() {
                             >
                                 {/* Ok İpucu (Hint) */}
                                 {!childData?.stickers?.[topicId as string] && (
-                                    <div className="absolute -top-24 arrow-hint flex flex-col items-center">
-                                        <div className="bg-yellow-400 text-yellow-900 font-black px-6 py-2 rounded-full text-lg mb-1 shadow-lg border-2 border-white uppercase tracking-tighter">ÖDÜLÜ AL</div>
-                                        <ArrowRight className="w-12 h-12 text-yellow-400 rotate-90 drop-shadow-lg fill-current" />
+                                    <div className="absolute -top-16 md:-top-24 right-4 md:right-0 arrow-hint flex flex-col items-center">
+                                        <div className="bg-yellow-400 text-yellow-900 font-black px-4 py-1 md:px-6 md:py-2 rounded-full text-xs md:text-lg mb-1 shadow-lg border-2 border-white uppercase tracking-tighter whitespace-nowrap">ÖDÜLÜ AL</div>
+                                        <ArrowRight className="w-8 h-8 md:w-12 md:h-12 text-yellow-400 rotate-90 drop-shadow-lg fill-current" />
                                     </div>
                                 )}
                                 <div className="relative drop-shadow-[0_0_25px_rgba(250,204,21,0.8)] floating-island">
@@ -493,17 +500,17 @@ export default function TopicPage() {
     return (
         <div className="bg-[#7dd3fc] h-screen w-full flex overflow-hidden">
             {/* Sidebar Left Panel */}
-            <aside className="w-24 md:w-32 bg-white/20 backdrop-blur-xl border-r border-white/40 flex flex-col items-center py-8 justify-between z-50 shadow-2xl">
+            <aside className="w-16 md:w-32 shrink-0 bg-white/20 backdrop-blur-xl border-r border-white/40 flex flex-col items-center py-4 md:py-8 justify-between z-50 shadow-2xl">
                 <Button
                     variant="outline"
                     size="icon"
-                    className="rounded-2xl h-14 w-14 bg-white/90 border-none shadow-xl hover:scale-110 transition-all hover:bg-white active:scale-95"
+                    className="rounded-xl md:rounded-2xl h-10 w-10 md:h-14 md:w-14 bg-white/90 border-none shadow-xl hover:scale-110 transition-all hover:bg-white active:scale-95"
                     onClick={() => setStage('map')}
                 >
-                    <ArrowLeft className="w-8 h-8 text-sky-500" />
+                    <ArrowLeft className="w-6 h-6 md:w-8 md:h-8 text-sky-500" />
                 </Button>
 
-                <div className="flex flex-col gap-10 items-center">
+                <div className="flex flex-col gap-6 md:gap-10 items-center">
                     {[
                         { s: 'learning' as GameStage, label: '1' },
                         { s: 'matching' as GameStage, label: '2' },
@@ -519,7 +526,7 @@ export default function TopicPage() {
                                     disabled={!isCompleted && !isCurrent && idx > maxStageReached}
                                     onClick={() => setStage(step.s)}
                                     className={cn(
-                                        "w-14 h-14 rounded-full flex items-center justify-center transition-all duration-500 text-xl font-black border-b-4",
+                                        "w-10 h-10 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-500 text-base md:text-xl font-black border-b-[3px] md:border-b-4",
                                         isCurrent ? "bg-white text-sky-500 scale-125 shadow-[0_10px_20px_rgba(0,0,0,0.15)] border-white" :
                                             isCompleted ? "bg-green-400 text-white cursor-pointer hover:scale-110 border-green-600" : "bg-white/10 text-white/40 cursor-not-allowed border-transparent"
                                     )}
@@ -537,7 +544,7 @@ export default function TopicPage() {
                     })}
                 </div>
 
-                <div className="h-14 w-14" /> {/* Spacer to balance the top button */}
+                <div className="h-10 w-10 md:h-14 md:w-14" /> {/* Spacer to balance the top button */}
             </aside>
 
             {/* Main Content Area */}
@@ -545,16 +552,17 @@ export default function TopicPage() {
 
                 {/* Floating "Next" Button overlay if completed */}
                 {childData?.completedTopics?.includes(`${topicId}-${stage}`) && stage !== 'quiz' && (
-                    <div className="absolute top-8 left-0 right-0 flex justify-center z-40 pointer-events-none">
+                    <div className="absolute top-24 md:top-32 left-0 right-0 flex justify-center z-40 pointer-events-none px-2">
                         <Button
-                            className="pointer-events-auto bg-white text-sky-600 hover:bg-sky-50 font-black rounded-full px-12 h-20 text-xl shadow-[0_20px_40px_rgba(0,0,0,0.1)] border-b-8 border-gray-100 active:border-b-0 active:translate-y-2 transition-all group animate-bounce"
+                            className="pointer-events-auto bg-white text-sky-600 hover:bg-sky-50 font-black rounded-full px-6 md:px-12 max-md:landscape:px-4 h-14 md:h-20 max-md:landscape:h-10 text-sm md:text-xl max-md:landscape:text-xs shadow-[0_20px_40px_rgba(0,0,0,0.1)] border-b-4 md:border-b-8 max-md:landscape:border-b-[3px] border-gray-100 active:border-b-0 active:translate-y-2 transition-all group animate-bounce whitespace-nowrap"
                             onClick={() => {
                                 if (stage === 'learning') setStage('matching');
                                 else if (stage === 'matching') setStage('quiz');
                             }}
                         >
-                            SONRAKİ BÖLÜME GEÇ
-                            <ArrowRight className="ml-3 w-8 h-8 group-hover:translate-x-2 transition-transform" />
+                            <span className="hidden md:inline">SONRAKİ BÖLÜME GEÇ</span>
+                            <span className="md:hidden">SONRAKİ BÖLÜM</span>
+                            <ArrowRight className="ml-2 md:ml-3 max-md:landscape:ml-1 w-5 h-5 md:w-8 md:h-8 max-md:landscape:w-4 max-md:landscape:h-4 group-hover:translate-x-2 transition-transform" />
                         </Button>
                     </div>
                 )}
@@ -564,7 +572,7 @@ export default function TopicPage() {
                     <div className="absolute bottom-40 right-20 w-[500px] h-[500px] bg-white rounded-full blur-[150px] animate-pulse delay-1000" />
                 </div>
 
-                <div className="flex-1 w-full flex items-center justify-center p-8 transition-all duration-500">
+                <div className="flex-1 w-full flex items-center justify-center p-2 pt-4 md:p-8 transition-all duration-500">
                     <div className="w-full max-w-6xl h-full flex items-center justify-center">
                         {stage === 'learning' && (
                             <WordCard

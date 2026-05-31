@@ -89,6 +89,8 @@ export async function POST(req: Request) {
             const totalLessonsToAdd = txData.totalLessonsToAdd || 0;
 
             const userRef = db.collection('users').doc(userId);
+            const userSnap = await userRef.get();
+            const userData = userSnap.data() || {};
             const childrenRef = userRef.collection('children');
             const childrenSnap = await childrenRef.get();
             const childrenList = childrenSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -112,7 +114,7 @@ export async function POST(req: Request) {
                 if (isGroupPackage || (child.remainingLessons > 0 && isDifferentType)) {
                     // GRUP PAKETLERİ VE FARKLI TÜR PAKETLER HAVUZA ATILIR
                     batch.update(userRef, {
-                        enrolledPackages: FieldValue.arrayUnion(...newPackages),
+                        enrolledPackages: [...(userData.enrolledPackages || []), ...newPackages],
                         remainingLessons: FieldValue.increment(isGroupPackage ? 0 : totalLessonsToAdd), // Grup dersleri birebir havuza eklenmez!
                     });
                 } else {
@@ -127,7 +129,7 @@ export async function POST(req: Request) {
             } else {
                 const isGroupPackage = newPackages.some((p: string) => p.toLowerCase().includes('grup'));
                 batch.update(userRef, {
-                    enrolledPackages: FieldValue.arrayUnion(...newPackages),
+                    enrolledPackages: [...(userData.enrolledPackages || []), ...newPackages],
                     remainingLessons: FieldValue.increment(isGroupPackage ? 0 : totalLessonsToAdd),
                 });
             }

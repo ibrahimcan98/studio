@@ -55,9 +55,9 @@ function PaketlerimPageContent() {
     const [selectedGroupPackageId, setSelectedGroupPackageId] = useState<string>('');
 
     const groupPackagesRef = useMemoFirebase(() => {
-        if (!db) return null;
+        if (!db || !user?.uid) return null;
         return query(collection(db, 'groupCoursePackages'), where('status', '==', 'published'));
-    }, [db]);
+    }, [db, user?.uid]);
     const { data: availableGroupPackages } = useCollection(groupPackagesRef);
 
     const availableGroupSessionsRef = useMemoFirebase(() => {
@@ -201,12 +201,11 @@ function PaketlerimPageContent() {
             setIsAssigning(true);
             const batch = writeBatch(db);
 
-            // Calculate how many credits to deduct based on the number of sessions in the group class
-            const sessionsForClass = availableGroupSessions?.filter((s: any) => s.packageId === selectedGroupPackageId) || [];
-            const creditsToDeduct = sessionsForClass.length > 0 ? sessionsForClass.length : 1;
+            // For group classes, we consume the full package that was selected
+            const creditsToDeduct = amountToAssign || lessonsInPackage;
             
             if (lessonsInPackage < creditsToDeduct) {
-                toast({ variant: 'destructive', title: 'Yetersiz Kredi', description: `Seçtiğiniz sınıf ${creditsToDeduct} derslik, ancak bu paketinizde ${lessonsInPackage} kredi var.` });
+                toast({ variant: 'destructive', title: 'Yetersiz Kredi', description: `Bu işlem için ${creditsToDeduct} kredi gerekiyor, ancak paketinizde ${lessonsInPackage} kredi var.` });
                 setIsAssigning(false);
                 return;
             }
@@ -612,14 +611,19 @@ function PaketlerimPageContent() {
                                             </div>
                                             {regularPackages.length > 0 ? (
                                         <div className='flex flex-col gap-2'>
-                                            {regularPackages.map((pkg: string, index: number) => {
+                                            {Object.entries(regularPackages.reduce((acc: Record<string, number>, pkg: string) => {
+                                                acc[pkg] = (acc[pkg] || 0) + 1; return acc;
+                                            }, {})).map(([pkg, count], index: number) => {
                                                 const course = getCourseByCode(pkg);
                                                 const lessons = parseInt(pkg.replace(/\D/g, ''), 10);
                                                 return (
                                                     <div key={`reg-${pkg}-${index}`} className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
                                                         <div className="flex items-center gap-2">
                                                             <PlayCircle className="w-4 h-4 text-indigo-400" />
-                                                            <span className="font-bold text-slate-700 text-sm">{course ? `${course.title}` : `Bilinmeyen`}</span>
+                                                            <span className="font-bold text-slate-700 text-sm">
+                                                                {count as number > 1 ? <span className="text-indigo-600 mr-1">{count as number}x</span> : null}
+                                                                {course ? `${course.title}` : `Bilinmeyen`}
+                                                            </span>
                                                         </div>
                                                         <Badge className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100">{lessons} Ders</Badge>
                                                     </div>
@@ -657,16 +661,27 @@ function PaketlerimPageContent() {
                                 return normalizedPkg.toLowerCase().includes('grup');
                             });
 
+                            const totalGroupLessons = groupPackages.reduce((acc: number, pkg: string) => {
+                                const normalizedPkg = /^\d+$/.test(pkg) ? `${pkg}GRUP` : pkg;
+                                return acc + (parseInt(normalizedPkg.replace(/\D/g, ''), 10) || 0);
+                            }, 0);
+
                             if (groupPackages.length === 0) return null;
 
                             return (
-                                <Card className="border border-purple-200 shadow-sm bg-white rounded-[24px] overflow-hidden">
+                                <Card className="border border-purple-200 shadow-sm bg-white rounded-[24px] overflow-hidden mt-4">
                                     <CardHeader className="bg-purple-50/50 border-b border-purple-100 pb-4 px-6 pt-6">
                                         <CardTitle className='flex items-center gap-2 text-purple-900 text-lg'><Users className="w-5 h-5 text-purple-500"/> Grup Derslerim</CardTitle>
                                     </CardHeader>
                                     <CardContent className="p-6">
+                                        <div className="bg-purple-50/50 border border-purple-100 p-4 rounded-xl mb-6 flex justify-between items-center">
+                                            <p className="text-purple-600/80 text-xs font-bold uppercase tracking-widest">Kredi Havuzu</p>
+                                            <p className="text-2xl font-black text-purple-700">{totalGroupLessons} <span className="text-sm font-bold text-purple-400">Ders</span></p>
+                                        </div>
                                         <div className='flex flex-col gap-2'>
-                                            {groupPackages.map((pkg: string, index: number) => {
+                                            {Object.entries(groupPackages.reduce((acc: Record<string, number>, pkg: string) => {
+                                                acc[pkg] = (acc[pkg] || 0) + 1; return acc;
+                                            }, {})).map(([pkg, count], index: number) => {
                                                 const normalizedPkg = /^\d+$/.test(pkg) ? `${pkg}GRUP` : pkg;
                                                 const course = getCourseByCode(normalizedPkg);
                                                 const lessons = parseInt(normalizedPkg.replace(/\D/g, ''), 10);
@@ -674,7 +689,10 @@ function PaketlerimPageContent() {
                                                     <div key={`grp-${pkg}-${index}`} className="flex justify-between items-center bg-purple-50 p-3 rounded-lg border border-purple-100 shadow-sm">
                                                         <div className="flex items-center gap-2">
                                                             <PlayCircle className="w-4 h-4 text-purple-400" />
-                                                            <span className="font-bold text-purple-900 text-sm">{course ? `${course.title}` : `Bilinmeyen Grup Dersi`}</span>
+                                                            <span className="font-bold text-purple-900 text-sm">
+                                                                {count as number > 1 ? <span className="text-purple-600 mr-1">{count as number}x</span> : null}
+                                                                {course ? `${course.title}` : `Bilinmeyen Grup Dersi`}
+                                                            </span>
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-200">Grup Paketi ({lessons} Ders)</Badge>

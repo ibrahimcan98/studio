@@ -95,11 +95,11 @@ export default function HikayelerPage() {
         {/* ORTA ALAN: Hikayeler İçeriği */}
         <div className="flex-1 relative order-3 md:order-2 overflow-y-auto p-8 custom-scrollbar scroll-smooth">
           <div className="max-w-5xl mx-auto">
-            <header className="mb-10 text-center bg-indigo-900/20 backdrop-blur-xl p-6 rounded-[40px] border border-white/10 shadow-[0_0_50px_rgba(79,70,229,0.2)]">
-              <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-white to-amber-200 mb-2 drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] italic tracking-tighter uppercase">
+            <header className="mb-6 md:mb-10 text-center bg-indigo-900/20 backdrop-blur-xl p-4 md:p-6 rounded-[30px] md:rounded-[40px] border border-white/10 shadow-[0_0_50px_rgba(79,70,229,0.2)] mx-2 md:mx-0">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-white to-amber-200 mb-2 drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] italic tracking-tighter uppercase break-words">
                 Gizemli Kütüphane
               </h1>
-              <p className="text-lg text-indigo-100 font-medium italic drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+              <p className="text-sm sm:text-base md:text-lg text-indigo-100 font-medium italic drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
                 Büyülü bir hikayenin kapılarını aralamaya hazır mısın? 🪄✨
               </p>
             </header>

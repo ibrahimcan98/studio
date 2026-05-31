@@ -316,8 +316,8 @@ export default function KaptanKahvaltisiPage() {
       </div>
 
       {/* Hikaye Alanı */}
-      <div className="h-full w-full flex flex-col items-center justify-center pt-16 pb-4 sm:pt-24 sm:pb-12 px-2 sm:px-6">
-        <div className="relative w-full max-w-5xl aspect-[16/10] bg-white rounded-3xl sm:rounded-[60px] shadow-2xl border-4 sm:border-[8px] border-white overflow-hidden group">
+      <div className="h-full w-full flex flex-col items-center justify-center pt-16 pb-4 sm:pt-24 sm:pb-12 px-2 sm:px-6 max-md:landscape:p-0">
+        <div className="relative w-full h-full max-w-5xl aspect-[16/10] max-md:landscape:aspect-auto bg-white rounded-3xl sm:rounded-[60px] max-md:landscape:rounded-none shadow-2xl border-4 sm:border-[8px] max-md:landscape:border-none border-white overflow-hidden group">
           {/* Portrait Warning Overlay */}
           <div className="absolute inset-0 bg-white/80 backdrop-blur-md z-[40] flex flex-col items-center justify-center p-4 text-center portrait:flex hidden cursor-pointer" onClick={() => speak("Lütfen hikayeyi daha iyi görebilmek için tabletinizi yan çevirin.")}>
             <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mb-2 animate-bounce">

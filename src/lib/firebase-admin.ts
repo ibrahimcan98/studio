@@ -112,6 +112,11 @@ if (!global.__firebaseAdminApp) {
   global.__firebaseAdminApp = initializeFirebaseAdmin();
   global.__firebaseAdminAuth = getAuth(global.__firebaseAdminApp);
   global.__firebaseAdminDb = getFirestore(global.__firebaseAdminApp);
+  try {
+    global.__firebaseAdminDb.settings({ preferRest: true });
+  } catch (e) {
+    // Ignore if already set or unsupported
+  }
   global.__firebaseAdminMessaging = getMessaging(global.__firebaseAdminApp);
 }
 
