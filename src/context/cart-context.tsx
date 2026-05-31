@@ -173,8 +173,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             discountType: couponData.discountType || 'percentage',
             discountPct: couponData.discountPct || 0,
             discountAmount: couponData.discountAmount || 0,
-            applicableCourseIds: couponData.applicableCourseIds || couponData.applicableCourseId ? [couponData.applicableCourseId] : null,
-            applicablePackages: couponData.applicablePackages || couponData.applicablePackage ? [couponData.applicablePackage] : null
+            applicableCourseIds: couponData.applicableCourseIds || (couponData.applicableCourseId ? [couponData.applicableCourseId] : null),
+            applicablePackages: couponData.applicablePackages || (couponData.applicablePackage ? [couponData.applicablePackage] : null)
         });
     };
     

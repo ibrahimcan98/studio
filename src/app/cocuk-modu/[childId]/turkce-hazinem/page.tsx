@@ -110,13 +110,13 @@ export default function TurkceHazinemPage() {
       const isPaywallLocked = subscriptionTier === 'free' && chestCount >= 3;
       
       let lockedReason: 'none' | 'paywall' | 'progress' = 'none';
-      if (isPaywallLocked) lockedReason = 'paywall';
-      else if (!previousChestCompleted) lockedReason = 'progress';
+      // if (isPaywallLocked) lockedReason = 'paywall';
+      // else if (!previousChestCompleted) lockedReason = 'progress';
 
       list.push({
         ...CHEST_DATA[i],
         isReview: false,
-        isLocked: lockedReason !== 'none',
+        isLocked: false, // lockedReason !== 'none',
         lockedReason
       });
       chestCount++;
@@ -129,8 +129,8 @@ export default function TurkceHazinemPage() {
         const isTekrarPaywallLocked = subscriptionTier === 'free';
         
         let tekrarLockedReason: 'none' | 'paywall' | 'progress' = 'none';
-        if (isTekrarPaywallLocked) tekrarLockedReason = 'paywall';
-        else if (!previousChestCompleted) tekrarLockedReason = 'progress';
+        // if (isTekrarPaywallLocked) tekrarLockedReason = 'paywall';
+        // else if (!previousChestCompleted) tekrarLockedReason = 'progress';
 
         list.push({
           id: tekrarId,
@@ -138,7 +138,7 @@ export default function TurkceHazinemPage() {
           category: 'Genel Tekrar',
           questions: 10,
           isReview: true,
-          isLocked: tekrarLockedReason !== 'none',
+          isLocked: false, // tekrarLockedReason !== 'none',
           lockedReason: tekrarLockedReason,
         });
         

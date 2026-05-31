@@ -88,7 +88,7 @@ export default function SepetPage() {
             
             if (couponSnap.exists() && couponSnap.data().isActive) {
                  const data = couponSnap.data();
-                 applyStandardDiscount(data);
+                 applyStandardDiscount({ ...data, code: couponSnap.id });
                  
                  let discountDisplay = '';
                  if (data.discountType === 'fixed_amount' && data.discountAmount) {
@@ -393,7 +393,9 @@ export default function SepetPage() {
                                             <div className="flex items-center justify-between gap-2">
                                                 <Badge>
                                                     <Tag className="w-3 h-3 mr-1"/>
-                                                    Kupon: {appliedCoupon} (%{(appliedCouponData!.discountPct * 100).toFixed(0)})
+                                                    Kupon: {appliedCoupon} {appliedCouponData?.discountType === 'fixed_amount' 
+                                                        ? `(${symbol}${formatPrice(appliedCouponData.discountAmount || 0)})` 
+                                                        : `(%${((appliedCouponData?.discountPct || 0) * 100).toFixed(0)})`}
                                                 </Badge>
                                                 <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={removeCoupon}>
                                                     <XCircle className="w-4 h-4"/>

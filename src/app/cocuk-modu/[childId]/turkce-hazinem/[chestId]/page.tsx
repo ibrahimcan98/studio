@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react'; // FORCING HMR REFRESH 3
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc } from '@/firebase';
 import { doc, updateDoc, setDoc, arrayUnion, increment } from 'firebase/firestore';
@@ -16,7 +16,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import { CHESTS_CONTENT } from '@/data/turkce-hazinem-data';
 
-type Stage = 'list' | 'quiz1' | 'lang_intro' | 'etkinlik1' | 'etkinlik2' | 'country_intro' | 'country_etkinlik1' | 'country_etkinlik2' | 'success' | 'game_over';
+type Stage = 'list' | 'quiz1' | 'lang_intro' | 'etkinlik1' | 'etkinlik2' | 'country_intro' | 'country_etkinlik1' | 'country_etkinlik2' | 'country_etkinlik3' | 'success' | 'game_over';
 
 export default function ChestPage() {
   const router = useRouter();
@@ -45,11 +45,78 @@ export default function ChestPage() {
   // Cümle Mimarı için durumlar
   const [scrambledWords, setScrambledWords] = useState<string[]>([]);
   const [constructedSentence, setConstructedSentence] = useState<string[]>([]);
+  const [inputText, setInputText] = useState("");
+
+  // Çoklu Görsel Seçimi
+  const [selectedImageIds, setSelectedImageIds] = useState<number[]>([]);
+
+  // Eşleştirme Oyunu için durumlar
+  const [matchingLeft, setMatchingLeft] = useState<number | null>(null);
+  const [matchingRight, setMatchingRight] = useState<number | null>(null);
+  const [matchedPairs, setMatchedPairs] = useState<string[]>([]);
+  const [shuffledLeft, setShuffledLeft] = useState<any[]>([]);
+  const [shuffledRight, setShuffledRight] = useState<any[]>([]);
+
+  // Harita Etkileşimli Oyun (map_interactive) için durumlar
+  const [selectedMapSpotId, setSelectedMapSpotId] = useState<string | null>(null);
+  const [placedMapSpots, setPlacedMapSpots] = useState<{ [id: string]: boolean }>({});
+
+  const [shuffleSeed, setShuffleSeed] = useState(0);
 
   // Veriyi dış dosyadan çek
   const content = useMemo(() => {
-    return CHESTS_CONTENT[chestId];
-  }, [chestId]);
+    const rawContent = CHESTS_CONTENT[chestId as string];
+    if (!rawContent) return rawContent;
+
+    // Deep clone to safely shuffle without mutating the original source
+    const cloned = JSON.parse(JSON.stringify(rawContent));
+
+    const shuffleArrayItem = (array: any[]) => {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    };
+
+    const randomizeQuestions = (questions: any[]) => {
+      if (!questions || !Array.isArray(questions)) return;
+      shuffleArrayItem(questions);
+
+      questions.forEach((q) => {
+        if (q.options && typeof q.correct === 'number') {
+          const correctOpt = q.options[q.correct];
+          shuffleArrayItem(q.options);
+          q.correct = q.options.indexOf(correctOpt);
+        }
+        if (q.images && typeof q.correct === 'number') {
+          const correctImg = q.images[q.correct];
+          shuffleArrayItem(q.images);
+          // Find the new index based on src since we cloned objects
+          q.correct = q.images.findIndex((img: any) => img.src === correctImg.src);
+        }
+        // If correct is string (e.g. words), just shuffle the array
+        if (q.words) {
+          shuffleArrayItem(q.words);
+        }
+      });
+    };
+
+    // Tüm etkinliklerdeki soruları ve şıkları karıştır
+    if (cloned.story?.questions) randomizeQuestions(cloned.story.questions);
+    if (cloned.lang?.etkinlik1?.questions) randomizeQuestions(cloned.lang.etkinlik1.questions);
+    if (cloned.lang?.etkinlik2?.questions) randomizeQuestions(cloned.lang.etkinlik2.questions);
+    if (cloned.country?.etkinlik1?.questions) randomizeQuestions(cloned.country.etkinlik1.questions);
+    if (cloned.country?.etkinlik2?.questions) randomizeQuestions(cloned.country.etkinlik2.questions);
+    if (cloned.country?.etkinlik3?.questions) randomizeQuestions(cloned.country.etkinlik3.questions);
+    
+    // Harita etkileşimli oyunu için spotları ayrı bir diziye alıp karıştır
+    if (cloned.country?.etkinlik1?.type === 'map_interactive' && cloned.country?.etkinlik1?.spots) {
+      cloned.country.etkinlik1.shuffledSpots = [...cloned.country.etkinlik1.spots];
+      shuffleArrayItem(cloned.country.etkinlik1.shuffledSpots);
+    }
+
+    return cloned;
+  }, [chestId, shuffleSeed]);
 
   // Firestore'dan çocuk verilerini al
   const childDocRef = useMemo(() => {
@@ -97,13 +164,24 @@ export default function ChestPage() {
 
   useEffect(() => {
     if (stage === 'etkinlik2' && content?.lang?.etkinlik2.questions[currentQuestion]) {
-      const words = content.lang.etkinlik2.questions[currentQuestion].words;
-      if (words) {
-        setScrambledWords(shuffleArray(words));
-      } else {
-        setScrambledWords([]);
-      }
+      setScrambledWords(shuffleArray(content.lang.etkinlik2.questions[currentQuestion].words || []));
       setConstructedSentence([]);
+      setInputText("");
+    } else if (stage === 'country_etkinlik3' && content?.country?.etkinlik3?.questions?.[currentQuestion]) {
+      setScrambledWords(shuffleArray(content.country.etkinlik3.questions[currentQuestion].words || []));
+      setConstructedSentence([]);
+      setInputText("");
+    } else if (stage === 'country_etkinlik1' && content?.country?.etkinlik1?.type === 'matching' && content?.country?.etkinlik1?.pairs) {
+      setShuffledLeft(shuffleArray(content.country.etkinlik1.pairs));
+      setShuffledRight(shuffleArray(content.country.etkinlik1.pairs));
+      setMatchedPairs([]);
+      setMatchingLeft(null);
+      setMatchingRight(null);
+    } else if (stage === 'country_etkinlik1' && content?.country?.etkinlik1?.type === 'multi_image_select') {
+      setSelectedImageIds([]);
+    } else if (stage === 'country_etkinlik1' && content?.country?.etkinlik1?.type === 'map_interactive') {
+      setSelectedMapSpotId(null);
+      setPlacedMapSpots({});
     }
   }, [stage, currentQuestion, content]);
 
@@ -117,15 +195,16 @@ export default function ChestPage() {
           stage === 'etkinlik2' ? content.lang?.etkinlik2.questions :
             stage === 'country_etkinlik1' ? content.country?.etkinlik1.questions :
               stage === 'country_etkinlik2' ? content.country?.etkinlik2.questions :
-                null;
+                stage === 'country_etkinlik3' ? content.country?.etkinlik3?.questions :
+                  null;
 
     if (!questions) return;
 
     // Eğer stringValue verildiyse (words dizisi kullanılıyorsa), string olarak karşılaştır.
     // Aksi takdirde index (options) olarak karşılaştır.
     const correct = stringValue !== undefined
-      ? stringValue === questions[currentQuestion].correct
-      : index === questions[currentQuestion].correct;
+      ? stringValue === questions[currentQuestion]?.correct
+      : index === questions[currentQuestion]?.correct;
       
     setIsCorrect(correct);
 
@@ -151,6 +230,15 @@ export default function ChestPage() {
             setSelectedAnswer(null);
             setIsCorrect(null);
           } else if (stage === 'country_etkinlik2') {
+            if (content?.country?.etkinlik3) {
+              setStage('country_etkinlik3');
+              setCurrentQuestion(0);
+              setSelectedAnswer(null);
+              setIsCorrect(null);
+            } else {
+              handleQuizComplete(`chest-${chestId}-3`);
+            }
+          } else if (stage === 'country_etkinlik3') {
             handleQuizComplete(`chest-${chestId}-3`);
           }
         }
@@ -177,19 +265,38 @@ export default function ChestPage() {
   };
 
   const checkSentence = () => {
-    if (!content?.lang?.etkinlik2.questions[currentQuestion]) return;
+    let currentQuestions = null;
+    let completeKey = "";
+    
+    if (stage === 'etkinlik2' && content?.lang?.etkinlik2.questions[currentQuestion]) {
+      currentQuestions = content.lang.etkinlik2.questions;
+      completeKey = `chest-${chestId}-2`;
+    } else if (stage === 'country_etkinlik3' && content?.country?.etkinlik3?.questions?.[currentQuestion]) {
+      currentQuestions = content.country.etkinlik3.questions;
+      completeKey = `chest-${chestId}-3`;
+    }
+
+    if (!currentQuestions) return;
 
     // Noktalama işaretlerini, büyük harfleri ve boşlukları normalize ederek kontrol et
     const normalize = (s: string) => s.replace(/İ/g, "i").replace(/I/g, "ı").replace(/['".,\/#!$%\^&\*;:{}=\-_`~()\s]/g, "").toLowerCase().trim();
 
-    if (normalize(constructedSentence.join('')) === normalize(content.lang.etkinlik2.questions[currentQuestion].correct)) {
+    let userText = "";
+    if (stage === 'country_etkinlik3') {
+      userText = inputText;
+    } else {
+      userText = constructedSentence.join('');
+    }
+
+    if (normalize(userText) === normalize(currentQuestions[currentQuestion].correct)) {
       setIsCorrect(true);
       setTimeout(() => {
-        if (currentQuestion < content.lang!.etkinlik2.questions.length - 1) {
+        if (currentQuestion < currentQuestions.length - 1) {
           setCurrentQuestion(prev => prev + 1);
           setIsCorrect(null);
+          setInputText("");
         } else {
-          handleQuizComplete(`chest-${chestId}-2`);
+          handleQuizComplete(completeKey);
         }
       }, 1500);
     } else {
@@ -198,9 +305,56 @@ export default function ChestPage() {
       setTimeout(() => {
         setIsCorrect(null);
         // Kelimeleri sıfırla
-        setScrambledWords(shuffleArray(content.lang!.etkinlik2.questions[currentQuestion].words));
+        setScrambledWords(shuffleArray(currentQuestions[currentQuestion].words || []));
         setConstructedSentence([]);
       }, 1500);
+    }
+  };
+
+  const handleMatchSelect = (side: 'left' | 'right', index: number) => {
+    if (lives === 0 || !content?.country?.etkinlik1?.pairs) return;
+
+    if (side === 'left') {
+      setMatchingLeft(index);
+      if (matchingRight !== null) {
+        checkMatch(index, matchingRight);
+      }
+    } else {
+      setMatchingRight(index);
+      if (matchingLeft !== null) {
+        checkMatch(matchingLeft, index);
+      }
+    }
+  };
+
+  const checkMatch = (leftIdx: number, rightIdx: number) => {
+    if (!content?.country?.etkinlik1?.pairs) return;
+    const leftItem = shuffledLeft[leftIdx];
+    const rightItem = shuffledRight[rightIdx];
+
+    // Check if they are a pair in the original array
+    const isPair = content.country.etkinlik1.pairs.some((p: any) => p.left === leftItem.left && p.right === rightItem.right);
+
+    if (isPair) {
+      setMatchedPairs(prev => [...prev, leftItem.left]);
+      setMatchingLeft(null);
+      setMatchingRight(null);
+
+      // Check if all pairs are matched
+      if (matchedPairs.length + 1 === content.country.etkinlik1.pairs.length) {
+        setTimeout(() => {
+          if (stage === 'country_etkinlik1') {
+            setStage('country_etkinlik2');
+            setCurrentQuestion(0);
+          }
+        }, 1500);
+      }
+    } else {
+      decreaseLives();
+      setTimeout(() => {
+        setMatchingLeft(null);
+        setMatchingRight(null);
+      }, 1000);
     }
   };
 
@@ -389,7 +543,7 @@ export default function ChestPage() {
 
               {/* 2. Dilimi Geliştiriyorum */}
               {(() => {
-                const isLocked = !content.lang || (content.story && !childData?.completedTopics?.includes(`chest-${chestId}-1`));
+                const isLocked = !content.lang;
                 return (
                   <div
                     className={cn(
@@ -439,7 +593,7 @@ export default function ChestPage() {
 
               {/* 3. Ülkemi Tanıyorum */}
               {(() => {
-                const isLocked = !content.country || (content.lang && !childData?.completedTopics?.includes(`chest-${chestId}-2`));
+                const isLocked = !content.country;
                 return (
                   <div
                     className={cn(
@@ -515,13 +669,13 @@ export default function ChestPage() {
               </div>
 
               <h3 className="text-xl font-black text-amber-950 mb-6 mt-2">
-                {content.story.questions[currentQuestion].q}
+                {content.story.questions[currentQuestion]?.q}
               </h3>
 
               <div className="grid gap-4">
-                {content.story.questions[currentQuestion].options.map((option, idx) => {
+                {content.story.questions[currentQuestion]?.options?.map((option, idx) => {
                   const isSelected = selectedAnswer === idx;
-                  const isCorrectAnswer = idx === content.story.questions[currentQuestion].correct;
+                  const isCorrectAnswer = idx === content.story.questions[currentQuestion]?.correct;
 
                   return (
                     <button
@@ -612,14 +766,14 @@ export default function ChestPage() {
               </div>
 
               <h3 className="text-2xl font-black text-amber-950 mb-8 mt-4 text-center">
-                {content.lang.etkinlik1.questions[currentQuestion].q}
+                {content.lang.etkinlik1.questions[currentQuestion]?.q}
               </h3>
 
               <div className="flex flex-col gap-4 max-w-2xl mx-auto">
-                {content.lang.etkinlik1.questions[currentQuestion].options ? (
+                {content.lang.etkinlik1.questions[currentQuestion]?.options ? (
                   content.lang.etkinlik1.questions[currentQuestion].options!.map((option, idx) => {
                     const isSelected = selectedAnswer === idx;
-                    const isCorrectAnswer = idx === content.lang!.etkinlik1.questions[currentQuestion].correct;
+                    const isCorrectAnswer = idx === content.lang!.etkinlik1.questions[currentQuestion]?.correct;
 
                     return (
                       <button
@@ -637,10 +791,10 @@ export default function ChestPage() {
                       </button>
                     );
                   })
-                ) : content.lang.etkinlik1.questions[currentQuestion].words ? (
+                ) : content.lang.etkinlik1.questions[currentQuestion]?.words ? (
                   content.lang.etkinlik1.questions[currentQuestion].words!.map((word, idx) => {
                     const isSelected = selectedAnswer === idx;
-                    const isCorrectAnswer = word === content.lang!.etkinlik1.questions[currentQuestion].correct;
+                    const isCorrectAnswer = word === content.lang!.etkinlik1.questions[currentQuestion]?.correct;
 
                     return (
                       <button
@@ -677,14 +831,14 @@ export default function ChestPage() {
                 🧩 Soru {currentQuestion + 1} / {content.lang.etkinlik2.questions.length}
               </div>
 
-              {content.lang.etkinlik2.questions[currentQuestion].q && (
+              {content.lang.etkinlik2.questions[currentQuestion]?.q && (
                 <h3 className="text-xl font-black text-amber-950 mb-4 mt-4 text-center">
                   {content.lang.etkinlik2.questions[currentQuestion].q}
                 </h3>
               )}
 
               {/* Oyun Alanı */}
-              {content.lang.etkinlik2.questions[currentQuestion].words ? (
+              {content.lang.etkinlik2.questions[currentQuestion]?.words ? (
                 <>
                   {/* Oluşturulan Cümle Alanı */}
                   <div className="min-h-[80px] bg-amber-50/50 rounded-2xl border-2 border-dashed border-amber-200 p-4 flex flex-wrap gap-2 items-center justify-center mb-6 mt-4">
@@ -716,11 +870,11 @@ export default function ChestPage() {
                     ))}
                   </div>
                 </>
-              ) : content.lang.etkinlik2.questions[currentQuestion].options ? (
+              ) : content.lang.etkinlik2.questions[currentQuestion]?.options ? (
                 <div className="flex flex-col gap-4 max-w-2xl mx-auto mb-8 mt-4">
                   {content.lang.etkinlik2.questions[currentQuestion].options!.map((option, idx) => {
                     const isSelected = selectedAnswer === idx;
-                    const isCorrectAnswer = idx === content.lang!.etkinlik2.questions[currentQuestion].correct;
+                    const isCorrectAnswer = idx === content.lang!.etkinlik2.questions[currentQuestion]?.correct;
 
                     return (
                       <button
@@ -788,18 +942,59 @@ export default function ChestPage() {
                 <Globe className="w-32 h-32 text-purple-900" />
               </div>
 
-              <div className="space-y-6 mt-6 relative z-10">
-                {content.country.info.rules.map((rule, idx) => (
-                  <div key={idx} className="bg-purple-50/50 p-5 rounded-2xl border border-purple-100 hover:border-purple-300 transition-all">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-700">
-                        {idx === 0 ? <Waves className="w-5 h-5" /> : idx === 1 ? <Globe className="w-5 h-5" /> : <Star className="w-5 h-5" />}
+              <div className="mt-6 relative z-10 space-y-6">
+                {/* Metin ve Görsel Alanı */}
+                {(content.country.info.text || content.country.info.image) && (
+                  <div className="flex flex-col gap-6">
+                    {content.country.info.image && (
+                      <div className="w-full relative rounded-2xl overflow-hidden border-4 border-purple-100 shadow-sm bg-white flex justify-center items-center">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img 
+                          src={content.country.info.image} 
+                          alt={content.country.info.title}
+                          className="max-w-full h-auto object-contain"
+                        />
                       </div>
-                      <h3 className="font-black text-purple-950 text-xl">{rule.name}</h3>
-                    </div>
-                    <p className="text-purple-900/80 font-medium text-base ml-11">{rule.desc}</p>
+                    )}
+                    {content.country.info.text && (
+                      <div className="bg-white/90 p-8 rounded-3xl border-l-8 border-purple-400 shadow-md">
+                        <div className="flex flex-col gap-5">
+                          {content.country.info.text.split('\n').map((paragraph, i) => {
+                            if (!paragraph.trim()) return null;
+                            return (
+                              <p key={i} className="text-purple-950/90 font-medium text-lg md:text-xl leading-relaxed text-justify">
+                                {paragraph}
+                              </p>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                ))}
+                )}
+
+                {/* Kurallar Alanı (Eğer varsa) */}
+                {content.country.info.rules && content.country.info.rules.length > 0 && (
+                  <div className="space-y-4">
+                    {content.country.info.rules.map((rule, idx) => (
+                      <div key={idx} className="bg-purple-50/50 p-5 rounded-2xl border border-purple-100 hover:border-purple-300 transition-all">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-700">
+                            {idx === 0 ? <Waves className="w-5 h-5" /> : idx === 1 ? <Globe className="w-5 h-5" /> : <Star className="w-5 h-5" />}
+                          </div>
+                          <h3 className="font-black text-purple-950 text-xl">{rule.name}</h3>
+                        </div>
+                        <p className="text-purple-900/80 font-medium text-base ml-11">{rule.desc}</p>
+                        {rule.image && (
+                          <div className="w-full relative rounded-2xl overflow-hidden border-2 border-purple-200 mt-4 shadow-sm flex justify-center items-center bg-white ml-11" style={{ maxWidth: 'calc(100% - 2.75rem)' }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={rule.image} alt={rule.name} className="max-w-full max-h-72 object-contain" />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -822,58 +1017,296 @@ export default function ChestPage() {
             </div>
 
             <div className="bg-white/95 p-8 rounded-[30px] border-4 border-amber-200 shadow-lg relative">
-              <div className="absolute -top-4 -left-4 bg-emerald-500 text-white px-4 py-1 rounded-full font-bold text-sm shadow-md">
-                ❓ Soru {currentQuestion + 1} / {content.country.etkinlik1.questions.length}
-              </div>
+              {content.country.etkinlik1.type === 'multi_image_select' && content.country.etkinlik1.images ? (
+                <div className="flex flex-col gap-6">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                    {content.country.etkinlik1.images.map((img: any) => {
+                      const isSelected = selectedImageIds.includes(img.id);
+                      return (
+                        <button
+                          key={img.id}
+                          disabled={isCorrect !== null}
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedImageIds(prev => prev.filter(id => id !== img.id));
+                            } else {
+                              setSelectedImageIds(prev => [...prev, img.id]);
+                            }
+                          }}
+                          className={cn(
+                            "relative overflow-hidden rounded-2xl border-4 transition-all duration-300 aspect-square group",
+                            isSelected 
+                              ? "border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)] scale-105" 
+                              : "border-amber-200 hover:border-emerald-300 hover:scale-105"
+                          )}
+                        >
+                          <img 
+                            src={img.src} 
+                            alt={img.alt}
+                            className="w-full h-full object-cover"
+                          />
+                          {isSelected && (
+                            <div className="absolute top-2 right-2 bg-emerald-500 text-white rounded-full p-1 shadow-md">
+                              <CheckCircle className="w-6 h-6" />
+                            </div>
+                          )}
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-2 text-white text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                            {img.alt}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
 
-              <h3 className="text-xl font-black text-amber-950 mb-6 mt-2">
-                {content.country.etkinlik1.questions[currentQuestion].q}
-              </h3>
+                  {isCorrect !== null && (
+                    <div className={cn(
+                      "p-4 rounded-xl flex items-center justify-center gap-3 font-bold text-lg animate-in slide-in-from-bottom-4",
+                      isCorrect ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
+                    )}>
+                      {isCorrect ? (
+                        <><CheckCircle className="w-6 h-6" /> Harika! Doğru görselleri seçtin!</>
+                      ) : (
+                        <><div className="w-6 h-6 text-xl">❌</div> Yanlış seçimler var, dikkatlice tekrar düşün!</>
+                      )}
+                    </div>
+                  )}
 
-              <div className="grid gap-4">
-                {content.country.etkinlik1.questions[currentQuestion].options ? (
-                  content.country.etkinlik1.questions[currentQuestion].options!.map((option, idx) => {
-                    const isSelected = selectedAnswer === idx;
-                    const isCorrectAnswer = idx === content.country!.etkinlik1.questions[currentQuestion].correct;
+                  {selectedImageIds.length > 0 && isCorrect === null && (
+                    <Button
+                      className="w-full h-14 mt-4 rounded-2xl text-lg font-black bg-blue-500 text-white hover:bg-blue-600 hover:scale-[1.02] transition-all shadow-lg active:scale-[0.98]"
+                      onClick={() => {
+                        const correctIds = content.country?.etkinlik1?.correctIds || [];
+                        const isAllCorrect = selectedImageIds.length === correctIds.length && 
+                                             selectedImageIds.every(id => correctIds.includes(id));
+                        
+                        if (isAllCorrect) {
+                          setIsCorrect(true);
+                          setTimeout(() => {
+                            if (content.country?.etkinlik2) {
+                              setStage('country_etkinlik2');
+                              setCurrentQuestion(0);
+                              setSelectedAnswer(null);
+                              setIsCorrect(null);
+                            } else {
+                              handleQuizComplete(`chest-${chestId}-1`);
+                            }
+                          }, 1500);
+                        } else {
+                          setIsCorrect(false);
+                          decreaseLives();
+                          setTimeout(() => {
+                            setIsCorrect(null);
+                            setSelectedImageIds([]);
+                          }, 1500);
+                        }
+                      }}
+                    >
+                      KONTROL ET
+                    </Button>
+                  )}
+                </div>
+              ) : content.country.etkinlik1.type === 'map_interactive' ? (
+                <div className="flex flex-col gap-6">
+                  {/* Etiketler (Seçilebilir deniz isimleri) */}
+                  <div className="flex flex-wrap gap-4 justify-center">
+                    {content.country.etkinlik1.shuffledSpots?.map((spot: any) => {
+                      const isPlaced = placedMapSpots[spot.id];
+                      const isSelected = selectedMapSpotId === spot.id;
+                      
+                      return (
+                        <button
+                          key={`label-${spot.id}`}
+                          disabled={isPlaced || lives === 0}
+                          onClick={() => setSelectedMapSpotId(isSelected ? null : spot.id)}
+                          className={cn(
+                            "px-6 py-3 rounded-2xl border-4 font-black text-lg transition-all",
+                            isPlaced
+                              ? "bg-emerald-100 border-emerald-300 text-emerald-800 opacity-50 pointer-events-none" 
+                              : isSelected
+                                ? "bg-blue-100 border-blue-400 text-blue-900 shadow-lg scale-110"
+                                : "bg-white border-amber-200 text-amber-900 hover:bg-amber-50 hover:scale-105 shadow-sm"
+                          )}
+                        >
+                          {spot.label}
+                        </button>
+                      );
+                    })}
+                  </div>
 
-                    return (
-                      <button
-                        key={idx}
-                        className={cn(
-                          "w-full p-4 rounded-2xl border-2 font-bold text-left transition-all flex items-center justify-between",
-                          isSelected
-                            ? isCorrectAnswer ? "bg-emerald-50 border-emerald-500 text-emerald-700 shadow-md" : "bg-rose-50 border-rose-500 text-rose-700 shadow-md"
-                            : "bg-amber-50/50 border-amber-100 text-amber-900 hover:bg-amber-50 hover:border-amber-300"
-                        )}
-                        onClick={() => handleAnswerSelect(idx)}
-                        disabled={selectedAnswer !== null || lives === 0}
-                      >
-                        <div className="flex items-center gap-4">
-                          <span className={cn(
-                            "w-8 h-8 rounded-full flex items-center justify-center font-black text-sm",
-                            isSelected
-                              ? isCorrectAnswer ? "bg-emerald-500 text-white" : "bg-rose-500 text-white"
-                              : "bg-white border border-amber-200 text-amber-700"
-                          )}>
-                            {String.fromCharCode(65 + idx)}
-                          </span>
-                          <span>{option}</span>
-                        </div>
+                  {/* Harita ve Drop Zonu */}
+                  <div className="relative w-full rounded-3xl overflow-hidden border-4 border-blue-200 bg-blue-50/50 mt-4 shadow-inner">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img 
+                      src={content.country.etkinlik1.image} 
+                      alt="Türkiye Haritası" 
+                      className="w-full h-auto object-contain"
+                    />
+                    
+                    {content.country.etkinlik1.spots?.map((spot: any) => {
+                      const isPlaced = placedMapSpots[spot.id];
+                      return (
+                        <button
+                          key={`spot-${spot.id}`}
+                          disabled={isPlaced || !selectedMapSpotId || lives === 0}
+                          onClick={() => {
+                            if (selectedMapSpotId === spot.id) {
+                              // Doğru eşleşme
+                              setPlacedMapSpots(prev => {
+                                const next = { ...prev, [spot.id]: true };
+                                // Eğer hepsi yerleştiyse
+                                if (Object.keys(next).length === content.country.etkinlik1.spots.length) {
+                                  setIsCorrect(true);
+                                  setTimeout(() => {
+                                    if (content.country?.etkinlik2) {
+                                      setStage('country_etkinlik2');
+                                      setCurrentQuestion(0);
+                                      setSelectedAnswer(null);
+                                      setIsCorrect(null);
+                                    } else {
+                                      handleQuizComplete(`chest-${chestId}-1`);
+                                    }
+                                  }, 1500);
+                                }
+                                return next;
+                              });
+                              setSelectedMapSpotId(null);
+                            } else {
+                              // Yanlış eşleşme
+                              decreaseLives();
+                              setSelectedMapSpotId(null);
+                            }
+                          }}
+                          className={cn(
+                            "absolute flex items-center justify-center p-2 rounded-xl transition-all font-black text-sm md:text-xl border-4 shadow-xl",
+                            isPlaced
+                              ? "bg-white/95 border-emerald-400 text-emerald-700 whitespace-nowrap"
+                              : selectedMapSpotId
+                                ? "bg-white/80 border-blue-400 animate-pulse hover:bg-blue-100 hover:scale-110 cursor-pointer w-10 h-10 md:w-16 md:h-16 rounded-full"
+                                : "bg-white/60 border-dashed border-gray-400 w-10 h-10 md:w-16 md:h-16 rounded-full hover:bg-white hover:scale-105"
+                          )}
+                          style={{
+                            top: spot.top,
+                            left: spot.left,
+                            transform: 'translate(-50%, -50%)',
+                          }}
+                        >
+                          {isPlaced ? spot.label : selectedMapSpotId ? "?" : ""}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : content.country.etkinlik1.type === 'matching' ? (
+                <div className="grid grid-cols-2 gap-8">
+                  {/* Sol Sütun */}
+                  <div className="flex flex-col gap-4">
+                    {shuffledLeft.map((item, idx) => {
+                      const isMatched = matchedPairs.includes(item.left);
+                      const isSelected = matchingLeft === idx;
+                      return (
+                        <button
+                          key={`left-${idx}`}
+                          disabled={isMatched || lives === 0}
+                          onClick={() => handleMatchSelect('left', idx)}
+                          className={cn(
+                            "p-4 rounded-2xl border-4 font-bold text-lg transition-all",
+                            isMatched
+                              ? "bg-emerald-100 border-emerald-300 text-emerald-800 opacity-50"
+                              : isSelected
+                                ? "bg-blue-100 border-blue-400 text-blue-900 shadow-md scale-105"
+                                : "bg-white border-amber-200 text-amber-900 hover:bg-amber-50"
+                          )}
+                        >
+                          {item.left}
+                        </button>
+                      );
+                    })}
+                  </div>
 
-                        {isSelected && (
-                          isCorrectAnswer
-                            ? <CheckCircle className="w-6 h-6 text-emerald-500" />
-                            : <div className="w-6 h-6 text-rose-500 font-bold">X</div>
-                        )}
-                      </button>
-                    );
-                  })
-                ) : content.country.etkinlik1.questions[currentQuestion].words ? (
-                  content.country.etkinlik1.questions[currentQuestion].words!.map((word, idx) => {
-                    const isSelected = selectedAnswer === idx;
-                    const isCorrectAnswer = word === content.country!.etkinlik1.questions[currentQuestion].correct;
+                  {/* Sağ Sütun */}
+                  <div className="flex flex-col gap-4">
+                    {shuffledRight.map((item, idx) => {
+                      const isMatched = matchedPairs.some(leftVal => {
+                        const originalPair = content.country!.etkinlik1.pairs.find((p: any) => p.left === leftVal);
+                        return originalPair && originalPair.right === item.right;
+                      });
+                      const isSelected = matchingRight === idx;
+                      return (
+                        <button
+                          key={`right-${idx}`}
+                          disabled={isMatched || lives === 0}
+                          onClick={() => handleMatchSelect('right', idx)}
+                          className={cn(
+                            "p-4 rounded-2xl border-4 font-bold text-lg transition-all",
+                            isMatched
+                              ? "bg-emerald-100 border-emerald-300 text-emerald-800 opacity-50"
+                              : isSelected
+                                ? "bg-blue-100 border-blue-400 text-blue-900 shadow-md scale-105"
+                                : "bg-white border-amber-200 text-amber-900 hover:bg-amber-50"
+                          )}
+                        >
+                          {item.right}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="absolute -top-4 -left-4 bg-emerald-500 text-white px-4 py-1 rounded-full font-bold text-sm shadow-md">
+                  ❓ Soru {currentQuestion + 1} / {content.country.etkinlik1.questions?.length}
+                </div>
+              )}
 
-                    return (
+              {content.country.etkinlik1.type !== 'matching' && content.country.etkinlik1.type !== 'multi_image_select' && content.country.etkinlik1.questions?.[currentQuestion] && (
+                <>
+                  <h3 className="text-xl font-black text-amber-950 mb-6 mt-2">
+                    {content.country.etkinlik1.questions[currentQuestion].q}
+                  </h3>
+
+                  <div className="grid gap-4">
+                    {content.country.etkinlik1.questions[currentQuestion].options ? (
+                      content.country.etkinlik1.questions[currentQuestion].options!.map((option, idx) => {
+                        const isSelected = selectedAnswer === idx;
+                        const isCorrectAnswer = idx === content.country!.etkinlik1.questions[currentQuestion].correct;
+
+                        return (
+                          <button
+                            key={idx}
+                            className={cn(
+                              "w-full p-4 rounded-2xl border-2 font-bold text-left transition-all flex items-center justify-between",
+                              isSelected
+                                ? isCorrectAnswer ? "bg-emerald-50 border-emerald-500 text-emerald-700 shadow-md" : "bg-rose-50 border-rose-500 text-rose-700 shadow-md"
+                                : "bg-amber-50/50 border-amber-100 text-amber-900 hover:bg-amber-50 hover:border-amber-300"
+                            )}
+                            onClick={() => handleAnswerSelect(idx)}
+                            disabled={selectedAnswer !== null || lives === 0}
+                          >
+                            <div className="flex items-center gap-4">
+                              <span className={cn(
+                                "w-8 h-8 rounded-full flex items-center justify-center font-black text-sm",
+                                isSelected
+                                  ? isCorrectAnswer ? "bg-emerald-500 text-white" : "bg-rose-500 text-white"
+                                  : "bg-white border border-amber-200 text-amber-700"
+                              )}>
+                                {String.fromCharCode(65 + idx)}
+                              </span>
+                              <span>{option}</span>
+                            </div>
+
+                            {isSelected && (
+                              isCorrectAnswer
+                                ? <CheckCircle className="w-6 h-6 text-emerald-500" />
+                                : <div className="w-6 h-6 text-rose-500 font-bold">X</div>
+                            )}
+                          </button>
+                        );
+                      })
+                    ) : content.country.etkinlik1.questions[currentQuestion].words ? (
+                      content.country.etkinlik1.questions[currentQuestion].words!.map((word, idx) => {
+                        const isSelected = selectedAnswer === idx;
+                        const isCorrectAnswer = word === content.country!.etkinlik1.questions[currentQuestion].correct;
+
+                        return (
                       <button
                         key={idx}
                         className={cn(
@@ -891,6 +1324,8 @@ export default function ChestPage() {
                   })
                 ) : null}
               </div>
+            </>
+          )}
             </div>
           </div>
         )}
@@ -909,14 +1344,14 @@ export default function ChestPage() {
               </div>
 
               <h3 className="text-xl font-black text-amber-950 mb-8 mt-4 text-center leading-relaxed">
-                {content.country.etkinlik2.questions[currentQuestion].q}
+                {content.country.etkinlik2.questions[currentQuestion]?.q}
               </h3>
 
               <div className="flex flex-wrap gap-4 justify-center mb-8">
-                {content.country.etkinlik2.questions[currentQuestion].words ? (
+                {content.country.etkinlik2.questions[currentQuestion]?.words ? (
                   content.country.etkinlik2.questions[currentQuestion].words!.map((word, idx) => {
                     const isSelected = selectedAnswer === idx;
-                    const isCorrectAnswer = word === content.country!.etkinlik2.questions[currentQuestion].correct;
+                    const isCorrectAnswer = word === content.country!.etkinlik2.questions[currentQuestion]?.correct;
 
                     return (
                       <button
@@ -934,11 +1369,11 @@ export default function ChestPage() {
                       </button>
                     );
                   })
-                ) : content.country.etkinlik2.questions[currentQuestion].options ? (
+                ) : content.country.etkinlik2.questions[currentQuestion]?.options ? (
                   <div className="w-full flex flex-col gap-4">
                     {content.country.etkinlik2.questions[currentQuestion].options!.map((option, idx) => {
                       const isSelected = selectedAnswer === idx;
-                      const isCorrectAnswer = idx === content.country!.etkinlik2.questions[currentQuestion].correct;
+                      const isCorrectAnswer = idx === content.country!.etkinlik2.questions[currentQuestion]?.correct;
 
                       return (
                         <button
@@ -973,7 +1408,98 @@ export default function ChestPage() {
                       );
                     })}
                   </div>
+                ) : content.country.etkinlik2.questions[currentQuestion]?.images ? (
+                  <div className="flex flex-wrap gap-6 justify-center">
+                    {content.country.etkinlik2.questions[currentQuestion].images!.map((img: any, idx: number) => {
+                      const isSelected = selectedAnswer === idx;
+                      const isCorrectAnswer = idx === content.country!.etkinlik2.questions[currentQuestion]?.correct;
+
+                      return (
+                        <button
+                          key={idx}
+                          className={cn(
+                            "relative overflow-hidden rounded-2xl border-4 transition-all hover:scale-105 active:scale-95",
+                            isSelected
+                              ? isCorrectAnswer ? "border-emerald-500 ring-4 ring-emerald-200" : "border-rose-500 ring-4 ring-rose-200"
+                              : "border-amber-200 hover:border-amber-400"
+                          )}
+                          onClick={() => handleAnswerSelect(idx)}
+                          disabled={selectedAnswer !== null || lives === 0}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={img.src} alt={img.alt || ''} className="w-48 h-48 object-cover" />
+                          {isSelected && (
+                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                              {isCorrectAnswer
+                                ? <CheckCircle className="w-16 h-16 text-emerald-500 bg-white rounded-full" />
+                                : <div className="w-16 h-16 text-rose-500 font-bold bg-white rounded-full flex items-center justify-center text-3xl">X</div>
+                              }
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 ) : null}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ETKİNLİK 3: YANLIŞ BİLGİYİ DÜZELT */}
+        {stage === 'country_etkinlik3' && content?.country?.etkinlik3 && (
+          <div className="w-full max-w-4xl flex flex-col gap-8">
+            <div className="text-center">
+              <h1 className="text-2xl font-black text-amber-950 tracking-tight">{content.country.etkinlik3.title}</h1>
+              <p className="text-amber-800/80 font-medium text-base mt-1">{content.country.etkinlik3.desc}</p>
+            </div>
+
+            <div className="bg-white/95 p-8 rounded-[30px] border-4 border-amber-200 shadow-lg relative">
+              <div className="absolute -top-4 -left-4 bg-emerald-500 text-white px-4 py-1 rounded-full font-bold text-sm shadow-md">
+                ✍️ Soru {currentQuestion + 1} / {content.country.etkinlik3.questions.length}
+              </div>
+
+              <h3 className="text-xl font-black text-amber-950 mb-8 mt-4 text-center leading-relaxed">
+                {content.country.etkinlik3.questions[currentQuestion]?.q}
+              </h3>
+
+              <div className="w-full flex flex-col gap-4 mb-8">
+                {content.country.etkinlik3.questions[currentQuestion].options!.map((option, idx) => {
+                  const isSelected = selectedAnswer === idx;
+                  const isCorrectAnswer = idx === content.country!.etkinlik3.questions[currentQuestion]?.correct;
+
+                  return (
+                    <button
+                      key={idx}
+                      className={cn(
+                        "w-full p-4 rounded-2xl border-2 font-bold text-left transition-all flex items-center justify-between",
+                        isSelected
+                          ? isCorrectAnswer ? "bg-emerald-50 border-emerald-500 text-emerald-700 shadow-md" : "bg-rose-50 border-rose-500 text-rose-700 shadow-md"
+                          : "bg-amber-50/50 border-amber-100 text-amber-900 hover:bg-amber-50 hover:border-amber-300"
+                      )}
+                      onClick={() => handleAnswerSelect(idx)}
+                      disabled={selectedAnswer !== null || lives === 0}
+                    >
+                      <div className="flex items-center gap-4">
+                        <span className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center font-black text-sm",
+                          isSelected
+                            ? isCorrectAnswer ? "bg-emerald-500 text-white" : "bg-rose-500 text-white"
+                            : "bg-white border border-amber-200 text-amber-700"
+                        )}>
+                          {String.fromCharCode(65 + idx)}
+                        </span>
+                        <span>{option}</span>
+                      </div>
+
+                      {isSelected && (
+                        isCorrectAnswer
+                          ? <CheckCircle className="w-6 h-6 text-emerald-500" />
+                          : <div className="w-6 h-6 text-rose-500 font-bold">X</div>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -1001,9 +1527,12 @@ export default function ChestPage() {
                 setCurrentQuestion(0);
                 setSelectedAnswer(null);
                 setIsCorrect(null);
+                setSelectedMapSpotId(null);
+                setPlacedMapSpots({});
+                setShuffleSeed(s => s + 1); // Shuffle all questions and options again!
                 if (failedStage === 'quiz1') setStage('quiz1');
                 else if (failedStage === 'etkinlik1' || failedStage === 'etkinlik2') setStage('lang_intro');
-                else if (failedStage === 'country_etkinlik1' || failedStage === 'country_etkinlik2') setStage('country_intro');
+                else if (failedStage === 'country_etkinlik1' || failedStage === 'country_etkinlik2' || failedStage === 'country_etkinlik3') setStage('country_intro');
                 else setStage('list');
               }}
             >
