@@ -92,26 +92,26 @@ export function VoiceMatching({ wordList, onComplete }: VoiceMatchingProps) {
 
         if (correct) {
             const randomSuccess = successPhrases[Math.floor(Math.random() * successPhrases.length)];
-            speak(randomSuccess, {
-                onEnd: () => {
-                    if (currentIndex < wordList.length - 1) {
-                        setCurrentIndex(prev => prev + 1);
-                        setSelectedAnswer(null);
-                        setIsCorrect(null);
-                    } else {
-                        onComplete();
-                    }
-                }
-            });
-        } else {
-            const randomError = errorPhrases[Math.floor(Math.random() * errorPhrases.length)];
-            speak(randomError, {
-                onEnd: () => {
+            speak(randomSuccess);
+            
+            setTimeout(() => {
+                if (currentIndex < wordList.length - 1) {
+                    setCurrentIndex(prev => prev + 1);
                     setSelectedAnswer(null);
                     setIsCorrect(null);
-                    playAudio();
+                } else {
+                    onComplete();
                 }
-            });
+            }, 3000); // 3 saniye sonra diğer aşamaya geç (sesin bitmesini garantiye al)
+        } else {
+            const randomError = errorPhrases[Math.floor(Math.random() * errorPhrases.length)];
+            speak(randomError);
+            
+            setTimeout(() => {
+                setSelectedAnswer(null);
+                setIsCorrect(null);
+                playAudio();
+            }, 3000);
         }
     };
 

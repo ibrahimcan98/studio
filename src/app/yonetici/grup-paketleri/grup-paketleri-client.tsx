@@ -39,6 +39,205 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
+function PendingAssignmentRow({ parent, db, packages, children }: { parent: any, db: any, packages: any[], children: any[] }) {
+  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+  const [selectedChild, setSelectedChild] = useState('');
+  const [selectedPackageId, setSelectedPackageId] = useState('');
+  const [selectedCreditPkg, setSelectedCreditPkg] = useState('');
+  const [isAssigning, setIsAssigning] = useState(false);
+  const { toast } = useToast();
+
+  const handleAssign = async () => {
+    if (!selectedChild || !selectedPackageId || !selectedCreditPkg) return;
+    setIsAssigning(true);
+    try {
+      const batch = writeBatch(db);
+      
+      const creditsToDeduct = packages.find(p => p.id === selectedPackageId)?.capacity ? 4 : 4; // assuming 4 weeks by default, or better parse from selectedCreditPkg
+      const lessonsInPackage = parseInt(selectedCreditPkg.replace(/\D/g, ''), 10) || 4;
+
+      if (lessonsInPackage < 1) {
+        toast({ variant: 'destructive', title: 'Hata', description: 'Yetersiz kredi.' });
+        return;
+      }
+
+      // Create enrollment
+      const enrollmentRef = doc(collection(db, 'groupCourseEnrollments'));
+      batch.set(enrollmentRef, {
+          packageId: selectedPackageId,
+          studentId: selectedChild,
+          parentId: parent.id,
+          paymentStatus: 'paid',
+          enrolledAt: serverTimestamp()
+      });
+
+      // Increment enrolled count
+      const groupPackageRef = doc(db, 'groupCoursePackages', selectedPackageId);
+      batch.update(groupPackageRef, {
+          enrolledCount: increment(1)
+      });
+
+      // Update Parent enrolledPackages
+      // For simplicity, we just deduct 4 or the whole package if it's <= 4.
+      // Wait, let's just deduct 4 credits. Or deduct the whole package string and put remainder.
+      const deductionAmount = 4; // usually a group package is 4 lessons
+      const remainingLessons = lessonsInPackage - deductionAmount;
+      const updatedPackages = [...(parent.enrolledPackages || [])];
+      const indexToRemove = updatedPackages.indexOf(selectedCreditPkg);
+      
+      if (indexToRemove !== -1) {
+          if (remainingLessons > 0) {
+              updatedPackages[indexToRemove] = `${remainingLessons}GRUP`;
+          } else {
+              updatedPackages.splice(indexToRemove, 1);
+          }
+      }
+      
+      batch.update(doc(db, 'users', parent.id), {
+          enrolledPackages: updatedPackages
+      });
+
+      await batch.commit();
+      toast({ title: 'Başarılı', description: 'Öğrenci gruba atandı.' });
+      setIsAssignDialogOpen(false);
+      // We don't have a direct way to update parent state in this row without reloading, 
+      // but the UI will refresh if we used a listener. Since we fetched manually, we might need to rely on a manual refresh or just let it be.
+      window.location.reload(); 
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Hata', description: error.message });
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
+  const totalGroupLessons = parent.groupPackages.reduce((acc: number, pkg: string) => {
+      const normalizedPkg = /^\d+$/.test(pkg) ? `${pkg}GRUP` : pkg;
+      return acc + (parseInt(normalizedPkg.replace(/\D/g, ''), 10) || 0);
+  }, 0);
+
+  return (
+    <div className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl shadow-sm mb-3">
+      <div>
+        <p className="font-bold text-slate-800">{parent.firstName} {parent.lastName}</p>
+        <p className="text-sm text-slate-500">{parent.email} • <span className="font-bold text-purple-600">{totalGroupLessons} Grup Kredisi</span></p>
+      </div>
+      <div>
+        <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white font-bold">Ata</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Gruba Ata</DialogTitle>
+              <DialogDescription>
+                {parent.firstName} adlı velinin kredisini kullanarak çocuğunu gruba ekleyin. (Her işlem 4 kredi düşer)
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Hangi Kredi Paketi Kullanılacak?</Label>
+                <Select value={selectedCreditPkg} onValueChange={setSelectedCreditPkg}>
+                  <SelectTrigger><SelectValue placeholder="Kredi paketi seçin..."/></SelectTrigger>
+                  <SelectContent>
+                    {parent.groupPackages.map((pkg: string, i: number) => (
+                      <SelectItem key={i} value={pkg}>{pkg} (Kredi)</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Hangi Çocuk?</Label>
+                <Select value={selectedChild} onValueChange={setSelectedChild}>
+                  <SelectTrigger><SelectValue placeholder="Çocuk seçin..."/></SelectTrigger>
+                  <SelectContent>
+                    {children.map((c: any) => (
+                      <SelectItem key={c.id} value={c.id}>{c.firstName} ({c.age} Yaş)</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Hangi Grup Paketi?</Label>
+                <Select value={selectedPackageId} onValueChange={setSelectedPackageId}>
+                  <SelectTrigger><SelectValue placeholder="Grup seçin..."/></SelectTrigger>
+                  <SelectContent>
+                    {packages.filter(p => p.status !== 'completed').map(pkg => (
+                      <SelectItem key={pkg.id} value={pkg.id}>{pkg.title} ({pkg.enrolledCount || 0}/{pkg.capacity})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAssignDialogOpen(false)}>İptal</Button>
+              <Button onClick={handleAssign} disabled={isAssigning || !selectedChild || !selectedPackageId || !selectedCreditPkg} className="bg-purple-600 text-white hover:bg-purple-700">
+                {isAssigning ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : null}
+                Kaydet
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
+  );
+}
+
+function PendingAssignmentsTab({ db, packages }: { db: any, packages: any[] }) {
+  const [users, setUsers] = useState<any[]>([]);
+  const [childrenMap, setChildrenMap] = useState<Record<string, any[]>>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!db) return;
+    const fetchPending = async () => {
+      try {
+        const usersSnap = await getDocs(collection(db, 'users'));
+        const pendingUsers: any[] = [];
+        const cMap: Record<string, any[]> = {};
+        
+        for (const docSnap of usersSnap.docs) {
+          const data = docSnap.data();
+          if (data.role === 'teacher' || data.role === 'admin') continue;
+          
+          const groupPackages = (data.enrolledPackages || []).filter((pkg: string) => {
+            const normalizedPkg = /^\d+$/.test(pkg) ? `${pkg}GRUP` : pkg;
+            return normalizedPkg.toLowerCase().includes('grup');
+          });
+          
+          if (groupPackages.length > 0) {
+             pendingUsers.push({ id: docSnap.id, ...data, groupPackages });
+             const childrenSnap = await getDocs(collection(db, 'users', docSnap.id, 'children'));
+             cMap[docSnap.id] = childrenSnap.docs.map(c => ({ id: c.id, ...c.data() }));
+          }
+        }
+        setUsers(pendingUsers);
+        setChildrenMap(cMap);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPending();
+  }, [db]);
+
+  if (loading) return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-purple-600"/></div>;
+
+  if (users.length === 0) return (
+    <div className="text-center p-12 bg-white rounded-2xl border border-dashed border-slate-200">
+      <p className="text-slate-500 font-medium">Atama bekleyen grup kredisi olan veli bulunmuyor.</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      {users.map(u => (
+        <PendingAssignmentRow key={u.id} parent={u} db={db} packages={packages} children={childrenMap[u.id] || []} />
+      ))}
+    </div>
+  );
+}
+
 function StudentRow({ enrollment, db, packages, currentPackageId }: { enrollment: any, db: any, packages: any[], currentPackageId: string }) {
   const [parentName, setParentName] = useState('...');
   const [studentName, setStudentName] = useState('...');
@@ -629,55 +828,66 @@ export function GrupPaketleriClient() {
       </div>
 
       {/* DASHBOARD CARDS */}
-      <div>
-          {packagesLoading ? (
-            <div className="flex justify-center p-20"><Loader2 className="w-12 h-12 animate-spin text-purple-600" /></div>
-          ) : !packages || packages.length === 0 ? (
-            <div className="text-center p-20 bg-white rounded-[32px] border-2 border-dashed border-slate-200 shadow-sm">
-              <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                 <GraduationCap className="w-12 h-12 text-slate-300" />
-              </div>
-              <h3 className="text-2xl font-bold text-slate-800 mb-2">Henüz Grup Paketi Yok</h3>
-              <p className="text-slate-500 max-w-sm mx-auto">Sistemde oluşturulmuş herhangi bir grup sınıfı bulunmuyor. Yeni bir tane oluşturarak başlayın.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {packages.map((pkg: any) => {
-                    const fillPercentage = Math.min((pkg.enrolledCount / pkg.capacity) * 100, 100);
-                    return (
-                        <Card key={pkg.id} className="rounded-[32px] border-none shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden bg-white group cursor-pointer" onClick={() => handleOpenDetails(pkg)}>
-                            <div className="h-28 bg-gradient-to-r from-purple-500 to-indigo-500 relative p-6">
-                                <Badge variant="secondary" className="absolute top-4 right-4 bg-white/20 text-white backdrop-blur-md border-none font-bold">
-                                    {pkg.status === 'published' ? 'Yayında' : 'Taslak'}
-                                </Badge>
-                                <div className="absolute -bottom-6 left-6 w-14 h-14 bg-white rounded-2xl shadow-md flex items-center justify-center border border-slate-100 text-xl font-black text-indigo-600">
-                                    {getTeacherName(pkg.teacherId).charAt(0)}
-                                </div>
-                            </div>
-                            <CardContent className="pt-10 pb-6 px-6 space-y-6">
-                                <div>
-                                    <h3 className="text-xl font-bold text-slate-800 leading-tight group-hover:text-purple-600 transition-colors">{pkg.title}</h3>
-                                    <p className="text-sm text-slate-500 font-medium mt-1">{getTeacherName(pkg.teacherId)}</p>
-                                </div>
-                                
-                                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                    <div className="flex justify-between items-end mb-2">
-                                        <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Kontenjan</span>
-                                        <span className="text-sm font-bold text-slate-700">{pkg.enrolledCount} / {pkg.capacity} Öğrenci</span>
+      <Tabs defaultValue="packages" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-8 h-14 bg-slate-100 rounded-2xl p-1">
+          <TabsTrigger value="packages" className="rounded-xl font-bold h-12 data-[state=active]:bg-white data-[state=active]:shadow-sm">Grup Paketleri</TabsTrigger>
+          <TabsTrigger value="pending" className="rounded-xl font-bold h-12 data-[state=active]:bg-white data-[state=active]:shadow-sm">Atama Bekleyenler</TabsTrigger>
+        </TabsList>
+        <TabsContent value="packages">
+          <div>
+              {packagesLoading ? (
+                <div className="flex justify-center p-20"><Loader2 className="w-12 h-12 animate-spin text-purple-600" /></div>
+              ) : !packages || packages.length === 0 ? (
+                <div className="text-center p-20 bg-white rounded-[32px] border-2 border-dashed border-slate-200 shadow-sm">
+                  <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                     <GraduationCap className="w-12 h-12 text-slate-300" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-slate-800 mb-2">Henüz Grup Paketi Yok</h3>
+                  <p className="text-slate-500 max-w-sm mx-auto">Sistemde oluşturulmuş herhangi bir grup sınıfı bulunmuyor. Yeni bir tane oluşturarak başlayın.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {packages.map((pkg: any) => {
+                        const fillPercentage = Math.min((pkg.enrolledCount / pkg.capacity) * 100, 100);
+                        return (
+                            <Card key={pkg.id} className="rounded-[32px] border-none shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden bg-white group cursor-pointer" onClick={() => handleOpenDetails(pkg)}>
+                                <div className="h-28 bg-gradient-to-r from-purple-500 to-indigo-500 relative p-6">
+                                    <Badge variant="secondary" className="absolute top-4 right-4 bg-white/20 text-white backdrop-blur-md border-none font-bold">
+                                        {pkg.status === 'published' ? 'Yayında' : 'Taslak'}
+                                    </Badge>
+                                    <div className="absolute -bottom-6 left-6 w-14 h-14 bg-white rounded-2xl shadow-md flex items-center justify-center border border-slate-100 text-xl font-black text-indigo-600">
+                                        {getTeacherName(pkg.teacherId).charAt(0)}
                                     </div>
-                                    <Progress value={fillPercentage} className="h-2.5 bg-slate-200" indicatorClassName={fillPercentage >= 100 ? "bg-red-500" : "bg-purple-500"} />
                                 </div>
+                                <CardContent className="pt-10 pb-6 px-6 space-y-6">
+                                    <div>
+                                        <h3 className="text-xl font-bold text-slate-800 leading-tight group-hover:text-purple-600 transition-colors">{pkg.title}</h3>
+                                        <p className="text-sm text-slate-500 font-medium mt-1">{getTeacherName(pkg.teacherId)}</p>
+                                    </div>
+                                    
+                                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                        <div className="flex justify-between items-end mb-2">
+                                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Kontenjan</span>
+                                            <span className="text-sm font-bold text-slate-700">{pkg.enrolledCount} / {pkg.capacity} Öğrenci</span>
+                                        </div>
+                                        <Progress value={fillPercentage} className="h-2.5 bg-slate-200" indicatorClassName={fillPercentage >= 100 ? "bg-red-500" : "bg-purple-500"} />
+                                    </div>
 
-                                <Button variant="ghost" className="w-full justify-between hover:bg-purple-50 hover:text-purple-700 text-slate-600 font-bold group-hover:bg-purple-50 group-hover:text-purple-700 rounded-xl h-12">
-                                    Yönet & Detaylar <ChevronRight className="w-5 h-5" />
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    );
-                })}
-            </div>
-          )}
-      </div>
+                                    <Button variant="ghost" className="w-full justify-between hover:bg-purple-50 hover:text-purple-700 text-slate-600 font-bold group-hover:bg-purple-50 group-hover:text-purple-700 rounded-xl h-12">
+                                        Yönet & Detaylar <ChevronRight className="w-5 h-5" />
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
+                </div>
+              )}
+          </div>
+        </TabsContent>
+        <TabsContent value="pending">
+            <PendingAssignmentsTab db={db} packages={packages || []} />
+        </TabsContent>
+      </Tabs>
 
       {/* DETAILED SHEET (SLIDE OVER) */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>

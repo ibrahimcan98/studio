@@ -61,7 +61,7 @@ export function useTTS() {
       };
 
       audio.onerror = (e) => {
-        console.error('TTS Audio Error:', e);
+        console.warn('TTS Audio Error (e.g. out of quota):', e);
         setIsPlaying(false);
         setIsLoading(false);
         options?.onError?.(new Error('Ses çalınırken bir hata oluştu'));

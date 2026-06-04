@@ -14,6 +14,7 @@ import {
   Brain,
   MapPin,
   X,
+  Lock,
 } from "lucide-react";
 import { ChildSidebar } from "@/components/child-mode/sidebar";
 import { cn } from "@/lib/utils";
@@ -255,6 +256,15 @@ export default function TurkceHazinemPage() {
 
   useEffect(() => {
     setIsMounted(true);
+    const scrollPos = sessionStorage.getItem('chestScrollPos');
+    if (scrollPos) {
+      setTimeout(() => {
+        const container = document.getElementById('chest-scroll-container');
+        if (container) {
+          container.scrollTop = parseInt(scrollPos, 10);
+        }
+      }, 100);
+    }
   }, []);
 
   // Sandıkların pozisyonlarını hesapla (Eski konumlarına geri getirildi: 200px mesafe, %25 - %65)
@@ -276,11 +286,11 @@ export default function TurkceHazinemPage() {
     const isChestCompleted = (cId: string | number) => {
       const content = CHESTS_CONTENT[String(cId)];
       if (!content) return false;
-      if (content.story && !completedTopics.includes(`chest-${cId}-1`))
+      if (content.okuyorumAnliyorum && !completedTopics.includes(`chest-${cId}-1`))
         return false;
-      if (content.lang && !completedTopics.includes(`chest-${cId}-2`))
+      if (content.dilimiOgreniyorum && !completedTopics.includes(`chest-${cId}-2`))
         return false;
-      if (content.country && !completedTopics.includes(`chest-${cId}-3`))
+      if (content.ulkemiOgreniyorum && !completedTopics.includes(`chest-${cId}-3`))
         return false;
       return true;
     };
@@ -292,13 +302,13 @@ export default function TurkceHazinemPage() {
       const isPaywallLocked = subscriptionTier === "free" && chestCount >= 3;
 
       let lockedReason: "none" | "paywall" | "progress" = "none";
-      // if (isPaywallLocked) lockedReason = 'paywall';
-      // else if (!previousChestCompleted) lockedReason = 'progress';
+      if (isPaywallLocked) lockedReason = 'paywall';
+      else if (!previousChestCompleted) lockedReason = 'progress';
 
       list.push({
         ...CHEST_DATA[i],
         isReview: false,
-        isLocked: false, // lockedReason !== 'none',
+        isLocked: lockedReason !== 'none',
         lockedReason,
       });
       chestCount++;
@@ -311,8 +321,8 @@ export default function TurkceHazinemPage() {
         const isTekrarPaywallLocked = subscriptionTier === "free";
 
         let tekrarLockedReason: "none" | "paywall" | "progress" = "none";
-        // if (isTekrarPaywallLocked) tekrarLockedReason = 'paywall';
-        // else if (!previousChestCompleted) tekrarLockedReason = 'progress';
+        if (isTekrarPaywallLocked) tekrarLockedReason = 'paywall';
+        else if (!previousChestCompleted) tekrarLockedReason = 'progress';
 
         list.push({
           id: tekrarId,
@@ -320,7 +330,7 @@ export default function TurkceHazinemPage() {
           category: "Genel Tekrar",
           questions: 10,
           isReview: true,
-          isLocked: false, // tekrarLockedReason !== 'none',
+          isLocked: tekrarLockedReason !== 'none',
           lockedReason: tekrarLockedReason,
         });
 
@@ -415,7 +425,13 @@ export default function TurkceHazinemPage() {
       </div>
 
       {/* Ana İçerik Alanı */}
-      <div className='flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar relative z-10'>
+      <div 
+        id="chest-scroll-container"
+        className='flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar relative z-10'
+        onScroll={(e) => {
+          sessionStorage.setItem('chestScrollPos', e.currentTarget.scrollTop.toString());
+        }}
+      >
         <div className='relative' style={{ minHeight: `${totalHeight}px` }}>
           <div className='w-full flex justify-center pt-12 flex-shrink-0'>
             <div className='text-center bg-white/90 p-6 rounded-[30px] shadow-lg border-4 border-amber-300 backdrop-blur-sm max-w-xl'>
@@ -518,6 +534,13 @@ export default function TurkceHazinemPage() {
                 {chest.lockedReason === "paywall" && (
                   <div className='absolute -top-2 -right-2 z-30 bg-white rounded-full p-2 border-2 border-amber-400 shadow-lg animate-bounce'>
                     <Gem className='w-8 h-8 text-amber-500 drop-shadow-md' />
+                  </div>
+                )}
+
+                {/* İlerleme Kilit Sembolü */}
+                {chest.lockedReason === "progress" && (
+                  <div className='absolute -top-2 -right-2 z-30 bg-slate-100 rounded-full p-2 border-2 border-slate-300 shadow-md'>
+                    <Lock className='w-6 h-6 text-slate-500 drop-shadow-sm' />
                   </div>
                 )}
 

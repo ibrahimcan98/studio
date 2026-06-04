@@ -80,7 +80,8 @@ async function handleTTS(text: string, voiceId?: string) {
     return new Response(audioBuffer, {
       headers: {
         'Content-Type': 'audio/mpeg',
-        'Content-Disposition': 'inline; filename="tts.mp3"'
+        'Content-Disposition': 'inline; filename="tts.mp3"',
+        'Cache-Control': 'public, max-age=31536000, immutable'
       },
     });
   } catch (error) {

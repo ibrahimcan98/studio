@@ -96,6 +96,55 @@ export const BADGES = [
     description: "6. Genel Tekrar Sandığı'nı başarıyla bitirene verilir.",
     icon: "/badges/tekrar-6.png",
     check: (topics: string[]) => hasCompletedTekrar(topics, 6)
+  },
+  {
+    id: 'ilk-hazine',
+    name: 'İlk Hazine',
+    description: 'İlk Türkçe Hazinem sandığını başarıyla açana verilir.',
+    icon: '/rozetler/hazine/ilk-hazine.png',
+    check: (topics: string[]) => topics.filter(t => t.startsWith('chest-') && t.endsWith('-3')).length >= 1
+  },
+  {
+    id: 'okuma-sevdalisi',
+    name: 'Okuma Sevdalısı',
+    description: '10 Türkçe Hazinem "Okuyorum Anlıyorum" görevini tamamlayana.',
+    icon: '/rozetler/hazine/okuma-sevdalisi.png',
+    check: (topics: string[]) => topics.filter(t => t.startsWith('chest-') && t.endsWith('-1')).length >= 10
+  },
+  {
+    id: 'dil-ustasi',
+    name: 'Dil Ustası',
+    description: '10 Türkçe Hazinem "Dilimi Öğreniyorum" görevini tamamlayana.',
+    icon: '/rozetler/hazine/dil-ustasi.png',
+    check: (topics: string[]) => topics.filter(t => t.startsWith('chest-') && t.endsWith('-2')).length >= 10
+  },
+  {
+    id: 'turkiye-sevdalisi',
+    name: 'Türkiye Sevdalısı',
+    description: '10 Türkçe Hazinem "Ülkemi Öğreniyorum" görevini tamamlayana.',
+    icon: '/rozetler/hazine/turkiye-sevdalisi.png',
+    check: (topics: string[]) => topics.filter(t => t.startsWith('chest-') && t.endsWith('-3')).length >= 10
+  },
+  {
+    id: 'kelime-uzmani',
+    name: 'Kelime Uzmanı',
+    description: '10 tam Türkçe Hazinem sandığı bitirene verilir.',
+    icon: '/rozetler/hazine/kelime-uzmani.png',
+    check: (topics: string[]) => topics.filter(t => t.startsWith('chest-') && t.endsWith('-3')).length >= 10
+  },
+  {
+    id: 'kultur-elcisi',
+    name: 'Kültür Elçisi',
+    description: '20 tam Türkçe Hazinem sandığı bitiren kaşiflere.',
+    icon: '/rozetler/hazine/kultur-elcisi.png',
+    check: (topics: string[]) => topics.filter(t => t.startsWith('chest-') && t.endsWith('-3')).length >= 20
+  },
+  {
+    id: 'hazine-avcisi',
+    name: 'Hazine Avcısı',
+    description: 'Tüm 30 Türkçe Hazinem sandığını tamamlayan büyük kaşiflere!',
+    icon: '/rozetler/hazine/hazine-avcisi.png',
+    check: (topics: string[]) => topics.filter(t => t.startsWith('chest-') && t.endsWith('-3')).length >= 30
   }
 ];
 

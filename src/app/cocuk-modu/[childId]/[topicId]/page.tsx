@@ -15,6 +15,7 @@ import { useWindowSize } from 'react-use';
 import { CheckCircle, Trophy, Star, Sparkles, Volume2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTTS } from '@/hooks/use-tts';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const TreasureChest = ({ isOpen }: { isOpen: boolean }) => (
   <svg viewBox="0 0 64 64" className="w-24 h-24 md:w-32 md:h-32 drop-shadow-[0_10px_20px_rgba(0,0,0,0.3)] transition-transform duration-500">
@@ -64,6 +65,7 @@ export default function TopicPage() {
     const [maxStageReached, setMaxStageReached] = useState<number>(0);
     const [isOpeningTreasure, setIsOpeningTreasure] = useState(false);
     const [showConfetti, setShowConfetti] = useState(false);
+    const [showStickerPopup, setShowStickerPopup] = useState<string | null>(null);
     const { width, height } = useWindowSize();
 
     const { user: authUser, loading: authLoading } = useUser();
@@ -121,6 +123,11 @@ export default function TopicPage() {
                 xp: increment(xpToAdd)
             });
 
+            if (currentStage === 'quiz') {
+                setStage('completed');
+                return;
+            }
+
             // Başarı aşamasını göster
             setIsShowingSuccess(true);
             speak("Harika iş çıkardın! Bu bölümü tamamladın. Şimdi bir sonraki maceraya geçiyoruz!");
@@ -169,6 +176,8 @@ export default function TopicPage() {
                 }
             }, { merge: true });
 
+            setShowStickerPopup(randomWord.image);
+            speak("Tebrikler! Bir çıkartma kazandın!");
             setShowConfetti(true);
             setTimeout(() => {
                 setShowConfetti(false);
@@ -206,9 +215,9 @@ export default function TopicPage() {
 
                 <Button
                     className="mt-6 md:mt-12 h-14 md:h-20 px-6 md:px-12 rounded-[24px] md:rounded-[32px] text-lg md:text-2xl font-black bg-white text-sky-500 hover:bg-sky-50 hover:scale-105 transition-all shadow-2xl border-b-4 md:border-b-[6px] border-gray-200 active:border-b-0 active:translate-y-1"
-                    onClick={() => router.push(`/cocuk-modu/${childId}`)}
+                    onClick={() => setStage('map')}
                 >
-                    MACERAYA DEVAM ET
+                    ADAYA DÖN VE ÖDÜLÜ AL
                 </Button>
             </div>
         );
@@ -275,6 +284,34 @@ export default function TopicPage() {
             <div className={cn("bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] h-screen w-full relative flex flex-col items-center overflow-hidden scrollbar-hide transition-colors duration-1000", currentGradient)}>
                 <style>{cloudStyles}</style>
                 {showConfetti && <Confetti width={width} height={height} className="z-50" />}
+
+                {/* YENİ STİCKER POP-UP EKRANI */}
+                <AnimatePresence>
+                    {showStickerPopup && (
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm"
+                            onClick={() => setShowStickerPopup(null)}
+                        >
+                            <div className="relative w-64 h-64 md:w-96 md:h-96 bg-white/40 backdrop-blur-md rounded-[3rem] border-8 border-yellow-300 shadow-[0_0_80px_rgba(250,204,21,0.8)] flex items-center justify-center p-8 animate-bounce" onClick={e => e.stopPropagation()}>
+                                <img src={showStickerPopup} alt="Yeni Sticker" className="w-full h-full object-contain drop-shadow-2xl" />
+                                <Sparkles className="absolute -top-8 -right-8 w-20 h-20 text-yellow-300 animate-spin-slow" />
+                                <Sparkles className="absolute -bottom-8 -left-8 w-16 h-16 text-yellow-300 animate-spin-slow" style={{ animationDelay: '0.5s' }} />
+                            </div>
+                            <h2 className="mt-8 text-3xl md:text-6xl font-black text-white italic uppercase tracking-tighter drop-shadow-lg text-center px-4">
+                                BİR ÇIKARTMA KAZANDIN!
+                            </h2>
+                            <Button 
+                                className="mt-8 h-14 md:h-16 px-8 md:px-12 rounded-full text-xl font-black bg-yellow-400 text-yellow-900 hover:bg-yellow-300 shadow-xl border-b-[6px] border-yellow-600 active:border-b-0 active:translate-y-1 transition-all"
+                                onClick={() => setShowStickerPopup(null)}
+                            >
+                                DEVAM ET
+                            </Button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {/* Sol Üst Geri Butonu */}
                 <div className="absolute top-4 left-4 md:top-8 md:left-8 z-50">
@@ -454,7 +491,7 @@ export default function TopicPage() {
                                     <Sparkles className="absolute -top-4 -right-4 w-10 h-10 text-yellow-300 animate-spin-slow" />
                                 </div>
                                 <div className="mt-4 bg-yellow-400 px-6 py-2 rounded-full shadow-lg border-2 border-yellow-200">
-                                    <span className="font-bold text-yellow-900 text-sm md:text-lg uppercase">Sticker Kazandın!</span>
+                                    <span className="font-bold text-yellow-900 text-sm md:text-lg uppercase whitespace-nowrap">BİR ÇIKARTMA KAZANDIN!</span>
                                 </div>
                             </div>
                         ) : childData?.completedTopics?.includes(`${topicId}-quiz`) ? (
