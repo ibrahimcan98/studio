@@ -30,7 +30,9 @@ import {
     Euro,
     ChevronDown,
     Filter,
-    CalendarDays
+    CalendarDays,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -53,7 +55,7 @@ import {
     PopoverTrigger 
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format, startOfMonth, startOfQuarter, startOfYear, isAfter, isBefore, endOfDay, startOfDay } from 'date-fns';
+import { format, startOfMonth, startOfQuarter, startOfYear, isAfter, isBefore, endOfDay, startOfDay, addMonths, endOfMonth } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { DateRange } from 'react-day-picker';
@@ -61,6 +63,7 @@ import { DateRange } from 'react-day-picker';
 export default function SalesPage() {
   const db = useFirestore();
   const [filter, setFilter] = useState<'monthly' | 'quarterly' | 'yearly' | 'custom'>('monthly');
+  const [selectedMonth, setSelectedMonth] = useState<Date>(startOfMonth(new Date()));
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: startOfMonth(new Date()),
     to: new Date(),
@@ -88,17 +91,25 @@ export default function SalesPage() {
         
         return completedTransactions.filter((t: any) => {
             const date = t.createdAt.toDate();
-            return isAfter(date, fromDate) && isBefore(date, toDate);
+            return date >= fromDate && date <= toDate;
+        });
+    }
+
+    if (filter === 'monthly') {
+        const fromDate = startOfMonth(selectedMonth);
+        const toDate = endOfMonth(selectedMonth);
+        return completedTransactions.filter((t: any) => {
+            const date = t.createdAt.toDate();
+            return date >= fromDate && date <= endOfDay(toDate);
         });
     }
 
     let startDate: Date;
-    if (filter === 'monthly') startDate = startOfMonth(now);
-    else if (filter === 'quarterly') startDate = startOfQuarter(now);
+    if (filter === 'quarterly') startDate = startOfQuarter(now);
     else startDate = startOfYear(now);
 
-    return completedTransactions.filter((t: any) => isAfter(t.createdAt.toDate(), startDate));
-  }, [transactions, filter, dateRange]);
+    return completedTransactions.filter((t: any) => t.createdAt.toDate() >= startDate);
+  }, [transactions, filter, dateRange, selectedMonth]);
 
   const { realSales, adminAssignments } = useMemo(() => {
     const real = filteredTransactions.filter((t: any) => (t.amountGbp || 0) > 0);
@@ -293,17 +304,29 @@ export default function SalesPage() {
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Zaman Aralığı</span>
                 </div>
                 <Select value={filter} onValueChange={(v: any) => setFilter(v)}>
-                    <SelectTrigger className="w-[140px] h-9 rounded-xl border-none font-bold text-xs focus:ring-0">
+                    <SelectTrigger className="w-[140px] h-9 rounded-xl border-none font-bold text-xs focus:ring-0 bg-transparent">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-none shadow-2xl">
-                        <SelectItem value="monthly" className="text-xs font-bold py-2.5">Bu Ay</SelectItem>
+                        <SelectItem value="monthly" className="text-xs font-bold py-2.5">Aylık</SelectItem>
                         <SelectItem value="quarterly" className="text-xs font-bold py-2.5">Bu Çeyrek</SelectItem>
                         <SelectItem value="yearly" className="text-xs font-bold py-2.5">Bu Yıl</SelectItem>
                         <SelectItem value="custom" className="text-xs font-bold py-2.5">Özel Aralık</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
+
+            {filter === 'monthly' && (
+                <div className="flex items-center gap-1 bg-white rounded-2xl shadow-sm border p-1 h-12">
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-slate-500 hover:text-slate-700 hover:bg-slate-100" onClick={() => setSelectedMonth(addMonths(selectedMonth, -1))}>
+                        <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <span className="text-xs font-black text-slate-700 w-28 text-center uppercase tracking-wider">{format(selectedMonth, 'MMMM yyyy', { locale: tr })}</span>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-slate-500 hover:text-slate-700 hover:bg-slate-100" onClick={() => setSelectedMonth(addMonths(selectedMonth, 1))}>
+                        <ChevronRight className="w-4 h-4" />
+                    </Button>
+                </div>
+            )}
 
             {filter === 'custom' && (
                 <Popover>

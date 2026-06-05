@@ -6,7 +6,7 @@ import { useEffect, useState, useMemo, Suspense } from 'react';
 import { Loader2, Package, ArrowLeft, User, Plus, ShoppingCart, History, Calendar, PlayCircle, CreditCard, ChevronRight, BookOpen, Gift, Users, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { collection, doc, writeBatch, getDoc, updateDoc, increment, arrayRemove, arrayUnion, query, where } from 'firebase/firestore';
+import { collection, doc, writeBatch, getDoc, updateDoc, increment, arrayRemove, arrayUnion, query, where, getDocs } from 'firebase/firestore';
 import { COURSES, Course, getCourseByCode } from '@/data/courses';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
@@ -201,8 +201,15 @@ function PaketlerimPageContent() {
             setIsAssigning(true);
             const batch = writeBatch(db);
 
-            // For group classes, we consume the full package that was selected
-            const creditsToDeduct = amountToAssign || lessonsInPackage;
+            // Fetch upcoming sessions to determine credits to deduct
+            const sessionsQuery = query(collection(db, 'groupCourseSessions'), where('packageId', '==', selectedGroupPackageId));
+            const sessionsSnap = await getDocs(sessionsQuery);
+            const now = new Date();
+            let upcomingCount = 0;
+            sessionsSnap.forEach(snap => {
+                if (snap.data().startTime?.toDate() > now) upcomingCount++;
+            });
+            const creditsToDeduct = upcomingCount > 0 ? upcomingCount : (amountToAssign || lessonsInPackage);
             
             if (lessonsInPackage < creditsToDeduct) {
                 toast({ variant: 'destructive', title: 'Yetersiz Kredi', description: `Bu işlem için ${creditsToDeduct} kredi gerekiyor, ancak paketinizde ${lessonsInPackage} kredi var.` });

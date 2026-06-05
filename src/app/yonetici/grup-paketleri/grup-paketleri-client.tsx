@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, addDoc, serverTimestamp, orderBy, doc, updateDoc, deleteDoc, getDoc, getDocs, writeBatch } from 'firebase/firestore';
+import { collection, query, where, addDoc, serverTimestamp, orderBy, doc, updateDoc, deleteDoc, getDoc, getDocs, writeBatch, increment } from 'firebase/firestore';
 import {
   Card,
   CardContent,
@@ -33,7 +33,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Plus, Users, Video, Calendar as CalendarIcon, Trash2, Clock, Megaphone, Send, Settings, BookOpen, GraduationCap, ChevronRight } from 'lucide-react';
+import { Loader2, Plus, Users, Video, Calendar as CalendarIcon, Trash2, Clock, Megaphone, Send, Settings, BookOpen, GraduationCap, ChevronRight, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
@@ -77,10 +77,15 @@ function PendingAssignmentRow({ parent, db, packages, children }: { parent: any,
           enrolledCount: increment(1)
       });
 
-      // Update Parent enrolledPackages
-      // For simplicity, we just deduct 4 or the whole package if it's <= 4.
-      // Wait, let's just deduct 4 credits. Or deduct the whole package string and put remainder.
-      const deductionAmount = 4; // usually a group package is 4 lessons
+      // Fetch upcoming sessions to determine deduction amount
+      const sessionsQuery = query(collection(db, 'groupCourseSessions'), where('packageId', '==', selectedPackageId));
+      const sessionsSnap = await getDocs(sessionsQuery);
+      const now = new Date();
+      let upcomingCount = 0;
+      sessionsSnap.forEach(snap => {
+          if (snap.data().startTime?.toDate() > now) upcomingCount++;
+      });
+      const deductionAmount = upcomingCount > 0 ? upcomingCount : 4;
       const remainingLessons = lessonsInPackage - deductionAmount;
       const updatedPackages = [...(parent.enrolledPackages || [])];
       const indexToRemove = updatedPackages.indexOf(selectedCreditPkg);
@@ -502,6 +507,12 @@ export function GrupPaketleriClient() {
   const [sessionStartTime, setSessionStartTime] = useState('');
   const [isFourWeekSession, setIsFourWeekSession] = useState(true);
   const [isAddingSession, setIsAddingSession] = useState(false);
+  
+  // Edit Session State
+  const [isEditSessionModalOpen, setIsEditSessionModalOpen] = useState(false);
+  const [editingSession, setEditingSession] = useState<any>(null);
+  const [editSessionStartTime, setEditSessionStartTime] = useState('');
+  const [isUpdatingSession, setIsUpdatingSession] = useState(false);
 
   // Fetch Sessions for selected package
   const sessionsRef = useMemoFirebase(() => {
@@ -709,6 +720,28 @@ export function GrupPaketleriClient() {
       toast({ title: 'Başarılı', description: 'Oturum silindi.' });
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Hata', description: error.message });
+    }
+  };
+
+  const handleUpdateSession = async () => {
+    if (!db || !editingSession || !editSessionStartTime) return;
+    setIsUpdatingSession(true);
+    try {
+      const startDate = new Date(editSessionStartTime);
+      const endDate = new Date(startDate.getTime() + 45 * 60000); // 45 min duration
+
+      await updateDoc(doc(db, 'groupCourseSessions', editingSession.id), {
+        startTime: startDate,
+        endTime: endDate,
+        updatedAt: serverTimestamp()
+      });
+      toast({ title: 'Başarılı', description: 'Oturum saati güncellendi.' });
+      setIsEditSessionModalOpen(false);
+      setEditingSession(null);
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Hata', description: error.message });
+    } finally {
+      setIsUpdatingSession(false);
     }
   };
 
@@ -998,9 +1031,23 @@ export function GrupPaketleriClient() {
                                                                         {session.startTime?.toDate ? format(session.startTime.toDate(), 'HH:mm') : ''} - {session.endTime?.toDate ? format(session.endTime.toDate(), 'HH:mm') : ''}
                                                                     </div>
                                                                 </div>
-                                                                <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl" onClick={() => handleDeleteSession(session.id)}>
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </Button>
+                                                                <div className="flex gap-2">
+                                                                    <Button variant="ghost" size="icon" className="text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl" onClick={() => {
+                                                                        setEditingSession(session);
+                                                                        const pad = (n: number) => n.toString().padStart(2, '0');
+                                                                        if (session.startTime?.toDate) {
+                                                                            const d = session.startTime.toDate();
+                                                                            const formatted = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                                                                            setEditSessionStartTime(formatted);
+                                                                        }
+                                                                        setIsEditSessionModalOpen(true);
+                                                                    }}>
+                                                                        <Pencil className="w-4 h-4" />
+                                                                    </Button>
+                                                                    <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl" onClick={() => handleDeleteSession(session.id)}>
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </Button>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1119,6 +1166,35 @@ export function GrupPaketleriClient() {
             )}
         </SheetContent>
       </Sheet>
+
+      <Dialog open={isEditSessionModalOpen} onOpenChange={setIsEditSessionModalOpen}>
+        <DialogContent className="sm:max-w-[400px] rounded-[32px] p-8 border-none shadow-2xl">
+          <DialogHeader className="mb-4">
+            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
+              <Pencil className="w-6 h-6" />
+            </div>
+            <DialogTitle className="text-2xl font-bold">Oturum Saatini Değiştir</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label className="font-bold text-slate-700">Yeni Tarih ve Saat</Label>
+              <Input 
+                type="datetime-local" 
+                className="h-12 rounded-xl bg-slate-50 border-slate-200" 
+                value={editSessionStartTime}
+                onChange={(e) => setEditSessionStartTime(e.target.value)} 
+              />
+            </div>
+          </div>
+          <DialogFooter className="mt-4 gap-2">
+            <Button variant="ghost" onClick={() => setIsEditSessionModalOpen(false)} className="rounded-xl font-bold hover:bg-slate-100 h-12 px-6">İptal</Button>
+            <Button onClick={handleUpdateSession} disabled={isUpdatingSession || !editSessionStartTime} className="h-12 px-6 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-600/20">
+              {isUpdatingSession ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : null}
+              Güncelle
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
