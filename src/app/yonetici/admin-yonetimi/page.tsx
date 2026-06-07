@@ -53,6 +53,7 @@ const AVAILABLE_PERMISSIONS = [
     { id: 'indirimler', label: 'İndirim Kuponları' },
     { id: 'puan-merkezi', label: 'Puan Merkezi' },
     { id: 'grup-paketleri', label: 'Grup Paketleri' },
+    { id: 'uyelikler', label: 'Üyelikler' },
     { id: 'admin-yonetimi', label: 'Admin Yönetimi' },
 ];
 

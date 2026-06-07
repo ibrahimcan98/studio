@@ -299,7 +299,7 @@ export default function TurkceHazinemPage() {
 
     for (let i = 0; i < CHEST_DATA.length; i++) {
       const chestId = CHEST_DATA[i].id;
-      const isPaywallLocked = subscriptionTier === "free" && chestCount >= 3;
+      const isPaywallLocked = subscriptionTier === "free" && chestCount >= 1;
 
       let lockedReason: "none" | "paywall" | "progress" = "none";
       if (isPaywallLocked) lockedReason = 'paywall';

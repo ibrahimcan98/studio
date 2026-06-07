@@ -1,6 +1,7 @@
 // Force fresh deploy to clear edge cache - 2026-04-12 14:00
 import Hero from '@/components/sections/hero';
 import WhyUs from '@/components/sections/why-us';
+import GameShowcase from '@/components/sections/game-showcase';
 import HowItWorks from '@/components/sections/how-it-works';
 import MapJourney from '@/components/sections/map-journey';
 import Testimonials from '@/components/sections/testimonials';
@@ -13,6 +14,7 @@ export default function Home() {
     <>
       <AuthActionRedirect />
       <Hero />
+      <GameShowcase />
       <WhyUs />
       <HowItWorks />
       <MapJourney />

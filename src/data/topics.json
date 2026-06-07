@@ -335,7 +335,7 @@
         "audio": "/audio/6-duygular/mutlu.m4a"
       },
       {
-        "word": "Uzgun",
+        "word": "Üzgün",
         "image": "/images/6-duygular/uzgun.png",
         "audio": "/audio/6-duygular/uzgun.m4a"
       },
@@ -345,12 +345,12 @@
         "audio": "/audio/6-duygular/sinirli.m4a"
       },
       {
-        "word": "Korkmus",
+        "word": "Korkmuş",
         "image": "/images/6-duygular/korkmus.png",
         "audio": "/audio/6-duygular/korkmus.m4a"
       },
       {
-        "word": "Saskin",
+        "word": "Şaşkın",
         "image": "/images/6-duygular/saskin.png",
         "audio": "/audio/6-duygular/saskin.m4a"
       }
@@ -786,7 +786,7 @@
     "icon": "🍂",
     "wordList": [
       {
-        "word": "Ilkbahar",
+        "word": "İlkbahar",
         "image": "/images/14-mevsimler/ilkbahar.png",
         "audio": "/audio/14-mevsimler/ilkbahar.m4a"
       },
@@ -960,11 +960,6 @@
         "audio": "/audio/16-hareket/yapistirmak.m4a"
       },
       {
-        "word": "Sürmek",
-        "image": "/images/16-hareket/surmek.png",
-        "audio": "/audio/16-hareket/surmek.m4a"
-      },
-      {
         "word": "Tırmanmak",
         "image": "/images/16-hareket/tirmanmak.png",
         "audio": "/audio/16-hareket/tirmanmak.m4a"
@@ -997,7 +992,7 @@
         "audio": "/audio/17-deniz-canlilari/deniz-kabugu.m4a"
       },
       {
-        "word": "Deniz yıldızı",
+        "word": "Denizyıldızı",
         "image": "/images/17-denizcanlilari/deniz-yildizi.png",
         "audio": "/audio/17-deniz-canlilari/deniz-yildizi.m4a"
       },
@@ -1069,7 +1064,7 @@
         "audio": "/audio/18-ciftlik-hayvanlari/esek.m4a"
       },
       {
-        "word": "Inek",
+        "word": "İnek",
         "image": "/images/18-ciftlikhayvanlari/inek.png",
         "audio": "/audio/18-ciftlik-hayvanlari/inek.m4a"
       },
@@ -1091,7 +1086,7 @@
         "audio": "/audio/19-rakamlar/bir.m4a"
       },
       {
-        "word": "Iki",
+        "word": "İki",
         "image": "/images/19-rakamlar/iki.png",
         "audio": "/audio/19-rakamlar/iki.m4a"
       },
@@ -1205,7 +1200,7 @@
         "audio": "/audio/21-muzik-aletleri/davul.m4a"
       },
       {
-        "word": "Elektro gitar",
+        "word": "Elektrogitar",
         "image": "/images/21-muzikaletleri/elektro-gitar.png",
         "audio": "/audio/21-muzik-aletleri/elektro-gitar.m4a"
       },
@@ -1436,11 +1431,6 @@
         "audio": "/audio/24-alisveris/ayakkabi-magazasi.m4a"
       },
       {
-        "word": "Indirim",
-        "image": "/images/24-alisveris/indirim.png",
-        "audio": "/audio/24-alisveris/indirim.m4a"
-      },
-      {
         "word": "Kredi kartı",
         "image": "/images/24-alisveris/kredi-karti.png",
         "audio": "/audio/24-alisveris/kredi-karti.m4a"
@@ -1580,7 +1570,7 @@
         "audio": "/audio/26-hastalik/hap.m4a"
       },
       {
-        "word": "Iğne",
+        "word": "İğne",
         "image": "/images/26-hastalik/igne.png",
         "audio": "/audio/26-hastalik/igne.m4a"
       }
@@ -2106,12 +2096,7 @@
         "audio": "/audio/34-vahsi-ve-evcil-hayvanlar/papagan.m4a"
       },
       {
-        "word": "Hamster",
-        "image": "/images/34-vahsiveevcilhayvanlar/hamster.png",
-        "audio": "/audio/34-vahsi-ve-evcil-hayvanlar/hamster.m4a"
-      },
-      {
-        "word": "Inek",
+        "word": "İnek",
         "image": "/images/34-vahsiveevcilhayvanlar/inek.png",
         "audio": "/audio/34-vahsi-ve-evcil-hayvanlar/inek.m4a"
       },

@@ -22,7 +22,8 @@ import {
   Calendar,
   Menu,
   PhoneCall,
-  Megaphone
+  Megaphone,
+  Crown
 } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
@@ -72,8 +73,32 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     { id: 'ogrenciler', href: '/yonetici/ogrenciler', label: 'Öğrenciler', icon: Baby },
     { id: 'indirimler', href: '/yonetici/indirimler', label: 'İndirimler', icon: Ticket },
     { id: 'puan-merkezi', href: '/yonetici/puan-merkezi', label: 'Puan Merkezi', icon: Trophy },
+    { id: 'uyelikler', href: '/yonetici/uyelikler', label: 'Üyelikler', icon: Crown },
     { id: 'denetim-kaydi', href: '/yonetici/denetim-kaydi', label: 'Denetim Kaydı', icon: History },
     { id: 'admin-yonetimi', href: '/yonetici/admin-yonetimi', label: 'Admin Yönetimi', icon: ShieldAlert },
+  ];
+
+  const navCategories = [
+    {
+      title: 'Genel',
+      items: ['dashboard', 'bildirimler', 'canli-takip']
+    },
+    {
+      title: 'İletişim & CRM',
+      items: ['inbox', 'aramalar']
+    },
+    {
+      title: 'Kullanıcı & Eğitim',
+      items: ['ogrenciler', 'kullanicilar', 'ogretmenler', 'dersler', 'grup-paketleri']
+    },
+    {
+      title: 'Finans & Satış',
+      items: ['satislar', 'uyelikler', 'indirimler']
+    },
+    {
+      title: 'Sistem',
+      items: ['puan-merkezi', 'denetim-kaydi', 'admin-yonetimi']
+    }
   ];
 
   const navItems = useMemo(() => {
@@ -200,22 +225,31 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
                 <Logo className="text-lg" />
               </Link>
             </div>
-            <nav className="flex-1 space-y-1 p-4">
-            {navItems.map((item: any) => (
-              <Link key={item.href} href={item.href}
-                className={cn('flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200',
-                  pathname === item.href ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:text-primary hover:bg-slate-50'
-                )}>
-                <item.icon className="h-5 w-5 shrink-0" />
-                <span className="flex-1">{item.label}</span>
-                {item.href === '/yonetici/inbox' && unreadCount > 0 && (
-                  <Badge className="ml-auto bg-red-500 hover:bg-red-600 text-white border-none rounded-full px-1.5 min-w-[20px] h-5 py-0 flex items-center justify-center text-[10px] shadow-sm">
-                    +{unreadCount}
-                  </Badge>
-                )}
-              </Link>
-            ))}
-          </nav>
+            <nav className="flex-1 space-y-4 p-4 custom-scrollbar overflow-y-auto">
+              {navCategories.map(category => {
+                const categoryItems = navItems.filter((item: any) => category.items.includes(item.id));
+                if (categoryItems.length === 0) return null;
+                return (
+                  <div key={category.title} className="space-y-1">
+                    <h4 className="px-4 text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 mt-4 first:mt-0">{category.title}</h4>
+                    {categoryItems.map((item: any) => (
+                      <Link key={item.href} href={item.href}
+                        className={cn('flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200',
+                          pathname === item.href ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:text-primary hover:bg-slate-50'
+                        )}>
+                        <item.icon className="h-5 w-5 shrink-0" />
+                        <span className="flex-1">{item.label}</span>
+                        {item.href === '/yonetici/inbox' && unreadCount > 0 && (
+                          <Badge className="ml-auto bg-red-500 hover:bg-red-600 text-white border-none rounded-full px-1.5 min-w-[20px] h-5 py-0 flex items-center justify-center text-[10px] shadow-sm">
+                            +{unreadCount}
+                          </Badge>
+                        )}
+                      </Link>
+                    ))}
+                  </div>
+                );
+              })}
+            </nav>
            <div className="p-4 border-t">
             <Button variant="ghost" className='w-full justify-start gap-3 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl font-bold' onClick={handleLogout}>
               <LogOut className="h-5 w-5" /><span>Çıkış Yap</span>
@@ -243,24 +277,33 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
                       </div>
                       
                       <div className="flex-1 overflow-y-auto py-4 px-4 space-y-1 custom-scrollbar">
-                        <nav className="space-y-1">
-                          {navItems.map((item: any) => (
-                            <Link 
-                              key={item.href} 
-                              href={item.href}
-                              onClick={() => setIsMobileMenuOpen(false)}
-                              className={cn('flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200',
-                                pathname === item.href ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:text-primary hover:bg-slate-50'
-                              )}>
-                              <item.icon className="h-5 w-5 shrink-0" />
-                              <span className="flex-1">{item.label}</span>
-                              {item.href === '/yonetici/inbox' && unreadCount > 0 && (
-                                <Badge className="ml-auto bg-red-500 hover:bg-red-600 text-white border-none rounded-full px-1.5 min-w-[20px] h-5 py-0 flex items-center justify-center text-[10px] shadow-sm">
-                                  +{unreadCount}
-                                </Badge>
-                              )}
-                            </Link>
-                          ))}
+                        <nav className="space-y-4">
+                          {navCategories.map(category => {
+                            const categoryItems = navItems.filter((item: any) => category.items.includes(item.id));
+                            if (categoryItems.length === 0) return null;
+                            return (
+                              <div key={category.title} className="space-y-1">
+                                <h4 className="px-4 text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 mt-4 first:mt-0">{category.title}</h4>
+                                {categoryItems.map((item: any) => (
+                                  <Link 
+                                    key={item.href} 
+                                    href={item.href}
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className={cn('flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200',
+                                      pathname === item.href ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:text-primary hover:bg-slate-50'
+                                    )}>
+                                    <item.icon className="h-5 w-5 shrink-0" />
+                                    <span className="flex-1">{item.label}</span>
+                                    {item.href === '/yonetici/inbox' && unreadCount > 0 && (
+                                      <Badge className="ml-auto bg-red-500 hover:bg-red-600 text-white border-none rounded-full px-1.5 min-w-[20px] h-5 py-0 flex items-center justify-center text-[10px] shadow-sm">
+                                        +{unreadCount}
+                                      </Badge>
+                                    )}
+                                  </Link>
+                                ))}
+                              </div>
+                            );
+                          })}
                         </nav>
                       </div>
 

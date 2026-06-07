@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { PartyPopper, ArrowRight, Loader2, ChevronLeft, Check, Globe2, Calendar, GraduationCap, Sparkles } from 'lucide-react';
+import { PartyPopper, ArrowRight, Loader2, ChevronLeft, Check, Globe2, Calendar, GraduationCap, Sparkles, Gamepad2, Puzzle, Mic, Bot } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -192,7 +192,7 @@ export default function Hero() {
               disabled={isSubmitting}
               suppressHydrationWarning
             >
-              {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : "HESABIMI OLUŞTUR"}
+              {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : "ÜCRETSİZ TÜRKÇE DEĞERLENDİRMESİ ALIN"}
             </Button>
             <Button variant="ghost" className="text-slate-400 text-xs" onClick={prevStep} suppressHydrationWarning>
               Geri Dön
@@ -210,8 +210,9 @@ export default function Hero() {
             <span className="inline-block text-primary font-black tracking-[0.2em] text-xs md:text-sm uppercase">
               ÇOCUKLAR İÇİN ÇEVRİMİÇİ TÜRKÇE DERSLER
             </span>
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900 leading-[1.1]">
-              Çocuğunuz Türkçeyi Uzman Öğretmenlerle, Eğlenerek ve Canlı Derslerle Öğrensin.
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900 leading-[1.1] flex flex-col gap-2">
+              <span>Çocuğunuz Türkçeyi anlıyor ama konuşmuyor mu?</span>
+              <span className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-700">Türkçe seviyesini birlikte değerlendirelim.</span>
             </h1>
           </div>
 
@@ -258,6 +259,33 @@ export default function Hero() {
                 <Sparkles className="text-white w-5 h-5" />
               </div>
               <p className="font-black text-white text-xs uppercase tracking-wider">Ücretsiz Deneme Dersi</p>
+            </Card>
+
+            {/* Yeni Oyun Modu Büyük Vurgu Kartı */}
+            <Card className="absolute -left-16 lg:-left-24 bottom-20 transform -rotate-6 bg-white/95 backdrop-blur-xl p-4 rounded-[32px] shadow-2xl border-4 border-purple-500/20 flex flex-col gap-3 max-w-[240px] z-30 hover:-translate-y-2 hover:rotate-0 hover:shadow-purple-500/30 transition-all duration-300">
+              <div className="flex items-center gap-3">
+                <div className="bg-gradient-to-br from-purple-500 to-orange-500 p-3 rounded-[20px] shadow-lg">
+                  <Gamepad2 className="text-white w-7 h-7 shrink-0" />
+                </div>
+                <div>
+                  <h4 className="font-black text-slate-800 text-sm tracking-tight leading-none mb-1">YENİ ÇOCUK MODU</h4>
+                  <p className="text-[11px] text-purple-600 font-bold uppercase tracking-wider">Oyunlarla Türkçe</p>
+                </div>
+              </div>
+              <div className="flex gap-2 w-full mt-1">
+                 <div className="group relative flex-1 bg-purple-100 rounded-[14px] py-2 flex justify-center hover:bg-purple-200 transition-colors cursor-pointer">
+                   <Puzzle className="w-5 h-5 text-purple-600"/>
+                   <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">Macera Adası</div>
+                 </div>
+                 <div className="group relative flex-1 bg-orange-100 rounded-[14px] py-2 flex justify-center hover:bg-orange-200 transition-colors cursor-pointer">
+                   <Mic className="w-5 h-5 text-orange-600"/>
+                   <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">Türkçe Hazinem</div>
+                 </div>
+                 <div className="group relative flex-1 bg-blue-100 rounded-[14px] py-2 flex justify-center hover:bg-blue-200 transition-colors cursor-pointer">
+                   <Bot className="w-5 h-5 text-blue-600"/>
+                   <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">AI Konuşma Arkadaşım</div>
+                 </div>
+              </div>
             </Card>
           </div>
         </div>

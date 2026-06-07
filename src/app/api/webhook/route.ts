@@ -46,15 +46,33 @@ export async function POST(req: Request) {
         if (session.mode === 'subscription') {
             const userId = session.metadata?.userId;
             const tierId = session.metadata?.tierId;
+            const selectedPeriod = session.metadata?.selectedPeriod || 'monthly';
 
             if (userId && tierId) {
-                await db.collection('users').doc(userId).update({
+                let current_period_end: number | null = null;
+                if (session.subscription) {
+                    try {
+                        const sub = await stripe.subscriptions.retrieve(session.subscription as string);
+                        current_period_end = sub.current_period_end;
+                    } catch (err: any) {
+                        console.error('[Webhook] Failed to fetch subscription:', err.message);
+                    }
+                }
+
+                const updatePayload: any = {
                     subscriptionTier: tierId,
+                    subscriptionPeriod: selectedPeriod,
                     stripeSubscriptionId: session.subscription,
                     stripeCustomerId: session.customer,
                     subscriptionUpdatedAt: FieldValue.serverTimestamp()
-                });
-                console.log(`[Webhook] Subscription activated: ${userId} -> ${tierId}`);
+                };
+
+                if (current_period_end) {
+                    updatePayload.subscriptionPeriodEnd = new Date(current_period_end * 1000);
+                }
+
+                await db.collection('users').doc(userId).update(updatePayload);
+                console.log(`[Webhook] Subscription activated: ${userId} -> ${tierId} (${selectedPeriod})`);
                 return NextResponse.json({ received: true });
             }
         }
@@ -266,6 +284,25 @@ export async function POST(req: Request) {
         });
         console.log(`[Webhook] Subscription renewed for user: ${userDoc.id}`);
       }
+    }
+  } else if (event.type === 'customer.subscription.updated') {
+    const subscription = event.data.object as Stripe.Subscription;
+    const userId = subscription.metadata?.userId;
+
+    if (userId) {
+      const updatePayload: any = {
+          subscriptionPeriodEnd: new Date(subscription.current_period_end * 1000),
+          subscriptionUpdatedAt: FieldValue.serverTimestamp()
+      };
+
+      if (subscription.cancel_at_period_end) {
+        updatePayload.subscriptionCancelledAtPeriodEnd = true;
+        updatePayload.subscriptionCancelledAt = FieldValue.serverTimestamp();
+        console.log(`[Webhook] Subscription set to cancel at period end: ${userId}`);
+      } else {
+        updatePayload.subscriptionCancelledAtPeriodEnd = FieldValue.delete();
+      }
+      await db.collection('users').doc(userId).update(updatePayload);
     }
   } else if (event.type === 'customer.subscription.deleted') {
     const subscription = event.data.object as Stripe.Subscription;

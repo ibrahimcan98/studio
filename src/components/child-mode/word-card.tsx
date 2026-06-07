@@ -41,10 +41,28 @@ export function WordCard({ wordList, childId, topicId, onComplete }: WordCardPro
     const isFirstWord = currentIndex === 0;
     const isLastWord = currentIndex === wordList.length - 1;
 
+    const audioContextRef = useRef<AudioContext | null>(null);
+
     const playAudio = useCallback(async (audioSrc: string) => {
         if (!audioSrc || !audioRef.current) return;
 
         if (audioRef.current) {
+            if (!audioContextRef.current) {
+                const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+                if (AudioContext) {
+                    const ctx = new AudioContext();
+                    audioContextRef.current = ctx;
+                    const source = ctx.createMediaElementSource(audioRef.current);
+                    const gainNode = ctx.createGain();
+                    // Boost volume 2x
+                    gainNode.gain.value = 2.0; 
+                    source.connect(gainNode);
+                    gainNode.connect(ctx.destination);
+                }
+            } else if (audioContextRef.current.state === 'suspended') {
+                audioContextRef.current.resume();
+            }
+
             if (!audioRef.current.paused) {
                 audioRef.current.pause();
                 audioRef.current.currentTime = 0;
@@ -60,12 +78,35 @@ export function WordCard({ wordList, childId, topicId, onComplete }: WordCardPro
         }
     }, []);
 
+    const hasSpokenIntro = useRef(false);
+
     useEffect(() => {
         setGradient(backgroundGradients[currentIndex % backgroundGradients.length]);
-        if (currentWord?.audio) {
-            playAudio(currentWord.audio);
-        } else if (currentWord?.word) {
-            speak(currentWord.word);
+        
+        if (currentIndex === 0 && !hasSpokenIntro.current) {
+            hasSpokenIntro.current = true;
+            const introPhrases = [
+                "şimdi benden sonra tekrar et! bu kelimeleri öğrenmemiz önemli",
+                "benden sonra tekrar edebilir misin?",
+                "hadi yeni kelimeler öğrenelim. benden sonra tekrar etmeyi unutma"
+            ];
+            const intro = introPhrases[Math.floor(Math.random() * introPhrases.length)];
+            
+            speak(intro, {
+                onEnd: () => {
+                    if (currentWord?.audio) {
+                        playAudio(currentWord.audio);
+                    } else if (currentWord?.word) {
+                        speak(currentWord.word);
+                    }
+                }
+            });
+        } else {
+            if (currentWord?.audio) {
+                playAudio(currentWord.audio);
+            } else if (currentWord?.word) {
+                speak(currentWord.word);
+            }
         }
     }, [currentIndex, currentWord, playAudio, speak]);
 

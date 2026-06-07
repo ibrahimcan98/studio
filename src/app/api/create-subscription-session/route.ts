@@ -4,7 +4,7 @@ import Stripe from 'stripe';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { priceId, userId, customerEmail, tierId } = body;
+    const { priceId, userId, customerEmail, tierId, selectedPeriod } = body;
 
     if (!process.env.STRIPE_SECRET_KEY) {
       throw new Error("STRIPE_SECRET_KEY is missing");
@@ -27,12 +27,14 @@ export async function POST(req: Request) {
       metadata: {
         userId: userId,
         tierId: tierId,
-        type: 'subscription_upgrade'
+        type: 'subscription_upgrade',
+        selectedPeriod: selectedPeriod || 'monthly'
       },
       subscription_data: {
         metadata: {
           userId: userId,
-          tierId: tierId
+          tierId: tierId,
+          selectedPeriod: selectedPeriod || 'monthly'
         }
       }
     });

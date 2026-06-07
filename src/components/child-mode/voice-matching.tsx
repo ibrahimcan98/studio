@@ -32,27 +32,26 @@ export function VoiceMatching({ wordList, onComplete }: VoiceMatchingProps) {
     const currentWord = wordList[currentIndex];
 
     const successPhrases = [
-        "Harikasın! Tam üstüne bastın!",
-        "Aferin sana, doğru bildin! Süpersin!",
-        "İşte bu! Gerçek bir dedektifsin!",
-        "Vay canına, ne kadar da hızlı buldun! Bravo!",
-        "Çok iyisin! Doğru kartı şak diye buldun!"
+        "hay aklınla bin yaşa!",
+        "ne kadar hızlı bildin",
+        "seni tebrik ediyorum!",
+        "sen bu işte bir numarasın",
+        "bravo",
+        "hemen de bildin"
     ];
 
     const errorPhrases = [
-        "Aman, bu o değilmiş sanki. Bir daha dene bakalım!",
-        "Yaklaştın ama tam bu değil. Hadi bir şans daha!",
-        "Hay aksi! Başka bir karta bakmaya ne dersin?",
-        "Olmadı ama üzülmek yok, eminim bir sonrakinde bulacaksın!",
-        "Denemeye devam! Bir tane daha seç bakalım."
+        "bu sefer yanlış oldu, bir daha deneyelim",
+        "ah emin misin? başka bir şey olmasın?",
+        "bir kez daha dene",
+        "yanlış, ama olur böyle şeyler!",
+        "yanlış resmi seçmiş olabilir misin?"
     ];
 
     const promptPhrases = [
-        "Hadi bakalım, şimdi {target} nerede?",
-        "Acaba hangisi {target}? Onu bana gösterebilir misin?",
-        "Birlikte {target} resmini bulalım!",
-        "Sence {target} nerede saklanmış?",
-        "Şimdi sıra {target} resmini seçmekte!"
+        "bak bakalım {target} kelimesi nerede",
+        "{target} kelimesini bulmama yardım eder misin",
+        "şimdi {target} kelimesini bulman gerek"
     ];
 
     const generateOptions = useCallback(() => {
@@ -92,9 +91,7 @@ export function VoiceMatching({ wordList, onComplete }: VoiceMatchingProps) {
 
         if (correct) {
             const randomSuccess = successPhrases[Math.floor(Math.random() * successPhrases.length)];
-            speak(randomSuccess);
-            
-            setTimeout(() => {
+            const advance = () => {
                 if (currentIndex < wordList.length - 1) {
                     setCurrentIndex(prev => prev + 1);
                     setSelectedAnswer(null);
@@ -102,16 +99,24 @@ export function VoiceMatching({ wordList, onComplete }: VoiceMatchingProps) {
                 } else {
                     onComplete();
                 }
-            }, 3000); // 3 saniye sonra diğer aşamaya geç (sesin bitmesini garantiye al)
+            };
+            
+            speak(randomSuccess, {
+                onEnd: advance,
+                onError: advance
+            });
         } else {
             const randomError = errorPhrases[Math.floor(Math.random() * errorPhrases.length)];
-            speak(randomError);
-            
-            setTimeout(() => {
+            const retry = () => {
                 setSelectedAnswer(null);
                 setIsCorrect(null);
                 playAudio();
-            }, 3000);
+            };
+            
+            speak(randomError, {
+                onEnd: retry,
+                onError: retry
+            });
         }
     };
 

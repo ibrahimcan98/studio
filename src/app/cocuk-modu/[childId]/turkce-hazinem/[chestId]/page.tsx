@@ -651,8 +651,9 @@ export default function ChestPage() {
               ) : (
                 // True/False
                 [0, 1].map((val, idx) => {
-                  const isSelected = selectedAnswer === val;
-                  const isCorrectAnswer = val === act.questions[currentQuestion]?.correct;
+                  const answerValue = val === 0 ? true : false;
+                  const isSelected = selectedAnswer === answerValue;
+                  const isCorrectAnswer = answerValue === act.questions[currentQuestion]?.correct;
 
                   return (
                     <button
@@ -663,7 +664,7 @@ export default function ChestPage() {
                           ? isCorrectAnswer ? "bg-emerald-50 border-emerald-500 text-emerald-700 shadow-md" : "bg-rose-50 border-rose-500 text-rose-700 shadow-md"
                           : "bg-amber-50/50 border-amber-100 text-amber-900 hover:bg-amber-50 hover:border-amber-300"
                       )}
-                      onClick={() => handleAnswerSelect(val, act.questions, completeKey, data.activities)}
+                      onClick={() => handleAnswerSelect(answerValue, act.questions, completeKey, data.activities)}
                       disabled={selectedAnswer !== null || lives === 0}
                     >
                       {val === 0 ? 'Doğru' : 'Yanlış'}

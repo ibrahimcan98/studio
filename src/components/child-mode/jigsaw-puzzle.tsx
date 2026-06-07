@@ -31,9 +31,8 @@ export function JigsawPuzzle({ wordList, onComplete }: JigsawPuzzleProps) {
     const [isSolved, setIsSolved] = useState(false);
     const { speak } = useTTS();
 
-    // Tüm kelimeleri rastgele karışık sırayla alalım
     const activeWords = useMemo(() => {
-        return [...wordList].sort(() => 0.5 - Math.random());
+        return [...wordList].sort(() => 0.5 - Math.random()).slice(0, 3);
     }, [wordList]);
 
     const currentWord = activeWords[currentWordIndex];
@@ -81,7 +80,8 @@ export function JigsawPuzzle({ wordList, onComplete }: JigsawPuzzleProps) {
             // Hepsi bitti mi?
             if (newPlaced.every(p => p !== null)) {
                 setIsSolved(true);
-                speak("Harikasın!");
+                const successPhrases = ["bravo", "çok eğlenceli değil mi?", "çok hızlı yaptın"];
+                speak(successPhrases[Math.floor(Math.random() * successPhrases.length)]);
             }
         } else {
             // Yanlış yer - sallanma efekti veya geri bildirim verilebilir
