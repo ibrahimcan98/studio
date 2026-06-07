@@ -6,6 +6,8 @@ import { Puzzle, Mic, BookOpen, Bot, Star, Heart, ArrowRight, Gamepad2, Compass,
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useUser } from "@/firebase";
 
 const games = [
   {
@@ -52,6 +54,17 @@ const games = [
 ];
 
 export default function GameShowcase() {
+  const router = useRouter();
+  const user = useUser();
+
+  const handleBannerClick = () => {
+    if (user) {
+      router.push('/ebeveyn-portali/uyelik');
+    } else {
+      router.push('/ebeveyn-portali');
+    }
+  };
+
   return (
     <section className="py-24 bg-gradient-to-b from-purple-50/50 via-pink-50/50 to-white relative overflow-hidden">
       {/* Playful Background decorations */}
@@ -72,8 +85,8 @@ export default function GameShowcase() {
             <span>YENİ ÇOCUK MODU EKLENDİ!</span>
           </div>
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-[#1B2B4B] tracking-tight leading-[1.1]">
-            Türkçeyi Eğlenceli <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 inline-block">Oyunlarla</span> Keşfet!
+            Çocuklar İçin Yepyeni Bir <br/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 inline-block">Türkçe Ekosistemi</span>
           </h2>
           <p className="text-lg md:text-xl text-slate-500 leading-relaxed max-w-3xl mx-auto">
             Öğrenmek hiç bu kadar eğlenceli olmamıştı! Çocuğunuz, oyunlar, sesli hikâyeler ve yapay zeka destekli maceralarla oynayarak farkında olmadan Türkçesini geliştirecek.
@@ -112,34 +125,31 @@ export default function GameShowcase() {
               {/* Content */}
               <div className="flex flex-col flex-grow">
                 <h3 className="text-xl font-extrabold text-[#1B2B4B] mb-3">{game.title}</h3>
-                <p className="text-slate-500 text-sm leading-relaxed mb-6 flex-grow">
+                <p className="text-slate-500 text-sm leading-relaxed flex-grow">
                   {game.description}
                 </p>
-                
-                {/* Button */}
-                <button className={cn(
-                  "w-full py-3 rounded-full font-bold text-sm flex items-center justify-center gap-2 transition-all duration-300",
-                  game.buttonColor
-                )}>
-                  {game.buttonText}
-                  <ArrowRight className="w-4 h-4" />
-                </button>
               </div>
             </Card>
           ))}
         </div>
 
         {/* Bottom Banner */}
-        <div className="flex justify-center">
-          <div className="bg-white/80 backdrop-blur-md border border-purple-100 rounded-full py-4 px-8 md:px-12 flex items-center gap-4 shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
-            <div className="bg-purple-100 p-2 rounded-full">
+        <div className="flex justify-center mt-12">
+          <button 
+            onClick={handleBannerClick}
+            className="bg-white/90 backdrop-blur-md border border-purple-100 rounded-full py-4 px-6 md:px-10 flex items-center gap-4 shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:shadow-[0_8px_30px_rgb(147,51,234,0.15)] hover:-translate-y-1 transition-all duration-300 group outline-none focus:ring-4 focus:ring-purple-500/20"
+          >
+            <div className="bg-purple-100 p-2.5 rounded-full group-hover:scale-110 group-hover:rotate-12 transition-transform duration-300">
               <Heart className="w-6 h-6 text-purple-600 fill-purple-600" />
             </div>
-            <div className="text-left">
-              <h4 className="text-purple-700 font-bold text-base leading-tight">Türkçeyi öğrenmek bir macera!</h4>
-              <p className="text-slate-500 text-sm">Haydi, sen de bu maceraya katıl!</p>
+            <div className="text-left pr-4 md:pr-8 border-r border-purple-100 mr-2 md:mr-4">
+              <h4 className="text-purple-700 font-black text-lg md:text-xl leading-tight mb-0.5">Hemen Maceraya Katılın!</h4>
+              <p className="text-slate-500 text-sm font-medium">Giriş yapmak veya paketleri incelemek için tıklayın.</p>
             </div>
-          </div>
+            <div className="bg-purple-600 text-white p-2.5 rounded-full group-hover:bg-purple-700 transition-colors shadow-md">
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </button>
         </div>
 
       </div>
