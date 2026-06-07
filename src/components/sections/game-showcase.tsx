@@ -88,7 +88,13 @@ export default function GameShowcase() {
             Çocuklar İçin Yepyeni Bir <br/>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 inline-block">Türkçe Ekosistemi</span>
           </h2>
-          <p className="text-lg md:text-xl text-slate-500 leading-relaxed max-w-3xl mx-auto">
+          <div className="flex flex-wrap justify-center gap-3 mt-4 mb-2">
+            <span className="px-5 py-2 bg-purple-100 text-purple-700 rounded-2xl font-extrabold text-sm md:text-base shadow-sm">Oyun</span>
+            <span className="px-5 py-2 bg-pink-100 text-pink-700 rounded-2xl font-extrabold text-sm md:text-base shadow-sm">Hikâye</span>
+            <span className="px-5 py-2 bg-blue-100 text-blue-700 rounded-2xl font-extrabold text-sm md:text-base shadow-sm">Sohbet</span>
+            <span className="px-5 py-2 bg-orange-100 text-orange-700 rounded-2xl font-extrabold text-sm md:text-base shadow-sm">Kültür</span>
+          </div>
+          <p className="text-lg md:text-xl text-slate-500 leading-relaxed max-w-3xl mx-auto mt-2">
             Öğrenmek hiç bu kadar eğlenceli olmamıştı! Çocuğunuz, oyunlar, sesli hikâyeler ve yapay zeka destekli maceralarla oynayarak farkında olmadan Türkçesini geliştirecek.
           </p>
         </div>
