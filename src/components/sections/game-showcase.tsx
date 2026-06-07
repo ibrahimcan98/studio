@@ -95,7 +95,7 @@ export default function GameShowcase() {
             <span className="px-5 py-2 bg-orange-100 text-orange-700 rounded-2xl font-extrabold text-sm md:text-base shadow-sm">Kültür</span>
           </div>
           <p className="text-lg md:text-xl text-slate-500 leading-relaxed max-w-3xl mx-auto mt-2">
-            Öğrenmek hiç bu kadar eğlenceli olmamıştı! Çocuğunuz, oyunlar, sesli hikâyeler ve yapay zeka destekli maceralarla oynayarak farkında olmadan Türkçesini geliştirecek.
+            Çocuğunuz oyun oynarken, hikâyeler dinlerken ve sohbet ederken Türkçesini geliştirsin.
           </p>
         </div>
 
