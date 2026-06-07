@@ -44,7 +44,8 @@ const games = [
     description: "Her gün pratik yap, Türkçe'ni geliştir! En yakın yapay zeka arkadaşınla sohbet et!",
     icon: <Bot className="w-6 h-6 text-white" />,
     color: "bg-blue-500",
-    image: "/images/child-mode/robot.png",
+    image: "/ai/oturuyor.png",
+    speechBubble: "MERHABA!",
     buttonText: "Sohbete Başla",
     buttonColor: "text-blue-600 bg-blue-50 hover:bg-blue-100",
   }
@@ -101,6 +102,11 @@ export default function GameShowcase() {
                   fill
                   className="object-contain drop-shadow-2xl group-hover:scale-110 transition-transform duration-500"
                 />
+                {(game as any).speechBubble && (
+                  <div className="absolute top-0 right-0 md:-right-2 bg-white text-blue-600 font-black text-sm md:text-base px-4 py-2 rounded-2xl rounded-bl-sm shadow-xl border-2 border-blue-100 animate-bounce z-30">
+                    {(game as any).speechBubble}
+                  </div>
+                )}
               </div>
 
               {/* Content */}
