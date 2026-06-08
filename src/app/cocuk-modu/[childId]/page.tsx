@@ -101,7 +101,10 @@ export default function CocukModuPage() {
     return doc(db, 'users', authUser.uid);
   }, [db, authUser?.uid]);
   const { data: userData } = useDoc(userDocRef);
-  const subscriptionTier = (userData?.subscriptionTier as string) || 'free';
+  const isChildAssigned = userData?.subscriptionChildIds?.includes(childId as string);
+  const subscriptionTier = (userData?.subscriptionTier !== 'free' && isChildAssigned) 
+      ? (userData?.subscriptionTier as string) 
+      : 'free';
 
   useEffect(() => {
     setIsMounted(true);
@@ -328,6 +331,7 @@ export default function CocukModuPage() {
               const isSubscriptionLocked = subscriptionTier === 'free' && index >= 2;
               const isProgressLocked = !isFirst && !isPrevCompleted;
               const isLocked = isProgressLocked || isSubscriptionLocked;
+              const isCompleted = !!(childData as any)?.stickers?.[topic.id];
 
               return (
                 <div
@@ -347,6 +351,7 @@ export default function CocukModuPage() {
                     number={index + 1}
                     isLocked={isProgressLocked}
                     isPremiumLocked={isSubscriptionLocked}
+                    isCompleted={isCompleted}
                     onClick={() => {
                       if (isLocked) {
                         setLockedReason(isSubscriptionLocked ? 'paywall' : 'progress');

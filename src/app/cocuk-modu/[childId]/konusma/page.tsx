@@ -64,7 +64,10 @@ export default function KonusmaPage() {
     return doc(db, 'users', authUser.uid);
   }, [db, authUser?.uid]);
   const { data: userData } = useDoc(userDocRef);
-  const subscriptionTier = (userData?.subscriptionTier as string) || 'free';
+  const isChildAssigned = userData?.subscriptionChildIds?.includes(childId as string);
+  const subscriptionTier = (userData?.subscriptionTier !== 'free' && isChildAssigned) 
+      ? (userData?.subscriptionTier as string) 
+      : 'free';
 
   // --- KULLANIM SÜRESİ TAKİBİ ---
   const [usageSeconds, setUsageSeconds] = useState(0);
@@ -74,21 +77,46 @@ export default function KonusmaPage() {
     if (!childData || !isMounted) return;
 
     const stats = (childData as any).stats?.ai || {};
-    const today = new Date().toISOString().split('T')[0];
     
-    // Gün değişmişse kullanımı sıfırla
-    if (stats.lastUsageDate !== today) {
-      setUsageSeconds(0);
-      if (childDocRef) {
-        updateDoc(childDocRef, { 
-          'stats.ai.dailyUsageSeconds': 0,
-          'stats.ai.lastUsageDate': today 
-        });
+    // UTC yerine kullanıcının yerel saatine (Local Time) göre bugünün tarihini al (YYYY-MM-DD)
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    
+    if (subscriptionTier === 'free') {
+      // ÜCRETSİZ PAKET: Günlük Sıfırlama
+      if (stats.lastUsageDate !== today) {
+        setUsageSeconds(0);
+        setIsLimitReached(false);
+        if (childDocRef) {
+          updateDoc(childDocRef, { 
+            'stats.ai.dailyUsageSeconds': 0,
+            'stats.ai.lastUsageDate': today 
+          });
+        }
+      } else {
+        setUsageSeconds(stats.dailyUsageSeconds || 0);
       }
     } else {
-      setUsageSeconds(stats.dailyUsageSeconds || 0);
+      // PREMIUM PAKET: Aylık Sıfırlama
+      const cycleEnd = (childData as any).aiCycleEnd?.toDate?.() || null;
+      if (!cycleEnd || now > cycleEnd) {
+        const nextMonth = new Date(now);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        nextMonth.setHours(0, 0, 0, 0);
+        
+        setUsageSeconds(0);
+        setIsLimitReached(false);
+        if (childDocRef) {
+          updateDoc(childDocRef, { 
+            'stats.ai.dailyUsageSeconds': 0, // Toplam kullanımı burada tutuyoruz
+            aiCycleEnd: nextMonth 
+          });
+        }
+      } else {
+        setUsageSeconds(stats.dailyUsageSeconds || 0);
+      }
     }
-  }, [childData, isMounted, childDocRef]);
+  }, [childData, isMounted, childDocRef, subscriptionTier]);
 
   // Saniye sayacı (Konuşma veya Dinleme sırasında çalışır)
   useEffect(() => {
@@ -180,6 +208,10 @@ export default function KonusmaPage() {
     }
 
     try {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.abort(); } catch (e) {}
+      }
+
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
@@ -189,6 +221,14 @@ export default function KonusmaPage() {
         setIsListening(true);
         setTranscript("");
         transcriptRef.current = "";
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error("Speech recognition error:", event.error);
+        setIsListening(false);
+        if (event.error !== 'no-speech') {
+          toast({ variant: 'destructive', title: 'Mikrofon Hatası', description: 'Seni duyamadım, mikrofonunu kontrol eder misin?' });
+        }
       };
 
       recognition.onresult = (event: any) => {
@@ -286,7 +326,9 @@ export default function KonusmaPage() {
       recognitionRef.current = recognition;
       recognition.start();
     } catch (err: any) {
+      console.error("Mic start error:", err);
       setIsListening(false);
+      toast({ variant: 'destructive', title: 'Hata', description: 'Mikrofon başlatılamadı. Sayfayı yenilemeyi deneyin.' });
     }
   };
 

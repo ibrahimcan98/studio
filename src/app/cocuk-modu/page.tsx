@@ -2,9 +2,9 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
-import { collection } from 'firebase/firestore';
-import { Loader2, User, Sparkles, ArrowLeft } from 'lucide-react';
+import { useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
+import { Loader2, User, Sparkles, ArrowLeft, Crown, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SetPinDialog } from '@/components/child-mode/set-pin-dialog';
 
@@ -18,7 +18,32 @@ export default function ChildModeSelectPage() {
         return collection(db, 'users', user.uid, 'children');
     }, [db, user?.uid]);
 
+    const userDocRef = useMemoFirebase(() => {
+        if (!db || !user?.uid) return null;
+        return doc(db, 'users', user.uid);
+    }, [db, user?.uid]);
+    const { data: userData } = useDoc(userDocRef);
+
+    const subscriptionChildIds = userData?.subscriptionChildIds || [];
+    const isParentPremium = userData?.subscriptionTier && userData?.subscriptionTier !== 'free';
+
     const { data: children, isLoading: childrenLoading } = useCollection(childrenQuery);
+
+    useEffect(() => {
+        if (!user || !userData || !children || children.length === 0) return;
+        const limit = userData.subscriptionChildLimit || 1;
+        const currentIds = userData.subscriptionChildIds || [];
+        const currentTier = userData.subscriptionTier || 'free';
+        
+        if (currentTier !== 'free' && children.length <= limit) {
+            const allIds = children.map((c: any) => c.id);
+            const needsUpdate = allIds.some((id: string) => !currentIds.includes(id));
+            if (needsUpdate) {
+                const userDocRef = doc(db, 'users', user.uid);
+                updateDoc(userDocRef, { subscriptionChildIds: allIds }).catch(console.error);
+            }
+        }
+    }, [children, userData, user, db]);
 
     useEffect(() => {
         if (!authLoading && !user) {
@@ -75,19 +100,35 @@ export default function ChildModeSelectPage() {
                 <p className="text-slate-600 text-lg mb-12 font-medium">Macera dünyasına girmek için profilini seç!</p>
 
                 <div className="flex flex-wrap justify-center gap-12">
-                    {children?.map((child: any) => (
+                    {children?.map((child: any) => {
+                        const isPremium = isParentPremium && subscriptionChildIds.includes(child.id);
+                        return (
                         <SetPinDialog key={child.id} childId={child.id}>
                             <div className="group flex flex-col items-center gap-4 cursor-pointer">
                                 <div className="w-32 h-32 md:w-40 md:h-40 bg-white rounded-3xl shadow-xl shadow-sky-200/50 flex items-center justify-center text-4xl font-bold text-sky-600 border-4 border-transparent group-hover:border-sky-400 transition-all transform group-hover:scale-105 group-hover:shadow-2xl overflow-hidden relative">
                                     <div className="absolute inset-0 bg-gradient-to-br from-sky-50 to-white -z-10" />
                                     {child.firstName?.[0] || <User className="w-16 h-16 text-sky-300" />}
+                                    
+                                    {isPremium && userData?.subscriptionTier === 'hero' && (
+                                        <div className="absolute -top-2 -right-2 bg-gradient-to-tr from-amber-400 to-orange-500 text-white rounded-xl px-3 py-1 flex items-center gap-1.5 shadow-lg shadow-orange-500/40 z-10 border-2 border-white rotate-6 hover:rotate-12 transition-transform cursor-help" title="Kahraman Paketi">
+                                            <Crown className="w-4 h-4 fill-white" />
+                                            <span className="text-xs font-black uppercase tracking-wider">Kahraman</span>
+                                        </div>
+                                    )}
+                                    
+                                    {isPremium && userData?.subscriptionTier === 'adventurer' && (
+                                        <div className="absolute top-2 right-2 bg-gradient-to-tr from-sky-400 to-blue-500 text-white rounded-full w-9 h-9 flex items-center justify-center shadow-lg shadow-blue-500/40 z-10 border-2 border-white hover:scale-110 transition-transform cursor-help" title="Maceracı Paketi">
+                                            <Shield className="w-4 h-4 fill-white" />
+                                        </div>
+                                    )}
                                 </div>
                                 <span className="text-lg md:text-xl font-bold text-slate-700 group-hover:text-sky-600 transition-colors">
                                     {child.firstName}
                                 </span>
                             </div>
                         </SetPinDialog>
-                    ))}
+                        )
+                    })}
                 </div>
             </div>
         </div>

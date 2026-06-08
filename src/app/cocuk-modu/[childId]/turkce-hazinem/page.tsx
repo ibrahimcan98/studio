@@ -279,7 +279,10 @@ export default function TurkceHazinemPage() {
       lockedReason: "none" | "paywall" | "progress";
     };
     const list: ChestItem[] = [];
-    const subscriptionTier = (userData?.subscriptionTier as string) || "free";
+    const isChildAssigned = userData?.subscriptionChildIds?.includes(childId as string);
+    const subscriptionTier = (userData?.subscriptionTier !== 'free' && isChildAssigned) 
+        ? (userData?.subscriptionTier as string) 
+        : 'free';
     const completedTopics = childData?.completedTopics || [];
     let chestCount = 0;
 
@@ -310,6 +313,7 @@ export default function TurkceHazinemPage() {
         isReview: false,
         isLocked: lockedReason !== 'none',
         lockedReason,
+        isCompleted: isChestCompleted(chestId),
       });
       chestCount++;
 
@@ -332,6 +336,7 @@ export default function TurkceHazinemPage() {
           isReview: true,
           isLocked: tekrarLockedReason !== 'none',
           lockedReason: tekrarLockedReason,
+          isCompleted: isChestCompleted(tekrarId),
         });
 
         previousChestCompleted = isChestCompleted(tekrarId);
@@ -343,7 +348,7 @@ export default function TurkceHazinemPage() {
       top: `${350 + i * 200}px`,
       left: i % 2 === 0 ? "65%" : "25%",
     }));
-  }, [userData?.subscriptionTier]);
+  }, [userData?.subscriptionTier, userData?.subscriptionChildIds, childId]);
 
   // Yol çizimi için SVG path oluşturma
   const pathD = useMemo(() => {
@@ -563,19 +568,26 @@ export default function TurkceHazinemPage() {
                 </div>
 
                 {/* Sandık Başlığı */}
-                <div className='absolute -bottom-6 flex flex-col items-center gap-1 w-[300px]'>
-                  <span
-                    className={cn(
-                      "text-xs font-black uppercase tracking-wide text-center bg-white/95 px-4 py-1.5 rounded-full border-2 shadow-md",
-                      chest.isLocked
-                        ? "text-amber-600 border-amber-300"
-                        : chest.isReview
-                          ? "text-purple-900 border-purple-400 bg-purple-50"
-                          : "text-amber-900 border-amber-300",
+                <div className='absolute -bottom-6 flex flex-col items-center gap-1 w-[300px] z-10'>
+                  <div className="relative inline-flex flex-col items-center">
+                    <span
+                      className={cn(
+                        "text-xs font-black uppercase tracking-wide text-center bg-white/95 px-5 py-1.5 rounded-full border-2 shadow-md",
+                        chest.isLocked
+                          ? "text-amber-600 border-amber-300"
+                          : chest.isReview
+                            ? "text-purple-900 border-purple-400 bg-purple-50"
+                            : "text-amber-900 border-amber-300",
+                      )}
+                    >
+                      {chest.isReview ? chest.title : `Sandık ${chest.id}`}
+                    </span>
+                    {(chest as any).isCompleted && (
+                      <span className="absolute -bottom-3 bg-emerald-500 text-white px-2.5 py-0.5 rounded-full text-[9px] font-black tracking-widest shadow-sm border-2 border-white whitespace-nowrap z-20">
+                        TAMAMLANDI
+                      </span>
                     )}
-                  >
-                    {chest.isReview ? chest.title : `Sandık ${chest.id}`}
-                  </span>
+                  </div>
                 </div>
 
                 {/* Parıltı Efekti (Açıksa) */}

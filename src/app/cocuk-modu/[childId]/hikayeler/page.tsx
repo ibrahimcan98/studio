@@ -46,7 +46,24 @@ export default function HikayelerPage() {
     return doc(db, 'users', authUser.uid);
   }, [db, authUser?.uid]);
   const { data: userData } = useDoc(userDocRef);
-  const subscriptionTier = (userData?.subscriptionTier as string) || 'free';
+  const isChildAssigned = userData?.subscriptionChildIds?.includes(childId as string);
+  const subscriptionTier = (userData?.subscriptionTier !== 'free' && isChildAssigned) 
+      ? (userData?.subscriptionTier as string) 
+      : 'free';
+
+  useEffect(() => {
+    if (childData) {
+      const savedScroll = sessionStorage.getItem('hikayelerScrollPos');
+      if (savedScroll) {
+        const container = document.getElementById('hikayeler-scroll-container');
+        if (container) {
+          requestAnimationFrame(() => {
+            container.scrollTop = parseInt(savedScroll, 10);
+          });
+        }
+      }
+    }
+  }, [childData]);
 
   if (!isMounted || isAuthenticated === null || childLoading || !childData) {
     return (
@@ -63,6 +80,10 @@ export default function HikayelerPage() {
     if (subscriptionTier === 'free' && index >= 1) {
       setIsLockedDialogOpen(true);
       return;
+    }
+    const container = document.getElementById('hikayeler-scroll-container');
+    if (container) {
+      sessionStorage.setItem('hikayelerScrollPos', container.scrollTop.toString());
     }
     router.push(path);
   };
@@ -93,7 +114,7 @@ export default function HikayelerPage() {
         <ChildSidebar childId={childId} childData={childData} />
 
         {/* ORTA ALAN: Hikayeler İçeriği */}
-        <div className="flex-1 relative order-3 md:order-2 overflow-y-auto p-8 custom-scrollbar scroll-smooth">
+        <div id="hikayeler-scroll-container" className="flex-1 relative order-3 md:order-2 overflow-y-auto p-8 custom-scrollbar scroll-smooth">
           <div className="max-w-5xl mx-auto">
             <header className="mb-6 md:mb-10 text-center bg-indigo-900/20 backdrop-blur-xl p-4 md:p-6 rounded-[30px] md:rounded-[40px] border border-white/10 shadow-[0_0_50px_rgba(79,70,229,0.2)] mx-2 md:mx-0">
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-white to-amber-200 mb-2 drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] italic tracking-tighter uppercase break-words">

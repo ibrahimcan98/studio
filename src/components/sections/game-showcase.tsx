@@ -13,7 +13,7 @@ const games = [
   {
     id: "puzzle",
     title: "Macera Adası",
-    description: "Özenle hazırlanmış temalar, eğlenceli oyunlar ve etkileşimli etkinliklerle Türkçeyi keşfet!",
+    description: "Tematik adaları tek tek ziyaret ederek yüzlerce Türkçe kelime öğren. Oyunları tamamla, yeni bölümlerin kilidini aç, rozetleri topla!",
     icon: <Gamepad2 className="w-6 h-6 text-white" />,
     image: "/images/child-mode/island.png",
     color: "bg-purple-500",
@@ -23,7 +23,7 @@ const games = [
   {
     id: "voice",
     title: "Türkçe Hazinem",
-    description: "Kelime dağarcığını zenginleştir, sesli eşleştirmeler ve eğlenceli etkinliklerle öğrendiklerini pekiştir!",
+    description: "Okuyorum Anlıyorum bölümünde metinler okuyup soruları cevapla, Dilimi Öğreniyorum bölümünde Türkçe becerilerini geliştir, Ülkemi Öğreniyorum bölümünde ise Türkiye’yi eğlenceli oyunlarla keşfet. Sandık sandık ilerle!",
     icon: <Compass className="w-6 h-6 text-white" />,
     image: "/turkce-hazinem/sandik-acik.png",
     color: "bg-orange-500",
@@ -32,8 +32,8 @@ const games = [
   },
   {
     id: "story",
-    title: "Hikaye Bölümü",
-    description: "Sesli hikâyelerle okuduğunu anla, okuma becerilerini geliştir ve eğitici içeriklerle yeni bilgiler kazan!",
+    title: "Dijital Hikayeler",
+    description: "Eğitici hikâyeleri ister oku, ister dinle. Türkçe duyma, anlama ve okuma becerilerini geliştirirken yeni hikâyeler keşfet.",
     icon: <Book className="w-6 h-6 text-white" />,
     color: "bg-green-500",
     image: "/images/child-mode/book.png",
@@ -43,7 +43,7 @@ const games = [
   {
     id: "ai",
     title: "AI Konuşma Arkadaşım",
-    description: "Her gün pratik yap, Türkçe'ni geliştir! En yakın yapay zeka arkadaşınla sohbet et!",
+    description: "Türkçe sohbet et, sorular sor ve cevaplar ver. Yapay zekâ arkadaşın Pati ile dilediğin zaman konuşma pratiği yap.",
     icon: <Bot className="w-6 h-6 text-white" />,
     color: "bg-blue-500",
     image: "/ai/oturuyor.png",

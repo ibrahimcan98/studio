@@ -61,9 +61,16 @@ export default function BirIkiUcBasardimPage() {
   const [unlockedBadgesQueue, setUnlockedBadgesQueue] = useState<any[]>([]);
   const [isQuizOpen, setIsQuizOpen] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [isCompletedPendingReturn, setIsCompletedPendingReturn] = useState(false);
   const completionTracked = useRef(false);
   const celebrationShown = useRef(false);
   const [isPortrait, setIsPortrait] = useState(false);
+
+  useEffect(() => {
+    if (isCompletedPendingReturn && unlockedBadgesQueue.length === 0) {
+      router.push(`/cocuk-modu/${childId}/hikayeler`);
+    }
+  }, [isCompletedPendingReturn, unlockedBadgesQueue.length, router, childId]);
 
   useEffect(() => {
     const mql = window.matchMedia("(orientation: portrait)");
@@ -121,6 +128,8 @@ export default function BirIkiUcBasardimPage() {
 
       await updateDoc(childDocRef, updates);
     }
+    
+    setIsCompletedPendingReturn(true);
   };
 
   useEffect(() => {

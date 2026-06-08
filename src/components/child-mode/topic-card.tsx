@@ -12,10 +12,11 @@ interface TopicCardProps {
   number: number;
   isLocked?: boolean;
   isPremiumLocked?: boolean;
+  isCompleted?: boolean;
   onClick: () => void;
 }
 
-export function TopicCard({ topic, number, isLocked, isPremiumLocked, onClick }: TopicCardProps) {
+export function TopicCard({ topic, number, isLocked, isPremiumLocked, isCompleted, onClick }: TopicCardProps) {
   // Renk temaları (CSS 3D silindir için üst ve alt renkler - Fallback olarak)
   const colorThemes = {
     green: { top: 'bg-gradient-to-br from-emerald-300 to-emerald-500', bottom: 'bg-emerald-700', border: 'border-emerald-200' },
@@ -95,7 +96,7 @@ export function TopicCard({ topic, number, isLocked, isPremiumLocked, onClick }:
 
       {/* Modern İsim Etiketi */}
       <div className={cn(
-        "mt-4 bg-white/95 backdrop-blur-md pl-2 pr-6 py-2 rounded-full shadow-[0_8px_16px_rgba(0,0,0,0.1)] border-2 border-white/50 relative z-20 transition-transform duration-300 flex items-center gap-3",
+        "mt-4 bg-white/95 backdrop-blur-md pl-2 pr-4 py-2 rounded-full shadow-[0_8px_16px_rgba(0,0,0,0.1)] border-2 border-white/50 relative z-20 transition-transform duration-300 flex items-center gap-3",
         !anyLocked && "group-hover:-translate-y-2"
       )}>
         <div className={cn(
@@ -110,6 +111,11 @@ export function TopicCard({ topic, number, isLocked, isPremiumLocked, onClick }:
         )}>
           {topic.name}
         </span>
+        {isCompleted && (
+          <span className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-2.5 py-0.5 rounded-full text-[9px] font-black tracking-widest shadow-sm border-2 border-white whitespace-nowrap z-20">
+            TAMAMLANDI
+          </span>
+        )}
       </div>
     </div>
 

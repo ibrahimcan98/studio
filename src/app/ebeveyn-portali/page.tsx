@@ -870,14 +870,12 @@ function EbeveynPortaliContent() {
                     <ArrowRight className="mt-4 text-blue-600 group-hover:translate-x-2 transition-transform" />
                 </Card>
 
-                {user?.email === 'ibrahimcanonder_98@hotmail.com' && children && children.length > 0 && (
-                    <Card className="p-6 bg-gradient-to-br from-yellow-100 to-orange-100 border-yellow-200 hover:shadow-lg transition-all cursor-pointer group border-2 border-dashed border-orange-300 relative" onClick={() => router.push('/cocuk-modu')}>
-                      <div className="absolute -top-2 -right-2 bg-orange-500 text-white text-[10px] font-black px-2 py-1 rounded-full animate-bounce z-10">YENİ AI</div>
-                      <h3 className="text-xl font-black flex items-center gap-2 text-slate-800"><MonitorPlay className="text-orange-600 group-hover:scale-110 transition-transform"/> Çocuk Modu</h3>
-                      <p className="text-xs text-slate-600 mt-2 font-medium">AI Destekli Yeni Oyun Platformu (Sadece Siz)</p>
-                      <ArrowRight className="mt-4 text-orange-600 group-hover:translate-x-2 transition-transform" />
-                    </Card>
-                )}
+                <Card className="p-6 bg-gradient-to-br from-yellow-100 to-orange-100 border-yellow-200 hover:shadow-lg transition-all cursor-pointer group border-2 border-dashed border-orange-300 relative" onClick={() => router.push('/cocuk-modu')}>
+                    <div className="absolute -top-2 -right-2 bg-orange-500 text-white text-[10px] font-black px-2 py-1 rounded-full animate-bounce z-10">YENİ AI</div>
+                    <h3 className="text-xl font-black flex items-center gap-2 text-slate-800"><MonitorPlay className="text-orange-600 group-hover:scale-110 transition-transform"/> Çocuk Modu</h3>
+                    <p className="text-xs text-slate-600 mt-2 font-medium leading-relaxed">Çocuklara özel tasarlanmış, güvenli ve eğitici yapay zeka macera dünyası.</p>
+                    <ArrowRight className="mt-4 text-orange-600 group-hover:translate-x-2 transition-transform" />
+                </Card>
 
                 <Card 
                   className={cn(
@@ -908,27 +906,30 @@ function EbeveynPortaliContent() {
                     <ArrowRight className="mt-4 text-orange-600 group-hover:translate-x-2 transition-transform" />
                 </Card>
 
-                {user?.email === 'ibrahimcanonder_98@hotmail.com' && (
-                  <Card className="p-6 bg-gradient-to-br from-amber-100 to-yellow-200 border-amber-200 hover:shadow-lg transition-all cursor-pointer group relative overflow-hidden flex flex-col justify-between" onClick={() => router.push('/ebeveyn-portali/uyelik')}>
-                      <div className="absolute top-2 right-2 opacity-10 group-hover:opacity-20 transition-opacity">
-                          <Crown className="w-20 h-20 rotate-12" />
-                      </div>
-                      <div>
-                          <h3 className="text-xl font-black flex items-center gap-2 text-slate-800"><Crown className="text-amber-600 group-hover:scale-110 transition-transform" /> Üyelik Yönetimi</h3>
-                          <p className="text-xs text-slate-600 mt-2 font-medium">Abonelik planınızı yönetin ve premium avantajları keşfedin.</p>
-                      </div>
-                      <div className="flex items-center justify-between mt-4">
-                          <ArrowRight className="text-amber-600 group-hover:translate-x-2 transition-transform" />
-                          {userData?.subscriptionTier && userData.subscriptionTier !== 'free' && (
-                              <span className="text-[10px] font-black uppercase text-amber-700 bg-amber-200/50 px-2 py-1 rounded-md">
-                                  {userData.subscriptionPeriodEnd 
-                                      ? `Yenileme: ${format(userData.subscriptionPeriodEnd.toDate ? userData.subscriptionPeriodEnd.toDate() : new Date(userData.subscriptionPeriodEnd), 'dd MMM yyyy', { locale: tr })}`
-                                      : 'İşleniyor...'}
-                              </span>
-                          )}
-                      </div>
-                  </Card>
-                )}
+                <Card className="p-6 bg-gradient-to-br from-amber-100 to-yellow-200 border-amber-200 hover:shadow-lg transition-all cursor-pointer group relative overflow-hidden flex flex-col justify-between" onClick={() => router.push('/ebeveyn-portali/uyelik')}>
+                    <div className="absolute top-2 right-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <Crown className="w-20 h-20 rotate-12" />
+                    </div>
+                    <div>
+                        <h3 className="text-xl font-black flex items-center gap-2 text-slate-800"><Crown className="text-amber-600 group-hover:scale-110 transition-transform" /> Üyelik Yönetimi</h3>
+                        <p className="text-xs text-slate-600 mt-2 font-medium">Abonelik planınızı yönetin ve premium avantajları keşfedin.</p>
+                    </div>
+                    <div className="flex items-center justify-between mt-4">
+                        <ArrowRight className="text-amber-600 group-hover:translate-x-2 transition-transform" />
+                        {userData?.subscriptionTier && userData.subscriptionTier !== 'free' && (
+                            <span className={cn(
+                                "text-[10px] font-black uppercase px-2 py-1 rounded-md",
+                                userData.subscriptionCancelledAtPeriodEnd 
+                                    ? "text-orange-700 bg-orange-200/70" 
+                                    : "text-amber-700 bg-amber-200/50"
+                            )}>
+                                {userData.subscriptionPeriodEnd 
+                                    ? `${userData.subscriptionCancelledAtPeriodEnd ? 'Son Kullanım' : 'Yenileme'}: ${format(userData.subscriptionPeriodEnd.toDate ? userData.subscriptionPeriodEnd.toDate() : new Date(userData.subscriptionPeriodEnd), 'dd MMM yyyy', { locale: tr })}`
+                                    : 'İşleniyor...'}
+                            </span>
+                        )}
+                    </div>
+                </Card>
             </div>
 
             <div>

@@ -20,12 +20,14 @@ export interface Activity {
   desc?: string;
   text?: string;
   image?: string;
+  videoUrl?: string;
+  videoPoster?: string;
   questions?: Question[];
   categories?: string[];
   items?: { label: string; category: string }[];
-  sentences?: { text: string; answer: string; options?: string[] }[];
+  sentences?: { text: string; answer: string | string[]; options?: string[] }[];
   words?: string[];
-  infoImages?: { src: string; label?: string }[];
+  infoImages?: { src: string; label?: string; alt?: string }[];
   images?: { src: string; label?: string; isCorrect: boolean }[];
   options?: { text: string; isCorrect: boolean }[] | string[];
   bgImage?: string;
@@ -611,7 +613,7 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
         {
           type: "image_selection",
           title: "Etkinlik 1: Görsel Kartı Seç",
-          desc: "23 Nisan ile ilgili doğru görsel kartları seç.",
+          desc: "23 Nisan Ulusal Egemenlik ve Çocuk Bayramı ile ilgili doğru görsel kartları seç.",
           images: [
             {
               src: "/turkce-hazinem/3.0.png",
@@ -697,7 +699,7 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
     okuyorumAnliyorum: {
       title: "Kuruyan Çiçek",
       theme: "Doğa sevgisi - Kısa hikaye",
-      text: "Eren sabah balkona çıktı. Köşedeki saksıda sarı bir çiçek vardı. Çiçeğin yaprakları aşağı doğru sarkmıştı. Eren toprağın çok kuru olduğunu fark etti. Mutfaktan küçük sulama kabını aldı. Kabı suyla doldurdu. Suyu yavaşça çiçeğin toprağına döktü. Akşam olduğunda çiçeğin yaprakları biraz canlandı.",
+      text: "Eren sabah balkona çıktı. Köşedeki saksıda sarı bir çiçek vardı. Çiçeğin yaprakları aşağı doğru sarkmıştı. Eren toprağın çok kuru olduğunu fark etti. Mutfaktan küçük bir kap aldı. Kabı suyla doldurdu. Suyu yavaşça çiçeğin toprağına döktü. Akşam olduğunda çiçeğin yaprakları biraz canlandı.",
       questions: [
         {
           q: "Eren sabah nereye çıktı?",
@@ -787,30 +789,48 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
             {
               text: "ayşe kitap okuyor. -> {blank}",
               answer: "Ayşe kitap okuyor.",
+              options: [
+                "Ayşe kitap okuyor.",
+                "ayşe kitap okuyor.",
+                "Doğru yazılmıştır.",
+              ],
             },
             {
-              text: "Ben izmir’e gittim. -> {blank}",
-              answer: "Ben İzmir’e gittim.",
+              text: "Ben izmire gittim. -> {blank}",
+              answer: "Ben İzmir'e gittim.",
+              options: [
+                "Ben İzmir'e gittim.",
+                "Ben izmire gittim.",
+                "Doğru yazılmıştır.",
+              ],
             },
             {
               text: "Kedim pamuk uyuyor. -> {blank}",
               answer: "Kedim Pamuk uyuyor.",
+              options: [
+                "Kedim Pamuk uyuyor.",
+                "Kedim pamuk uyuyor.",
+                "Doğru yazılmıştır.",
+              ],
             },
             {
               text: "türkiye üç tarafı denizlerle çevrili bir ülkedir. -> {blank}",
               answer: "Türkiye üç tarafı denizlerle çevrili bir ülkedir.",
+              options: [
+                "Türkiye üç tarafı denizlerle çevrili bir ülkedir.",
+                "türkiye üç tarafı denizlerle çevrili bir ülkedir.",
+                "Doğru yazılmıştır.",
+              ],
             },
             {
               text: "Ali yeni bir kalem aldı. -> {blank}",
               answer: "Doğru yazılmıştır.",
+              options: [
+                "Ali yeni bir kalem aldı.",
+                "ali Yeni bir kalem aldı.",
+                "Doğru yazılmıştır.",
+              ],
             },
-          ],
-          words: [
-            "Ayşe kitap okuyor.",
-            "Ben İzmir’e gittim.",
-            "Kedim Pamuk uyuyor.",
-            "Türkiye üç tarafı denizlerle çevrili bir ülkedir.",
-            "Doğru yazılmıştır.",
           ],
         },
         {
@@ -995,7 +1015,7 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
         {
           type: "info",
           title: "Konu Anlatımı: Alfabetik Sıralama",
-          text: "Kelimeleri sözlükteki gibi sıraya dizerken alfabedeki harf sırasını kullanırız. Buna alfabetik sıralama denir.\n    \n    Önce kelimelerin ilk harfine bakarız. Alfabede önce gelen harfle başlayan kelime önce yazılır.\n    \n    Örnek:\n    Armut, balık, defter\n    A harfi B harfinden önce geldiği için armut önce gelir.\n    \n    Eğer kelimelerin ilk harfi aynıysa ikinci harfe bakarız.\n    \n    Örnek:\n    Bal, bebek, biber\n    Hepsi b harfiyle başlar. İkinci harflere bakarız: a, e, i. Alfabede a önce geldiği için bal ilk sırada olur.",
+          text: "Alfabemiz\n    \n    A B C Ç D E F G Ğ H I İ J K L M N O Ö P R S Ş T U Ü V Y Z\n    \n    Kelimeleri sözlükteki gibi sıraya dizerken alfabedeki harf sırasını kullanırız. Buna alfabetik sıralama denir.\n    \n    Önce kelimelerin ilk harfine bakarız. Alfabede önce gelen harfle başlayan kelime önce yazılır.\n    \n    Örnek:\n    Armut, balık, defter\n    A harfi B harfinden önce geldiği için armut önce gelir.\n    \n    Eğer kelimelerin ilk harfi aynıysa ikinci harfe bakarız.\n    \n    Örnek:\n    Bal, bebek, biber\n    Hepsi b harfiyle başlar. İkinci harflere bakarız: a, e, i. Alfabede a önce geldiği için bal ilk sırada olur.",
         },
         {
           type: "multiple_choice",
@@ -1100,7 +1120,7 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
           type: "info",
           title: "Türkiye’nin Denizleri",
           image: "/turkce-hazinem/5.harita.png",
-          text: "Türkiye’nin çevresinde dört önemli deniz vardır. Kuzeyde Karadeniz, güneyde Akdeniz, batıda Ege Denizi bulunur. Marmara Denizi ise Türkiye’nin içinde yer alan özel bir iç denizdir. Bu denizlerin her birinin kendine özgü bir yeri ve özelliği vardır.\n\nKaradeniz, Türkiye’nin kuzeyindedir. Yağışlı havası, güçlü dalgaları ve yeşil kıyılarıyla bilinir. Akdeniz, Türkiye’nin güneyindedir. Sıcak kıyıları, güneşli havası, portakal ve limon bahçeleriyle tanınır. Ege Denizi, Türkiye’nin batısındadır. Girintili çıkıntılı kıyıları, koyları ve sahil şehirleriyle dikkat çeker.\n\nMarmara Denizi ise Türkiye’nin iç denizidir. İstanbul ve Çanakkale Boğazlarıyla bağlantılıdır. Denizler ülkemize sadece güzellik katmaz. Balıkçılık, gemi ulaşımı, turizm ve deniz canlılarının yaşamı için de çok önemlidir. Denizleri öğrenmek, Türkiye haritasını daha iyi tanımamıza yardım eder.",
+          text: "Türkiye’nin çevresinde üç, içinde ise bir önemli deniz vardır. Kuzeyde Karadeniz, güneyde Akdeniz, batıda Ege Denizi bulunur. Marmara Denizi ise Türkiye’nin içinde yer alan özel bir iç denizdir. Bu denizlerin her birinin kendine özgü bir yeri ve özelliği vardır.\n\nKaradeniz, Türkiye’nin kuzeyindedir. Yağışlı havası, güçlü dalgaları ve yeşil kıyılarıyla bilinir. Akdeniz, Türkiye’nin güneyindedir. Sıcak kıyıları, güneşli havası, portakal ve limon bahçeleriyle tanınır. Ege Denizi, Türkiye’nin batısındadır. Girintili çıkıntılı kıyıları, koyları ve sahil şehirleriyle dikkat çeker.\n\nMarmara Denizi ise Türkiye’nin iç denizidir. İstanbul ve Çanakkale Boğazlarıyla bağlantılıdır. Denizler ülkemize sadece güzellik katmaz. Balıkçılık, gemi ulaşımı, turizm ve deniz canlılarının yaşamı için de çok önemlidir. Denizleri öğrenmek, Türkiye haritasını daha iyi tanımamıza yardım eder.",
         },
         {
           type: "image_hotspots",
@@ -1194,7 +1214,7 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
     okuyorumAnliyorum: {
       title: "Kayıp Silgi",
       theme: "Nezaket - Kısa hikaye",
-      text: "Can sınıfta öğretmenini bekliyordu. Yanındaki Sıla çantasını karıştırıyordu. Sıla pembe silgisini bulamamıştı. Can sıranın altına baktı. Küçük pembe silgi oradaydı. Can silgiyi aldı. Sıla’ya uzattı. Sıla gülümseyerek teşekkür etti.",
+      text: "Can sınıfta öğretmenini bekliyordu. Yanındaki arkadaşı Sıla çantasını karıştırıyordu. Sıla pembe silgisini bulamamıştı. Can sıranın altına baktı. Küçük pembe silgi oradaydı. Can silgiyi aldı. Sıla’ya uzattı. Sıla gülümsedi ve teşekkür etti.",
       questions: [
         {
           q: "Can nerede bekliyordu?",
@@ -1900,7 +1920,7 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
     okuyorumAnliyorum: {
       title: "Kırmızı Işık",
       theme: "Güvenlik ve kurallar - Kısa hikaye",
-      text: "Mert ve annesi markete gitmek için evden çıktı. Büyük caddenin kenarındaki kaldırımdan yürüdüler. Yaya geçidine geldiklerinde durdular. Trafik lambasında kırmızı insan işareti yanıyordu. Mert annesinin elini tuttu. Bir süre beklediler. Yeşil insan işareti yanınca karşıya geçtiler. Mert kurala uyduğu için güvenle yürüdü.",
+      text: "Mert ve annesi markete gitmek için evden çıktı. Büyük caddenin kenarındaki kaldırımdan yürüdüler. Yaya geçidine geldiklerinde durdular. Trafik lambasında kırmızı ışık yanıyordu. Mert annesinin elini tuttu. Bir süre beklediler. Yeşil ışık yanınca karşıya geçtiler. Mert kurala uyduğu için güvenle yürüdü.",
       questions: [
         {
           q: "Mert ve annesi nereye gitmek için çıktı?",
@@ -1914,7 +1934,7 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
         },
         {
           q: "Yaya geçidinde önce hangi işaret yanıyordu?",
-          options: ["Kırmızı insan işareti", "Mavi yıldız", "Sarı araba"],
+          options: ["Kırmızı ışık", "Mavi yıldız", "Sarı araba"],
           correct: 0,
         },
         {
@@ -1925,7 +1945,7 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
         {
           q: "Ne zaman karşıya geçtiler?",
           options: [
-            "Yeşil insan işareti yanınca",
+            "Yeşil ışık yanınca",
             "Kırmızı ışık yanınca",
             "Hiç beklemeden",
           ],
@@ -2811,57 +2831,27 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
             {
               text: "Kedi {blank}",
               answer: "Kediler",
-              options: [
-                "Kediler",
-                "Arabalar",
-                "Defterler",
-                "Çocuklar",
-                "Kuşlar",
-              ],
+              options: ["Kediler", "Kedilar", "Kedilor", "Kedilir"],
             },
             {
               text: "Araba {blank}",
               answer: "Arabalar",
-              options: [
-                "Kediler",
-                "Arabalar",
-                "Defterler",
-                "Çocuklar",
-                "Kuşlar",
-              ],
+              options: ["Arabalor", "Arabalar", "Arabalir", "Arabaler"],
             },
             {
               text: "Defter {blank}",
               answer: "Defterler",
-              options: [
-                "Kediler",
-                "Arabalar",
-                "Defterler",
-                "Çocuklar",
-                "Kuşlar",
-              ],
+              options: ["Defterlar", "Defterlor", "Defterler", "Defterlir"],
             },
             {
               text: "Çocuk {blank}",
               answer: "Çocuklar",
-              options: [
-                "Kediler",
-                "Arabalar",
-                "Defterler",
-                "Çocuklar",
-                "Kuşlar",
-              ],
+              options: ["Çocukler", "Çocuklor", "Çocuklir", "Çocuklar"],
             },
             {
               text: "Kuş {blank}",
               answer: "Kuşlar",
-              options: [
-                "Kediler",
-                "Arabalar",
-                "Defterler",
-                "Çocuklar",
-                "Kuşlar",
-              ],
+              options: ["Kuşler", "Kuşlir", "Kuşlor", "Kuşlar"],
             },
           ],
         },
@@ -2886,17 +2876,17 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
               correct: 1,
             },
             {
-              q: "Masada ............... vardı.",
+              q: "Masada ............... vardı. (Çoğul)",
               options: ["kalemler", "kalem"],
               correct: 0,
             },
             {
-              q: "Sınıfta ............... vardı.",
+              q: "Sınıfta ............... vardı. (Çoğul)",
               options: ["çocuklar", "çocuk"],
               correct: 0,
             },
             {
-              q: "Ağaçta ............... vardı.",
+              q: "Ağaçta ............... vardı. (Çoğul)",
               options: ["kuşlar", "kuş"],
               correct: 0,
             },
@@ -3067,29 +3057,29 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
           title: "Etkinlik 1: Ön Adı Bul",
           sentences: [
             {
-              text: "Kırmızı çanta {blank}",
+              text: "Kırmızı çanta -> Ön ad hangisidir? {blank}",
               answer: "Kırmızı",
-              options: ["Kırmızı", "Yuvarlak", "Temiz", "Büyük", "Mavi"],
+              options: ["Kırmızı", "çanta"],
             },
             {
-              text: "Yuvarlak masa {blank}",
+              text: "Yuvarlak masa -> Ön ad hangisidir? {blank}",
               answer: "Yuvarlak",
-              options: ["Kırmızı", "Yuvarlak", "Temiz", "Büyük", "Mavi"],
+              options: ["Yuvarlak", "masa"],
             },
             {
-              text: "Temiz oda {blank}",
+              text: "Temiz oda -> Ön ad hangisidir? {blank}",
               answer: "Temiz",
-              options: ["Kırmızı", "Yuvarlak", "Temiz", "Büyük", "Mavi"],
+              options: ["Temiz", "oda"],
             },
             {
-              text: "Büyük kutu {blank}",
+              text: "Büyük kutu -> Ön ad hangisidir? {blank}",
               answer: "Büyük",
-              options: ["Kırmızı", "Yuvarlak", "Temiz", "Büyük", "Mavi"],
+              options: ["Büyük", "kutu"],
             },
             {
-              text: "Mavi kalem {blank}",
+              text: "Mavi kalem -> Ön ad hangisidir? {blank}",
               answer: "Mavi",
-              options: ["Kırmızı", "Yuvarlak", "Temiz", "Büyük", "Mavi"],
+              options: ["Mavi", "kalem"],
             },
           ],
         },
@@ -3141,7 +3131,7 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
           desc: "Yiyeceği veya içeceği doğru görselle eşleştir.",
           questions: [
             {
-              q: "Aşağıdakilerden hangisi Simit'tir?",
+              q: "Aşağıdakilerden hangisi simittir?",
               imageOptions: [
                 { src: "/turkce-hazinem/15.simit.png" },
                 { src: "/turkce-hazinem/15.cay.png" },
@@ -3150,7 +3140,7 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
               correct: 0,
             },
             {
-              q: "Aşağıdakilerden hangisi Çay'dır?",
+              q: "Aşağıdakilerden hangisi çaydır?",
               imageOptions: [
                 { src: "/turkce-hazinem/15.baklava.png" },
                 { src: "/turkce-hazinem/15.cay.png" },
@@ -3159,7 +3149,7 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
               correct: 1,
             },
             {
-              q: "Aşağıdakilerden hangisi Baklava'dır?",
+              q: "Aşağıdakilerden hangisi baklavadır?",
               imageOptions: [
                 { src: "/turkce-hazinem/15.simit.png" },
                 { src: "/turkce-hazinem/15.dolma.png" },
@@ -3177,7 +3167,7 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
               correct: 0,
             },
             {
-              q: "Aşağıdakilerden hangisi Dolma'dır?",
+              q: "Aşağıdakilerden hangisi dolmadır?",
               imageOptions: [
                 { src: "/turkce-hazinem/15.dolma.png" },
                 { src: "/turkce-hazinem/15.baklava.png" },
@@ -3292,29 +3282,29 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
           title: "Etkinlik 1: Eylemi Bul",
           sentences: [
             {
-              text: "Ali koştu. {blank}",
+              text: "Ali koştu. -> Eylem hangisidir? {blank}",
               answer: "koştu",
-              options: ["koştu", "uyuyor", "okudu", "uçuyor", "yaptı"],
+              options: ["Ali", "koştu"],
             },
             {
-              text: "Kedi uyuyor. {blank}",
+              text: "Kedi uyuyor. -> Eylem hangisidir? {blank}",
               answer: "uyuyor",
-              options: ["koştu", "uyuyor", "okudu", "uçuyor", "yaptı"],
+              options: ["Kedi", "uyuyor"],
             },
             {
-              text: "Elif kitap okudu. {blank}",
+              text: "Elif kitap okudu. -> Eylem hangisidir? {blank}",
               answer: "okudu",
-              options: ["koştu", "uyuyor", "okudu", "uçuyor", "yaptı"],
+              options: ["kitap", "okudu"],
             },
             {
-              text: "Kuş uçuyor. {blank}",
+              text: "Kuş uçuyor. -> Eylem hangisidir? {blank}",
               answer: "uçuyor",
-              options: ["koştu", "uyuyor", "okudu", "uçuyor", "yaptı"],
+              options: ["Kuş", "uçuyor"],
             },
             {
-              text: "Annem yemek yaptı. {blank}",
+              text: "Annem yemek yaptı. -> Eylem hangisidir? {blank}",
               answer: "yaptı",
-              options: ["koştu", "uyuyor", "okudu", "uçuyor", "yaptı"],
+              options: ["yemek", "yaptı"],
             },
           ],
         },
@@ -3515,29 +3505,29 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
           title: "Etkinlik 1: Eylemi Bul",
           sentences: [
             {
-              text: "Ali koştu. {blank}",
+              text: "Ali koştu. -> Eylem hangisidir? {blank}",
               answer: "koştu",
-              options: ["koştu", "uyuyor", "okudu", "uçuyor", "yaptı"],
+              options: ["Ali", "koştu"],
             },
             {
-              text: "Kedi uyuyor. {blank}",
+              text: "Kedi uyuyor. -> Eylem hangisidir? {blank}",
               answer: "uyuyor",
-              options: ["koştu", "uyuyor", "okudu", "uçuyor", "yaptı"],
+              options: ["Kedi", "uyuyor"],
             },
             {
-              text: "Elif kitap okudu. {blank}",
+              text: "Elif kitap okudu. -> Eylem hangisidir? {blank}",
               answer: "okudu",
-              options: ["koştu", "uyuyor", "okudu", "uçuyor", "yaptı"],
+              options: ["kitap", "okudu"],
             },
             {
-              text: "Kuş uçuyor. {blank}",
+              text: "Kuş uçuyor. -> Eylem hangisidir? {blank}",
               answer: "uçuyor",
-              options: ["koştu", "uyuyor", "okudu", "uçuyor", "yaptı"],
+              options: ["Kuş", "uçuyor"],
             },
             {
-              text: "Annem yemek yaptı. {blank}",
+              text: "Annem yemek yaptı. -> Eylem hangisidir? {blank}",
               answer: "yaptı",
-              options: ["koştu", "uyuyor", "okudu", "uçuyor", "yaptı"],
+              options: ["yemek", "yaptı"],
             },
           ],
         },
@@ -4137,7 +4127,7 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
     okuyorumAnliyorum: {
       title: "Odamı Topluyorum",
       theme: "Sorumluluk - Hikaye",
-      text: "Murat okuldan sonra odasında uzun süre oyun oynadı. Arkadaşı eve gidince odasına baktı. Legolar masanın üstünde, arabalar yatağın altında, kartlar halının üzerinde duruyordu. Ayrıca kirli çorapları kapının yanında unutulmuştu. Murat önce odasının çok karışık olduğunu fark etti. Bir an nereden başlayacağını bilemedi. Sonra eşyaları gruplara ayırmaya karar verdi. Legoları mavi kutuya topladı. Arabaları kitaplığın alt rafına dizdi. Kartları küçük kutusuna yerleştirdi. Kirli çoraplarını çamaşır sepetine attı. Çalışma masasının üzerindeki kalemleri de kalemliğe koydu. Son olarak halının üstünü kontrol etti. Oda düzenlenince Murat daha rahat hissetti. Eşyaları yerine koymanın, bir sonraki oyunu daha kolay başlatacağını düşündü.",
+      text: "Murat okuldan sonra arkadaşı ile odasında oyun oynuyordu. Arkadaşı eve gidince odasına baktı. Legolar masanın üstünde, arabalar yatağın altında, kartlar halının üzerinde duruyordu. Ayrıca kirli çorapları kapının yanında unutulmuştu. Murat önce odasının çok karışık olduğunu fark etti. Bir an nereden başlayacağını bilemedi. Sonra eşyaları gruplara ayırmaya karar verdi. Legoları mavi kutuya topladı. Arabaları kitaplığın alt rafına dizdi. Kartları küçük kutusuna yerleştirdi. Kirli çoraplarını çamaşır sepetine attı. Çalışma masasının üzerindeki kalemleri de kalemliğe koydu. Son olarak halının üstünü kontrol etti. Oda düzenlenince Murat daha rahat hissetti. Eşyaları yerine koymanın, bir sonraki oyunu daha kolay başlatacağını düşündü.",
       questions: [
         {
           q: "Murat ne yaptıktan sonra odasına baktı?",
@@ -4258,8 +4248,8 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
             },
             {
               text: "Annem yemek yaptı. Ne yaptı? {blank}",
-              answer: "Yaptı",
-              options: ["Koştu", "Okudu", "Uçtu", "Uyudu", "Yaptı"],
+              answer: "Yemek yaptı",
+              options: ["Koştu", "Okudu", "Uçtu", "Uyudu", "Yemek yaptı"],
             },
           ],
         },
@@ -4735,60 +4725,49 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
           text: "Bir paragraf, aynı konu etrafında bir araya gelen cümlelerden oluşur. Paragraftaki cümleler karışık olmamalıdır. Önce olay ya da düşünce başlar, sonra gelişir, en sonunda tamamlanır.\nÖrnek:\nÖnce: Ali bahçeye çıktı.\nSonra: Yerde boş bir kutu gördü.\nSon olarak: Kutuyu çöp kutusuna attı.\n\nBu cümleler doğru sıraya konduğunda anlamlı bir paragraf olur.\nParagrafı düzenlerken “Önce ne oldu? Sonra ne oldu? En sonunda ne oldu?” diye düşünürüz.",
         },
         {
-          type: "fill_in_blanks",
+          type: "sorting",
           title: "Etkinlik 1: Olayı Sıraya Koy 1",
           desc: "Aşağıdaki cümleleri doğru sıraya koy.",
-          sentences: [
-            { text: "1. {blank}", answer: "Elif uyandı." },
-            { text: "2. {blank}", answer: "Dişlerini fırçaladı." },
-            { text: "3. {blank}", answer: "Kahvaltı yaptı." },
-            { text: "4. {blank}", answer: "Okul çantasını hazırladı." },
+          items: [
+            { category: "1. Olay", label: "Elif uyandı." },
+            { category: "2. Olay", label: "Kahvaltısını yaptı." },
+            { category: "3. Olay", label: "Dişlerini fırçaladı." },
+            { category: "4. Olay", label: "Çantasını alıp evden çıktı." },
           ],
-          words: [
-            "Dişlerini fırçaladı.",
-            "Elif uyandı.",
-            "Okul çantasını hazırladı.",
-            "Kahvaltı yaptı.",
-          ],
+          categories: ["1. Olay", "2. Olay", "3. Olay", "4. Olay"],
         },
         {
-          type: "fill_in_blanks",
+          type: "sorting",
           title: "Etkinlik 2: Olayı Sıraya Koy 2",
           desc: "Aşağıdaki cümleleri doğru sıraya koy.",
-          sentences: [
-            { text: "1. {blank}", answer: "Mert parka gitti." },
-            { text: "2. {blank}", answer: "Arkadaşıyla karşılaştı." },
-            { text: "3. {blank}", answer: "Topunu aldı." },
-            { text: "4. {blank}", answer: "Topu arkadaşına attı." },
-            { text: "5. {blank}", answer: "Birlikte oyun oynadılar." },
+          items: [
+            { category: "1. Olay", label: "Mert parka gitti." },
+            { category: "2. Olay", label: "Arkadaşıyla karşılaştı." },
+            { category: "3. Olay", label: "Topunu aldı." },
+            { category: "4. Olay", label: "Topu arkadaşına attı." },
+            { category: "5. Olay", label: "Birlikte oyun oynadılar." },
           ],
-          words: [
-            "Mert parka gitti.",
-            "Topunu aldı.",
-            "Arkadaşıyla karşılaştı.",
-            "Topu arkadaşına attı.",
-            "Birlikte oyun oynadılar.",
-          ],
+          categories: ["1. Olay", "2. Olay", "3. Olay", "4. Olay", "5. Olay"],
         },
         {
-          type: "fill_in_blanks",
+          type: "sorting",
           title: "Etkinlik 3: Olayı Sıraya Koy 3",
           desc: "Aşağıdaki cümleleri doğru sıraya koy.",
-          sentences: [
-            { text: "1. {blank}", answer: "Zeynep bahçeye çıktı." },
-            { text: "2. {blank}", answer: "Bahçedeki çiçekleri gördü." },
-            { text: "3. {blank}", answer: "Sulama kabını aldı." },
-            { text: "4. {blank}", answer: "Çiçekleri suladı." },
-            { text: "5. {blank}", answer: "Kuruyan yaprakları topladı." },
-            { text: "6. {blank}", answer: "Bahçeyi temiz bıraktı." },
+          items: [
+            { category: "1. Olay", label: "Zeynep bahçeye çıktı." },
+            { category: "2. Olay", label: "Önce bahçedeki çiçekleri gördü." },
+            { category: "3. Olay", label: "Sulama kabını aldı." },
+            { category: "4. Olay", label: "Çiçekleri suladı." },
+            { category: "5. Olay", label: "Sonra kuruyan yaprakları topladı." },
+            { category: "6. Olay", label: "Bahçeyi temiz bıraktı." },
           ],
-          words: [
-            "Zeynep bahçeye çıktı.",
-            "Bahçedeki çiçekleri gördü.",
-            "Sulama kabını aldı.",
-            "Çiçekleri suladı.",
-            "Kuruyan yaprakları topladı.",
-            "Bahçeyi temiz bıraktı.",
+          categories: [
+            "1. Olay",
+            "2. Olay",
+            "3. Olay",
+            "4. Olay",
+            "5. Olay",
+            "6. Olay",
           ],
         },
         {
@@ -4967,7 +4946,7 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
         {
           type: "info",
           title: "Deyimler",
-          text: "Deyimler, gerçek anlamından farklı bir anlam taşıyan kalıplaşmış sözlerdir. Deyimleri kelime kelime düşünürsek bazen anlamını bulamayız. Cümlede ne anlatmak istediğine bakmamız gerekir.\nÖrnek:\nKulak misafiri olmak\nBu deyim, bir konuşmayı istemeden duymak anlamına gelir.\n\nEtekleri zil çalmak\nBu deyim, çok sevinmek anlamına gelir.\n\nAğzı kulaklarına varmak\nBu deyim, çok mutlu olmak anlamına gelir.\n\nDeyimler konuşmayı daha renkli hale getirir.",
+          text: "Deyimler, gerçek anlamından farklı bir anlam taşıyan kalıplaşmış sözlerdir. Deyimleri kelime kelime düşünürsek bazen anlamını bulamayız. Cümlede ne anlatmak istediğine bakmamız gerekir.\nÖrnek:\nKulak misafiri olmak\nBu deyim, bir konuşmayı istemeden duymak anlamına gelir.\n\nEtekleri zil çalmak\nBu deyim, sevinçten yerinde duramamak anlamına gelir.\n\nAğzı kulaklarına varmak\nBu deyim, çok mutlu olmak anlamına gelir.\n\nDeyimler konuşmayı daha renkli hale getirir.",
         },
         {
           type: "fill_in_blanks",
@@ -4986,10 +4965,10 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
             },
             {
               text: "Etekleri zil çalmak {blank}",
-              answer: "Çok sevinmek",
+              answer: "Sevinçten yerinde duramamak",
               options: [
                 "Bir konuşmayı istemeden duymak",
-                "Çok sevinmek",
+                "Sevinçten yerinde duramamak",
                 "Çok mutlu olmak",
                 "Çok dikkatli korumak",
                 "Heyecandan ne yapacağını şaşırmak",
@@ -5102,7 +5081,10 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
             },
             {
               q: "“Eli ayağına dolaşmak” ne demektir?",
-              options: ["Heyecanlanıp karışmak", "Koşmak"],
+              options: [
+                "Heyecanlanıp hareketlerini kontrol edememek",
+                "Koşmak",
+              ],
               correct: 0,
             },
             {
@@ -5154,8 +5136,8 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
             },
             {
               text: "Cumhuriyet Türkiye için yeni bir {blank} anlatır.",
-              answer: "başlangıcı",
-              options: ["29", "söz", "Bayramı", "başlangıcı"],
+              answer: "başlangıç",
+              options: ["29", "söz", "Bayramı", "başlangıç"],
             },
           ],
         },
@@ -5473,6 +5455,71 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
             },
           ],
         },
+        {
+          type: "multiple_choice",
+          title: "Etkinlik 3: Karadeniz Bölgesi Testi",
+          questions: [
+            {
+              q: "Karadeniz Bölgesi Türkiye'nin hangi yönünde yer alır?",
+              options: ["Güneyinde", "Doğusunda", "Kuzeyinde", "Batısında"],
+              correct: 2,
+            },
+            {
+              q: "Karadeniz Bölgesi'nin en önemli özelliklerinden biri hangisidir?",
+              options: [
+                "Çok kurak olması",
+                "Bol yağış alması",
+                "Çöl iklimine sahip olması",
+                "Hiç orman bulunmaması",
+              ],
+              correct: 1,
+            },
+            {
+              q: "Aşağıdaki şehirlerden hangisi Karadeniz Bölgesi ile bağlantılıdır?",
+              options: ["Antalya", "İzmir", "Rize", "Konya"],
+              correct: 2,
+            },
+            {
+              q: "Karadeniz Bölgesi'nde yetiştirilen önemli ürünlerden biri hangisidir?",
+              options: ["Muz", "Çay", "Pamuk", "Zeytin"],
+              correct: 1,
+            },
+            {
+              q: "Ordu ve Giresun hangi ürünle tanınır?",
+              options: ["Elma", "Çay", "Fındık", "Portakal"],
+              correct: 2,
+            },
+            {
+              q: "Karadeniz Bölgesi'nde ulaşımın bazı yerlerde zorlaşmasının nedeni nedir?",
+              options: [
+                "Çöllerin fazla olması",
+                "Dağların kıyıya paralel uzanması",
+                "Hiç yol olmaması",
+                "Nüfusun çok az olması",
+              ],
+              correct: 1,
+            },
+            {
+              q: "Yaylalar neden kullanılır?",
+              options: [
+                "Deniz taşımacılığı yapmak için",
+                "Fabrika kurmak için",
+                "Serinlemek ve hayvancılık yapmak için",
+                "Maden çıkarmak için",
+              ],
+              correct: 2,
+            },
+            {
+              q: "Aşağıdakilerden hangisi Karadeniz kültürünün bir parçasıdır?",
+              options: [
+                "Zeybek ve bağlama",
+                "Kemençe ve horon",
+                "Semazen ve ney",
+              ],
+              correct: 1,
+            },
+          ],
+        },
       ],
     },
   },
@@ -5648,44 +5695,84 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
       ],
     },
     ulkemiOgreniyorum: {
-      title: "Sandık 25: Deyimler",
+      title: "Sandık 25: Türkiye’nin Üç Büyük Şehri",
       activities: [
         {
           type: "info",
-          title: "Deyimler",
-          text: "Deyimler, gerçek anlamından farklı bir anlam taşıyan kısa sözlerdir. Günlük konuşmada sık kullanılır ve anlatımı daha renkli hale getirir.\nÜç deyim örneği:\nKulak misafiri olmak: Bir konuşmayı istemeden duymak.\n Örnek: Annemle ablam konuşurken kulak misafiri oldum.\nEtekleri zil çalmak: Çok sevinmek.\n Örnek: Tatil haberini duyunca etekleri zil çaldı.\nAğzı kulaklarına varmak: Çok mutlu olmak.\n Örnek: Hediyesini görünce ağzı kulaklarına vardı.",
+          title: "Türkiye’nin Üç Büyük Şehri: İstanbul, Ankara ve İzmir",
+          image: "/turkce-hazinem/25.bilgi.png",
+          text: "Türkiye’de birçok şehir vardır. Her şehrin kendine ait özellikleri, tarihi, doğal güzellikleri ve yaşam biçimi bulunur. Bu sandıkta Türkiye’nin en bilinen üç büyük şehrini tanıyacağız: İstanbul, Ankara ve İzmir.\n\nİstanbul, Türkiye’nin en kalabalık şehridir. Hem Avrupa hem de Asya kıtasında toprakları vardır. Bu yüzden İstanbul iki kıtayı birbirine bağlayan özel bir şehirdir. İstanbul Boğazı, şehrin en önemli yerlerinden biridir. Boğaz, Karadeniz ile Marmara Denizi’ni birbirine bağlar. İstanbul’da tarihi camiler, saraylar, köprüler, kalabalık caddeler ve deniz manzaraları bulunur. Ayasofya, Topkapı Sarayı, Sultanahmet Camii, Galata Kulesi ve Kız Kulesi İstanbul’un bilinen yerlerindendir.\n\nAnkara, Türkiye’nin başkentidir. Bir ülkenin başkenti, devlet işlerinin yürütüldüğü önemli şehirdir. Türkiye Büyük Millet Meclisi Ankara’dadır. Ankara, Türkiye’nin orta kısmında yer alır. Bu yüzden ülkenin farklı yerlerine ulaşım açısından önemli bir konumdadır. Ankara deniz kıyısında değildir. Anıtkabir de Ankara’dadır. Anıtkabir, Mustafa Kemal Atatürk’ün anıt mezarıdır ve Türkiye için çok önemli bir yerdir.\n\nİzmir, Türkiye’nin batısında, Ege Denizi kıyısında yer alan büyük bir şehirdir. İzmir denizi, sahilleri, limanı, zeytinlikleri ve sıcak havasıyla bilinir. İzmir’de insanlar denizle iç içe bir yaşam sürer. Kordon, Saat Kulesi, Konak Meydanı ve Efes Antik Kenti çevresi İzmir denince akla gelen yerlerdendir. İzmir, Ege Bölgesi’nin önemli şehirlerinden biridir.\n\nBu üç şehir Türkiye’yi tanımak için güzel örneklerdir. İstanbul tarihi ve kalabalık yapısıyla, Ankara başkent oluşuyla, İzmir ise Ege kıyısındaki denizli yaşamıyla öne çıkar.",
         },
         {
           type: "multiple_choice",
-          title: "Etkinlik 1: Deyimin Anlamını Bul",
-          desc: "Deyimleri doğru anlamlarıyla eşleştir.",
+          title: "Etkinlik 1: Şehri Özelliğiyle Eşleştir",
+          desc: "Görev: Özelliği doğru şehirle eşleştir.",
           questions: [
             {
-              q: "Kulak misafiri olmak",
-              options: [
-                "Çok mutlu olmak",
-                "Bir konuşmayı istemeden duymak",
-                "Çok sevinmek",
-              ],
+              q: "Türkiye’nin başkentidir.",
+              options: ["İstanbul", "Ankara", "İzmir"],
               correct: 1,
             },
             {
-              q: "Etekleri zil çalmak",
-              options: [
-                "Çok mutlu olmak",
-                "Bir konuşmayı istemeden duymak",
-                "Çok sevinmek",
-              ],
+              q: "Hem Avrupa hem Asya kıtasında yer alır.",
+              options: ["İstanbul", "Ankara", "İzmir"],
+              correct: 0,
+            },
+            {
+              q: "Ege Denizi kıyısındadır.",
+              options: ["İstanbul", "Ankara", "İzmir"],
               correct: 2,
             },
             {
-              q: "Ağzı kulaklarına varmak",
-              options: [
-                "Çok mutlu olmak",
-                "Bir konuşmayı istemeden duymak",
-                "Çok sevinmek",
-              ],
+              q: "Anıtkabir bu şehirdedir.",
+              options: ["İstanbul", "Ankara", "İzmir"],
+              correct: 1,
+            },
+            {
+              q: "İstanbul Boğazı bu şehirdedir.",
+              options: ["İstanbul", "Ankara", "İzmir"],
               correct: 0,
+            },
+            {
+              q: "Saat Kulesi ve Kordon bu şehirle bilinir.",
+              options: ["İstanbul", "Ankara", "İzmir"],
+              correct: 2,
+            },
+          ],
+        },
+        {
+          type: "multiple_choice",
+          title: "Etkinlik 2: Doğru Şehri Seç",
+          questions: [
+            {
+              q: "Türkiye’nin en kalabalık şehri hangisidir?",
+              options: ["Ankara", "İstanbul", "İzmir"],
+              correct: 1,
+            },
+            {
+              q: "Türkiye’nin başkenti hangisidir?",
+              options: ["Ankara", "İzmir", "İstanbul"],
+              correct: 0,
+            },
+            {
+              q: "Ege Denizi kıyısında yer alan şehir hangisidir?",
+              options: ["İstanbul", "Ankara", "İzmir"],
+              correct: 2,
+            },
+            {
+              q: "Anıtkabir hangi şehirdedir?",
+              options: ["İzmir", "Ankara", "İstanbul"],
+              correct: 1,
+            },
+            {
+              q: "İstanbul Boğazı hangi şehirde bulunur?",
+              options: ["İstanbul", "Ankara", "İzmir"],
+              correct: 0,
+            },
+            {
+              q: "Konak Saat Kulesi hangi şehirle bilinir?",
+              options: ["Ankara", "İstanbul", "İzmir"],
+              correct: 2,
             },
           ],
         },
@@ -6224,39 +6311,63 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
           text: "Cümle kurarken kelimeleri doğru sıraya koymalıyız. Kelimeler yanlış sıradaysa cümle anlaşılmaz olabilir.\n\nÖrnek:\nYanlış: Okudu Elif kitap.\nDoğru: Elif kitap okudu.\n\nCümlede genellikle işi yapan kişi ya da varlık önce gelir. Sonra ne yaptığı anlatılır.\nKelimeleri sıraya koyarken cümlenin anlamlı olup olmadığına dikkat ederiz.\nAyrıca cümle büyük harfle başlar ve uygun noktalama işaretiyle biter.",
         },
         {
-          type: "fill_in_blanks",
-          title: "Etkinlik 1: Kelimeleri Sıraya Koy",
+          type: "sorting",
+          title: "Etkinlik 1: Cümle 1",
           desc: "Kelimeleri sıralayarak anlamlı bir cümle oluştur.",
-          sentences: [
-            {
-              text: "kitap, Elif, okudu -> {blank}",
-              answer: "Elif kitap okudu.",
-            },
-            { text: "oynadı, Ali, top -> {blank}", answer: "Ali top oynadı." },
-            {
-              text: "uyudu, kedi, koltukta -> {blank}",
-              answer: "Kedi koltukta uyudu.",
-            },
-            {
-              text: "yaptı, annem, yemek -> {blank}",
-              answer: "Annem yemek yaptı.",
-            },
-            {
-              text: "uçtu, kuş, gökyüzünde -> {blank}",
-              answer: "Kuş gökyüzünde uçtu.",
-            },
+          items: [
+            { category: "1", label: "Elif" },
+            { category: "2", label: "kitap" },
+            { category: "3", label: "okudu." },
           ],
-          words: [
-            "Elif kitap okudu.",
-            "Ali top oynadı.",
-            "Kedi koltukta uyudu.",
-            "Annem yemek yaptı.",
-            "Kuş gökyüzünde uçtu.",
+          categories: ["1", "2", "3"],
+        },
+        {
+          type: "sorting",
+          title: "Etkinlik 2: Cümle 2",
+          desc: "Kelimeleri sıralayarak anlamlı bir cümle oluştur.",
+          items: [
+            { category: "1", label: "Ali" },
+            { category: "2", label: "top" },
+            { category: "3", label: "oynadı." },
           ],
+          categories: ["1", "2", "3"],
+        },
+        {
+          type: "sorting",
+          title: "Etkinlik 3: Cümle 3",
+          desc: "Kelimeleri sıralayarak anlamlı bir cümle oluştur.",
+          items: [
+            { category: "1", label: "Kedi" },
+            { category: "2", label: "koltukta" },
+            { category: "3", label: "uyudu." },
+          ],
+          categories: ["1", "2", "3"],
+        },
+        {
+          type: "sorting",
+          title: "Etkinlik 4: Cümle 4",
+          desc: "Kelimeleri sıralayarak anlamlı bir cümle oluştur.",
+          items: [
+            { category: "1", label: "Annem" },
+            { category: "2", label: "yemek" },
+            { category: "3", label: "yaptı." },
+          ],
+          categories: ["1", "2", "3"],
+        },
+        {
+          type: "sorting",
+          title: "Etkinlik 5: Cümle 5",
+          desc: "Kelimeleri sıralayarak anlamlı bir cümle oluştur.",
+          items: [
+            { category: "1", label: "Kuş" },
+            { category: "2", label: "gökyüzünde" },
+            { category: "3", label: "uçtu." },
+          ],
+          categories: ["1", "2", "3"],
         },
         {
           type: "multiple_choice",
-          title: "Etkinlik 2: Boşluğu Doldur",
+          title: "Etkinlik 6: Boşluğu Doldur",
           desc: "Cümleyi güzelleştirmek için boşluğa uygun ön adı seç.",
           questions: [
             {
@@ -6281,14 +6392,14 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
             },
             {
               q: "______ oda düzenliydi.",
-              options: ["Temiz", "Ekşi", "Uykulu"],
+              options: ["Büyük", "Ekşi", "Uykulu"],
               correct: 0,
             },
           ],
         },
         {
           type: "multiple_choice",
-          title: "Etkinlik 3: Hatalı Cümleyi Düzelt",
+          title: "Etkinlik 7: Hatalı Cümleyi Düzelt",
           desc: "Hatalı cümlenin doğru hâlini seç.",
           questions: [
             {
@@ -6412,7 +6523,7 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
               correct: true,
             },
             {
-              q: "Bayrağımız yeşil zemin üzerine güneşten oluşur.",
+              q: "Bayrağımız kırmızı zemin üzerine sadece aydan oluşur.",
               correct: false,
             },
           ],
@@ -6576,7 +6687,7 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
             {
               q: "Nil yağmurda ıslanan kediye kuru bir kutu hazırladı. Kutunun içine temiz bir bez koydu.",
               options: [
-                "Islak Kediye Yardım",
+                "Islanan Kediye Yardım",
                 "Okulda Yarış",
                 "Bahçedeki Ağaç",
               ],
@@ -6708,7 +6819,7 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
     okuyorumAnliyorum: {
       title: "Bilgi Sandığı",
       theme: "Öğrenme ve gelişim - Final hikayesi",
-      text: "Efe, okulun kütüphanesinde eski görünümlü bir tahta sandık buldu. Sandığın üzerinde “Bilgi paylaştıkça büyür” yazıyordu. Efe önce bunun eski bir eşya olduğunu düşündü. Kütüphane öğretmeni, sandığın özel bir etkinlik için hazırlandığını anlattı. Her öğrenci sandığa yıl boyunca öğrendiği bir bilgiyi küçük bir karta yazacaktı. Kartların üzerinde isim yazmak zorunlu değildi. Önemli olan herkesin öğrendiği bir şeyi sınıfla paylaşmasıydı. Efe önce ne yazacağını bilemedi. Sonra yıl boyunca okudukları metinleri düşündü. Arıların dans ederek haberleşebildiğini hatırladı. Atmosferin Dünya’yı koruduğunu, yaprakların sonbaharda neden renk değiştirdiğini, güneş enerjisinin oyuncak bir arabayı çalıştırabildiğini düşündü. Ayrıca yardım etmenin, paylaşmanın, dürüst olmanın ve empati kurmanın da öğrenilen bilgiler kadar değerli olduğunu fark etti. Bir karta, “Merak etmek öğrenmenin ilk adımıdır,” yazdı. Arkadaşları da kendi kartlarını sandığa bıraktı. Kimi doğayla, kimi sanatla, kimi yardımlaşmayla, kimi de bilimle ilgili bilgiler yazmıştı. Sandık doldukça sınıfın ortak bilgi hazinesi oluştu. Efe, herkesin öğrendiği bir şeyi paylaşınca sınıfın daha da zenginleştiğini gördü. O gün bilgi sandığı sadece kartlarla değil, çocukların merakı, emeği ve düşünceleriyle de doldu.",
+      text: "Efe, okulun kütüphanesinde eski görünümlü bir tahta sandık buldu. Sandığın üzerinde “Bilgi paylaştıkça büyür” yazıyordu. Efe önce bunun eski bir eşya olduğunu düşündü. Öğretmeni, sandığın özel bir etkinlik için hazırlandığını anlattı. Her öğrenci sandığa yıl boyunca öğrendiği bir bilgiyi küçük bir karta yazacaktı. Kartların üzerinde isim yazmak zorunlu değildi. Önemli olan herkesin öğrendiği bir şeyi sınıfla paylaşmasıydı. Efe önce ne yazacağını bilemedi. Sonra yıl boyunca okudukları metinleri düşündü. Arıların dans ederek haberleşebildiğini hatırladı. Atmosferin Dünya’yı koruduğunu, yaprakların sonbaharda neden renk değiştirdiğini, güneş enerjisinin oyuncak bir arabayı çalıştırabildiğini düşündü. Ayrıca yardım etmenin, paylaşmanın, dürüst olmanın ve empati kurmanın da öğrenilen bilgiler kadar değerli olduğunu fark etti. Bir karta, “Merak etmek öğrenmenin ilk adımıdır,” yazdı. Arkadaşları da kendi kartlarını sandığa bıraktı. Kimi doğayla, kimi sanatla, kimi yardımlaşmayla, kimi de bilimle ilgili bilgiler yazmıştı. Sandık doldukça sınıfın ortak bilgi hazinesi oluştu. Efe, herkesin öğrendiği bir şeyi paylaşınca sınıfın daha da zenginleştiğini gördü. O gün bilgi sandığı sadece kartlarla değil, çocukların merakı, emeği ve düşünceleriyle de doldu.",
       questions: [
         {
           q: "Efe sandığı nerede buldu?",
@@ -6800,11 +6911,11 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
           questions: [
             {
               q: "1. Sonra kitabını çantasına koydu.\n2. Elif ödevini bitirdi.\n3. En sonunda annesine gösterdi.\n\nDoğru sıralama hangisidir?",
-              options: ["2, 1, 3", "1, 2, 3", "3, 2, 1"],
+              options: ["2, 3, 1", "1, 2, 3", "3, 2, 1"],
               correct: 0,
             },
             {
-              q: "1. Ali ellerini yıkadı.\n2. Sonra yemeğe oturdu.\n3. Önce bahçede oyun oynadı.\n\nDoğru sıralama hangisidir?",
+              q: "1. Sonra ellerini yıkadı.\n2. Daha sonra yemeğe oturdu.\n3. Ali bahçede oyun oynuyordu.\n\nDoğru sıralama hangisidir?",
               options: ["3, 1, 2", "1, 2, 3", "2, 3, 1"],
               correct: 0,
             },
@@ -6814,7 +6925,7 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
               correct: 0,
             },
             {
-              q: "1. Zeynep kalemlerini çantasına koydu.\n2. Önce ödevini tamamladı.\n3. Sonra okul çantasını hazırladı.\n\nDoğru sıralama hangisidir?",
+              q: "1. Bitirdikten sonra ödevlerini çantasına koydu.\n2. Zeynep önce ödevini yaptı.\n3. Sonra kalemlerini kalem kutusuna koydu.\n\nDoğru sıralama hangisidir?",
               options: ["2, 1, 3", "1, 2, 3", "3, 1, 2"],
               correct: 0,
             },
@@ -6824,7 +6935,7 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
               correct: 0,
             },
             {
-              q: "1. En sonunda çöpleri geri dönüşüme attılar.\n2. Çocuklar çöpleri topladı.\n3. Önce piknik yaptılar.\n\nDoğru sıralama hangisidir?",
+              q: "1. En sonunda çöpleri geri dönüşüme attılar.\n2. Sonra çocuklar çöpleri topladı.\n3. Ailece piknik yaptılar.\n\nDoğru sıralama hangisidir?",
               options: ["3, 2, 1", "1, 2, 3", "2, 1, 3"],
               correct: 0,
             },
@@ -6834,7 +6945,7 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
               correct: 0,
             },
             {
-              q: "1. Pelin ışığı açtı.\n2. Duvarda büyük bir gölge gördü.\n3. Gölgenin hırkadan oluştuğunu fark etti.\n\nDoğru sıralama hangisidir?",
+              q: "1.  Sonra ışığı açtı.\n2. Pelin duvarda büyük bir gölge gördü.\n3. Gölgenin hırkadan oluştuğunu fark etti.\n\nDoğru sıralama hangisidir?",
               options: ["2, 1, 3", "1, 2, 3", "3, 1, 2"],
               correct: 0,
             },
@@ -6914,49 +7025,64 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
         {
           type: "fill_in_blanks",
           title: "Etkinlik 1: Hatalı Cümleyi Düzelt",
+          desc: "Cümlede yanlış yazım varsa doğrusunu seç. Eğer yanlış yoksa 'Doğru yazılmıştır.' seçeneğini işaretle.",
           sentences: [
             {
-              text: "ayşe kitap okudu. -> {blank}",
-              answer: "Ayşe kitap okudu.",
+              text: "yarın ankara'ya gideceğim. -> {blank}",
+              answer: "Yarın Ankara'ya gideceğim.",
+              options: [
+                "Yarın Ankara'ya gideceğim.",
+                "yarın ankara'ya gideceğim.",
+                "Doğru yazılmıştır.",
+              ],
             },
             {
-              text: "kedim pamuk uyuyor. -> {blank}",
-              answer: "Kedim Pamuk uyuyor.",
+              text: "Bizim Karabaş çok havlıyor. -> {blank}",
+              answer: "Doğru yazılmıştır.",
+              options: [
+                "Doğru yazılmıştır.",
+                "Bizim karabaş çok Havlıyor.",
+                "Bizim Karabaş çok havlıyor.",
+              ],
             },
             {
-              text: "ben ankara’ya gittim. -> {blank}",
-              answer: "Ben Ankara’ya gittim.",
+              text: "babam bana saat aldı. -> {blank}",
+              answer: "Babam bana saat aldı.",
+              options: [
+                "Babam bana saat aldı.",
+                "babam bana saat aldı.",
+                "Doğru yazılmıştır.",
+              ],
             },
             {
-              text: "masa üzerinde kalem var. -> {blank}",
-              answer: "Masa üzerinde kalem var.",
+              text: "Bugün hava çok güzel. -> {blank}",
+              answer: "Doğru yazılmıştır.",
+              options: [
+                "Doğru yazılmıştır.",
+                "bugün hava çok güzel.",
+                "Bugün Hava çok güzel.",
+              ],
             },
-          ],
-          words: [
-            "Ayşe kitap okudu.",
-            "Kedim Pamuk uyuyor.",
-            "Ben Ankara’ya gittim.",
-            "Masa üzerinde kalem var.",
           ],
         },
         {
           type: "fill_in_blanks",
-          title: "Etkinlik 2: Heceleri Birleştir",
+          title: "Etkinlik 2: Karışık Heceleri Birleştir",
           sentences: [
             {
-              text: "ka, lem -> {blank}",
+              text: "lem, ka -> {blank}",
               answer: "kalem",
             },
             {
-              text: "o, kul -> {blank}",
+              text: "kul, o -> {blank}",
               answer: "okul",
             },
             {
-              text: "çan, ta -> {blank}",
+              text: "ta, çan -> {blank}",
               answer: "çanta",
             },
             {
-              text: "a, ra, ba -> {blank}",
+              text: "ba, ra, a -> {blank}",
               answer: "araba",
             },
           ],
@@ -7068,7 +7194,7 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
               answer: "Selanik",
             },
             {
-              text: "23 Nisan çocuklara armağan edilen bir {blank} günüdür.",
+              text: "23 Nisan çocuklara armağan edilen bir {blank} dır.",
               answer: "bayram",
             },
             {
@@ -7132,7 +7258,7 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
         {
           type: "info",
           title: "Tekrar Sandığı 2",
-          text: "Bu sandıkta noktalama, soru eki, zıt anlam, eş anlam ve eş sesli kelimeler tekrar edilir.",
+          text: "Bu sandıkta noktalama, soru eki, zıt anlam ve eş anlamlı kelimeler tekrar edilir.",
         },
         {
           type: "fill_in_blanks",
@@ -7178,18 +7304,7 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
           ],
           categories: ["Küçük", "Öykü", "Soğuk", "Yanıt"],
         },
-        {
-          type: "sorting",
-          title: "Etkinlik 3: Eş Sesli Olanı Seç",
-          desc: "Cümledeki eş sesli kelimenin anlamını eşleştir.",
-          items: [
-            { category: "Çiçek", label: "Gül bahçede açtı." },
-            { category: "Gülmek", label: "Bana bakıp gül." },
-            { category: "Mevsim", label: "Yaz geldi." },
-            { category: "Yazmak", label: "Defterine yaz." },
-          ],
-          categories: ["Çiçek", "Gülmek", "Mevsim", "Yazmak"],
-        },
+
         {
           type: "multiple_choice",
           title: "Etkinlik 4: Doğru Yazımı Seç",
@@ -7229,7 +7344,7 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
         {
           type: "info",
           title: "Tekrar Sandığı 3: Hava, Zafer ve Sofra",
-          text: "Bu tekrar sandığında çocuk hava ve mevsimleri, kitap sevgisini, 30 Ağustos’u, Marmara Bölgesi’ni ve sofra kültürünü tekrar eder.",
+          text: "Bu tekrar sandığında çocuk hava ve mevsimleri, kitap sevgisini, 30 Ağustos’u, Marmara Bölgesi’ni, sofra kültürünü ve eş sesli kelimeleri tekrar eder.",
         },
         {
           type: "true_false",
@@ -7280,80 +7395,16 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
       title: "Tekrar Sandığı 3",
       activities: [
         {
-          type: "multiple_choice",
-          title: "Etkinlik 2: Doğru Cümleyi Seç",
-          questions: [
-            {
-              q: "Birden fazla kitap olduğunu anlatan cümle hangisidir?",
-              options: ["Masada kitap var.", "Masada kitaplar var."],
-              correct: 1,
-            },
-            {
-              q: "Bir kalemin rengini anlatan cümle hangisidir?",
-              options: ["Mavi kalem çantamda.", "Büyük kalem çantamda."],
-              correct: 0,
-            },
-            {
-              q: "İşin çoktan yapıldığını anlatan cümle hangisidir?",
-              options: ["Dün okula gittim.", "Yarın okula gideceğim."],
-              correct: 0,
-            },
-            {
-              q: "İşin şu anda yapıldığını anlatan cümle hangisidir?",
-              options: ["Elif kitap okudu.", "Elif kitap okuyor."],
-              correct: 1,
-            },
-            {
-              q: "İşin yarın yapılacağını anlatan cümle hangisidir?",
-              options: ["Mert parka gidecek.", "Mert parka gitti."],
-              correct: 0,
-            },
-          ],
-        },
-        {
           type: "sorting",
-          title: "Etkinlik 3: Zamanına Göre Eşleştir",
-          desc: "Cümlelerin zamanlarını eşleştir.",
+          title: "Etkinlik 1: Eş Sesli Olanı Seç",
+          desc: "Cümledeki eş sesli kelimenin anlamını eşleştir.",
           items: [
-            { category: "Dün oldu", label: "Dün resim yaptım." },
-            { category: "Şimdi oluyor", label: "Şimdi yemek yiyorum." },
-            { category: "Sonra olacak", label: "Yarın sinemaya gideceğim." },
-            { category: "Dün oldu", label: "Kedi uyudu." },
-            { category: "Şimdi oluyor", label: "Ali koşuyor." },
-            { category: "Sonra olacak", label: "Elif kitap okuyacak." },
+            { category: "Çiçek", label: "Gül bahçede açtı." },
+            { category: "Gülmek", label: "Bana bakıp gül." },
+            { category: "Mevsim", label: "Yaz geldi." },
+            { category: "Yazmak", label: "Defterine yaz." },
           ],
-          categories: ["Dün oldu", "Şimdi oluyor", "Sonra olacak"],
-        },
-        {
-          type: "multiple_choice",
-          title: "Etkinlik 4: Cümleyi Tamamla",
-          questions: [
-            {
-              q: "Kırmızı ............... masada duruyor.",
-              options: ["kalem", "koştu"],
-              correct: 0,
-            },
-            {
-              q: "Ağaçta birçok ............... var.",
-              options: ["kuşlar", "kuş"],
-              correct: 1,
-            },
-            {
-              q: "Şu an yağmur ...............",
-              options: ["yağdı", "yağıyor"],
-              correct: 1,
-            },
-            {
-              q: "Yarın okula ...............",
-              options: ["gideceğim", "gittim"],
-              correct: 0,
-            },
-            {
-              q: "Bahçede küçük bir ............... uyuyor.",
-              options: ["kedi", "kediler"],
-              correct: 0,
-            },
-          ],
+          categories: ["Çiçek", "Gülmek", "Mevsim", "Yazmak"],
         },
       ],
     },
@@ -7503,24 +7554,6 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
         },
         {
           type: "multiple_choice",
-          title: "Etkinlik 3: Gerçek mi Mecaz mı?",
-          questions: [
-            { q: "Sıcak çay içtim.", options: ["Gerçek", "Mecaz"], correct: 0 },
-            { q: "Sıcak karşıladı.", options: ["Gerçek", "Mecaz"], correct: 1 },
-            {
-              q: "Ağır çanta taşıdı.",
-              options: ["Gerçek", "Mecaz"],
-              correct: 0,
-            },
-            {
-              q: "Ağır söz söyledi.",
-              options: ["Gerçek", "Mecaz"],
-              correct: 1,
-            },
-          ],
-        },
-        {
-          type: "multiple_choice",
           title: "Etkinlik 4: Deyimin Anlamı",
           desc: "Deyimin anlamını seç.",
           questions: [
@@ -7563,6 +7596,82 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
                 "Heyecandan ne yapacağını şaşırmak",
               ],
               correct: 3,
+            },
+          ],
+        },
+        {
+          type: "sorting",
+          title: "Etkinlik 5: Zamanına Göre Eşleştir",
+          desc: "Cümlelerin zamanlarını eşleştir.",
+          items: [
+            { category: "Dün oldu", label: "Dün resim yaptım." },
+            { category: "Şimdi oluyor", label: "Şimdi yemek yiyorum." },
+            { category: "Sonra olacak", label: "Yarın sinemaya gideceğim." },
+            { category: "Dün oldu", label: "Kedi uyudu." },
+            { category: "Şimdi oluyor", label: "Ali koşuyor." },
+            { category: "Sonra olacak", label: "Elif kitap okuyacak." },
+          ],
+          categories: ["Dün oldu", "Şimdi oluyor", "Sonra olacak"],
+        },
+        {
+          type: "multiple_choice",
+          title: "Etkinlik 6: Doğru Cümleyi Seç",
+          questions: [
+            {
+              q: "Birden fazla kitap olduğunu anlatan cümle hangisidir?",
+              options: ["Masada kitap var.", "Masada kitaplar var."],
+              correct: 1,
+            },
+            {
+              q: "Bir kalemin rengini anlatan cümle hangisidir?",
+              options: ["Mavi kalem çantamda.", "Büyük kalem çantamda."],
+              correct: 0,
+            },
+            {
+              q: "İşin çoktan yapıldığını anlatan cümle hangisidir?",
+              options: ["Dün okula gittim.", "Yarın okula gideceğim."],
+              correct: 0,
+            },
+            {
+              q: "İşin şu anda yapıldığını anlatan cümle hangisidir?",
+              options: ["Elif kitap okudu.", "Elif kitap okuyor."],
+              correct: 1,
+            },
+            {
+              q: "İşin yarın yapılacağını anlatan cümle hangisidir?",
+              options: ["Mert parka gidecek.", "Mert parka gitti."],
+              correct: 0,
+            },
+          ],
+        },
+        {
+          type: "multiple_choice",
+          title: "Etkinlik 7: Cümleyi Tamamla",
+          questions: [
+            {
+              q: "Kırmızı ............... masada duruyor.",
+              options: ["kalem", "koştu"],
+              correct: 0,
+            },
+            {
+              q: "Ağaçta birçok ............... var.",
+              options: ["kuşlar", "kuş"],
+              correct: 1,
+            },
+            {
+              q: "Şu an yağmur ...............",
+              options: ["yağdı", "yağıyor"],
+              correct: 1,
+            },
+            {
+              q: "Yarın okula ...............",
+              options: ["gideceğim", "gittim"],
+              correct: 0,
+            },
+            {
+              q: "Bahçede küçük bir ............... uyuyor.",
+              options: ["kedi", "kediler"],
+              correct: 0,
             },
           ],
         },
@@ -7691,37 +7800,58 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
           ],
         },
         {
-          type: "fill_in_blanks",
+          type: "sorting",
           title: "Etkinlik 3: Paragrafı Sırala",
           desc: "Aşağıdaki cümleleri doğru sıraya koy.",
-          sentences: [
-            { text: "1. {blank}", answer: "Elif sabah erkenden uyandı." },
-            { text: "2. {blank}", answer: "Kahvaltısını yaptı." },
+          items: [
+            { category: "1. Olay", label: "Elif sabah erkenden uyandı." },
+            { category: "2. Olay", label: "Kahvaltısını yaptı." },
             {
-              text: "3. {blank}",
-              answer: "Çantasını kontrol edip kalemlerini yerleştirdi.",
+              category: "3. Olay",
+              label: "Çantasını kontrol edip kitaplarını yerleştirdi.",
             },
-            { text: "4. {blank}", answer: "Sonra kitabını çantasına koydu." },
-            { text: "5. {blank}", answer: "Okuldan eve gelince dinlendi." },
+            { category: "4. Olay", label: "Sonra evden çıkıp okula gitti." },
             {
-              text: "6. {blank}",
-              answer: "Daha sonra masasına oturup ödevini yapmaya başladı.",
+              category: "5. Olay",
+              label: "Uzun bir günün ardından okuldan eve gelince dinlendi.",
             },
-            { text: "7. {blank}", answer: "Ödevini bitirdi." },
             {
-              text: "8. {blank}",
-              answer: "En sonunda ödevini annesine gösterdi.",
+              category: "6. Olay",
+              label: "Daha sonra masasına oturup ödevini yapmaya başladı.",
+            },
+            { category: "7. Olay", label: "Ödevini bitirdi." },
+            {
+              category: "8. Olay",
+              label: "En sonunda ödevini annesine gösterdi.",
             },
           ],
-          words: [
-            "Sonra kitabını çantasına koydu.",
-            "Elif sabah erkenden uyandı.",
-            "En sonunda ödevini annesine gösterdi.",
-            "Kahvaltısını yaptı.",
-            "Okuldan eve gelince dinlendi.",
-            "Daha sonra masasına oturup ödevini yapmaya başladı.",
-            "Ödevini bitirdi.",
-            "Çantasını kontrol edip kalemlerini yerleştirdi.",
+          categories: [
+            "1. Olay",
+            "2. Olay",
+            "3. Olay",
+            "4. Olay",
+            "5. Olay",
+            "6. Olay",
+            "7. Olay",
+            "8. Olay",
+          ],
+        },
+        {
+          type: "multiple_choice",
+          title: "Etkinlik 4: Gerçek mi Mecaz mı?",
+          questions: [
+            { q: "Sıcak çay içtim.", options: ["Gerçek", "Mecaz"], correct: 0 },
+            { q: "Sıcak karşıladı.", options: ["Gerçek", "Mecaz"], correct: 1 },
+            {
+              q: "Ağır çanta taşıdı.",
+              options: ["Gerçek", "Mecaz"],
+              correct: 0,
+            },
+            {
+              q: "Ağır söz söyledi.",
+              options: ["Gerçek", "Mecaz"],
+              correct: 1,
+            },
           ],
         },
       ],
@@ -7875,32 +8005,32 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
           desc: "Cümledeki boşluğu doğru seçenekle tamamla.",
           questions: [
             {
-              q: "Büyük kelimesinin zıttı {blank} kelimesidir.",
+              q: "Büyük kelimesinin zıttı _______ kelimesidir.",
               options: ["küçük", "uzun"],
               correct: 0,
             },
             {
-              q: "Hikaye kelimesinin eş anlamlısı {blank} kelimesidir.",
+              q: "Hikaye kelimesinin eş anlamlısı _______ kelimesidir.",
               options: ["öykü", "soru"],
               correct: 0,
             },
             {
-              q: "Damlaya damlaya {blank} olur.",
+              q: "Damlaya damlaya _______ olur.",
               options: ["göl", "taş"],
               correct: 0,
             },
             {
-              q: "Bir elin nesi var, iki elin {blank} var.",
+              q: "Bir elin nesi var, iki elin _______ var.",
               options: ["sesi", "rengi"],
               correct: 0,
             },
             {
-              q: "Cümle soru soruyorsa sonuna {blank} konur.",
+              q: "Cümle soru soruyorsa sonuna _______ konur.",
               options: ["soru işareti", "virgül"],
               correct: 0,
             },
             {
-              q: "Liste yaparken kelimelerin arasına {blank} koyabiliriz.",
+              q: "Liste yaparken kelimelerin arasına _______ koyabiliriz.",
               options: ["virgül", "soru işareti"],
               correct: 0,
             },
@@ -7954,9 +8084,6 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
                 "Küçük birikimler zamanla büyür.",
                 "Alışkanlıklar küçük yaşta daha kolay kazanılır.",
                 "Nazik konuşmak sorunları çözmeye yardım eder.",
-                "Büyük ve küçük",
-                "Hikaye ve öykü",
-                "Soru işareti",
               ],
               correct: 0,
             },
@@ -7966,9 +8093,6 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
                 "Küçük birikimler zamanla büyür.",
                 "Alışkanlıklar küçük yaşta daha kolay kazanılır.",
                 "Nazik konuşmak sorunları çözmeye yardım eder.",
-                "Büyük ve küçük",
-                "Hikaye ve öykü",
-                "Soru işareti",
               ],
               correct: 1,
             },
@@ -7978,47 +8102,8 @@ export const CHESTS_CONTENT: Record<string, ChestContent> = {
                 "Küçük birikimler zamanla büyür.",
                 "Alışkanlıklar küçük yaşta daha kolay kazanılır.",
                 "Nazik konuşmak sorunları çözmeye yardım eder.",
-                "Büyük ve küçük",
-                "Hikaye ve öykü",
-                "Soru işareti",
               ],
               correct: 2,
-            },
-            {
-              q: "Zıt anlamlı kelime çifti",
-              options: [
-                "Küçük birikimler zamanla büyür.",
-                "Alışkanlıklar küçük yaşta daha kolay kazanılır.",
-                "Nazik konuşmak sorunları çözmeye yardım eder.",
-                "Büyük ve küçük",
-                "Hikaye ve öykü",
-                "Soru işareti",
-              ],
-              correct: 3,
-            },
-            {
-              q: "Eş anlamlı kelime çifti",
-              options: [
-                "Küçük birikimler zamanla büyür.",
-                "Alışkanlıklar küçük yaşta daha kolay kazanılır.",
-                "Nazik konuşmak sorunları çözmeye yardım eder.",
-                "Büyük ve küçük",
-                "Hikaye ve öykü",
-                "Soru işareti",
-              ],
-              correct: 4,
-            },
-            {
-              q: "Soru cümlesinin sonuna gelen işaret",
-              options: [
-                "Küçük birikimler zamanla büyür.",
-                "Alışkanlıklar küçük yaşta daha kolay kazanılır.",
-                "Nazik konuşmak sorunları çözmeye yardım eder.",
-                "Büyük ve küçük",
-                "Hikaye ve öykü",
-                "Soru işareti",
-              ],
-              correct: 5,
             },
           ],
         },

@@ -45,12 +45,11 @@ export function getCompletedChestsCount(completedTopics: string[]): number {
 }
 
 export function hasCompletedTekrar(topics: string[], tekrarId: number): boolean {
-  // Tekrar sandıkları sadece "Ülkemi Öğreniyorum" (country = -3) bölümüne sahip.
-  // Bu yüzden sadece chest-tekrar-X-3 anahtarını kontrol ediyoruz.
+  // Tekrar sandıkları hem "Dilimi Öğreniyorum" (-2) hem de "Ülkemi Öğreniyorum" (-3) bölümlerine sahiptir.
+  // Bu yüzden her ikisinin de tamamlanmış olduğunu kontrol etmeliyiz.
   const key3 = `chest-tekrar-${tekrarId}-3`;
   const key2 = `chest-tekrar-${tekrarId}-2`;
-  // -3 varsa kesinlikle tamamlanmış; -2 varsa da (lang bölümü olan sandıklar için) tamamlanmış sayılır
-  return topics.includes(key3) || topics.includes(key2);
+  return topics.includes(key3) && topics.includes(key2);
 }
 
 // 6 Adet Tekrar Rozeti Şartı (Görsel Odaklı)

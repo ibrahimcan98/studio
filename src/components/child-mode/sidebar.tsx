@@ -134,9 +134,29 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
       id: 5, title: "💎 Bilge Muhafız", color: "text-indigo-800", bg: "bg-indigo-100/80", border: "border-indigo-200",
       theme: "from-blue-600 via-indigo-700 to-amber-400", badge: "from-indigo-700 to-amber-500", xpText: "text-indigo-700", panel: "bg-[#E8EAF6]", avatarTop: "top-[16%]"
     };
-    return {
+    if (lvl <= 45) return {
       id: 6, title: "👑 Efsanevi Kahraman", color: "text-rose-700", bg: "bg-rose-100/80", border: "border-rose-200",
       theme: "from-rose-400 via-purple-500 to-indigo-600", badge: "from-rose-500 via-indigo-500 to-purple-600", xpText: "text-rose-600", panel: "bg-[#FFF1F2]", avatarTop: "top-[22%]"
+    };
+    if (lvl <= 55) return {
+      id: 6, title: "🦅 Gökyüzü Hakimi", color: "text-sky-700", bg: "bg-sky-100/80", border: "border-sky-200",
+      theme: "from-sky-400 to-blue-600", badge: "from-sky-500 to-blue-700", xpText: "text-sky-600", panel: "bg-[#F0F9FF]", avatarTop: "top-[22%]"
+    };
+    if (lvl <= 65) return {
+      id: 6, title: "🌌 Galaksi Gezgini", color: "text-fuchsia-800", bg: "bg-fuchsia-100/80", border: "border-fuchsia-200",
+      theme: "from-fuchsia-500 to-purple-700", badge: "from-fuchsia-600 to-purple-800", xpText: "text-fuchsia-700", panel: "bg-[#FDF4FF]", avatarTop: "top-[22%]"
+    };
+    if (lvl <= 80) return {
+      id: 6, title: "⚡ Zaman Ustası", color: "text-yellow-700", bg: "bg-yellow-100/80", border: "border-yellow-300",
+      theme: "from-yellow-400 to-amber-600", badge: "from-yellow-500 to-amber-700", xpText: "text-yellow-700", panel: "bg-[#FEFCE8]", avatarTop: "top-[22%]"
+    };
+    if (lvl <= 100) return {
+      id: 6, title: "🔮 Rüya Büyücüsü", color: "text-violet-800", bg: "bg-violet-100/80", border: "border-violet-200",
+      theme: "from-violet-500 to-fuchsia-600", badge: "from-violet-600 to-fuchsia-700", xpText: "text-violet-700", panel: "bg-[#F5F3FF]", avatarTop: "top-[22%]"
+    };
+    return {
+      id: 6, title: "🌟 Sonsuz Işık", color: "text-amber-800", bg: "bg-amber-100/80", border: "border-amber-300",
+      theme: "from-amber-400 via-orange-500 to-rose-600", badge: "from-amber-500 via-orange-600 to-rose-700", xpText: "text-amber-700", panel: "bg-[#FFFBEB]", avatarTop: "top-[22%]"
     };
   };
 
@@ -219,7 +239,12 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
                       { l: "13-20", t: "🏹 Orman Rehberi", d: "Yolları keşfeden rehberler" },
                       { l: "21-28", t: "🛡️ Cesur Gezgin", d: "Zorlukları aşan gezginler" },
                       { l: "29-35", t: "💎 Bilge Muhafız", d: "Bilginin koruyucuları" },
-                      { l: "36+", t: "👑 Efsanevi Kahraman", d: "Maceranın efsanesi!" },
+                      { l: "36-45", t: "👑 Efsanevi Kahraman", d: "Maceranın efsanesi!" },
+                      { l: "46-55", t: "🦅 Gökyüzü Hakimi", d: "Yükseklerin fatihi" },
+                      { l: "56-65", t: "🌌 Galaksi Gezgini", d: "Yıldızların arasında" },
+                      { l: "66-80", t: "⚡ Zaman Ustası", d: "Geçmişin ve geleceğin hakimi" },
+                      { l: "81-100", t: "🔮 Rüya Büyücüsü", d: "Düşlerin sırrını çözenler" },
+                      { l: "101+", t: "🌟 Sonsuz Işık", d: "Evrenin aydınlığı" },
                     ].map((r, i) => (
                       <div key={i} className={cn("flex items-center gap-3 p-3 rounded-xl border-2", level >= parseInt(r.l.split('-')[0]) ? "bg-amber-50 border-amber-200" : "opacity-30 grayscale")}>
                         <div className="flex-1">
@@ -830,7 +855,12 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
                               { l: "13-20", t: "🏹 Orman Rehberi", d: "Yolları keşfeden rehberler" },
                               { l: "21-28", t: "🛡️ Cesur Gezgin", d: "Zorlukları aşan gezginler" },
                               { l: "29-35", t: "💎 Bilge Muhafız", d: "Bilginin koruyucuları" },
-                              { l: "36+", t: "👑 Efsanevi Kahraman", d: "Maceranın efsanesi!" },
+                              { l: "36-45", t: "👑 Efsanevi Kahraman", d: "Maceranın efsanesi!" },
+                              { l: "46-55", t: "🦅 Gökyüzü Hakimi", d: "Yükseklerin fatihi" },
+                              { l: "56-65", t: "🌌 Galaksi Gezgini", d: "Yıldızların arasında" },
+                              { l: "66-80", t: "⚡ Zaman Ustası", d: "Geçmişin ve geleceğin hakimi" },
+                              { l: "81-100", t: "🔮 Rüya Büyücüsü", d: "Düşlerin sırrını çözenler" },
+                              { l: "101+", t: "🌟 Sonsuz Işık", d: "Evrenin aydınlığı" },
                             ].map((r, i) => (
                               <div key={i} className={cn("flex items-center gap-3 p-3 rounded-xl border-2", level >= parseInt(r.l.split('-')[0]) ? "bg-amber-50 border-amber-200" : "opacity-30 grayscale")}>
                                 <div className="flex-1">

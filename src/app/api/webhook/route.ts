@@ -5,6 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { sendAdminNotification, sendUserPaymentReceipt, sendAdminEmail } from '@/lib/notify';
 import { getAdminPurchaseTemplate } from '@/lib/email-templates';
 import { sendMetaEvent } from '@/lib/meta-pixel';
+import { SUBSCRIPTION_TIERS } from '@/constants/subscriptions';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-06-20',
@@ -47,6 +48,7 @@ export async function POST(req: Request) {
             const userId = session.metadata?.userId;
             const tierId = session.metadata?.tierId;
             const selectedPeriod = session.metadata?.selectedPeriod || 'monthly';
+            const childCount = session.metadata?.childCount ? parseInt(session.metadata.childCount, 10) : 1;
 
             if (userId && tierId) {
                 let current_period_end: number | null = null;
@@ -64,6 +66,7 @@ export async function POST(req: Request) {
                     subscriptionPeriod: selectedPeriod,
                     stripeSubscriptionId: session.subscription,
                     stripeCustomerId: session.customer,
+                    subscriptionChildLimit: childCount,
                     subscriptionUpdatedAt: FieldValue.serverTimestamp()
                 };
 
@@ -72,7 +75,7 @@ export async function POST(req: Request) {
                 }
 
                 await db.collection('users').doc(userId).update(updatePayload);
-                console.log(`[Webhook] Subscription activated: ${userId} -> ${tierId} (${selectedPeriod})`);
+                console.log(`[Webhook] Subscription activated: ${userId} -> ${tierId} (${selectedPeriod}) for ${childCount} children`);
                 return NextResponse.json({ received: true });
             }
         }
@@ -287,13 +290,51 @@ export async function POST(req: Request) {
     }
   } else if (event.type === 'customer.subscription.updated') {
     const subscription = event.data.object as Stripe.Subscription;
-    const userId = subscription.metadata?.userId;
+    const stripeCustomerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
+    let userId = subscription.metadata?.userId;
+
+    // Eğer metadata.userId yoksa (örn. portal üzerinden yapıldıysa) stripeCustomerId'den bulalım
+    if (!userId && stripeCustomerId) {
+        const usersSnapshot = await db.collection('users').where('stripeCustomerId', '==', stripeCustomerId).limit(1).get();
+        if (!usersSnapshot.empty) {
+            userId = usersSnapshot.docs[0].id;
+        }
+    }
 
     if (userId) {
       const updatePayload: any = {
           subscriptionPeriodEnd: new Date(subscription.current_period_end * 1000),
           subscriptionUpdatedAt: FieldValue.serverTimestamp()
       };
+
+      // Fiyat (Price ID) değişmiş olabilir. Güncel Price ID'yi SUBSCRIPTION_TIERS'dan eşleştirip paket özelliklerini çekelim
+      if (subscription.items?.data?.length > 0) {
+          const currentPriceId = subscription.items.data[0].price.id;
+          
+          let foundTierId = null;
+          let foundChildCount = 1;
+          let foundPeriod = 'monthly';
+
+          for (const tier of Object.values(SUBSCRIPTION_TIERS)) {
+              if (tier.id === 'free' || !tier.prices) continue;
+              for (const [childLimitStr, periods] of Object.entries(tier.prices)) {
+                  for (const [period, priceData] of Object.entries(periods)) {
+                      if ((priceData as any).stripePriceId === currentPriceId) {
+                          foundTierId = tier.id;
+                          foundChildCount = parseInt(childLimitStr);
+                          foundPeriod = period;
+                      }
+                  }
+              }
+          }
+
+          if (foundTierId) {
+              updatePayload.subscriptionTier = foundTierId;
+              updatePayload.subscriptionChildLimit = foundChildCount;
+              updatePayload.subscriptionPeriod = foundPeriod;
+              updatePayload.isPremium = true;
+          }
+      }
 
       if (subscription.cancel_at_period_end) {
         updatePayload.subscriptionCancelledAtPeriodEnd = true;
@@ -303,6 +344,7 @@ export async function POST(req: Request) {
         updatePayload.subscriptionCancelledAtPeriodEnd = FieldValue.delete();
       }
       await db.collection('users').doc(userId).update(updatePayload);
+      console.log(`[Webhook] Subscription updated successfully for: ${userId}`);
     }
   } else if (event.type === 'customer.subscription.deleted') {
     const subscription = event.data.object as Stripe.Subscription;

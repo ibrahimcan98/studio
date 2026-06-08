@@ -103,12 +103,21 @@ export default function ChestPage() {
       act = content?.[stage]?.activities?.[currentActivityIndex];
     }
     
+    const shuffleArray = (array: any[]) => {
+      const newArr = [...array];
+      for (let i = newArr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+      }
+      return newArr;
+    };
+
     if (act?.type === 'sorting') {
       if (act.items) {
-        setShuffledSortingItems([...act.items].sort(() => Math.random() - 0.5));
+        setShuffledSortingItems(shuffleArray(act.items));
       }
       if (act.categories) {
-        setShuffledSortingCategories([...act.categories].sort(() => Math.random() - 0.5));
+        setShuffledSortingCategories(shuffleArray(act.categories));
       }
     } else {
       setShuffledSortingItems(null);
@@ -116,7 +125,7 @@ export default function ChestPage() {
     }
     
     if (act?.type === 'text_selection' && act.options) {
-      setShuffledTextOptions([...act.options].sort(() => Math.random() - 0.5));
+      setShuffledTextOptions(shuffleArray(act.options));
     } else {
       setShuffledTextOptions(null);
     }
@@ -126,23 +135,23 @@ export default function ChestPage() {
       act.sentences.forEach((s: any, idx: number) => {
         const options = s.options || act.words;
         if (options) {
-          dict[idx] = [...options].sort(() => Math.random() - 0.5);
+          dict[idx] = shuffleArray(options);
         }
       });
       setShuffledOptionsDict(dict);
     }
     
-    if (act?.type === 'multiple_choice' || act?.type === 'true_false') {
+    if (stage === 'okuyorumAnliyorum' || act?.type === 'multiple_choice' || act?.type === 'true_false') {
       const newQuestions = act.questions.map((q: Question) => {
-        if (act.type === 'multiple_choice') {
+        if (stage === 'okuyorumAnliyorum' || act.type === 'multiple_choice') {
           if (q.imageOptions) {
             const originalCorrect = q.imageOptions[q.correct as number];
-            const shuffled = [...q.imageOptions].sort(() => Math.random() - 0.5);
+            const shuffled = shuffleArray(q.imageOptions);
             const newCorrectIndex = shuffled.indexOf(originalCorrect);
             return { ...q, imageOptions: shuffled, correct: newCorrectIndex };
           } else if (q.options) {
             const originalCorrect = q.options[q.correct as number];
-            const shuffled = [...q.options].sort(() => Math.random() - 0.5);
+            const shuffled = shuffleArray(q.options);
             const newCorrectIndex = shuffled.indexOf(originalCorrect);
             return { ...q, options: shuffled, correct: newCorrectIndex };
           }
@@ -240,7 +249,16 @@ export default function ChestPage() {
     if (selectedAnswer !== null || lives === 0) return;
     
     setSelectedAnswer(idx);
-    const correct = idx === questions[currentQuestion].correct;
+    
+    let correct = false;
+    const qCorrect = questions[currentQuestion].correct;
+    if (typeof idx === 'boolean') {
+      const normalizedCorrect = qCorrect === 0 || qCorrect === true;
+      correct = idx === normalizedCorrect;
+    } else {
+      correct = idx === qCorrect;
+    }
+    
     setIsCorrect(correct);
 
     if (correct) {
@@ -446,13 +464,14 @@ export default function ChestPage() {
         </div>
 
         <h3 className="text-xl font-black text-amber-950 mb-6 mt-4">
-          {data.questions[currentQuestion]?.q}
+          {(shuffledQuestions || data.questions)[currentQuestion]?.q}
         </h3>
 
         <div className="grid gap-4">
-          {data.questions[currentQuestion]?.options?.map((option: string, idx: number) => {
+          {(shuffledQuestions || data.questions)[currentQuestion]?.options?.map((option: string, idx: number) => {
             const isSelected = selectedAnswer === idx;
-            const isCorrectAnswer = idx === data.questions[currentQuestion]?.correct;
+            const currentQ = (shuffledQuestions || data.questions)[currentQuestion];
+            const isCorrectAnswer = idx === currentQ?.correct;
 
             return (
               <button
@@ -463,7 +482,7 @@ export default function ChestPage() {
                     ? isCorrectAnswer ? "bg-emerald-50 border-emerald-500 text-emerald-700 shadow-md" : "bg-rose-50 border-rose-500 text-rose-700 shadow-md"
                     : "bg-amber-50/50 border-amber-100 text-amber-900 hover:bg-amber-50 hover:border-amber-300"
                 )}
-                onClick={() => handleAnswerSelect(idx, data.questions, completeKey)}
+                onClick={() => handleAnswerSelect(idx, shuffledQuestions || data.questions, completeKey)}
                 disabled={selectedAnswer !== null || lives === 0}
               >
                 <div className="flex items-center gap-4">
@@ -587,7 +606,7 @@ export default function ChestPage() {
                         <button
                           key={idx}
                           className={cn(
-                            "relative rounded-2xl border-4 overflow-hidden transition-all duration-300 transform hover:scale-105 min-h-[150px] bg-white",
+                            "relative flex flex-col rounded-2xl border-4 overflow-hidden transition-all duration-300 transform hover:scale-105 min-h-[180px] bg-white",
                             isSelected
                               ? isCorrectAnswer ? "border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)] scale-105" : "border-rose-500 bg-rose-100"
                               : "border-amber-200 hover:border-amber-400"
@@ -595,7 +614,14 @@ export default function ChestPage() {
                           onClick={() => handleAnswerSelect(idx, shuffledQuestions || act.questions, completeKey, data.activities)}
                           disabled={selectedAnswer !== null || lives === 0}
                         >
-                          <img src={opt.src} alt={opt.label || "Seçenek"} className={cn("w-full h-full object-contain absolute inset-0 p-2", isSelected && !isCorrectAnswer && "opacity-50")} />
+                          <div className="relative flex-1 w-full min-h-[130px]">
+                            <img src={opt.src} alt={opt.label || "Seçenek"} className={cn("w-full h-full object-contain absolute inset-0 p-3", isSelected && !isCorrectAnswer && "opacity-50")} />
+                          </div>
+                          {opt.label && (
+                            <div className="w-full bg-amber-50 py-2 px-1 text-center border-t border-amber-100 text-amber-950 font-bold text-sm md:text-base">
+                              {opt.label}
+                            </div>
+                          )}
                           {isSelected && isCorrectAnswer && (
                             <div className="absolute inset-0 bg-emerald-500/20 flex items-center justify-center">
                               <div className="bg-white rounded-full p-1 shadow-lg">
@@ -653,7 +679,9 @@ export default function ChestPage() {
                 [0, 1].map((val, idx) => {
                   const answerValue = val === 0 ? true : false;
                   const isSelected = selectedAnswer === answerValue;
-                  const isCorrectAnswer = answerValue === act.questions[currentQuestion]?.correct;
+                  const qCorrect = act.questions[currentQuestion]?.correct;
+                  const normalizedCorrect = qCorrect === 0 || qCorrect === true;
+                  const isCorrectAnswer = answerValue === normalizedCorrect;
 
                   return (
                     <button
@@ -691,9 +719,6 @@ export default function ChestPage() {
                 ? unsortedItems.find((i: any) => i.label === selectedSortingItem) || unsortedItems[0] 
                 : unsortedItems[0];
                 
-              const isWrong = (wrongFills as any)[currentItem.label] !== undefined && (wrongFills as any)[currentItem.label] !== null;
-              const itemIndex = act.items.findIndex((i: any) => i.label === currentItem.label);
-              
               const colorPalettes = [
                 "bg-amber-100 border-amber-500",
                 "bg-blue-100 border-blue-500",
@@ -703,19 +728,34 @@ export default function ChestPage() {
                 "bg-orange-100 border-orange-500",
                 "bg-cyan-100 border-cyan-500"
               ];
-              const colorClass = colorPalettes[itemIndex % colorPalettes.length];
               
               return (
-                <div className="mb-8 flex flex-col items-center justify-center bg-white/60 p-4 md:p-6 rounded-[2rem] border-4 border-amber-200 border-dashed mx-auto w-full max-w-lg">
+                <div className="mb-8 flex flex-col items-center justify-center bg-white/60 p-4 md:p-6 rounded-[2rem] border-4 border-amber-200 border-dashed mx-auto w-full max-w-4xl">
                   <div className="w-full text-center mb-6">
-                    <span className="text-amber-800 font-bold text-sm bg-amber-100 px-4 py-2 rounded-full shadow-sm">Sıradaki ifadeyi aşağıdaki doğru kutuya yerleştir 👇</span>
+                    <span className="text-amber-800 font-bold text-sm bg-amber-100 px-4 py-2 rounded-full shadow-sm">Bir ifade seç ve aşağıdaki doğru kutuya yerleştir 👇</span>
                   </div>
                   
-                  <div className={cn(
-                    "flex flex-col gap-2 items-center px-8 py-5 rounded-3xl shadow-lg border-4 transition-all transform scale-105",
-                    isWrong ? "bg-rose-100 border-rose-500" : colorClass
-                  )}>
-                    <span className="font-black text-xl md:text-2xl text-slate-800 text-center">{currentItem.label}</span>
+                  <div className="flex flex-wrap gap-4 justify-center w-full">
+                    {unsortedItems.map((item: any) => {
+                      const isCurrent = currentItem.label === item.label;
+                      const isWrong = (wrongFills as any)[item.label] !== undefined && (wrongFills as any)[item.label] !== null;
+                      const itemIndex = act.items.findIndex((i: any) => i.label === item.label);
+                      const colorClass = colorPalettes[itemIndex % colorPalettes.length];
+                      
+                      return (
+                        <button
+                          key={item.label}
+                          onClick={() => setSelectedSortingItem(item.label)}
+                          className={cn(
+                            "flex flex-col gap-2 items-center px-6 py-4 rounded-3xl shadow-md border-4 transition-all text-left",
+                            isWrong ? "bg-rose-100 border-rose-500" : colorClass,
+                            isCurrent ? "scale-105 shadow-xl ring-4 ring-offset-2 ring-emerald-400" : "opacity-70 hover:opacity-100 hover:scale-105"
+                          )}
+                        >
+                          <span className="font-black text-lg text-slate-800">{item.label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -741,7 +781,9 @@ export default function ChestPage() {
                     current ? "bg-amber-50 border-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.5)] hover:bg-amber-100 hover:scale-[1.02]" : "bg-amber-50 border-amber-200"
                   )}
                 >
-                  <h4 className="font-black text-amber-900 text-lg md:text-xl mb-4 text-center border-b-2 border-amber-200 w-full pb-2">{cat}</h4>
+                  <h4 className="font-black text-amber-900 text-lg md:text-xl mb-4 text-center border-b-2 border-amber-200 w-full pb-2">
+                    {/^[0-9]+$/.test(cat) ? '\u00A0' : cat}
+                  </h4>
                   <div className="flex flex-col gap-2 w-full items-center">
                     {Object.entries(sortingAnswers).map(([item, selectedCat]) => {
                       if (selectedCat === cat) {
@@ -887,30 +929,26 @@ export default function ChestPage() {
                       )
                     })}
                     
-                    {!isCompletelyFilled && (
-                      <div className="flex gap-2 ml-auto mt-2 sm:mt-0">
-                        {(shuffledOptionsDict[idx] || sentence.options || act.words).map((word: string) => {
-                           const isUsed = !sentence.options && act.words && Object.values(fillAnswers).includes(word);
-                           const isWrongOption = expectedAnswers.some((_: any, i: number) => wrongFills[`${idx}-${i}`] === word);
-                           
-                           return (
-                            <Button 
-                              key={word} 
-                              size="sm" 
-                              variant="outline" 
-                              className={cn(
-                                isWrongOption && "bg-rose-500 text-white border-rose-500 hover:bg-rose-600 hover:text-white",
-                                isUsed && "opacity-50 cursor-not-allowed grayscale"
-                              )}
-                              disabled={isUsed || lives === 0}
-                              onClick={() => handleFillBlank(idx, word, act.sentences, data.activities, completeKey)}
-                            >
-                              {word}
-                            </Button>
-                           );
-                        })}
-                      </div>
-                    )}
+                    <div className="flex flex-wrap gap-2 w-full mt-3 justify-start sm:justify-end border-t border-amber-200/50 pt-3">
+                      {(shuffledOptionsDict[idx] || sentence.options || act.words).map((word: string, wordIdx: number) => {
+                         const isWrongOption = expectedAnswers.some((_: any, i: number) => wrongFills[`${idx}-${i}`] === word);
+                         
+                         return (
+                          <Button 
+                            key={`${word}-${wordIdx}`} 
+                            variant="outline" 
+                            className={cn(
+                              "h-auto py-2 px-4 whitespace-normal text-left text-sm md:text-base leading-snug rounded-xl shadow-sm border-amber-300 hover:bg-amber-100 hover:text-amber-900 transition-all",
+                              isWrongOption && "bg-rose-500 text-white border-rose-500 hover:bg-rose-600 hover:text-white"
+                            )}
+                            disabled={lives === 0}
+                            onClick={() => handleFillBlank(idx, word, act.sentences, data.activities, completeKey)}
+                          >
+                            {word}
+                          </Button>
+                         );
+                      })}
+                    </div>
                   </div>
                 )
               })}
@@ -1096,19 +1134,32 @@ export default function ChestPage() {
         {stage === 'dilimiOgreniyorum' && renderActivitySection(content.dilimiOgreniyorum, `chest-${chestId}-2`, <Brain className="w-4 h-4"/>, "border-blue-200", "text-blue-500")}
         {stage === 'ulkemiOgreniyorum' && renderActivitySection(content.ulkemiOgreniyorum, `chest-${chestId}-3`, <MapPin className="w-4 h-4"/>, "border-purple-200", "text-purple-500")}
         
-        {stage === 'success' && (
-          <div className="text-center bg-white/90 p-12 rounded-[40px] shadow-2xl max-w-2xl border-4 border-amber-200 animate-in zoom-in">
-            <Trophy className="w-32 h-32 text-amber-400 mx-auto mb-6" />
-            <h2 className="text-5xl font-black text-amber-950 mb-4">Harika İş Çıkardın!</h2>
-            <p className="text-2xl text-amber-800 font-bold mb-8">Görev başarıyla tamamlandı.</p>
-            <Button
-              className="h-16 px-12 rounded-2xl text-xl font-black bg-emerald-500 text-white hover:bg-emerald-600 hover:scale-105 transition-all shadow-xl"
-              onClick={() => setStage('list')}
-            >
-              Sandığa Dön
-            </Button>
-          </div>
-        )}
+        {stage === 'success' && (() => {
+          const act1Req = !content?.okuyorumAnliyorum || childData?.completedTopics?.includes(`chest-${chestId}-1`);
+          const act2Req = !content?.dilimiOgreniyorum || childData?.completedTopics?.includes(`chest-${chestId}-2`);
+          const act3Req = !content?.ulkemiOgreniyorum || childData?.completedTopics?.includes(`chest-${chestId}-3`);
+          const isFullyComplete = act1Req && act2Req && act3Req;
+
+          return (
+            <div className="text-center bg-white/90 p-12 rounded-[40px] shadow-2xl max-w-2xl border-4 border-amber-200 animate-in zoom-in">
+              <Trophy className="w-32 h-32 text-amber-400 mx-auto mb-6" />
+              <h2 className="text-5xl font-black text-amber-950 mb-4">{isFullyComplete ? 'Sandık Tamamlandı!' : 'Harika İş Çıkardın!'}</h2>
+              <p className="text-2xl text-amber-800 font-bold mb-8">{isFullyComplete ? 'Tüm görevleri bitirdin.' : 'Görev başarıyla tamamlandı.'}</p>
+              <Button
+                className="h-16 px-12 rounded-2xl text-xl font-black bg-emerald-500 text-white hover:bg-emerald-600 hover:scale-105 transition-all shadow-xl"
+                onClick={() => {
+                  if (isFullyComplete) {
+                    router.push(`/cocuk-modu/${childId}/turkce-hazinem`);
+                  } else {
+                    setStage('list');
+                  }
+                }}
+              >
+                {isFullyComplete ? 'Haritaya Dön' : 'Sandığa Dön'}
+              </Button>
+            </div>
+          );
+        })()}
 
         {stage === 'game_over' && (
           <div className="text-center bg-white/90 p-12 rounded-[40px] shadow-2xl max-w-2xl border-4 border-rose-200 animate-in zoom-in">
