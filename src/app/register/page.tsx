@@ -38,6 +38,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [honeypot, setHoneypot] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const auth = useAuth();
@@ -361,10 +362,25 @@ export default function RegisterPage() {
                           </button>
                         </div>
                       </div>
+                      
+                      <div className="flex items-start space-x-2 pt-2">
+                        <input
+                          type="checkbox"
+                          id="terms"
+                          checked={acceptedTerms}
+                          onChange={(e) => setAcceptedTerms(e.target.checked)}
+                          className="mt-1 h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-600"
+                          disabled={loading || isSubmitting}
+                        />
+                        <Label htmlFor="terms" className="text-sm text-slate-600 font-medium leading-relaxed">
+                          <Link href="/kullanici-sozlesmesi" target="_blank" className="text-purple-600 hover:underline">Kullanıcı Sözleşmesi</Link> ve <Link href="/gizlilik-politikasi" target="_blank" className="text-purple-600 hover:underline">Gizlilik ile Çocuk Güvenliği Politikası</Link>'nı okudum, anladım ve çocuğumun verilerinin işlenmesine açık rıza gösteriyorum.
+                        </Label>
+                      </div>
+
                       <Button
                         type="submit"
                         className="w-full font-bold text-lg py-6"
-                        disabled={loading || isSubmitting}
+                        disabled={loading || isSubmitting || !acceptedTerms}
                         suppressHydrationWarning
                       >
                         {isSubmitting ? <Loader2 className="animate-spin mr-2"/> : null}
