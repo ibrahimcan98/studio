@@ -32,12 +32,11 @@ export function VoiceMatching({ wordList, onComplete }: VoiceMatchingProps) {
     const currentWord = wordList[currentIndex];
 
     const successPhrases = [
-        "hay aklınla bin yaşa!",
-        "ne kadar hızlı bildin",
-        "seni tebrik ediyorum!",
-        "sen bu işte bir numarasın",
-        "bravo",
-        "hemen de bildin"
+        "Sen harika bir çocuksun!",
+        "İşte benim akıllı arkadaşım!",
+        "Aferin sana, çok başarılısın!",
+        "Kocaman bir alkış sana!",
+        "Bunu bilmen beni çok mutlu etti!"
     ];
 
     const errorPhrases = [

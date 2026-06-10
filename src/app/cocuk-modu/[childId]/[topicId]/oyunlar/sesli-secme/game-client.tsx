@@ -99,7 +99,13 @@ export default function GameClient({ questions }: GameClientProps) {
         setIsCorrect(correct);
 
         if (correct) {
-            const successPhrases = ["Harika!", "Süpersin!", "Doğru bildin!", "Bravo!"];
+            const successPhrases = [
+                "Sen harika bir çocuksun!",
+                "İşte benim akıllı arkadaşım!",
+                "Aferin sana, çok başarılısın!",
+                "Kocaman bir alkış sana!",
+                "Bunu bilmen beni çok mutlu etti!"
+            ];
             const randomSuccess = successPhrases[Math.floor(Math.random() * successPhrases.length)];
             speak(randomSuccess);
         } else {
