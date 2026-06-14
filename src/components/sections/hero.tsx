@@ -212,8 +212,19 @@ export default function Hero() {
             </span>
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900 leading-[1.1] flex flex-col gap-2">
               <span>Çocuğunuz Türkçeyi anlıyor ama konuşmuyor mu?</span>
-              <span className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-700">Türkçe seviyesini birlikte değerlendirelim.</span>
+              <span className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-700 leading-[1.4] block mt-2">
+                Oyun platformumuzu ve canlı derslerimizi keşfedin.
+              </span>
             </h1>
+            <div className="pt-6 flex flex-col sm:flex-row items-center gap-4 lg:justify-start justify-center">
+              <Button 
+                className="h-14 px-8 text-lg font-black bg-gradient-to-r from-teal-500 to-blue-500 text-white rounded-full shadow-xl shadow-teal-500/20 hover:scale-105 active:scale-95 transition-all w-full sm:w-auto"
+                onClick={() => router.push('/register')}
+                suppressHydrationWarning
+              >
+                ÜCRETSİZ KAYIT OLUN
+              </Button>
+            </div>
           </div>
 
           <Card className="p-8 bg-white shadow-2xl border-none rounded-[40px] w-full mx-auto lg:mx-0 relative overflow-hidden min-h-[400px] flex flex-col justify-center">

@@ -281,7 +281,7 @@ export default function TopicPage() {
 
     if (stage === 'map') {
         return (
-            <div className={cn("bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] h-screen w-full relative flex flex-col items-center overflow-hidden scrollbar-hide transition-colors duration-1000", currentGradient)}>
+            <div className={cn("bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] h-screen w-full relative flex flex-col items-center overflow-y-auto overflow-x-hidden scrollbar-hide transition-colors duration-1000", currentGradient)}>
                 <style>{cloudStyles}</style>
                 {showConfetti && <Confetti width={width} height={height} className="z-50" />}
 

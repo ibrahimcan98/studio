@@ -100,7 +100,7 @@ export default function Header() {
         <Button variant="ghost" className="font-semibold" asChild suppressHydrationWarning>
             <Link href="/login">Giriş Yap</Link>
         </Button>
-      )
+       )
     }
     return (
        <DropdownMenu>
