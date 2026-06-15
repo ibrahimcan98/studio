@@ -116,7 +116,8 @@ const UserRowWithChildren = ({ u, formatPeriod }: { u: any, formatPeriod: (p?: s
                             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                                 {children?.map((child: any) => {
                                     const completedTopics = child.completedTopics || [];
-                                    const island = completedTopics.filter((t: string) => !t.startsWith('chest-')).length + 1;
+                                    // Sadece ana ada ID'lerini saymak için içinde '-' geçmeyenleri (örn: hayvanlar-learning, chest-1-1'i elemek için) filtreliyoruz.
+                                    const island = completedTopics.filter((t: string) => !t.includes('-')).length + 1;
                                     const chest = Math.floor(completedTopics.filter((t: string) => t.startsWith('chest-')).length / 3) + 1;
                                     const stories = Object.keys(child.stats?.story || {}).length;
                                     const aiMinutes = Math.floor((child.stats?.ai?.dailyUsageSeconds || 0) / 60);
