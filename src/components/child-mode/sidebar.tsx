@@ -428,55 +428,7 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
                     </div>
                   </div>
 
-                  {/* 4. Kategori: Sosyal ve Davranış */}
-                  <div>
-                    <div className="flex items-center gap-3 mb-6 px-4">
-                      <div className="bg-amber-400 p-2 rounded-xl shadow-md -rotate-3">
-                        <Star className="w-5 h-5 text-white" />
-                      </div>
-                      <h4 className="text-2xl font-black text-amber-600 italic uppercase tracking-tight">🌟 SOSYAL VE DAVRANIŞ</h4>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
-                      {SOCIAL_BADGES.map((badge) => {
-                        const earnedBadges = childData?.earnedBadges || [];
-                        let isUnlocked = earnedBadges.includes(badge.id);
-
-                        // Manuel check if not in earnedBadges yet
-                        if (!isUnlocked) {
-                          const loginStats = childData?.stats?.login || {};
-                          if (badge.id === 'duzenli-calisan') isUnlocked = (loginStats.consecutiveDays || 0) >= 5;
-                          if (badge.id === 'sabah-yildizi') isUnlocked = (loginStats.earlyBirdCount || 0) >= 1;
-                          if (badge.id === 'gece-kusu') isUnlocked = (loginStats.nightOwlCount || 0) >= 1;
-                          if (badge.id === 'azimli-kaplumbaga') isUnlocked = (childData?.stats?.perseverance?.retrySuccessCount || 0) >= 3;
-                        }
-
-                        return (
-                          <div
-                            key={badge.id}
-                            className={cn(
-                              "aspect-square bg-white/80 rounded-[35px] flex flex-col items-center justify-center border-4 border-white shadow-lg transition-all group relative p-6",
-                              !isUnlocked && "grayscale opacity-30"
-                            )}
-                          >
-                            <div className="relative w-full h-full mb-3">
-                              <Image src={badge.icon} fill alt={badge.name} className="object-contain" />
-                            </div>
-                            <div className="text-center">
-                              <p className="text-xs font-black text-amber-600 uppercase italic tracking-tighter mb-1">{badge.name}</p>
-                              <p className="text-[9px] font-bold text-slate-400 leading-tight px-1">{badge.description}</p>
-                            </div>
-                            {!isUnlocked && (
-                              <div className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-[1px] rounded-[35px]">
-                                <div className="bg-amber-600/90 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg">KİLİTLİ 🔒</div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* 5. Kategori: Türkçe Hazinem */}
+                  {/* 4. Kategori: Türkçe Hazinem */}
                   <div>
                     <div className="flex items-center gap-3 mb-6 px-4">
                       <div className="bg-rose-400 p-2 rounded-xl shadow-md rotate-3">
@@ -516,6 +468,54 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
                             {!isUnlocked && (
                               <div className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-[1px] rounded-[35px] z-20">
                                 <div className="bg-rose-600/90 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg">KİLİTLİ 🔒</div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 5. Kategori: Sosyal ve Davranış */}
+                  <div>
+                    <div className="flex items-center gap-3 mb-6 px-4">
+                      <div className="bg-amber-400 p-2 rounded-xl shadow-md -rotate-3">
+                        <Star className="w-5 h-5 text-white" />
+                      </div>
+                      <h4 className="text-2xl font-black text-amber-600 italic uppercase tracking-tight">🌟 SOSYAL VE DAVRANIŞ</h4>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
+                      {SOCIAL_BADGES.map((badge) => {
+                        const earnedBadges = childData?.earnedBadges || [];
+                        let isUnlocked = earnedBadges.includes(badge.id);
+
+                        // Manuel check if not in earnedBadges yet
+                        if (!isUnlocked) {
+                          const loginStats = childData?.stats?.login || {};
+                          if (badge.id === 'duzenli-calisan') isUnlocked = (loginStats.consecutiveDays || 0) >= 5;
+                          if (badge.id === 'sabah-yildizi') isUnlocked = (loginStats.earlyBirdCount || 0) >= 1;
+                          if (badge.id === 'gece-kusu') isUnlocked = (loginStats.nightOwlCount || 0) >= 1;
+                          if (badge.id === 'azimli-kaplumbaga') isUnlocked = (childData?.stats?.perseverance?.retrySuccessCount || 0) >= 3;
+                        }
+
+                        return (
+                          <div
+                            key={badge.id}
+                            className={cn(
+                              "aspect-square bg-white/80 rounded-[35px] flex flex-col items-center justify-center border-4 border-white shadow-lg transition-all group relative p-6",
+                              !isUnlocked && "grayscale opacity-30"
+                            )}
+                          >
+                            <div className="relative w-full h-full mb-3">
+                              <Image src={badge.icon} fill alt={badge.name} className="object-contain" />
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xs font-black text-amber-600 uppercase italic tracking-tighter mb-1">{badge.name}</p>
+                              <p className="text-[9px] font-bold text-slate-400 leading-tight px-1">{badge.description}</p>
+                            </div>
+                            {!isUnlocked && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-[1px] rounded-[35px]">
+                                <div className="bg-amber-600/90 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg">KİLİTLİ 🔒</div>
                               </div>
                             )}
                           </div>
@@ -1029,54 +1029,7 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
                             </div>
                           </div>
 
-                          {/* 4. Kategori: Sosyal ve Davranış */}
-                          <div>
-                            <div className="flex items-center gap-3 mb-6 px-4">
-                              <div className="bg-amber-400 p-2 rounded-xl shadow-md -rotate-3">
-                                <Star className="w-5 h-5 text-white" />
-                              </div>
-                              <h4 className="text-2xl font-black text-amber-600 italic uppercase tracking-tight">🌟 SOSYAL VE DAVRANIŞ</h4>
-                            </div>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                              {SOCIAL_BADGES.map((badge) => {
-                                const earnedBadges = childData?.earnedBadges || [];
-                                let isUnlocked = earnedBadges.includes(badge.id);
-
-                                if (!isUnlocked) {
-                                  const loginStats = childData?.stats?.login || {};
-                                  if (badge.id === 'duzenli-calisan') isUnlocked = (loginStats.consecutiveDays || 0) >= 5;
-                                  if (badge.id === 'sabah-yildizi') isUnlocked = (loginStats.earlyBirdCount || 0) >= 1;
-                                  if (badge.id === 'gece-kusu') isUnlocked = (loginStats.nightOwlCount || 0) >= 1;
-                                  if (badge.id === 'azimli-kaplumbaga') isUnlocked = (childData?.stats?.perseverance?.retrySuccessCount || 0) >= 3;
-                                }
-
-                                return (
-                                  <div
-                                    key={badge.id}
-                                    className={cn(
-                                      "aspect-square bg-white/80 rounded-[35px] flex flex-col items-center justify-center border-4 border-white shadow-lg transition-all group relative p-6",
-                                      !isUnlocked && "grayscale opacity-30"
-                                    )}
-                                  >
-                                    <div className="relative w-full h-full mb-3">
-                                      <Image src={badge.icon} fill alt={badge.name} className="object-contain" />
-                                    </div>
-                                    <div className="text-center">
-                                      <p className="text-xs font-black text-amber-600 uppercase italic tracking-tighter mb-1">{badge.name}</p>
-                                      <p className="text-[9px] font-bold text-slate-400 leading-tight px-1">{badge.description}</p>
-                                    </div>
-                                    {!isUnlocked && (
-                                      <div className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-[1px] rounded-[35px]">
-                                        <div className="bg-amber-600/90 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg">KİLİTLİ 🔒</div>
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-
-                          {/* 5. Kategori: Türkçe Hazinem */}
+                          {/* 4. Kategori: Türkçe Hazinem */}
                           <div>
                             <div className="flex items-center gap-3 mb-6 px-4">
                               <div className="bg-rose-400 p-2 rounded-xl shadow-md rotate-3">
@@ -1116,6 +1069,53 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
                                     {!isUnlocked && (
                                       <div className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-[1px] rounded-[35px] z-20">
                                         <div className="bg-rose-600/90 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg">KİLİTLİ 🔒</div>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* 5. Kategori: Sosyal ve Davranış */}
+                          <div>
+                            <div className="flex items-center gap-3 mb-6 px-4">
+                              <div className="bg-amber-400 p-2 rounded-xl shadow-md -rotate-3">
+                                <Star className="w-5 h-5 text-white" />
+                              </div>
+                              <h4 className="text-2xl font-black text-amber-600 italic uppercase tracking-tight">🌟 SOSYAL VE DAVRANIŞ</h4>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                              {SOCIAL_BADGES.map((badge) => {
+                                const earnedBadges = childData?.earnedBadges || [];
+                                let isUnlocked = earnedBadges.includes(badge.id);
+
+                                if (!isUnlocked) {
+                                  const loginStats = childData?.stats?.login || {};
+                                  if (badge.id === 'duzenli-calisan') isUnlocked = (loginStats.consecutiveDays || 0) >= 5;
+                                  if (badge.id === 'sabah-yildizi') isUnlocked = (loginStats.earlyBirdCount || 0) >= 1;
+                                  if (badge.id === 'gece-kusu') isUnlocked = (loginStats.nightOwlCount || 0) >= 1;
+                                  if (badge.id === 'azimli-kaplumbaga') isUnlocked = (childData?.stats?.perseverance?.retrySuccessCount || 0) >= 3;
+                                }
+
+                                return (
+                                  <div
+                                    key={badge.id}
+                                    className={cn(
+                                      "aspect-square bg-white/80 rounded-[35px] flex flex-col items-center justify-center border-4 border-white shadow-lg transition-all group relative p-6",
+                                      !isUnlocked && "grayscale opacity-30"
+                                    )}
+                                  >
+                                    <div className="relative w-full h-full mb-3">
+                                      <Image src={badge.icon} fill alt={badge.name} className="object-contain" />
+                                    </div>
+                                    <div className="text-center">
+                                      <p className="text-xs font-black text-amber-600 uppercase italic tracking-tighter mb-1">{badge.name}</p>
+                                      <p className="text-[9px] font-bold text-slate-400 leading-tight px-1">{badge.description}</p>
+                                    </div>
+                                    {!isUnlocked && (
+                                      <div className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-[1px] rounded-[35px]">
+                                        <div className="bg-amber-600/90 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg">KİLİTLİ 🔒</div>
                                       </div>
                                     )}
                                   </div>

@@ -327,8 +327,8 @@ export default function CocukModuPage() {
               // @ts-ignore
               const isPrevCompleted = prevTopic ? !!childData?.stickers?.[prevTopic.id] : true;
               
-              // Abonelik Kontrolü: Ücretsiz sürümde sadece ilk 2 ada açık
-              const isSubscriptionLocked = subscriptionTier === 'free' && index >= 2;
+              // Abonelik Kontrolü: Ücretsiz sürümde sadece ilk 1 ada açık
+              const isSubscriptionLocked = subscriptionTier === 'free' && index >= 1;
               const isProgressLocked = !isFirst && !isPrevCompleted;
               const isLocked = isProgressLocked || isSubscriptionLocked;
               const isCompleted = !!(childData as any)?.stickers?.[topic.id];
