@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ProgressPanel } from '@/components/shared/progress-panel';
 import { LessonQuickChat } from '@/components/shared/lesson-quick-chat';
+import { sendLessonCancelledEmails } from '@/lib/email-service';
 
 const getCourseDetailsFromPackageCode = (code?: string) => {
     if (!code) return null;
@@ -72,6 +73,7 @@ function CancellationButtons({ lesson, timeZone }: { lesson: any, timeZone: stri
     const db = useFirestore();
     const router = useRouter();
     const { toast } = useToast();
+    const { user } = useUser();
     const [isProcessing, setIsProcessing] = useState(false);
 
     const now = new Date();
@@ -111,22 +113,49 @@ function CancellationButtons({ lesson, timeZone }: { lesson: any, timeZone: stri
                 });
 
                 const childDocRef = doc(db, 'users', lesson.bookedBy, 'children', lesson.childId);
+                const parentDocRef = doc(db, 'users', lesson.bookedBy);
+
                 if (lesson.packageCode !== 'FREE_TRIAL') {
                     batch.update(childDocRef, { remainingLessons: increment(1) });
+                } else {
+                    batch.update(childDocRef, { hasUsedFreeTrial: false });
+                    batch.update(parentDocRef, { freeTrialsUsed: increment(-1) });
                 }
 
                 await batch.commit();
 
                 // Store in Activity Log
+                const lessonTimeFormatted = formatInTimeZone(startTime, 'Europe/Istanbul', 'dd.MM.yyyy HH:mm', { locale: tr });
                 addDoc(collection(db, 'activity-log'), {
-                    event: '❌ Ders İptal Edildi',
-                    icon: '❌',
+                    event: '❌ Ders İptal Edildi (Veli)',
+                    icon: '👨‍👩‍👧',
                     details: {
+                        'İptal Eden': 'Veli',
                         'Öğrenci': lesson.childName || '-',
-                        'Ders Saati': startTime.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
+                        'Ders Saati': lessonTimeFormatted,
                         'Ders Türü': lesson.packageCode || '-',
                     },
                     createdAt: Timestamp.fromDate(new Date())
+                }).catch(console.error);
+
+                // ─── E-posta Bildirimleri (Merkezi Servis) ───────────────
+                const teacherSnap2 = await getDocs(query(collection(db, 'users'), where('uid', '==', lesson.teacherId)));
+                const teacherData = teacherSnap2.docs[0]?.data();
+                const teacherFullName = teacherData?.firstName && teacherData?.lastName
+                    ? `${teacherData.firstName} ${teacherData.lastName}`
+                    : (teacherData?.firstName || 'Eğitmen');
+                const isTrial = lesson.packageCode === 'FREE_TRIAL';
+
+                sendLessonCancelledEmails({
+                    studentName: lesson.childName || 'Öğrenci',
+                    teacherName: teacherFullName,
+                    teacherFirestoreEmail: teacherData?.email,
+                    parentEmail: user?.email || undefined,
+                    date: formatInTimeZone(startTime, 'Europe/Istanbul', 'dd MMMM yyyy', { locale: tr }),
+                    time: formatInTimeZone(startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr }),
+                    parentDate: formatInTimeZone(startTime, timeZone, 'dd MMMM yyyy', { locale: tr }),
+                    parentTime: formatInTimeZone(startTime, timeZone, 'HH:mm', { locale: tr }),
+                    isTrial,
                 }).catch(console.error);
 
                 toast({ title: 'Ders İptal Edildi', description: 'Ders krediniz iade edildi.', className: 'bg-green-500 text-white' });
