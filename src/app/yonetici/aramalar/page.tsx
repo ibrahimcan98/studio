@@ -276,17 +276,86 @@ export default function AramalarPage() {
         const children = parentChildren;
         const slots = parentSlots;
 
-        const hasTrial = slots.some(s => s.packageCode === 'FREE_TRIAL');
-        if (hasTrial) newTags.add('trial');
+        const lastPurchaseDate = slots
+            .filter(s => s.packageCode !== 'FREE_TRIAL')
+            .sort((a,b) => b.startTime.seconds - a.startTime.seconds)[0]?.startTime?.toDate();
 
+        const lastLessonDate = slots.length > 0 
+            ? slots.sort((a,b) => b.startTime.seconds - a.startTime.seconds)[0].startTime.toDate()
+            : null;
+
+        const regDate = selectedParent.createdAt?.toDate() || null;
+        
+        let lastActivityDate = regDate;
+        
+        if (selectedParent.lastActiveAt) {
+            const activeDate = selectedParent.lastActiveAt.toDate();
+            if (!lastActivityDate || isAfter(activeDate, lastActivityDate)) {
+                lastActivityDate = activeDate;
+            }
+        }
+
+        if (lastLessonDate && (!lastActivityDate || isAfter(lastLessonDate, lastActivityDate))) {
+            lastActivityDate = lastLessonDate;
+        }
+        
+        if (lastPurchaseDate && (!lastActivityDate || isAfter(lastPurchaseDate, lastActivityDate))) {
+            lastActivityDate = lastPurchaseDate;
+        }
+
+        const daysSinceLastActivity = lastActivityDate ? differenceInDays(new Date(), lastActivityDate) : 0;
+        const daysSinceReg = regDate ? differenceInDays(new Date(), regDate) : 0;
+
+        const hasTrial = slots.some(s => s.packageCode === 'FREE_TRIAL');
         const hasFinishedTrial = slots.some(s => s.packageCode === 'FREE_TRIAL' && isBefore(s.startTime.toDate(), new Date()));
-        if (hasFinishedTrial) newTags.add('trialdone');
 
         const hasActivePackage = children.some(c => c.assignedPackage && c.remainingLessons > 0) || (selectedParent.enrolledPackages?.length > 0);
-        if (hasActivePackage) newTags.add('active');
 
-        const packageFinished = children.some(c => c.finishedPackage && !c.assignedPackage);
-        if (packageFinished) newTags.add('package finished');
+        const allPackageCodes = [
+            ...(selectedParent.enrolledPackages || []),
+            ...children.map(c => c.assignedPackage),
+            ...children.map(c => c.finishedPackage)
+        ].filter(Boolean);
+
+        const nonTrialPackageCodes = allPackageCodes.filter(c => c !== 'FREE_TRIAL');
+        const hasHistory = nonTrialPackageCodes.length > 0 || children.some(c => c.finishedPackage && c.finishedPackage !== 'FREE_TRIAL');
+
+        const activePackageCodes = [
+            ...(selectedParent.enrolledPackages || []),
+            ...children.map(c => c.assignedPackage)
+        ].filter(Boolean).filter(c => c !== 'FREE_TRIAL');
+
+        if (!hasHistory) {
+            // No packages bought ever
+            if (hasFinishedTrial) {
+                newTags.add('trialdone');
+            } else if (hasTrial) {
+                newTags.add('trial');
+            } else if (daysSinceReg > 30) {
+                newTags.add('churn');
+            }
+        } else {
+            // Has package history
+            if (hasActivePackage) {
+                newTags.add('active');
+                activePackageCodes.forEach(code => {
+                    if (code.includes('GCSE')) newTags.add('gcse');
+                    else if (code.toUpperCase().includes('GRUP')) newTags.add('gr');
+                    else if (code.includes('G')) newTags.add('gk');
+                    
+                    if (code.includes('B')) newTags.add('bk');
+                    if (code.includes('K')) newTags.add('kk');
+                    if (code.includes('A')) newTags.add('ak');
+                });
+            } else {
+                // Package finished
+                if (daysSinceLastActivity > 30) {
+                    newTags.add('churn');
+                } else {
+                    newTags.add('package finished');
+                }
+            }
+        }
 
         // New Tags Logic
         if (selectedParent.emailVerified) {
@@ -296,16 +365,8 @@ export default function AramalarPage() {
         }
 
         if (children.length === 0 && selectedParent.createdAt) {
-            const regDate = selectedParent.createdAt.toDate();
-            if (differenceInDays(new Date(), regDate) >= 1) {
+            if (daysSinceReg >= 1) {
                 newTags.add('çocuk eklemedi');
-            }
-        }
-
-        if (!hasActivePackage && selectedParent.createdAt) {
-            const regDate = selectedParent.createdAt.toDate();
-            if (differenceInDays(new Date(), regDate) > 30) {
-                newTags.add('churn');
             }
         }
 

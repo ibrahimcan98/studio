@@ -314,72 +314,6 @@ function UsersPageContent() {
         const parentChildren = allChildren.filter(c => c.parentId === parent.id);
         const parentSlots = allSlots.filter(s => s.bookedBy === parent.id);
         
-        const hasTrial = parentSlots.some(s => s.packageCode === 'FREE_TRIAL');
-        if (hasTrial) tags.add('trial');
-        
-        const hasFinishedTrial = parentSlots.some(s => s.packageCode === 'FREE_TRIAL' && isBefore(s.startTime.toDate(), new Date()));
-        if (hasFinishedTrial) tags.add('trialdone');
-
-        const totalRemainingLessons = (parentChildren.reduce((acc, c) => acc + (c.remainingLessons || 0), 0)) + (parent.remainingLessons || 0);
-
-        const allPackageCodes = [
-            ...(parent.enrolledPackages || []),
-            ...parentChildren.map(c => c.assignedPackage),
-            ...parentChildren.map(c => c.finishedPackage)
-        ].filter(Boolean);
-
-        const hasActivePackage = totalRemainingLessons > 0;
-        if (hasActivePackage) tags.add('active');
-
-        const hasHistory = allPackageCodes.length > 0;
-        const packageFinishedField = parentChildren.some(c => c.finishedPackage && !c.assignedPackage);
-        
-        if (totalRemainingLessons <= 0 && (hasHistory || packageFinishedField)) {
-            tags.add('package finished');
-        }
-
-        if (!hasActivePackage && parent.createdAt) {
-            const regDate = parent.createdAt.toDate();
-            if (differenceInDays(new Date(), regDate) > 30) {
-                tags.add('churn');
-            }
-        }
-
-
-        allPackageCodes.forEach(code => {
-            if (code === 'FREE_TRIAL') tags.add('deneme dersi');
-            else if (code.includes('GCSE')) tags.add('gcse');
-            else if (code.toUpperCase().includes('GRUP')) tags.add('gr');
-            else if (code.includes('G')) tags.add('gk');
-            
-            if (code.includes('B')) tags.add('bk');
-            if (code.includes('K')) tags.add('kk');
-            if (code.includes('A')) tags.add('ak');
-        });
-
-        const manualTags = (parent.tags || []).map((t: string) => t.toLowerCase());
-        const hiddenTags = (parent.hiddenTags || []).map((t: string) => t.toLowerCase());
-
-        manualTags.forEach((t: string) => {
-            if (!hiddenTags.includes(t)) tags.add(t);
-        });
-
-        if (parent.isLegacy && !hiddenTags.includes('eski uye')) tags.add('eski uye');
-        
-        // New Tags Logic
-        if (parent.emailVerified && !hiddenTags.includes('mail onaylı')) {
-            tags.add('mail onaylı');
-        } else if (!parent.emailVerified && !hiddenTags.includes('mail onaysız')) {
-            tags.add('mail onaysız');
-        }
-        
-        if (parentChildren.length === 0 && parent.createdAt) {
-            const regDate = parent.createdAt.toDate();
-            if (differenceInDays(new Date(), regDate) >= 1 && !hiddenTags.includes('çocuk eklemedi')) {
-                tags.add('çocuk eklemedi');
-            }
-        }
-
         const lastPurchaseDate = parentSlots
             .filter(s => s.packageCode !== 'FREE_TRIAL')
             .sort((a,b) => b.startTime.seconds - a.startTime.seconds)[0]?.startTime?.toDate();
@@ -409,6 +343,84 @@ function UsersPageContent() {
         if (lastPurchaseDate && (!lastActivityDate || isAfter(lastPurchaseDate, lastActivityDate))) {
             lastActivityDate = lastPurchaseDate;
             lastActivityType = 'purchase';
+        }
+
+        const daysSinceLastActivity = lastActivityDate ? differenceInDays(new Date(), lastActivityDate) : 0;
+        const daysSinceReg = regDate ? differenceInDays(new Date(), regDate) : 0;
+
+        const hasTrial = parentSlots.some(s => s.packageCode === 'FREE_TRIAL');
+        const hasFinishedTrial = parentSlots.some(s => s.packageCode === 'FREE_TRIAL' && isBefore(s.startTime.toDate(), new Date()));
+
+        const totalRemainingLessons = (parentChildren.reduce((acc, c) => acc + (c.remainingLessons || 0), 0)) + (parent.remainingLessons || 0);
+
+        const allPackageCodes = [
+            ...(parent.enrolledPackages || []),
+            ...parentChildren.map(c => c.assignedPackage),
+            ...parentChildren.map(c => c.finishedPackage)
+        ].filter(Boolean);
+        
+        const nonTrialPackageCodes = allPackageCodes.filter(c => c !== 'FREE_TRIAL');
+        const hasHistory = nonTrialPackageCodes.length > 0 || parentChildren.some(c => c.finishedPackage && c.finishedPackage !== 'FREE_TRIAL');
+
+        const activePackageCodes = [
+            ...(parent.enrolledPackages || []),
+            ...parentChildren.map(c => c.assignedPackage)
+        ].filter(Boolean).filter(c => c !== 'FREE_TRIAL');
+
+        const hasActivePackage = totalRemainingLessons > 0;
+
+        if (!hasHistory) {
+            // No packages bought ever
+            if (hasFinishedTrial) {
+                tags.add('trialdone');
+            } else if (hasTrial) {
+                tags.add('trial');
+            } else if (daysSinceReg > 30) {
+                tags.add('churn');
+            }
+        } else {
+            // Has package history
+            if (hasActivePackage) {
+                tags.add('active');
+                activePackageCodes.forEach(code => {
+                    if (code.includes('GCSE')) tags.add('gcse');
+                    else if (code.toUpperCase().includes('GRUP')) tags.add('gr');
+                    else if (code.includes('G')) tags.add('gk');
+                    
+                    if (code.includes('B')) tags.add('bk');
+                    if (code.includes('K')) tags.add('kk');
+                    if (code.includes('A')) tags.add('ak');
+                });
+            } else {
+                // Package finished
+                if (daysSinceLastActivity > 30) {
+                    tags.add('churn');
+                } else {
+                    tags.add('package finished');
+                }
+            }
+        }
+
+        const manualTags = (parent.tags || []).map((t: string) => t.toLowerCase());
+        const hiddenTags = (parent.hiddenTags || []).map((t: string) => t.toLowerCase());
+
+        manualTags.forEach((t: string) => {
+            if (!hiddenTags.includes(t)) tags.add(t);
+        });
+
+        if (parent.isLegacy && !hiddenTags.includes('eski uye')) tags.add('eski uye');
+        
+        // New Tags Logic
+        if (parent.emailVerified && !hiddenTags.includes('mail onaylı')) {
+            tags.add('mail onaylı');
+        } else if (!parent.emailVerified && !hiddenTags.includes('mail onaysız')) {
+            tags.add('mail onaysız');
+        }
+        
+        if (parentChildren.length === 0 && parent.createdAt) {
+            if (daysSinceReg >= 1 && !hiddenTags.includes('çocuk eklemedi')) {
+                tags.add('çocuk eklemedi');
+            }
         }
 
         return {
