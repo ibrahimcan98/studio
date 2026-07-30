@@ -7,7 +7,7 @@ import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, query, where, doc, writeBatch, getDoc, updateDoc, serverTimestamp, increment, arrayUnion, addDoc, Timestamp } from 'firebase/firestore';
-import { Loader2, Calendar, History, BookOpen, Baby, Edit, AlertCircle, Video, MessageCircle } from 'lucide-react';
+import { Loader2, Calendar, History, BookOpen, Baby, Edit, AlertCircle, Video, MessageCircle, FileText, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -165,6 +165,24 @@ function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any
                     <div className="bg-destructive/10 text-destructive text-[10px] font-black px-2 py-1 rounded flex items-center gap-1 mt-2 uppercase tracking-wider">
                         <AlertCircle className="w-3 h-3" />
                         Geri Bildirim Bekliyor
+                    </div>
+                )}
+
+                {(lesson.materials?.length > 0 || lesson.homeworks?.length > 0) && (
+                    <div className="mt-3 space-y-2 border-t pt-3">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Atanan İçerikler</span>
+                        {lesson.materials?.map((m: any, i: number) => (
+                            <a key={i} href={m.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-600 hover:text-blue-700 bg-blue-50 p-2 rounded-lg transition-colors">
+                                <BookOpen className="w-4 h-4 shrink-0" />
+                                <span className="font-semibold truncate">{m.title}</span>
+                            </a>
+                        ))}
+                        {lesson.homeworks?.map((hw: any, i: number) => (
+                            <a key={i} href={hw.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 bg-indigo-50 p-2 rounded-lg transition-colors">
+                                <FileText className="w-4 h-4 shrink-0" />
+                                <span className="font-semibold truncate">{hw.title}</span>
+                            </a>
+                        ))}
                     </div>
                 )}
 
@@ -462,7 +480,9 @@ function OgretmenDerslerimPageContent() {
                     feedback: feedbackSlot ? feedbackSlot.feedback : null,
                     slots: lesson.slots,
                     isLive: liveInfoSlot ? liveInfoSlot.isLive : false,
-                liveLessonUrl: liveInfoSlot ? liveInfoSlot.liveLessonUrl : null,
+                    liveLessonUrl: liveInfoSlot ? liveInfoSlot.liveLessonUrl : null,
+                    materials: firstSlot.materials || [],
+                    homeworks: firstSlot.homeworks || [],
                 };
             });
         });

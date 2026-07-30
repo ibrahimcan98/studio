@@ -261,7 +261,24 @@ export default function TeacherProfilePage() {
                             {form.formState.errors.googleMeetLink && <p className="text-destructive text-sm mt-1">{form.formState.errors.googleMeetLink.message}</p>}
                             <p className="text-xs text-muted-foreground mt-1">Bu link tüm dersleriniz için kullanılacaktır.</p>
                         </div>
+                        <div>
+                            <Label htmlFor="introVideoUrl">Tanıtım Videosu URL'si</Label>
+                            <Input id="introVideoUrl" {...form.register('introVideoUrl')} placeholder="https://youtube.com/watch?v=..." disabled={isProfileLocked} />
+                            {form.formState.errors.introVideoUrl && <p className="text-destructive text-sm mt-1">{form.formState.errors.introVideoUrl.message}</p>}
+                        </div>
                     </div>
+                    
+                    {introVideoUrl && (
+                        <div className="pt-4">
+                            <h4 className="font-semibold mb-2 text-sm">Video Önizlemesi</h4>
+                             <Button asChild variant="outline" disabled={isProfileLocked}>
+                                <Link href={introVideoUrl} target="_blank" rel="noopener noreferrer">
+                                    <Video className="w-4 h-4 mr-2" />
+                                    Videoyu Yeni Sekmede Aç
+                                </Link>
+                            </Button>
+                        </div>
+                    )}
                     
                     <div className="pt-4 border-t">
                         <Label className="text-base font-bold text-slate-800">Kurs Başına Kazanç (€, Ders Başı)</Label>

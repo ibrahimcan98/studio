@@ -220,7 +220,7 @@ export const getFeedbackTemplate = (data: { studentName: string; teacherName: st
   `);
 };
 
-export const getLessonReminderTemplate = (data: { studentName: string; teacherName: string; time: string; meetingLink?: string }) => {
+export const getLessonReminderTemplate = (data: { studentName: string; teacherName: string; time: string; meetingLink?: string; materials?: {title: string; url: string}[] }) => {
   return getBaseTemplate(`
     <h2 style="color: #0ea5e9; font-size: 22px; margin-top: 0; text-align: center;">⏰ Dersiniz Başlıyor!</h2>
     <p style="text-align: center;">Merhaba, <strong>${data.studentName}</strong>'in dersi 10 dakika içinde (<strong>${data.time}</strong>) başlayacaktır.</p>
@@ -232,11 +232,65 @@ export const getLessonReminderTemplate = (data: { studentName: string; teacherNa
       `}
     </div>
 
+    ${data.materials && data.materials.length > 0 ? `
+      <div style="background-color: #fff7ed; padding: 20px; border-radius: 16px; border: 1px solid #ffedd5; margin-bottom: 24px; text-align: center;">
+        <h3 style="color: #c2410c; margin-top: 0; font-size: 16px;">📚 Dersten Önce İndirilecek Materyaller:</h3>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          ${data.materials.map(m => `<li style="margin: 8px 0;"><a href="${m.url}" style="color: #ea580c; font-weight: 600; text-decoration: underline;" target="_blank">${m.title}</a></li>`).join('')}
+        </ul>
+      </div>
+    ` : ''}
+
     <p style="font-size: 14px; color: #64748b; text-align: center;">İyi dersler dileriz! 🚀</p>
     
     <div style="text-align: center; margin-top: 25px;">
       <a href="https://turkcocukakademisi.com/ebeveyn-portali/derslerim" style="color: #0ea5e9; font-weight: 700; text-decoration: none;">Veli Paneline Git →</a>
     </div>
+  `);
+};
+
+
+export const getHomeworkAssignedTemplate = (data: { studentName: string; homeworkTitle: string; homeworkUrl: string; courseName: string; lessonDate: string; lessonTime: string; }) => {
+  return getBaseTemplate(`
+    <h2 style="color: #4f46e5; font-size: 22px; margin-top: 0; text-align: center;">📝 Yeni Ödev Eklendi!</h2>
+    <p style="text-align: center;">Merhaba, <strong>${data.studentName}</strong>'in dersine yeni bir ödev atandı.</p>
+    
+    <div style="background-color: #eef2ff; padding: 24px; border-radius: 20px; border: 1px solid #e0e7ff; margin: 24px 0; text-align: center;">
+      <p style="color: #3730a3; font-weight: 700; margin-bottom: 5px;">Ders Bilgisi:</p>
+      <p style="color: #312e81; font-size: 16px; margin-top: 0; margin-bottom: 15px;">
+        ${data.courseName}<br>
+        <span style="font-size: 14px; color: #3730a3;">🗓️ ${data.lessonDate} - ⏰ ${data.lessonTime}</span>
+      </p>
+      <hr style="border: none; border-top: 1px solid #e0e7ff; margin: 15px 0;" />
+      <p style="color: #3730a3; font-weight: 700; margin-bottom: 5px;">Ödev:</p>
+      <p style="color: #312e81; font-size: 18px; margin-top: 0;">${data.homeworkTitle}</p>
+    </div>
+
+    ${getButtonHtml('Ödevi Görüntüle', data.homeworkUrl, '#4f46e5')}
+    
+    <p style="font-size: 14px; color: #64748b; text-align: center;">Başarılar dileriz! ✨</p>
+  `);
+};
+
+export const getMaterialAssignedTemplate = (data: { studentName: string; materialTitle: string; materialUrl: string; courseName: string; lessonDate: string; lessonTime: string; }) => {
+  return getBaseTemplate(`
+    <h2 style="color: #059669; font-size: 22px; margin-top: 0; text-align: center;">📚 Yeni Materyal Eklendi!</h2>
+    <p style="text-align: center;">Merhaba, <strong>${data.studentName}</strong>'in dersine yeni bir eğitim materyali atandı.</p>
+    
+    <div style="background-color: #f0fdf4; padding: 24px; border-radius: 20px; border: 1px solid #dcfce7; margin: 24px 0; text-align: center;">
+      <p style="color: #166534; font-weight: 700; margin-bottom: 5px;">Ders Bilgisi:</p>
+      <p style="color: #14532d; font-size: 16px; margin-top: 0; margin-bottom: 15px;">
+        ${data.courseName}<br>
+        <span style="font-size: 14px; color: #166534;">🗓️ ${data.lessonDate} - ⏰ ${data.lessonTime}</span>
+      </p>
+      <hr style="border: none; border-top: 1px solid #dcfce7; margin: 15px 0;" />
+      <p style="color: #166534; font-weight: 700; margin-bottom: 5px;">Materyal:</p>
+      <p style="color: #14532d; font-size: 18px; margin-top: 0;">${data.materialTitle}</p>
+    </div>
+
+    ${getButtonHtml('Materyali İndir', data.materialUrl, '#059669')}
+    
+    <p style="font-size: 14px; color: #64748b; text-align: center;">İyi dersler dileriz! 🚀</p>
   `);
 };
 

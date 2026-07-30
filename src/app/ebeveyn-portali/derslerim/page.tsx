@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, writeBatch, increment, getDocs, Timestamp, addDoc } from 'firebase/firestore';
-import { Loader2, ArrowLeft, Calendar, Clock, User, BookOpen, Baby, History, MessageSquare, Video, ClipboardList, AlertCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, Calendar, Clock, User, BookOpen, Baby, History, MessageSquare, Video, ClipboardList, AlertCircle, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatInTimeZone } from 'date-fns-tz';
@@ -297,6 +297,24 @@ function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZon
                         </p>
                     </div>
                 )}
+
+                {(lesson.materials?.length > 0 || lesson.homeworks?.length > 0) && (
+                    <div className="mt-4 pt-3 border-t space-y-2">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ders İçerikleri</span>
+                        {lesson.materials?.map((m: any, i: number) => (
+                            <a key={i} href={m.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-600 hover:text-blue-700 bg-blue-50 p-2.5 rounded-xl transition-colors">
+                                <BookOpen className="w-4 h-4 shrink-0" />
+                                <span className="font-semibold text-sm truncate">{m.title}</span>
+                            </a>
+                        ))}
+                        {lesson.homeworks?.map((hw: any, i: number) => (
+                            <a key={i} href={hw.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 bg-indigo-50 p-2.5 rounded-xl transition-colors">
+                                <FileText className="w-4 h-4 shrink-0" />
+                                <span className="font-semibold text-sm truncate">{hw.title} (Ödev)</span>
+                            </a>
+                        ))}
+                    </div>
+                )}
             </CardContent>
             
             <CardFooter className="flex flex-col gap-2 pt-2">
@@ -483,7 +501,9 @@ export default function DerslerimPage() {
                 liveLessonUrl: liveSlot ? liveSlot.liveLessonUrl : null,
                 status: firstSlot.status,
                 cancelReason: firstSlot.cancelReason,
-                bookedAt: firstSlot.bookedAt
+                bookedAt: firstSlot.bookedAt,
+                materials: firstSlot.materials || [],
+                homeworks: firstSlot.homeworks || []
             };
         });
     }, [lessonSlots]);

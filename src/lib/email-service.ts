@@ -337,3 +337,45 @@ export async function sendChildAddedEmail(data: {
     data,
   });
 }
+
+/**
+ * 7. Admin Derse Ödev Yükledi
+ * Alıcılar: SADECE Ebeveyn
+ */
+export async function sendHomeworkAssignedEmail(data: {
+  studentName: string;
+  parentEmail: string;
+  homeworkTitle: string;
+  homeworkUrl: string;
+  courseName: string;
+  lessonDate: string;
+  lessonTime: string;
+}): Promise<void> {
+  await sendEmail({
+    to: data.parentEmail,
+    subject: `📝 Yeni Ödev Eklendi — ${data.studentName}`,
+    templateName: 'homework-assigned',
+    data,
+  });
+}
+
+/**
+ * 8. Admin Derse Materyal Yükledi
+ * Alıcılar: SADECE Ebeveyn
+ */
+export async function sendMaterialAssignedEmail(data: {
+  studentName: string;
+  parentEmail: string;
+  materialTitle: string;
+  materialUrl: string;
+  courseName: string;
+  lessonDate: string;
+  lessonTime: string;
+}): Promise<void> {
+  await sendEmail({
+    to: data.parentEmail,
+    subject: `📚 Yeni Ders Materyali — ${data.studentName}`,
+    templateName: 'material-assigned',
+    data,
+  });
+}

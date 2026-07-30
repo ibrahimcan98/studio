@@ -106,13 +106,17 @@ try {
   firestoreDb = getFirestore(app);
 }
 
+import { getStorage } from 'firebase/storage';
+
 export const db = firestoreDb;
+export const storage = getStorage(app);
 
 export function initializeFirebase() {
   return {
     firebaseApp: app,
     auth,
-    firestore: db
+    firestore: db,
+    storage
   };
 }
 

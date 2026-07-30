@@ -48,6 +48,12 @@ export async function POST(req: Request) {
       case 'admin-lesson-action':
         html = templates.getAdminLessonActionTemplate(data);
         break;
+      case 'homework-assigned':
+        html = templates.getHomeworkAssignedTemplate(data);
+        break;
+      case 'material-assigned':
+        html = templates.getMaterialAssignedTemplate(data);
+        break;
       default:
         return NextResponse.json({ error: 'Geçersiz şablon ismi.' }, { status: 400 });
     }

@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, writeBatch, increment, getDocs, Timestamp, addDoc } from 'firebase/firestore';
-import { Loader2, ArrowLeft, Calendar, Clock, User, Users, BookOpen, Baby, History, MessageSquare, Video, ClipboardList, AlertCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, Calendar, Clock, User, Users, BookOpen, Baby, History, MessageSquare, Video, ClipboardList, AlertCircle, FileText, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -297,6 +297,60 @@ function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZon
                     <span><strong className="text-slate-700">Kurs:</strong> {lesson.packageCode === 'FREE_TRIAL' ? 'Ücretsiz Deneme' : (lesson.courseName || packageDetails?.courseName)}</span>
                 </div>
 
+                {(lesson.materials?.length > 0 || lesson.homeworks?.length > 0) && (
+                    <div className="mt-5 pt-4 border-t border-slate-100 flex flex-col gap-2.5">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Ders İçerikleri & Ödevler</span>
+                        
+                        <div className="grid gap-2">
+                            {lesson.materials?.map((m: any, i: number) => (
+                                <a 
+                                    key={`m-${i}`} 
+                                    href={m.url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="group flex items-center justify-between p-3 rounded-2xl border border-blue-100/50 bg-gradient-to-r from-blue-50/50 to-transparent hover:from-blue-50 hover:to-blue-50/50 transition-all duration-300 hover:shadow-sm"
+                                >
+                                    <div className="flex items-center gap-3 overflow-hidden">
+                                        <div className="w-9 h-9 rounded-xl bg-white border border-blue-100 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300 shadow-sm">
+                                            <BookOpen className="w-4 h-4" />
+                                        </div>
+                                        <div className="flex flex-col truncate">
+                                            <span className="font-bold text-slate-700 text-sm truncate group-hover:text-blue-700 transition-colors">{m.title}</span>
+                                            <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">{m.type === 'document' ? 'PDF Döküman' : (m.type || 'Ders Materyali')}</span>
+                                        </div>
+                                    </div>
+                                    <div className="w-8 h-8 rounded-full bg-white border border-slate-100 flex items-center justify-center shrink-0 group-hover:border-blue-200 group-hover:bg-blue-50 transition-colors shadow-sm ml-3">
+                                        <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600" />
+                                    </div>
+                                </a>
+                            ))}
+                            
+                            {lesson.homeworks?.map((h: any, i: number) => (
+                                <a 
+                                    key={`h-${i}`} 
+                                    href={h.url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="group flex items-center justify-between p-3 rounded-2xl border border-indigo-100/50 bg-gradient-to-r from-indigo-50/50 to-transparent hover:from-indigo-50 hover:to-indigo-50/50 transition-all duration-300 hover:shadow-sm"
+                                >
+                                    <div className="flex items-center gap-3 overflow-hidden">
+                                        <div className="w-9 h-9 rounded-xl bg-white border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300 shadow-sm">
+                                            <FileText className="w-4 h-4" />
+                                        </div>
+                                        <div className="flex flex-col truncate">
+                                            <span className="font-bold text-slate-700 text-sm truncate group-hover:text-indigo-700 transition-colors">{h.title}</span>
+                                            <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Verilen Ödev</span>
+                                        </div>
+                                    </div>
+                                    <div className="w-8 h-8 rounded-full bg-white border border-slate-100 flex items-center justify-center shrink-0 group-hover:border-indigo-200 group-hover:bg-indigo-50 transition-colors shadow-sm ml-3">
+                                        <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600" />
+                                    </div>
+                                </a>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {!isPast && !lesson.isGroupSession && (
                     <div className="mt-4 pt-4 border-t">
                         <LessonQuickChat 
@@ -521,7 +575,9 @@ function DerslerimPageContent() {
                 isLive: liveInfoSlot ? liveInfoSlot.isLive : false,
                 liveLessonUrl: liveInfoSlot ? liveInfoSlot.liveLessonUrl : null,
                 rescheduleCount: firstSlot.rescheduleCount || 0,
-                slots: sessionSlots
+                slots: sessionSlots,
+                materials: firstSlot.materials || [],
+                homeworks: firstSlot.homeworks || []
             };
         });
 

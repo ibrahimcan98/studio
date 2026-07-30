@@ -15,8 +15,12 @@ import {
     addDoc,
     orderBy,
     getDoc,
-    increment
+    increment,
+    arrayUnion,
+    arrayRemove
 } from 'firebase/firestore';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { storage } from '@/firebase';
 import { 
     Loader2, 
     Search, 
@@ -34,7 +38,13 @@ import {
     Users as UsersIcon,
     AlertTriangle,
     BookOpen,
-    MessageSquare
+    MessageSquare,
+    FileText,
+    Upload,
+    Link as LinkIcon,
+    History,
+    Folder,
+    ChevronRight
 } from 'lucide-react';
 import { 
     Card, 
@@ -94,7 +104,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { getCourseByCode, COURSES } from '@/data/courses';
-import { sendAdminLessonActionEmails } from '@/lib/email-service';
+import { sendAdminLessonActionEmails, sendHomeworkAssignedEmail, sendMaterialAssignedEmail } from '@/lib/email-service';
 import { Label } from "@/components/ui/label";
 
 const getCourseDetailsFromPackageCode = (code: string) => {
@@ -194,6 +204,20 @@ export default function AdminDerslerPage() {
     // Feedback States
     const [selectedFeedback, setSelectedFeedback] = useState<any>(null);
     const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
+
+    // Media Assign States
+    const [lessonForMedia, setLessonForMedia] = useState<any>(null);
+    const [isMediaDialogOpen, setIsMediaDialogOpen] = useState(false);
+    const [currentMaterialFolderId, setCurrentMaterialFolderId] = useState<string | null>(null);
+    const [mediaType, setMediaType] = useState<'material' | 'homework'>('material');
+    const [selectedMaterialId, setSelectedMaterialId] = useState('');
+    const [homeworkTitle, setHomeworkTitle] = useState('');
+    const [homeworkFile, setHomeworkFile] = useState<File | null>(null);
+    const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+    const [mediaProgress, setMediaProgress] = useState(0);
+
+    const materialsQuery = useMemoFirebase(() => db ? query(collection(db, 'materials'), orderBy('createdAt', 'desc')) : null, [db]);
+    const { data: materialsData } = useCollection(materialsQuery);
 
     const teachers = useMemo(() => {
         return users?.filter(u => u.role === 'teacher') || [];
@@ -356,6 +380,30 @@ export default function AdminDerslerPage() {
         return groups;
     }, [completedLessons]);
 
+    const materialBreadcrumbs = useMemo(() => {
+        const path: any[] = [];
+        let currentId = currentMaterialFolderId;
+        while (currentId) {
+            const folder = materialsData?.find(m => m.id === currentId && m.type === 'folder');
+            if (folder) {
+                path.unshift(folder);
+                currentId = folder.parentId || null;
+            } else {
+                break;
+            }
+        }
+        return path;
+    }, [currentMaterialFolderId, materialsData]);
+
+    const currentLevelMaterials = useMemo(() => {
+        if (!materialsData) return { folders: [], files: [] };
+        const items = materialsData.filter(m => (m.parentId || null) === currentMaterialFolderId);
+        return {
+            folders: items.filter(m => m.type === 'folder'),
+            files: items.filter(m => m.type !== 'folder')
+        };
+    }, [materialsData, currentMaterialFolderId]);
+
     // Handlers
     const handleCancelLesson = async () => {
         if (!db || !lessonToCancel || !lessonToCancel.slotIds) return;
@@ -439,6 +487,37 @@ export default function AdminDerslerPage() {
         } finally {
             setIsCancelling(false);
             setLessonToCancel(null);
+        }
+    };
+
+    const handleRemoveMedia = async (lesson: any, mediaObj: any, type: 'material' | 'homework') => {
+        if (!confirm(`${mediaObj.title} isimli materyali bu dersten kaldırmak istediğinize emin misiniz?`)) return;
+        
+        try {
+            const batch = writeBatch(db);
+            const slotRefs = lesson.slotIds.map((id: string) => doc(db, 'lesson-slots', id));
+            
+            const updateObj = type === 'material' 
+                ? { materials: arrayRemove(mediaObj) }
+                : { homeworks: arrayRemove(mediaObj) };
+
+            slotRefs.forEach((ref: any) => {
+                batch.update(ref, updateObj);
+            });
+
+            await batch.commit();
+            toast({
+                title: "Başarılı",
+                description: "Materyal dersten kaldırıldı.",
+            });
+            refetchLessons();
+        } catch (error) {
+            console.error("Error removing media:", error);
+            toast({
+                variant: "destructive",
+                title: "Hata",
+                description: "Materyal kaldırılırken bir hata oluştu.",
+            });
         }
     };
 
@@ -629,6 +708,20 @@ export default function AdminDerslerPage() {
         }
     };
 
+    const studentPreviousMedia = useMemo(() => {
+        if (!lessonForMedia || !filteredLessons) return [];
+        
+        const pastLessons = filteredLessons.filter((l: any) => 
+            l.childId === lessonForMedia.childId && 
+            l.id !== lessonForMedia.id &&
+            ((l.materials && l.materials.length > 0) || (l.homeworks && l.homeworks.length > 0))
+        );
+
+        // Tarihe göre yeniden eskiye (descending) sırala
+        pastLessons.sort((a: any, b: any) => b.startDateTime.getTime() - a.startDateTime.getTime());
+        return pastLessons;
+    }, [lessonForMedia, filteredLessons]);
+
     if (lessonsLoading || usersLoading || isLoadingChildren) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
@@ -708,7 +801,7 @@ export default function AdminDerslerPage() {
                                 ) : Object.entries(groupedUpcomingByMonth).map(([month, lessons]) => (
                                     <div key={month} className="space-y-0">
                                         <div className="bg-slate-50/80 px-4 py-2 border-y border-slate-100 sticky top-0 z-10 backdrop-blur-sm">
-                                            <span className="text-[10px] font-black text-primary uppercase tracking-widest">{month}</span>
+                                            <span className="text-[10px] font-black text-primary uppercase tracking-widest">{month} ({lessons.length} Ders)</span>
                                         </div>
                                         <div className="divide-y divide-slate-100">
                                             {lessons.map((lesson, idx) => (
@@ -721,6 +814,11 @@ export default function AdminDerslerPage() {
                                                         setSelectedFeedback(fb);
                                                         setIsFeedbackDialogOpen(true);
                                                     }}
+                                                    onAssignMedia={() => {
+                                                        setLessonForMedia(lesson);
+                                                        setIsMediaDialogOpen(true);
+                                                    }}
+                                                    onRemoveMedia={handleRemoveMedia}
                                                 />
                                             ))}
                                         </div>
@@ -750,7 +848,7 @@ export default function AdminDerslerPage() {
                                             <React.Fragment key={month}>
                                                 <TableRow className="bg-slate-50/30 hover:bg-slate-50/30 border-y">
                                                     <TableCell colSpan={6} className="py-2 px-6">
-                                                        <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/5 px-2 py-0.5 rounded">{month}</span>
+                                                        <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/5 px-2 py-0.5 rounded">{month} ({lessons.length} Ders)</span>
                                                     </TableCell>
                                                 </TableRow>
                                                 {lessons.map((lesson, idx) => (
@@ -763,6 +861,11 @@ export default function AdminDerslerPage() {
                                                             setSelectedFeedback(fb);
                                                             setIsFeedbackDialogOpen(true);
                                                         }}
+                                                        onAssignMedia={() => {
+                                                            setLessonForMedia(lesson);
+                                                            setIsMediaDialogOpen(true);
+                                                        }}
+                                                        onRemoveMedia={handleRemoveMedia}
                                                     />
                                                 ))}
                                             </React.Fragment>
@@ -798,7 +901,7 @@ export default function AdminDerslerPage() {
                                 ) : Object.entries(groupedCompletedByMonth).map(([month, lessons]) => (
                                     <div key={month} className="space-y-0">
                                         <div className="bg-slate-50/80 px-4 py-2 border-y border-slate-100 sticky top-0 z-10 backdrop-blur-sm">
-                                            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{month}</span>
+                                            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{month} ({lessons.length} Ders)</span>
                                         </div>
                                         <div className="divide-y divide-slate-100">
                                             {lessons.map((lesson, idx) => (
@@ -811,6 +914,11 @@ export default function AdminDerslerPage() {
                                                         setSelectedFeedback(fb);
                                                         setIsFeedbackDialogOpen(true);
                                                     }}
+                                                    onAssignMedia={() => {
+                                                        setLessonForMedia(lesson);
+                                                        setIsMediaDialogOpen(true);
+                                                    }}
+                                                    onRemoveMedia={handleRemoveMedia}
                                                 />
                                             ))}
                                         </div>
@@ -840,7 +948,7 @@ export default function AdminDerslerPage() {
                                             <React.Fragment key={month}>
                                                 <TableRow className="bg-slate-50/30 hover:bg-slate-50/30 border-y">
                                                     <TableCell colSpan={6} className="py-2 px-6">
-                                                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded">{month}</span>
+                                                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded">{month} ({lessons.length} Ders)</span>
                                                     </TableCell>
                                                 </TableRow>
                                                 {lessons.map((lesson, idx) => (
@@ -853,6 +961,11 @@ export default function AdminDerslerPage() {
                                                             setSelectedFeedback(fb);
                                                             setIsFeedbackDialogOpen(true);
                                                         }}
+                                                        onAssignMedia={() => {
+                                                            setLessonForMedia(lesson);
+                                                            setIsMediaDialogOpen(true);
+                                                        }}
+                                                        onRemoveMedia={handleRemoveMedia}
                                                     />
                                                 ))}
                                             </React.Fragment>
@@ -1148,11 +1261,264 @@ export default function AdminDerslerPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Media Assign Dialog */}
+            <Dialog open={isMediaDialogOpen} onOpenChange={(open) => {
+                setIsMediaDialogOpen(open);
+                if (!open) {
+                    setLessonForMedia(null);
+                    setHomeworkFile(null);
+                    setHomeworkTitle('');
+                    setMediaProgress(0);
+                    setSelectedMaterialId('');
+                    setCurrentMaterialFolderId(null);
+                }
+            }}>
+                <DialogContent className="max-w-md w-[95vw] sm:w-full rounded-[32px] border-none shadow-2xl p-4 sm:p-8 max-h-[90vh] flex flex-col overflow-hidden">
+                    <DialogHeader className="shrink-0">
+                        <DialogTitle className="text-2xl font-black text-slate-900">Materyal / Ödev Ata</DialogTitle>
+                        <DialogDescription className="text-slate-500 font-medium">
+                            <span className="font-bold text-slate-800">{lessonForMedia?.studentName}</span> isimli öğrencinin <span className="font-bold text-slate-800">{lessonForMedia?.startDateTime && format(lessonForMedia.startDateTime, 'dd MMM HH:mm', { locale: tr })}</span> dersi için.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="py-2 space-y-6 flex-1 overflow-y-auto custom-scrollbar pr-1 -mr-1">
+                        <div className="flex gap-2 p-1 bg-slate-100 rounded-2xl">
+                            <Button 
+                                variant={mediaType === 'material' ? 'default' : 'ghost'} 
+                                className={cn("flex-1 rounded-xl font-bold", mediaType === 'material' ? 'shadow-sm' : 'text-slate-500 hover:text-slate-700')}
+                                onClick={() => setMediaType('material')}
+                            >
+                                <BookOpen className="w-4 h-4 mr-2" /> Materyal Ata
+                            </Button>
+                            <Button 
+                                variant={mediaType === 'homework' ? 'default' : 'ghost'} 
+                                className={cn("flex-1 rounded-xl font-bold", mediaType === 'homework' ? 'shadow-sm' : 'text-slate-500 hover:text-slate-700')}
+                                onClick={() => setMediaType('homework')}
+                            >
+                                <FileText className="w-4 h-4 mr-2" /> Ödev Yükle
+                            </Button>
+                        </div>
+
+                        {studentPreviousMedia.length > 0 && (
+                            <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-4 mt-2">
+                                <h4 className="text-xs font-black text-blue-800 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                    <History className="w-3.5 h-3.5" /> Öğrencinin Önceki Materyalleri
+                                </h4>
+                                <div className="space-y-3 max-h-[160px] overflow-y-auto custom-scrollbar pr-1">
+                                    {studentPreviousMedia.map((pastLesson: any) => (
+                                        <div key={pastLesson.id} className="text-xs bg-white p-2.5 rounded-xl border border-blue-100/50 shadow-sm">
+                                            <div className="font-semibold text-slate-700 mb-1 border-b pb-1 flex justify-between items-center">
+                                                <span>{pastLesson.courseName}</span>
+                                                <span className="text-[10px] text-slate-400 font-medium">{format(pastLesson.startDateTime, 'dd MMM yyyy', { locale: tr })}</span>
+                                            </div>
+                                            <div className="flex flex-col gap-1 mt-1.5">
+                                                {pastLesson.materials?.map((m: any, idx: number) => (
+                                                    <a key={`m-${idx}`} href={m.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 hover:underline cursor-pointer">
+                                                        <BookOpen className="w-3 h-3 shrink-0" />
+                                                        <span className="truncate">{m.title}</span>
+                                                    </a>
+                                                ))}
+                                                {pastLesson.homeworks?.map((h: any, idx: number) => (
+                                                    <a key={`h-${idx}`} href={h.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer">
+                                                        <FileText className="w-3 h-3 shrink-0" />
+                                                        <span className="truncate">{h.title} (Ödev)</span>
+                                                    </a>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {mediaType === 'material' && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-left-2">
+                                <div className="space-y-2">
+                                    <Label className="font-bold text-slate-700">Materyal Seçin</Label>
+                                    <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50 flex flex-col h-64">
+                                        {/* Breadcrumbs */}
+                                        <div className="flex items-center gap-2 p-3 bg-white border-b text-sm font-semibold overflow-x-auto hide-scrollbar shrink-0">
+                                            <button 
+                                                onClick={(e) => { e.preventDefault(); setCurrentMaterialFolderId(null); }}
+                                                className={cn("flex items-center gap-1 transition-colors hover:text-slate-700", !currentMaterialFolderId ? "text-primary" : "text-slate-500")}
+                                            >
+                                                Ana Dizin
+                                            </button>
+                                            {materialBreadcrumbs.map((b, idx) => (
+                                                <React.Fragment key={b.id}>
+                                                    <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+                                                    <button 
+                                                        onClick={(e) => { e.preventDefault(); setCurrentMaterialFolderId(b.id); }}
+                                                        className={cn("truncate max-w-[120px] transition-colors hover:text-slate-700", idx === materialBreadcrumbs.length - 1 ? "text-primary" : "text-slate-500")}
+                                                    >
+                                                        {b.title}
+                                                    </button>
+                                                </React.Fragment>
+                                            ))}
+                                        </div>
+                                        
+                                        {/* Items */}
+                                        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                                            {currentLevelMaterials.folders.length === 0 && currentLevelMaterials.files.length === 0 && (
+                                                <div className="text-center text-slate-400 text-sm mt-10">Bu klasör boş.</div>
+                                            )}
+                                            {currentLevelMaterials.folders.map((f: any) => (
+                                                <button
+                                                    key={f.id}
+                                                    onClick={(e) => { e.preventDefault(); setCurrentMaterialFolderId(f.id); }}
+                                                    className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-200 transition-colors text-left group"
+                                                >
+                                                    <div className="bg-blue-100 p-1.5 rounded-md">
+                                                        <Folder className="w-5 h-5 text-blue-500 fill-blue-100" />
+                                                    </div>
+                                                    <span className="font-semibold text-slate-700 truncate">{f.title}</span>
+                                                </button>
+                                            ))}
+                                            {currentLevelMaterials.files.map((f: any) => (
+                                                <button
+                                                    key={f.id}
+                                                    onClick={(e) => { e.preventDefault(); setSelectedMaterialId(f.id); }}
+                                                    className={cn(
+                                                        "w-full flex items-center gap-3 p-2.5 rounded-lg transition-colors text-left",
+                                                        selectedMaterialId === f.id ? "bg-primary/10 border border-primary/20" : "hover:bg-slate-200"
+                                                    )}
+                                                >
+                                                    <div className="bg-emerald-100 p-1.5 rounded-md shrink-0">
+                                                        <FileText className="w-5 h-5 text-emerald-600" />
+                                                    </div>
+                                                    <div className="flex flex-col truncate">
+                                                        <span className={cn("font-semibold truncate", selectedMaterialId === f.id ? "text-primary" : "text-slate-700")}>{f.title}</span>
+                                                        <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">{f.type === 'document' ? 'Döküman' : f.type}</span>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {mediaType === 'homework' && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-right-2">
+                                <div className="space-y-2">
+                                    <Label className="font-bold text-slate-700">Ödev Başlığı</Label>
+                                    <Input 
+                                        placeholder="Örn: 1. Ünite Sonu Ödevi" 
+                                        value={homeworkTitle} 
+                                        onChange={(e) => setHomeworkTitle(e.target.value)}
+                                        className="h-12 rounded-xl"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="font-bold text-slate-700">Dosya Seçin</Label>
+                                    <Input 
+                                        type="file" 
+                                        onChange={(e) => setHomeworkFile(e.target.files?.[0] || null)}
+                                        className="h-12 rounded-xl file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <DialogFooter className="shrink-0 pt-2">
+                        <Button variant="outline" onClick={() => setIsMediaDialogOpen(false)} className="rounded-xl h-12 font-bold w-full sm:w-auto">İptal</Button>
+                        <Button 
+                            className="rounded-xl h-12 font-bold w-full sm:w-auto bg-primary"
+                            disabled={isUploadingMedia || (mediaType === 'material' ? !selectedMaterialId : (!homeworkTitle || !homeworkFile))}
+                            onClick={async () => {
+                                if (!db || !lessonForMedia || !lessonForMedia.slotIds) return;
+                                setIsUploadingMedia(true);
+                                try {
+                                    const batch = writeBatch(db);
+                                    const slotRefs = lessonForMedia.slotIds.map((id: string) => doc(db, 'lesson-slots', id));
+                                    const parent = users?.find(u => u.id === lessonForMedia.bookedBy || u.uid === lessonForMedia.bookedBy || u._id === lessonForMedia.bookedBy);
+
+                                    if (mediaType === 'material') {
+                                        const material = materialsData?.find((m: any) => m.id === selectedMaterialId);
+                                        if (!material) throw new Error("Materyal bulunamadı");
+                                        
+                                        const matObj = { id: material.id, title: material.title, url: material.url, type: material.type };
+                                        
+                                        slotRefs.forEach((ref: any) => {
+                                            batch.update(ref, { materials: arrayUnion(matObj) });
+                                        });
+                                        
+                                        await batch.commit();
+
+                                        if (parent?.email) {
+                                            await sendMaterialAssignedEmail({
+                                                studentName: lessonForMedia.studentName,
+                                                parentEmail: parent.email,
+                                                materialTitle: material.title,
+                                                materialUrl: material.url,
+                                                courseName: lessonForMedia.courseName || 'Bilinmeyen Ders',
+                                                lessonDate: parent.timezone ? formatInTimeZone(lessonForMedia.startDateTime, parent.timezone, 'dd MMMM yyyy, EEEE', { locale: tr }) : format(lessonForMedia.startDateTime, 'dd MMMM yyyy, EEEE', { locale: tr }),
+                                                lessonTime: parent.timezone ? formatInTimeZone(lessonForMedia.startDateTime, parent.timezone, 'HH:mm', { locale: tr }) : format(lessonForMedia.startDateTime, 'HH:mm', { locale: tr })
+                                            });
+                                        }
+
+                                        toast({ title: 'Başarılı', description: 'Materyal derse atandı ve veliye e-posta gönderildi.' });
+                                    } else {
+                                        if (!homeworkFile) return;
+                                        const fileName = `${Date.now()}_${homeworkFile.name}`;
+                                        const storageRef = ref(storage, `homeworks/${fileName}`);
+                                        const uploadTask = uploadBytesResumable(storageRef, homeworkFile);
+
+                                        await new Promise<void>((resolve, reject) => {
+                                            uploadTask.on('state_changed',
+                                                (snap) => setMediaProgress((snap.bytesTransferred / snap.totalBytes) * 100),
+                                                reject,
+                                                async () => {
+                                                    const url = await getDownloadURL(uploadTask.snapshot.ref);
+                                                    const hwObj = { title: homeworkTitle, url, fileName, addedAt: Timestamp.now() };
+                                                    
+                                                    slotRefs.forEach((ref: any) => {
+                                                        batch.update(ref, { homeworks: arrayUnion(hwObj) });
+                                                    });
+                                                    
+                                                    await batch.commit();
+
+                                                    if (parent?.email) {
+                                                        await sendHomeworkAssignedEmail({
+                                                            studentName: lessonForMedia.studentName,
+                                                            parentEmail: parent.email,
+                                                            homeworkTitle: homeworkTitle,
+                                                            homeworkUrl: url,
+                                                            courseName: lessonForMedia.courseName || 'Bilinmeyen Ders',
+                                                            lessonDate: parent.timezone ? formatInTimeZone(lessonForMedia.startDateTime, parent.timezone, 'dd MMMM yyyy, EEEE', { locale: tr }) : format(lessonForMedia.startDateTime, 'dd MMMM yyyy, EEEE', { locale: tr }),
+                                                            lessonTime: parent.timezone ? formatInTimeZone(lessonForMedia.startDateTime, parent.timezone, 'HH:mm', { locale: tr }) : format(lessonForMedia.startDateTime, 'HH:mm', { locale: tr })
+                                                        });
+                                                    }
+
+                                                    toast({ title: 'Başarılı', description: 'Ödev yüklendi ve veliye e-posta gönderildi.' });
+                                                    resolve();
+                                                }
+                                            );
+                                        });
+                                    }
+                                    setIsMediaDialogOpen(false);
+                                } catch (error) {
+                                    console.error("Assignment error:", error);
+                                    toast({ variant: 'destructive', title: 'Hata', description: 'İşlem başarısız oldu.' });
+                                } finally {
+                                    setIsUploadingMedia(false);
+                                }
+                            }}
+                        >
+                            {isUploadingMedia ? (
+                                <><Loader2 className="animate-spin w-4 h-4 mr-2" /> İşleniyor ({Math.round(mediaProgress)}%)</>
+                            ) : 'Ata ve Bildir'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
 
-function LessonRow({ lesson, currentTime, onCancel, onShowFeedback }: { lesson: any, currentTime: Date, onCancel: () => void, onShowFeedback: (feedback: any) => void }) {
+function LessonRow({ lesson, currentTime, onCancel, onShowFeedback, onAssignMedia, onRemoveMedia }: { lesson: any, currentTime: Date, onCancel: () => void, onShowFeedback: (feedback: any) => void, onAssignMedia: () => void, onRemoveMedia: (lesson: any, media: any, type: 'material' | 'homework') => void }) {
     const endTime = addMinutes(lesson.startDateTime, lesson.duration);
     const isStarted = currentTime >= lesson.startDateTime;
     const isEnded = currentTime >= endTime;
@@ -1185,12 +1551,54 @@ function LessonRow({ lesson, currentTime, onCancel, onShowFeedback }: { lesson: 
                 </div>
             </TableCell>
             <TableCell className="p-6">
-                <Badge className={cn(
-                    "rounded-lg font-bold px-3 py-1",
-                    lesson.isTrial ? "bg-blue-100 text-blue-700 hover:bg-blue-100" : "bg-emerald-100 text-emerald-700 hover:bg-emerald-100"
-                )}>
-                    {lesson.courseName}
-                </Badge>
+                <div className="flex flex-col items-start gap-2">
+                    <Badge className={cn(
+                        "rounded-lg font-bold px-3 py-1",
+                        lesson.isTrial ? "bg-blue-100 text-blue-700 hover:bg-blue-100" : "bg-emerald-100 text-emerald-700 hover:bg-emerald-100"
+                    )}>
+                        {lesson.courseName}
+                    </Badge>
+                    {(lesson.materials?.length > 0 || lesson.homeworks?.length > 0) && (
+                        <div className="flex flex-col gap-1 w-full max-w-[180px]">
+                            {lesson.materials?.map((m: any, i: number) => (
+                                <a key={`m-${i}`} href={m.url} target="_blank" rel="noopener noreferrer" className="group/link flex items-center gap-2 p-2 rounded-xl border border-blue-100/50 bg-gradient-to-r from-blue-50/50 to-transparent hover:from-blue-50 hover:to-blue-50/50 transition-all duration-300 w-full hover:shadow-sm" title={m.title}>
+                                    <div className="w-6 h-6 rounded-lg bg-white border border-blue-100 text-blue-600 flex items-center justify-center shrink-0 group-hover/link:scale-110 group-hover/link:bg-blue-600 group-hover/link:text-white transition-all duration-300 shadow-sm">
+                                        <BookOpen className="w-3 h-3" />
+                                    </div>
+                                    <div className="flex flex-col truncate flex-1">
+                                        <span className="truncate font-bold text-[10px] text-slate-700 group-hover/link:text-blue-700 transition-colors">{m.title}</span>
+                                        <span className="text-[8px] text-slate-400 font-medium uppercase tracking-wider">{m.type === 'document' ? 'PDF' : (m.type || 'MATERYAL')}</span>
+                                    </div>
+                                    <button 
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemoveMedia(lesson, m, 'material'); }}
+                                        className="p-1 hover:bg-red-50 rounded-md transition-colors ml-auto text-slate-300 hover:text-red-500 opacity-0 group-hover/link:opacity-100 shrink-0"
+                                        title="Kaldır"
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </a>
+                            ))}
+                            {lesson.homeworks?.map((h: any, i: number) => (
+                                <a key={`h-${i}`} href={h.url} target="_blank" rel="noopener noreferrer" className="group/link flex items-center gap-2 p-2 rounded-xl border border-indigo-100/50 bg-gradient-to-r from-indigo-50/50 to-transparent hover:from-indigo-50 hover:to-indigo-50/50 transition-all duration-300 w-full hover:shadow-sm" title={h.title}>
+                                    <div className="w-6 h-6 rounded-lg bg-white border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 group-hover/link:scale-110 group-hover/link:bg-indigo-600 group-hover/link:text-white transition-all duration-300 shadow-sm">
+                                        <FileText className="w-3 h-3" />
+                                    </div>
+                                    <div className="flex flex-col truncate flex-1">
+                                        <span className="truncate font-bold text-[10px] text-slate-700 group-hover/link:text-indigo-700 transition-colors">{h.title}</span>
+                                        <span className="text-[8px] text-slate-400 font-medium uppercase tracking-wider">ÖDEV</span>
+                                    </div>
+                                    <button 
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemoveMedia(lesson, h, 'homework'); }}
+                                        className="p-1 hover:bg-red-50 rounded-md transition-colors ml-auto text-slate-300 hover:text-red-500 opacity-0 group-hover/link:opacity-100 shrink-0"
+                                        title="Kaldır"
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </a>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </TableCell>
             <TableCell className="p-6">
                 {(() => {
@@ -1224,6 +1632,15 @@ function LessonRow({ lesson, currentTime, onCancel, onShowFeedback }: { lesson: 
                     <Button 
                         variant="secondary" 
                         size="sm" 
+                        className="rounded-xl font-bold bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all"
+                        onClick={onAssignMedia}
+                    >
+                        <BookOpen className="w-4 h-4 mr-1.5" />
+                        Materyal Ata
+                    </Button>
+                    <Button 
+                        variant="secondary" 
+                        size="sm" 
                         className="rounded-xl font-bold bg-slate-100 text-slate-600 hover:bg-slate-900 hover:text-white transition-all group"
                         asChild
                     >
@@ -1246,7 +1663,9 @@ function LessonRow({ lesson, currentTime, onCancel, onShowFeedback }: { lesson: 
                                     <Video className="w-4 h-4" /> Derse Git (Live)
                                 </DropdownMenuItem>
                             )}
-                            <DropdownMenuSeparator />
+                            {lesson.isLive && (
+                                <DropdownMenuSeparator />
+                            )}
                             <DropdownMenuItem 
                                 className="rounded-xl font-bold text-red-600 hover:text-red-700 hover:bg-red-50 gap-2 p-3 cursor-pointer"
                                 onClick={onCancel}
@@ -1261,7 +1680,7 @@ function LessonRow({ lesson, currentTime, onCancel, onShowFeedback }: { lesson: 
     );
 }
 
-function LessonCard({ lesson, currentTime, onCancel, onShowFeedback }: { lesson: any, currentTime: Date, onCancel: () => void, onShowFeedback: (feedback: any) => void }) {
+function LessonCard({ lesson, currentTime, onCancel, onShowFeedback, onAssignMedia, onRemoveMedia }: { lesson: any, currentTime: Date, onCancel: () => void, onShowFeedback: (feedback: any) => void, onAssignMedia: () => void, onRemoveMedia: (lesson: any, media: any, type: 'material' | 'homework') => void }) {
     const endTime = addMinutes(lesson.startDateTime, lesson.duration);
     const isStarted = currentTime >= lesson.startDateTime;
     const isEnded = currentTime >= endTime;
@@ -1299,6 +1718,9 @@ function LessonCard({ lesson, currentTime, onCancel, onShowFeedback }: { lesson:
                                 <Video className="w-3.5 h-3.5 mr-2" /> Derse Git (Live)
                             </DropdownMenuItem>
                         )}
+                        {lesson.isLive && (
+                            <DropdownMenuSeparator />
+                        )}
                         <DropdownMenuItem className="rounded-lg font-bold text-xs py-2.5 text-red-500 focus:text-red-500 cursor-pointer" onClick={onCancel}>
                             <X className="w-3.5 h-3.5 mr-2" /> Dersi İptal Et
                         </DropdownMenuItem>
@@ -1322,6 +1744,15 @@ function LessonCard({ lesson, currentTime, onCancel, onShowFeedback }: { lesson:
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-50">
+                <Button 
+                    variant="secondary" 
+                    size="sm" 
+                    className="flex-1 rounded-xl font-bold bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all text-[11px]"
+                    onClick={onAssignMedia}
+                >
+                    <BookOpen className="w-3.5 h-3.5 mr-1.5" />
+                    Materyal Ata
+                </Button>
                 <Badge className={cn(
                     "rounded-lg font-black text-[8px] uppercase tracking-widest px-2 py-0.5",
                     lesson.isTrial ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-emerald-50 text-emerald-700 border-emerald-100"
@@ -1353,6 +1784,47 @@ function LessonCard({ lesson, currentTime, onCancel, onShowFeedback }: { lesson:
                     return <Badge variant="outline" className="rounded-lg border-blue-50 bg-blue-50 text-blue-500 font-black px-2 py-0.5 uppercase text-[8px] tracking-widest">YAKLAŞAN</Badge>;
                 })()}
             </div>
+
+            {(lesson.materials?.length > 0 || lesson.homeworks?.length > 0) && (
+                <div className="flex flex-col gap-1 mt-3 pt-3 border-t border-slate-50">
+                    {lesson.materials?.map((m: any, i: number) => (
+                        <a key={`m-${i}`} href={m.url} target="_blank" rel="noopener noreferrer" className="group/link flex items-center gap-2 p-2 rounded-xl border border-blue-100/50 bg-gradient-to-r from-blue-50/50 to-transparent hover:from-blue-50 hover:to-blue-50/50 transition-all duration-300 w-full hover:shadow-sm" title={m.title}>
+                            <div className="w-6 h-6 rounded-lg bg-white border border-blue-100 text-blue-600 flex items-center justify-center shrink-0 group-hover/link:scale-110 group-hover/link:bg-blue-600 group-hover/link:text-white transition-all duration-300 shadow-sm">
+                                <BookOpen className="w-3 h-3" />
+                            </div>
+                            <div className="flex flex-col truncate flex-1">
+                                <span className="truncate font-bold text-[10px] text-slate-700 group-hover/link:text-blue-700 transition-colors">{m.title}</span>
+                                <span className="text-[8px] text-slate-400 font-medium uppercase tracking-wider">{m.type === 'document' ? 'PDF' : (m.type || 'MATERYAL')}</span>
+                            </div>
+                            <button 
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemoveMedia(lesson, m, 'material'); }}
+                                className="p-1 hover:bg-red-50 rounded-md transition-colors ml-auto text-slate-300 hover:text-red-500 opacity-0 group-hover/link:opacity-100 shrink-0"
+                                title="Kaldır"
+                            >
+                                <X className="w-3 h-3" />
+                            </button>
+                        </a>
+                    ))}
+                    {lesson.homeworks?.map((h: any, i: number) => (
+                        <a key={`h-${i}`} href={h.url} target="_blank" rel="noopener noreferrer" className="group/link flex items-center gap-2 p-2 rounded-xl border border-indigo-100/50 bg-gradient-to-r from-indigo-50/50 to-transparent hover:from-indigo-50 hover:to-indigo-50/50 transition-all duration-300 w-full hover:shadow-sm" title={h.title}>
+                            <div className="w-6 h-6 rounded-lg bg-white border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 group-hover/link:scale-110 group-hover/link:bg-indigo-600 group-hover/link:text-white transition-all duration-300 shadow-sm">
+                                <FileText className="w-3 h-3" />
+                            </div>
+                            <div className="flex flex-col truncate flex-1">
+                                <span className="truncate font-bold text-[10px] text-slate-700 group-hover/link:text-indigo-700 transition-colors">{h.title}</span>
+                                <span className="text-[8px] text-slate-400 font-medium uppercase tracking-wider">ÖDEV</span>
+                            </div>
+                            <button 
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemoveMedia(lesson, h, 'homework'); }}
+                                className="p-1 hover:bg-red-50 rounded-md transition-colors ml-auto text-slate-300 hover:text-red-500 opacity-0 group-hover/link:opacity-100 shrink-0"
+                                title="Kaldır"
+                            >
+                                <X className="w-3 h-3" />
+                            </button>
+                        </a>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

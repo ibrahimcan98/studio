@@ -85,7 +85,8 @@ export async function GET(request: Request) {
                             studentName: childName,
                             teacherName: teacherName,
                             time: formattedTime,
-                            meetingLink: googleMeetLink
+                            meetingLink: googleMeetLink,
+                            materials: lesson.materials || []
                         })
                     });
                 } catch (emailError) {

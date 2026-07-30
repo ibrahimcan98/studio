@@ -46,7 +46,8 @@ import {
     Filter,
     Clock,
     Edit2,
-    UserCog
+    UserCog,
+    BookOpen
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -1550,7 +1551,9 @@ function UsersPageContent() {
                                                 endTime: et,
                                                 packageCode: first.packageCode,
                                                 childId: first.childId,
-                                                status: first.status
+                                                status: first.status,
+                                                materials: first.materials || [],
+                                                homeworks: first.homeworks || []
                                             };
                                         }).sort((a,b) => b.startTime.getTime() - a.startTime.getTime());
 
@@ -1579,6 +1582,22 @@ function UsersPageContent() {
                                                                         {format(session.startTime, 'HH:mm')} - {format(session.endTime, 'HH:mm')}
                                                                     </div>
                                                                 </div>
+                                                                {(session.materials?.length > 0 || session.homeworks?.length > 0) && (
+                                                                    <div className="flex flex-col gap-1 mt-2 w-full max-w-sm">
+                                                                        {session.materials?.map((m: any, idx: number) => (
+                                                                            <a key={`m-${idx}`} href={m.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-[10px] text-blue-600 bg-blue-50 px-2.5 py-1.5 rounded-lg hover:bg-blue-100 transition-colors w-full" title={m.title}>
+                                                                                <BookOpen className="w-3 h-3 shrink-0" />
+                                                                                <span className="truncate font-semibold">{m.title}</span>
+                                                                            </a>
+                                                                        ))}
+                                                                        {session.homeworks?.map((h: any, idx: number) => (
+                                                                            <a key={`h-${idx}`} href={h.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-[10px] text-indigo-600 bg-indigo-50 px-2.5 py-1.5 rounded-lg hover:bg-indigo-100 transition-colors w-full" title={h.title}>
+                                                                                <FileText className="w-3 h-3 shrink-0" />
+                                                                                <span className="truncate font-semibold">{h.title} (Ödev)</span>
+                                                                            </a>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
                                                         <div className="flex justify-end">

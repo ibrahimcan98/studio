@@ -23,7 +23,8 @@ import {
   Menu,
   PhoneCall,
   Megaphone,
-  Crown
+  Crown,
+  Library
 } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
@@ -67,6 +68,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     { id: 'satislar', href: '/yonetici/satislar', label: 'Satışlar', icon: CreditCard },
     { id: 'ogretmenler', href: '/yonetici/ogretmenler', label: 'Öğretmenler', icon: Presentation },
     { id: 'dersler', href: '/yonetici/dersler', label: 'Dersler', icon: Calendar },
+    { id: 'materyaller', href: '/yonetici/materyaller', label: 'Materyaller', icon: Library },
     { id: 'grup-paketleri', href: '/yonetici/grup-paketleri', label: 'Grup Paketleri', icon: Users },
     { id: 'kullanicilar', href: '/yonetici/kullanicilar', label: 'Veliler', icon: Users },
     { id: 'aramalar', href: '/yonetici/aramalar', label: 'Aramalar', icon: PhoneCall },
@@ -89,7 +91,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     },
     {
       title: 'Kullanıcı & Eğitim',
-      items: ['ogrenciler', 'kullanicilar', 'ogretmenler', 'dersler', 'grup-paketleri']
+      items: ['ogrenciler', 'kullanicilar', 'ogretmenler', 'dersler', 'materyaller', 'grup-paketleri']
     },
     {
       title: 'Finans & Satış',
