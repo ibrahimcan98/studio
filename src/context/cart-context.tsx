@@ -38,7 +38,11 @@ interface CartContextType {
     cartTotal: number;
     applyStandardDiscount: (couponData: any) => void;
     discountAmount: number;
+    publicDiscountAmount: number;
+    manualDiscountAmount: number;
     finalTotal: number;
+    getItemDiscountPct: (item: CartItem) => number;
+    getItemDiscountBreakdown: (item: CartItem) => { publicPct: number, manualPct: number };
     appliedCoupon: string | null;
     appliedCouponData: {
         code: string;
@@ -199,20 +203,17 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         0
     );
 
-    const discountAmount = cartItems.reduce((total, item) => {
-        let itemDiscount = 0;
-        let maxItemDiscountPct = 0;
+    const getItemDiscountBreakdown = (item: CartItem) => {
+        let manualDiscountPct = 0;
+        let publicDiscountPct = 0;
         
         const [courseId] = item.id.split('-');
         const lessonsCount = parseInt(item.description.split(' ')[0]) || 0;
 
-        // Helper to check if a coupon matches an item
         const isCouponMatching = (c: any) => {
-            // Course Check: If array exists and has length, check includes. Otherwise check legacy.
             const c_ids = Array.isArray(c.applicableCourseIds) ? c.applicableCourseIds : (c.applicableCourseId ? [c.applicableCourseId] : []);
             const courseMatches = c_ids.length === 0 || c_ids.includes(courseId);
             
-            // Package Check: Force everything to Number for safe comparison
             const c_pkgs = Array.isArray(c.applicablePackages) 
                 ? c.applicablePackages.map((p: any) => Number(p)) 
                 : (c.applicablePackage ? [Number(c.applicablePackage)] : []);
@@ -222,42 +223,54 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             return courseMatches && packageMatches;
         };
         
-        // 1. Check Standard Coupon (Manually entered)
         if (appliedCouponData && isCouponMatching(appliedCouponData)) {
             if (appliedCouponData.discountType === 'fixed_amount' && appliedCouponData.discountAmount) {
-                const effectivePct = appliedCouponData.discountAmount / item.price;
-                maxItemDiscountPct = Math.max(maxItemDiscountPct, effectivePct);
+                manualDiscountPct = appliedCouponData.discountAmount / item.price;
             } else if (appliedCouponData.discountPct) {
-                maxItemDiscountPct = Math.max(maxItemDiscountPct, appliedCouponData.discountPct);
+                manualDiscountPct = appliedCouponData.discountPct;
             }
         }
         
-        // 2. Check Automatic Public Coupons
         if (publicCoupons && publicCoupons.length > 0) {
             const matchingPublicCoupons = publicCoupons.filter((c: any) => isCouponMatching(c));
             
             if (matchingPublicCoupons.length > 0) {
-                const bestPublicPct = Math.max(...matchingPublicCoupons.map((c: any) => {
+                publicDiscountPct = Math.max(...matchingPublicCoupons.map((c: any) => {
                     if (c.discountType === 'fixed_amount' && c.discountAmount) {
                         return c.discountAmount / item.price;
                     }
                     return c.discountPct || 0;
                 }));
-                maxItemDiscountPct = Math.max(maxItemDiscountPct, bestPublicPct);
             }
         }
         
-        // Apply the best found discount for this item
+        return { publicPct: publicDiscountPct, manualPct: manualDiscountPct };
+    };
+
+    const getItemDiscountPct = (item: CartItem) => {
+        const bd = getItemDiscountBreakdown(item);
+        return 1 - ((1 - bd.publicPct) * (1 - bd.manualPct));
+    };
+
+    const publicDiscountAmount = cartItems.reduce((total, item) => {
+        const bd = getItemDiscountBreakdown(item);
+        return total + (item.price * item.quantity * bd.publicPct);
+    }, 0);
+
+    const manualDiscountAmount = cartItems.reduce((total, item) => {
+        const bd = getItemDiscountBreakdown(item);
+        const priceAfterPublic = item.price * (1 - bd.publicPct);
+        return total + (priceAfterPublic * item.quantity * bd.manualPct);
+    }, 0);
+
+    const discountAmount = cartItems.reduce((total, item) => {
+        let itemDiscount = 0;
+        const maxItemDiscountPct = getItemDiscountPct(item);
         itemDiscount += (item.price * item.quantity * maxItemDiscountPct);
-        
-        // 3. Check Referral Discount (Referral is additive if applicable, but usually kept separate)
         if (referralDiscountPct > 0) {
             itemDiscount += (item.price * item.quantity * referralDiscountPct);
         }
-        
-        // İndirim, ürünün kendi fiyatını aşamaz (Negatif fiyatı engellemek için)
         itemDiscount = Math.min(itemDiscount, item.price * item.quantity);
-        
         return total + itemDiscount;
     }, 0);
 
@@ -266,7 +279,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     return (
         <CartContext.Provider value={{ 
             cartItems, addToCart, removeFromCart, updateQuantity, clearCart, 
-            cartTotal, applyStandardDiscount, discountAmount, finalTotal, appliedCoupon, appliedCouponData, removeCoupon, 
+            cartTotal, applyStandardDiscount, discountAmount, publicDiscountAmount, manualDiscountAmount, getItemDiscountBreakdown, finalTotal, appliedCoupon, appliedCouponData, removeCoupon, 
             applyReferral, appliedReferralCode, removeReferral, referrerId,
             isCartLoaded, selectedCurrency, setSelectedCurrency, exchangeRates 
         }}>

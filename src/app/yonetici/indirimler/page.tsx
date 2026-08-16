@@ -223,12 +223,15 @@ export default function IndirimlerPage() {
                      </div>
                   </div>
               </div>
-              <div className="flex items-center space-x-3 bg-slate-50 p-4 rounded-xl border border-slate-100 mt-2">
-                 <Switch id="public-display" checked={isPublicDisplay} onCheckedChange={setIsPublicDisplay} />
-                 <div className="space-y-0.5 max-w-lg">
-                    <Label htmlFor="public-display" className="font-bold text-slate-800 cursor-pointer">Site Geneli Kampanya (Vitrin)</Label>
-                    <p className="text-xs text-slate-500 font-medium">Bu kodu Kurslar sayfasında tüm müşterilere göster ve sepete otomatik uygula.</p>
+              <div className="flex flex-col space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-100 mt-2">
+                 <div className="flex items-center space-x-3">
+                     <Switch id="public-display" checked={isPublicDisplay} onCheckedChange={setIsPublicDisplay} />
+                     <div className="space-y-0.5 max-w-lg">
+                        <Label htmlFor="public-display" className="font-bold text-slate-800 cursor-pointer">Site Geneli Kampanya (Vitrin)</Label>
+                        <p className="text-xs text-slate-500 font-medium">Bu kodu Kurslar sayfasında tüm müşterilere göster ve sepete otomatik uygula.</p>
+                     </div>
                  </div>
+                 
               </div>
            </form>
         </CardContent>

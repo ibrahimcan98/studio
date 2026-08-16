@@ -33,7 +33,7 @@ const getCourseCode = (courseId: string) => {
 export default function SepetPage() {
     const { 
         cartItems, updateQuantity, removeFromCart, cartTotal, 
-        applyStandardDiscount, discountAmount, finalTotal, appliedCoupon, appliedCouponData, referrerId,
+        applyStandardDiscount, discountAmount, publicDiscountAmount, manualDiscountAmount, getItemDiscountPct, finalTotal, appliedCoupon, appliedCouponData, referrerId,
         removeCoupon, applyReferral, appliedReferralCode, removeReferral, clearCart, selectedCurrency, exchangeRates 
     } = useCart();
     
@@ -88,7 +88,36 @@ export default function SepetPage() {
             
             if (couponSnap.exists() && couponSnap.data().isActive) {
                  const data = couponSnap.data();
+                 
+                 // Check if coupon is applicable to any item in cart
+                 const isApplicable = cartItems.some(item => {
+                     const [courseId] = item.id.split('-');
+                     const lessonsCount = parseInt(item.description.split(' ')[0]) || 0;
+                     
+                     const c_ids = Array.isArray(data.applicableCourseIds) ? data.applicableCourseIds : (data.applicableCourseId ? [data.applicableCourseId] : []);
+                     const courseMatches = c_ids.length === 0 || c_ids.includes(courseId);
+                     
+                     const c_pkgs = Array.isArray(data.applicablePackages) 
+                         ? data.applicablePackages.map((p: any) => Number(p)) 
+                         : (data.applicablePackage ? [Number(data.applicablePackage)] : []);
+                     
+                     const packageMatches = c_pkgs.length === 0 || c_pkgs.includes(Number(lessonsCount));
+         
+                     return courseMatches && packageMatches;
+                 });
+                 
+                 if (!isApplicable) {
+                     toast({
+                         variant: 'destructive',
+                         title: 'Kupon Geçersiz',
+                         description: 'Bu indirim kodu sepetinizdeki ders veya paketler için geçerli değil.',
+                     });
+                     setCoupon('');
+                     return;
+                 }
+                 
                  applyStandardDiscount({ ...data, code: couponSnap.id });
+                 setCoupon('');
                  
                  let discountDisplay = '';
                  if (data.discountType === 'fixed_amount' && data.discountAmount) {
@@ -335,7 +364,20 @@ export default function SepetPage() {
                                                     </div>
                                                 </div>
                                                 <div className="flex flex-col items-end gap-2 ml-auto">
-                                                    <p className="font-bold text-lg">{symbol}{formatPrice(item.price * item.quantity)}</p>
+                                                    {getItemDiscountPct && getItemDiscountPct(item) > 0 ? (
+                                                        <>
+                                                            <p className="font-bold text-sm text-red-500 line-through opacity-60">
+                                                                {symbol}{formatPrice(item.price * item.quantity)}
+                                                            </p>
+                                                            <p className="font-black text-xl text-green-600">
+                                                                {symbol}{formatPrice(item.price * item.quantity * (1 - getItemDiscountPct(item)))}
+                                                            </p>
+                                                        </>
+                                                    ) : (
+                                                        <p className="font-bold text-lg">
+                                                            {symbol}{formatPrice(item.price * item.quantity)}
+                                                        </p>
+                                                    )}
                                                     <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive h-8 w-8" onClick={() => removeFromCart(item.id)}>
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
@@ -369,10 +411,22 @@ export default function SepetPage() {
                                             <span>Ara Toplam</span>
                                             <span>{symbol}{formatPrice(cartTotal)}</span>
                                         </div>
-                                        {discountAmount > 0 && (
-                                            <div className="flex justify-between text-green-600 font-bold">
-                                                <span>Tamamlanan İndirim</span>
-                                                <span>-{symbol}{formatPrice(discountAmount)}</span>
+                                        {publicDiscountAmount > 0 && (
+                                            <div className="flex justify-between text-green-600 font-bold text-sm">
+                                                <span>Site İndirimi</span>
+                                                <span>-{symbol}{formatPrice(publicDiscountAmount)}</span>
+                                            </div>
+                                        )}
+                                        {manualDiscountAmount > 0 && (
+                                            <div className="flex justify-between text-green-600 font-bold text-sm bg-green-50 p-1.5 rounded -mx-1.5 px-1.5">
+                                                <span>Kupon İndirimi</span>
+                                                <span>-{symbol}{formatPrice(manualDiscountAmount)}</span>
+                                            </div>
+                                        )}
+                                        {discountAmount > (publicDiscountAmount + manualDiscountAmount) + 0.01 && (
+                                            <div className="flex justify-between text-green-600 font-bold text-sm">
+                                                <span>Ek İndirimler</span>
+                                                <span>-{symbol}{formatPrice(discountAmount - (publicDiscountAmount + manualDiscountAmount))}</span>
                                             </div>
                                         )}
                                         {balanceUsedGbp > 0 && (

@@ -164,6 +164,9 @@ export function KurslarClientPage({
                                     <span className="text-3xl font-black text-green-600">
                                         {selectedCurrencyDetails?.symbol || selectedCurrency}{discountedConvertedPrice.toFixed(2)}
                                     </span>
+                                    <div className="absolute -top-3 -left-3 z-10 bg-gradient-to-br from-amber-400 via-orange-500 to-red-500 text-white px-3 py-1.5 rounded-xl rounded-tl-none shadow-[0_4px_10px_rgba(249,115,22,0.4)] transform -rotate-3 border border-white/40">
+                                        <span className="text-sm font-black whitespace-nowrap drop-shadow-md">%{(discountPct * 100).toFixed(0)} PAKET AVANTAJI</span>
+                                    </div>
                                 </>
                             ) : (
                                 <p className="text-3xl font-bold text-gray-900">
@@ -322,7 +325,7 @@ export function KurslarClientPage({
                                     const perLessonPrice = baslangicKursu.pricing.perLesson?.[String(pkg.lessons) as keyof typeof baslangicKursu.pricing.perLesson];
                                     if (!perLessonPrice) return null;
                                     return (
-                                        <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-8 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
+                                        <div key={pkg.lessons} className="relative border border-gray-200 rounded-2xl p-8 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
                                             <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gray-100 mb-4">
                                                 <BookOpen className="w-8 h-8 text-gray-500"/>
                                             </div>
@@ -377,7 +380,7 @@ export function KurslarClientPage({
                                     const perLessonPrice = konusmaKursu.pricing.perLesson?.[String(pkg.lessons) as keyof typeof konusmaKursu.pricing.perLesson];
                                     if (!perLessonPrice) return null;
                                     return (
-                                        <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-8 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
+                                        <div key={pkg.lessons} className="relative border border-gray-200 rounded-2xl p-8 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
                                             <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gray-100 mb-4">
                                                 <BookOpen className="w-8 h-8 text-gray-500"/>
                                             </div>
@@ -438,7 +441,7 @@ export function KurslarClientPage({
                                     const perLessonPrice = akademikKursu.pricing.perLesson?.[String(pkg.lessons) as keyof typeof akademikKursu.pricing.perLesson];
                                     if (!perLessonPrice) return null;
                                     return (
-                                        <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-8 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
+                                        <div key={pkg.lessons} className="relative border border-gray-200 rounded-2xl p-8 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
                                             <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gray-100 mb-4">
                                                 <BookOpen className="w-8 h-8 text-gray-500"/>
                                             </div>
@@ -493,7 +496,7 @@ export function KurslarClientPage({
                                     const perLessonPrice = gelisimKursu.pricing.perLesson?.[String(pkg.lessons) as keyof typeof gelisimKursu.pricing.perLesson];
                                     if (!perLessonPrice) return null;
                                     return (
-                                        <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-8 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
+                                        <div key={pkg.lessons} className="relative border border-gray-200 rounded-2xl p-8 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow">
                                             <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gray-100 mb-4">
                                                 <BookOpen className="w-8 h-8 text-gray-500"/>
                                             </div>
@@ -546,7 +549,7 @@ export function KurslarClientPage({
                                     const perLessonPrice = gcseKursu.pricing.perLesson?.[String(pkg.lessons) as keyof typeof gcseKursu.pricing.perLesson];
                                     if (!perLessonPrice) return null;
                                     return (
-                                        <div key={pkg.lessons} className="border border-gray-200 rounded-2xl p-8 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow w-full max-w-xs">
+                                        <div key={pkg.lessons} className="relative border border-gray-200 rounded-2xl p-8 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-lg transition-shadow w-full max-w-xs">
                                             <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gray-100 mb-4">
                                                 <BookOpen className="w-8 h-8 text-gray-500"/>
                                             </div>
@@ -601,7 +604,7 @@ export function KurslarClientPage({
                                     const perLessonPrice = grupKursu.pricing.perLesson?.[String(pkg.lessons) as keyof typeof grupKursu.pricing.perLesson];
                                     if (!perLessonPrice) return null;
                                     return (
-                                        <div key={pkg.lessons} className="border-2 border-purple-200 rounded-2xl p-8 flex flex-col items-center text-center bg-white shadow-md hover:shadow-xl hover:scale-105 transition-all w-full max-w-xs">
+                                        <div key={pkg.lessons} className="relative border-2 border-purple-200 rounded-2xl p-8 flex flex-col items-center text-center bg-white shadow-md hover:shadow-xl hover:scale-105 transition-all w-full max-w-xs">
                                             <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-purple-100 mb-4">
                                                 <BookOpen className="w-8 h-8 text-purple-600"/>
                                             </div>

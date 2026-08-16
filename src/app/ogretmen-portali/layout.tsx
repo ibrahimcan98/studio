@@ -4,7 +4,7 @@
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
-import { Loader2, LogOut, Calendar, Users, Briefcase, User } from 'lucide-react';
+import { Loader2, LogOut, Calendar, Users, Briefcase, User, Gamepad2 } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
@@ -63,7 +63,8 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
     { href: '/ogretmen-portali/derslerim', label: 'Derslerim', icon: Briefcase },
     { href: '/ogretmen-portali/ogrencilerim', label: 'Öğrencilerim', icon: Users },
     { href: '/ogretmen-portali/grup-siniflari', label: 'Grup Sınıflarım', icon: Users },
-    { href: '/ogretmen-portali/profil', label: 'Profilim', icon: User }
+    { href: '/ogretmen-portali/profil', label: 'Profilim', icon: User },
+    { href: '/ogretmen-portali/oyunlar', label: 'Oyunlar (Demo)', icon: Gamepad2 }
   ];
   
   return (
