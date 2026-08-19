@@ -399,8 +399,8 @@ export default function AdminDerslerPage() {
         if (!materialsData) return { folders: [], files: [] };
         const items = materialsData.filter(m => (m.parentId || null) === currentMaterialFolderId);
         return {
-            folders: items.filter(m => m.type === 'folder'),
-            files: items.filter(m => m.type !== 'folder')
+            folders: items.filter(m => m.type === 'folder').sort((a, b) => (a.title || '').localeCompare(b.title || '', 'tr', { numeric: true })),
+            files: items.filter(m => m.type !== 'folder').sort((a, b) => (a.title || '').localeCompare(b.title || '', 'tr', { numeric: true }))
         };
     }, [materialsData, currentMaterialFolderId]);
 
