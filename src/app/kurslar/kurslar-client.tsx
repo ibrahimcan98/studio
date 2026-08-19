@@ -329,8 +329,7 @@ export function KurslarClientPage({
                                             <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gray-100 mb-4">
                                                 <BookOpen className="w-8 h-8 text-gray-500"/>
                                             </div>
-                                            <h4 className="font-bold text-gray-800">{baslangicKursu.title}</h4>
-                                            <p className="text-sm text-gray-500">({baslangicKursu.details.duration})</p>
+                                            
                                             <p className="text-gray-600 mt-2">{pkg.lessons} derslik paket</p>
                                             <PriceDisplay price={pkg.price} courseId={baslangicKursu!.id} packageLessons={pkg.lessons} />
                                             <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleAddToCart(baslangicKursu, pkg)}>
@@ -384,8 +383,7 @@ export function KurslarClientPage({
                                             <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gray-100 mb-4">
                                                 <BookOpen className="w-8 h-8 text-gray-500"/>
                                             </div>
-                                            <h4 className="font-bold text-gray-800">{konusmaKursu.title}</h4>
-                                            <p className="text-sm text-gray-500">({konusmaKursu.details.duration})</p>
+                                            
                                             <p className="text-gray-600 mt-2">{pkg.lessons} derslik paket</p>
                                             <PriceDisplay price={pkg.price} courseId={konusmaKursu.id} packageLessons={pkg.lessons} />
                                             <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleAddToCart(konusmaKursu, pkg)}>
@@ -445,8 +443,7 @@ export function KurslarClientPage({
                                             <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gray-100 mb-4">
                                                 <BookOpen className="w-8 h-8 text-gray-500"/>
                                             </div>
-                                            <h4 className="font-bold text-gray-800">{akademikKursu.title}</h4>
-                                            <p className="text-sm text-gray-500">({akademikKursu.details.duration})</p>
+                                            
                                             <p className="text-gray-600 mt-2">{pkg.lessons} derslik paket</p>
                                             <PriceDisplay price={pkg.price} courseId={akademikKursu!.id} packageLessons={pkg.lessons} />
                                             <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleAddToCart(akademikKursu, pkg)}>
@@ -500,8 +497,7 @@ export function KurslarClientPage({
                                             <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gray-100 mb-4">
                                                 <BookOpen className="w-8 h-8 text-gray-500"/>
                                             </div>
-                                            <h4 className="font-bold text-gray-800">{gelisimKursu.title}</h4>
-                                            <p className="text-sm text-gray-500">({gelisimKursu.details.duration})</p>
+                                            
                                             <p className="text-gray-600 mt-2">{pkg.lessons} derslik paket</p>
                                             <PriceDisplay price={pkg.price} courseId={gelisimKursu!.id} packageLessons={pkg.lessons} />
                                             <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleAddToCart(gelisimKursu, pkg)}>
@@ -553,8 +549,7 @@ export function KurslarClientPage({
                                             <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gray-100 mb-4">
                                                 <BookOpen className="w-8 h-8 text-gray-500"/>
                                             </div>
-                                            <h4 className="font-bold text-gray-800">{gcseKursu.title}</h4>
-                                            <p className="text-sm text-gray-500">({gcseKursu.details.duration})</p>
+                                            
                                             <p className="text-gray-600 mt-2">{pkg.lessons} derslik paket</p>
                                             <PriceDisplay price={pkg.price} courseId={gcseKursu.id} packageLessons={pkg.lessons} />
                                             <Button className="w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleAddToCart(gcseKursu, pkg)}>
@@ -608,8 +603,7 @@ export function KurslarClientPage({
                                             <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-purple-100 mb-4">
                                                 <BookOpen className="w-8 h-8 text-purple-600"/>
                                             </div>
-                                            <h4 className="font-bold text-gray-800">{grupKursu.title}</h4>
-                                            <p className="text-sm text-gray-500">({grupKursu.details.duration})</p>
+                                            
                                             <p className="text-purple-600 mt-2 font-bold">{pkg.lessons} haftalık grup paketi</p>
                                             <PriceDisplay price={pkg.price} courseId={grupKursu.id} packageLessons={pkg.lessons} />
                                             <Button className="w-full mt-auto bg-purple-600 text-white hover:bg-purple-700 shadow-lg shadow-purple-200" onClick={() => handleAddToCart(grupKursu, pkg)}>
