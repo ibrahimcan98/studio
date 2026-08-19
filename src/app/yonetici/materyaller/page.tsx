@@ -63,8 +63,8 @@ export default function MateryallerPage() {
       if (!allMaterials) return { folders: [], files: [] };
       const items = allMaterials.filter(m => (m.parentId || null) === currentFolderId);
       
-      const folders = items.filter(m => m.type === 'folder').sort((a, b) => (a.title || '').localeCompare(b.title || '', 'tr'));
-      const files = items.filter(m => m.type !== 'folder').sort((a, b) => (a.title || '').localeCompare(b.title || '', 'tr'));
+      const folders = items.filter(m => m.type === 'folder').sort((a, b) => (a.title || '').localeCompare(b.title || '', 'tr', { numeric: true }));
+      const files = items.filter(m => m.type !== 'folder').sort((a, b) => (a.title || '').localeCompare(b.title || '', 'tr', { numeric: true }));
       
       return { folders, files };
   }, [allMaterials, currentFolderId]);
