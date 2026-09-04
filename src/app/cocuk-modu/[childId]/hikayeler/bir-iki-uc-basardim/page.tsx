@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, usePathname } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { Loader2, ChevronLeft, ChevronRight, X, Volume2, BookOpen, Brain, Smartphone } from 'lucide-react';
@@ -43,6 +43,7 @@ export default function BirIkiUcBasardimPage() {
   const router = useRouter();
   const params = useParams();
   const childId = params.childId as string;
+  const isTeacherTestMode = childId === 'demo';
   const { user: authUser } = useUser();
   const db = useFirestore();
   const { speak, stop, resume, preload, isPlaying, isLoading } = useTTS();
@@ -68,7 +69,7 @@ export default function BirIkiUcBasardimPage() {
 
   useEffect(() => {
     if (isCompletedPendingReturn && unlockedBadgesQueue.length === 0) {
-      router.push(`/cocuk-modu/${childId}/hikayeler`);
+      if (childId === 'demo') { router.push('/ogretmen-portali/oyunlar'); } else { router.push(`/cocuk-modu/${childId}/hikayeler`); }
     }
   }, [isCompletedPendingReturn, unlockedBadgesQueue.length, router, childId]);
 
@@ -87,11 +88,14 @@ export default function BirIkiUcBasardimPage() {
   }, [isPortrait, speak]);
 
   const childDocRef = useMemoFirebase(() => {
-    if (!db || !authUser?.uid || !childId) return null;
+    if (!db || !authUser?.uid || !childId || isTeacherTestMode) return null;
     return doc(db, 'users', authUser.uid, 'children', childId);
-  }, [db, authUser?.uid, childId]);
+  }, [db, authUser?.uid, childId, isTeacherTestMode]);
 
-  const { data: childData, isLoading: childLoading } = useDoc(childDocRef);
+  const { data: rawChildData, isLoading: childLoading } = useDoc(childDocRef);
+  const childData = isTeacherTestMode
+    ? { firstName: 'Demo', storyProgress: {}, stats: {}, earnedBadges: [] }
+    : rawChildData;
 
   const BIR_IKI_UC_QUESTIONS = [
     { question: "Emir kaldırıma ne ile kareler çizdi?", options: ["Kalem ile çizdi", "Tebeşir ile çizdi", "Boya ile çizdi"], correctAnswer: 1 },
@@ -101,7 +105,7 @@ export default function BirIkiUcBasardimPage() {
 
   const handleQuizComplete = async (allCorrect: boolean) => {
     setIsQuizOpen(false);
-    if (childDocRef) {
+    if (childId !== 'demo' && childDocRef) {
       const earnedBadges = (childData as any)?.earnedBadges || [];
       const storyStats = (childData as any)?.stats?.story || {};
       const currentAttempts = (storyStats['bir-iki-uc-basardim']?.attempts || 0) + 1;
@@ -126,7 +130,7 @@ export default function BirIkiUcBasardimPage() {
         updates[`stats.story.bir-iki-uc-basardim.perfectScore`] = true;
       }
 
-      await updateDoc(childDocRef, updates);
+      if (childId !== 'demo') { await updateDoc(childDocRef, updates); }
     }
     
     setIsCompletedPendingReturn(true);
@@ -264,13 +268,29 @@ export default function BirIkiUcBasardimPage() {
     );
   }
 
+  const pathname = usePathname();
+  const isTeacherMode = pathname?.includes('ogretmen-portali');
   const currentBadgeToShow = (!showCelebration && !isQuizOpen && unlockedBadgesQueue.length > 0) ? unlockedBadgesQueue[0] : null;
 
   return (
-    <div className={cn(
-      "h-screen w-full overflow-hidden font-sans relative",
-      isPortrait ? "bg-amber-100" : "bg-gradient-to-b from-blue-50 to-cyan-100"
-    )}>
+    <div className="flex h-screen overflow-hidden font-sans relative">
+      {isTeacherMode && (
+        <aside className="w-16 md:w-32 shrink-0 bg-white/20 backdrop-blur-xl border-r border-white/40 flex flex-col items-center py-4 md:py-8 justify-between z-50 shadow-2xl">
+            <Button
+                variant="outline"
+                size="icon"
+                className="rounded-xl md:rounded-2xl h-10 w-10 md:h-14 md:w-14 bg-white/90 border-none shadow-xl hover:scale-110 transition-all hover:bg-white active:scale-95"
+                onClick={() => router.push('/ogretmen-portali/oyunlar')}
+            >
+                <ChevronLeft className="w-6 h-6 md:w-8 md:h-8 text-amber-500" />
+            </Button>
+            <div className="h-10 w-10 md:h-14 md:w-14" /> {/* Spacer */}
+        </aside>
+      )}
+      <div className={cn(
+        "flex-1 h-screen relative overflow-hidden",
+        isPortrait ? "bg-amber-100" : "bg-gradient-to-b from-blue-50 to-cyan-100"
+      )}>
       <BadgeUnlockModal 
         badge={currentBadgeToShow} 
         onClose={() => setUnlockedBadgesQueue(prev => prev.slice(1))} 
@@ -283,6 +303,7 @@ export default function BirIkiUcBasardimPage() {
         />
       )}
       <StoryCompletionCelebration 
+        storyId="bir-iki-uc-basardim"
         show={showCelebration} 
         onAction={() => {
           setShowCelebration(false);
@@ -296,7 +317,7 @@ export default function BirIkiUcBasardimPage() {
             size="icon"
             onClick={() => {
               stop();
-              router.push(`/cocuk-modu/${childId}/hikayeler`);
+              if (childId === 'demo') { router.push('/ogretmen-portali/oyunlar'); } else { router.push(`/cocuk-modu/${childId}/hikayeler`); }
             }}
             className="bg-white/80 hover:bg-white rounded-2xl w-10 h-10 sm:w-14 sm:h-14 shadow-lg border-2 border-blue-200 text-blue-600"
           >
@@ -393,6 +414,7 @@ export default function BirIkiUcBasardimPage() {
 
       <div className="fixed -bottom-20 -left-20 w-80 h-80 bg-blue-200/30 rounded-full blur-3xl -z-10" />
       <div className="fixed -top-20 -right-20 w-80 h-80 bg-cyan-200/30 rounded-full blur-3xl -z-10" />
+      </div>
     </div>
   );
 }

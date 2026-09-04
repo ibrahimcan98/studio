@@ -64,7 +64,7 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
     { href: '/ogretmen-portali/ogrencilerim', label: 'Öğrencilerim', icon: Users },
     { href: '/ogretmen-portali/grup-siniflari', label: 'Grup Sınıflarım', icon: Users },
     { href: '/ogretmen-portali/profil', label: 'Profilim', icon: User },
-    { href: '/ogretmen-portali/oyunlar', label: 'Oyunlar (Demo)', icon: Gamepad2 }
+    { href: '/ogretmen-portali/oyunlar', label: 'Oyunlar', icon: Gamepad2 }
   ];
   
   return (

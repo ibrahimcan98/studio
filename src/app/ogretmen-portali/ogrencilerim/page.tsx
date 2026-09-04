@@ -228,7 +228,7 @@ export default function OgrencilerimPage() {
     
     const lessonsQuery = useMemoFirebase(() => {
         if (!user || !db) return null;
-        return query(collection(db, 'lesson-slots'), where('teacherId', '==', user.uid), where('status', '==', 'booked'));
+        return query(collection(db, 'lesson-slots'), where('teacherId', '==', user.uid), where('status', 'in', ['booked', 'completed']));
     }, [user, db]);
 
     const { data: lessons, isLoading: lessonsLoading } = useCollection(lessonsQuery);

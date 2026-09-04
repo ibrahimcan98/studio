@@ -47,9 +47,50 @@ const difficulties = [
     { id: "ingilizce-karistirma", label: "Dilleri karıştırma" },
 ] as const;
 
+function calculateAge(dateOfBirth: string, today = new Date()): number | null {
+  const birthDate = parseISO(dateOfBirth);
+  if (!dateOfBirth || Number.isNaN(birthDate.getTime())) return null;
+
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const birthdayHasPassed =
+    today.getMonth() > birthDate.getMonth() ||
+    (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
+
+  if (!birthdayHasPassed) age -= 1;
+  return age;
+}
+
+function getBirthDateLimits(today = new Date()) {
+  const oldestAllowed = new Date(
+    today.getFullYear() - 19,
+    today.getMonth(),
+    today.getDate() + 1
+  );
+  const youngestAllowed = new Date(
+    today.getFullYear() - 3,
+    today.getMonth(),
+    today.getDate()
+  );
+
+  return {
+    min: format(oldestAllowed, 'yyyy-MM-dd'),
+    max: format(youngestAllowed, 'yyyy-MM-dd'),
+  };
+}
+
 const formSchema = z.object({
   firstName: z.string().min(1, 'İsim boş olamaz.'),
-  dateOfBirth: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Geçerli bir tarih girin." }),
+  dateOfBirth: z.string().superRefine((value, context) => {
+    const age = calculateAge(value);
+
+    if (age === null) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Geçerli bir doğum tarihi girin.' });
+    } else if (age < 3) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Çocuk en az 3 yaşında olmalıdır.' });
+    } else if (age > 18) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Çocuk en fazla 18 yaşında olmalıdır.' });
+    }
+  }),
   countryOfResidence: z.string().min(1, 'Yaşadığı ülke boş olamaz.'),
   parentTongues: z.string().min(1, "Ebeveyn dilleri boş olamaz."),
   schoolLanguage: z.string().min(1, "Okul dili boş olamaz."),
@@ -92,6 +133,7 @@ export function AddChildForm({ userId, onChildAdded, child, childId, children, f
   const { toast } = useToast();
   
   const isEditMode = !!child;
+  const birthDateLimits = getBirthDateLimits();
 
   const form = useForm<AddChildFormValues>({
     resolver: zodResolver(formSchema),
@@ -179,6 +221,7 @@ export function AddChildForm({ userId, onChildAdded, child, childId, children, f
     setIsSubmitting(true);
 
     try {
+        let createdChildId: string | undefined = undefined;
         if(isEditMode && childId) {
             const childDocRef = doc(db, 'users', userId, 'children', childId);
             await updateDoc(childDocRef, {
@@ -205,6 +248,7 @@ export function AddChildForm({ userId, onChildAdded, child, childId, children, f
                 isProfileComplete: true,
                 createdAt: serverTimestamp(),
             });
+            createdChildId = newChildDoc.id;
 
             localStorage.setItem('newlyAddedChildId', newChildDoc.id);
 
@@ -229,7 +273,7 @@ export function AddChildForm({ userId, onChildAdded, child, childId, children, f
                 description: `${values.firstName} eklendi.`,
             });
         }
-      onChildAdded();
+      onChildAdded(isEditMode ? childId : createdChildId);
       if (onOpenChange) onOpenChange(false);
       setOpen(false);
       form.reset();
@@ -319,7 +363,16 @@ export function AddChildForm({ userId, onChildAdded, child, childId, children, f
                                     <FormField control={form.control} name="dateOfBirth" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className='font-bold text-slate-700'>Doğum Tarihi</FormLabel>
-                                        <FormControl><Input type="date" className='h-12 rounded-xl border-slate-200' {...field} /></FormControl>
+                                        <FormControl>
+                                            <Input
+                                                type="date"
+                                                min={birthDateLimits.min}
+                                                max={birthDateLimits.max}
+                                                className='h-12 rounded-xl border-slate-200'
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <FormDescription>Yalnızca 3–18 yaş arasındaki çocuklar eklenebilir.</FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                     )} />
@@ -480,23 +533,32 @@ export function AddChildForm({ userId, onChildAdded, child, childId, children, f
                                             key={item.id}
                                             control={form.control}
                                             name="turkishDifficulties"
-                                            render={({ field }) => (
-                                                <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-xl border border-slate-100 p-4 hover:bg-slate-50 transition-colors">
-                                                    <FormControl>
-                                                    <Checkbox
-                                                        checked={field.value?.includes(item.id)}
-                                                        onCheckedChange={(checked) => {
-                                                            return checked
-                                                                ? field.onChange([...(field.value || []), item.id])
-                                                                : field.onChange(field.value?.filter((value) => value !== item.id))
-                                                        }}
-                                                    />
-                                                    </FormControl>
-                                                    <FormLabel className="font-bold text-sm text-slate-700 cursor-pointer">
-                                                        {item.label}
-                                                    </FormLabel>
-                                                </FormItem>
-                                            )}
+                                            render={({ field }) => {
+                                                const isChecked = field.value?.includes(item.id) ?? false;
+
+                                                return (
+                                                    <FormItem className="space-y-0">
+                                                        <FormLabel
+                                                            className={cn(
+                                                                "flex w-full cursor-pointer flex-row items-center gap-3 rounded-xl border border-slate-100 p-4 font-bold text-sm text-slate-700 transition-colors hover:bg-slate-50",
+                                                                isChecked && "border-primary/30 bg-primary/5"
+                                                            )}
+                                                        >
+                                                            <FormControl>
+                                                                <Checkbox
+                                                                    checked={isChecked}
+                                                                    onCheckedChange={(checked) => {
+                                                                        return checked
+                                                                            ? field.onChange([...(field.value || []), item.id])
+                                                                            : field.onChange(field.value?.filter((value) => value !== item.id))
+                                                                    }}
+                                                                />
+                                                            </FormControl>
+                                                            <span>{item.label}</span>
+                                                        </FormLabel>
+                                                    </FormItem>
+                                                );
+                                            }}
                                             />
                                         ))}
                                         </div>

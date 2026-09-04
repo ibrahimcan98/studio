@@ -13,10 +13,11 @@ interface TopicCardProps {
   isLocked?: boolean;
   isPremiumLocked?: boolean;
   isCompleted?: boolean;
+  isHomework?: boolean;
   onClick: () => void;
 }
 
-export function TopicCard({ topic, number, isLocked, isPremiumLocked, isCompleted, onClick }: TopicCardProps) {
+export function TopicCard({ topic, number, isLocked, isPremiumLocked, isCompleted, isHomework, onClick }: TopicCardProps) {
   // Renk temaları (CSS 3D silindir için üst ve alt renkler - Fallback olarak)
   const colorThemes = {
     green: { top: 'bg-gradient-to-br from-emerald-300 to-emerald-500', bottom: 'bg-emerald-700', border: 'border-emerald-200' },
@@ -111,12 +112,19 @@ export function TopicCard({ topic, number, isLocked, isPremiumLocked, isComplete
         )}>
           {topic.name}
         </span>
-        {isCompleted && (
+        {isCompleted && !isHomework && (
           <span className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-2.5 py-0.5 rounded-full text-[9px] font-black tracking-widest shadow-sm border-2 border-white whitespace-nowrap z-20">
             TAMAMLANDI
           </span>
         )}
       </div>
+
+      {isHomework && (
+        <div className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap bg-amber-400 text-amber-900 px-3 py-1.5 rounded-full font-black text-[10px] md:text-xs shadow-xl border-2 border-white z-50 animate-bounce flex items-center gap-1.5">
+          <span className="text-sm">🌟</span> ÖĞRETMENİN SANA ÖDEV VERDİ
+          <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-amber-400 rotate-45 border-r-2 border-b-2 border-white" />
+        </div>
+      )}
     </div>
 
   );

@@ -188,5 +188,12 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create, update, delete: if isAdmin();
     }
+
+    // 8. OYUN ODEVLERI
+    match /game-homeworks/{hwId} {
+      allow read: if isAdmin() || isTeacher() || (isSignedIn() && resource.data.parentId == request.auth.uid);
+      allow create: if isAdmin() || isTeacher();
+      allow update, delete: if isAdmin() || isTeacher() || (isSignedIn() && resource.data.parentId == request.auth.uid);
+    }
   }
 }

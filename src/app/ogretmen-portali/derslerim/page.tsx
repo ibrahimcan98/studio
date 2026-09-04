@@ -7,7 +7,7 @@ import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, query, where, doc, writeBatch, getDoc, updateDoc, serverTimestamp, increment, arrayUnion, addDoc, Timestamp } from 'firebase/firestore';
-import { Loader2, Calendar, History, BookOpen, Baby, Edit, AlertCircle, Video, MessageCircle, FileText, Download } from 'lucide-react';
+import { Loader2, Calendar, History, BookOpen, Baby, Edit, AlertCircle, Video, MessageCircle, FileText, Download, Gamepad2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,11 +24,16 @@ import {
     DialogHeader,
     DialogTitle,
     DialogDescription,
+    DialogTrigger,
+    DialogFooter
 } from "@/components/ui/dialog"
 import { useToast } from '@/hooks/use-toast';
 import { ProgressPanel } from '@/components/shared/progress-panel';
 import { LessonQuickChat } from '@/components/shared/lesson-quick-chat';
 import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CHEST_DATA } from "@/data/turkce-hazinem-data";
+import { MOCK_TOPICS, STORY_DATA } from "@/app/ogretmen-portali/oyunlar/page";
 import { sendLessonCancelledEmails } from '@/lib/email-service';
 
 const getCourseDetailsFromPackageCode = (code?: string) => {
@@ -168,7 +173,7 @@ function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any
                     </div>
                 )}
 
-                {(lesson.materials?.length > 0 || lesson.homeworks?.length > 0) && (
+                {(lesson.materials?.length > 0 || lesson.homeworks?.length > 0 || lesson.gameHomeworks?.length > 0) && (
                     <div className="mt-3 space-y-2 border-t pt-3">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Atanan İçerikler</span>
                         {lesson.materials?.map((m: any, i: number) => (
@@ -182,6 +187,12 @@ function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any
                                 <FileText className="w-4 h-4 shrink-0" />
                                 <span className="font-semibold truncate">{hw.title}</span>
                             </a>
+                        ))}
+                        {lesson.gameHomeworks?.map((hw: any, i: number) => (
+                            <div key={i} className="flex items-center gap-2 text-emerald-600 bg-emerald-50 p-2 rounded-lg transition-colors cursor-default">
+                                <Gamepad2 className="w-4 h-4 shrink-0" />
+                                <span className="font-semibold truncate">{hw.topicName} ({hw.category || 'Oyun'})</span>
+                            </div>
                         ))}
                     </div>
                 )}
@@ -221,10 +232,15 @@ function LessonCard({ lesson, onOpenProgressPanel, onJoinLesson }: { lesson: any
                         )}
                     </div>
                 ) : (
-                    <Button onClick={onOpenProgressPanel} variant={needsFeedback ? "destructive" : "outline"} className='w-full font-bold'>
-                        <Edit className='w-4 h-4 mr-2' />
-                        {needsFeedback ? "Geri Bildirim Ekle" : (lesson.isGroupSession ? "Geri Bildirimi Gör" : "İlerlemeyi Gör")}
-                    </Button>
+                    <div className="w-full flex flex-col gap-2">
+                        <Button onClick={onOpenProgressPanel} variant={needsFeedback ? "destructive" : "outline"} className='w-full font-bold'>
+                            <Edit className='w-4 h-4 mr-2' />
+                            {needsFeedback ? "Geri Bildirim Ekle" : (lesson.isGroupSession ? "Geri Bildirimi Gör" : "İlerlemeyi Gör")}
+                        </Button>
+                        {!lesson.isGroupSession && (
+                            <QuickHomeworkAssignmentModal lesson={lesson} childName={childData?.firstName || 'Öğrenci'} />
+                        )}
+                    </div>
                 )}
             </CardFooter>
         </Card>
@@ -483,6 +499,7 @@ function OgretmenDerslerimPageContent() {
                     liveLessonUrl: liveInfoSlot ? liveInfoSlot.liveLessonUrl : null,
                     materials: firstSlot.materials || [],
                     homeworks: firstSlot.homeworks || [],
+                    gameHomeworks: firstSlot.gameHomeworks || [],
                 };
             });
         });
@@ -854,6 +871,163 @@ function OgretmenDerslerimPageContent() {
                 </DialogContent>
             </Dialog>
         </div>
+    );
+}
+
+function QuickHomeworkAssignmentModal({ lesson, childName }: { lesson: any, childName: string }) {
+    const db = useFirestore();
+    const { toast } = useToast();
+    const [isOpen, setIsOpen] = useState(false);
+    const [isAssigning, setIsAssigning] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState<'adalar' | 'hikayeler' | 'turkce-hazinem'>('adalar');
+    const [selectedTopicId, setSelectedTopicId] = useState<string>('');
+
+    const handleAssign = async () => {
+        if (!selectedTopicId || !db) {
+            toast({ title: 'Hata', description: 'Lütfen bir konu seçin.', variant: 'destructive' });
+            return;
+        }
+
+        const categoryName = selectedCategory === 'adalar' ? 'Macera Haritası' : (selectedCategory === 'hikayeler' ? 'Hikayeler' : 'Türkçe Hazinem');
+
+        setIsAssigning(true);
+        try {
+            // Check if there is already an active homework for this category across the child
+            if (lesson.childId) {
+                const { getDocs, query, collection, where } = await import('firebase/firestore');
+                const hwQuery = query(
+                    collection(db, 'game-homeworks'),
+                    where('childId', '==', lesson.childId)
+                );
+                const activeSnap = await getDocs(hwQuery);
+                const hasActive = activeSnap.docs.some(doc => {
+                    const d = doc.data();
+                    return d.status === 'assigned' && d.category === categoryName;
+                });
+
+                if (hasActive) {
+                    toast({ 
+                        title: 'Uyarı', 
+                        description: `Bu öğrencinin zaten devam eden bir "${categoryName}" ödevi var. Lütfen önce onun tamamlanmasını bekleyin.`, 
+                        variant: 'destructive' 
+                    });
+                    setIsAssigning(false);
+                    return;
+                }
+            }
+
+            let topicName = '';
+            if (selectedCategory === 'adalar') {
+                topicName = MOCK_TOPICS.find((t: any) => t.id === selectedTopicId)?.name || '';
+            } else if (selectedCategory === 'hikayeler') {
+                topicName = STORY_DATA.find((t: any) => t.id === selectedTopicId)?.name || '';
+            } else {
+                const chestIndex = CHEST_DATA.findIndex((c: any) => c.id === selectedTopicId);
+                topicName = chestIndex !== -1 ? `Sandık ${chestIndex + 1}` : '';
+            }
+
+            // 1. Child doc guncelle
+            if (lesson.bookedBy && lesson.childId) {
+                const childRef = doc(db, 'users', lesson.bookedBy, 'children', lesson.childId);
+                await updateDoc(childRef, {
+                    activeHomeworkTopic: selectedTopicId,
+                    activeHomeworkTopics: arrayUnion(selectedTopicId)
+                });
+            }
+
+            // 2. game-homeworks koleksiyonuna ekle
+            await addDoc(collection(db, 'game-homeworks'), {
+                teacherId: lesson.teacherId || 'unknown_teacher',
+                teacherName: 'Öğretmen',
+                parentId: lesson.bookedBy || 'unknown_parent',
+                childId: lesson.childId || 'unknown_child',
+                childName: childName,
+                topicId: selectedTopicId,
+                topicName: topicName,
+                category: categoryName,
+                status: 'assigned',
+                assignedAt: serverTimestamp(),
+                completedAt: null
+            });
+
+            // 3. Lesson doc guncelle
+            const lessonRef = doc(db, 'lesson-slots', lesson.id);
+            await updateDoc(lessonRef, {
+                gameHomeworks: arrayUnion({
+                    topicId: selectedTopicId,
+                    topicName: topicName,
+                    category: categoryName
+                })
+            });
+
+            toast({ title: 'Başarılı', description: `${topicName} ödevi atandı.` });
+            setIsOpen(false);
+            setSelectedTopicId('');
+        } catch (error: any) {
+            console.error(error);
+            alert(`Hata detayı: ${error?.message || 'Bilinmeyen hata'}`);
+            toast({ title: 'Hata', description: 'Ödev atanamadı.', variant: 'destructive' });
+        } finally {
+            setIsAssigning(false);
+        }
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button variant='outline' className='w-full font-bold text-indigo-600 border-indigo-200 hover:bg-indigo-50'>
+                    <Gamepad2 className='w-4 h-4 mr-2' />
+                    Oyun Ödevi Ata
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Oyun Ödevi Ata ({childName})</DialogTitle>
+                </DialogHeader>
+                <div className='space-y-4 py-4'>
+                    <div className='space-y-2'>
+                        <Label>Kategori Seçin</Label>
+                        <Select value={selectedCategory} onValueChange={(val: any) => { setSelectedCategory(val); setSelectedTopicId(''); }}>
+                            <SelectTrigger>
+                                <SelectValue placeholder='Kategori Seçin' />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value='adalar'>Macera Haritası (Adalar)</SelectItem>
+                                <SelectItem value='hikayeler'>Hikayeler</SelectItem>
+                                <SelectItem value='turkce-hazinem'>Türkçe Hazinem</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className='space-y-2'>
+                        <Label>Ödev Seçin</Label>
+                        <Select value={selectedTopicId} onValueChange={setSelectedTopicId}>
+                            <SelectTrigger>
+                                <SelectValue placeholder='Ödev Seçin' />
+                            </SelectTrigger>
+                            <SelectContent className='max-h-64'>
+                                {selectedCategory === 'adalar' && MOCK_TOPICS.map((t: any) => (
+                                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                                ))}
+                                {selectedCategory === 'hikayeler' && STORY_DATA.map((t: any) => (
+                                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                                ))}
+                                {selectedCategory === 'turkce-hazinem' && CHEST_DATA.map((t: any, i: number) => (
+                                    <SelectItem key={t.id} value={t.id}>Sandık {i + 1} - {t.title}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant='outline' onClick={() => setIsOpen(false)}>İptal</Button>
+                    <Button onClick={handleAssign} disabled={isAssigning || !selectedTopicId} className='bg-indigo-600 hover:bg-indigo-700'>
+                        {isAssigning ? <Loader2 className='w-4 h-4 mr-2 animate-spin' /> : <Gamepad2 className='w-4 h-4 mr-2' />}
+                        Ödevi Ata
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }
 

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth, db } from '@/lib/firebase-admin';
+import { sendNewRegistrationEmails } from '@/lib/email-service';
 
 export async function POST(req: Request) {
   try {
@@ -39,6 +40,19 @@ export async function POST(req: Request) {
       emailOtp: null,
       emailOtpExpires: null
     });
+
+    // 5. Send Welcome Email upon successful verification
+    if (userData?.role === 'parent') {
+      try {
+        const parentName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
+        await sendNewRegistrationEmails({
+          parentName,
+          parentEmail: userData.email,
+        });
+      } catch (emailError) {
+        console.error('Failed to send welcome email after verification:', emailError);
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (err: any) {

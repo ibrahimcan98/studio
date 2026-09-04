@@ -1,15 +1,16 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import { LogOut } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { ExitDialog } from "@/components/child-mode/exit-dialog";
 
 export function GlobalChildExitButton() {
   const params = useParams();
+  const pathname = usePathname();
   const childId = params.childId as string;
 
-  if (!childId) return null;
+  if (!childId || pathname?.includes('ogretmen-portali')) return null;
 
   return (
     <div className="hidden md:block fixed bottom-4 right-4 md:bottom-8 md:right-8 z-50">
