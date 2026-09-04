@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, usePathname } from 'next/navigation';
 import { useUser, useFirestore, useDoc } from '@/firebase';
-import { doc, updateDoc, setDoc, arrayUnion, increment } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, updateDoc, serverTimestamp, arrayUnion, increment, setDoc, arrayRemove } from 'firebase/firestore';
 import { Loader2, Trophy, BookOpen, Brain, MapPin, ArrowLeft, ArrowRight, CheckCircle, Heart } from 'lucide-react';
 import { ChildSidebar } from '@/components/child-mode/sidebar';
 import { cn } from '@/lib/utils';
@@ -23,6 +22,7 @@ export default function ChestPage() {
   const params = useParams();
   const childId = params.childId as string;
   const chestId = params.chestId as string;
+  const isTeacherTestMode = childId === 'demo';
   const { user: authUser, loading: authLoading } = useUser();
   const db = useFirestore();
   const [isMounted, setIsMounted] = useState(false);
@@ -70,11 +70,23 @@ export default function ChestPage() {
   const content = useMemo(() => CHESTS_CONTENT[chestId], [chestId]);
 
   const childDocRef = useMemo(() => {
-    if (!db || !authUser?.uid || !childId) return null;
+    if (!db || !authUser?.uid || !childId || isTeacherTestMode) return null;
     return doc(db, 'users', authUser.uid, 'children', childId);
-  }, [db, authUser?.uid, childId]);
+  }, [db, authUser?.uid, childId, isTeacherTestMode]);
 
-  const { data: childData, isLoading: childLoading } = useDoc(childDocRef);
+  const { data: rawChildData, isLoading: childLoading } = useDoc(childDocRef);
+  const childData = isTeacherTestMode ? { firstName: 'Demo', completedTopics: [], stickers: {} } : rawChildData;
+
+  const userDocRef = useMemo(() => {
+    if (!db || !authUser?.uid) return null;
+    return doc(db, 'users', authUser.uid);
+  }, [db, authUser?.uid]);
+  
+  const { data: userData } = useDoc(userDocRef);
+  const isChildAssigned = userData?.subscriptionChildIds?.includes(childId);
+  const subscriptionTier = (userData?.subscriptionTier !== 'free' && isChildAssigned) 
+      ? (userData?.subscriptionTier as string) 
+      : 'free';
 
   useEffect(() => {
     setIsMounted(true);
@@ -89,8 +101,9 @@ export default function ChestPage() {
     const currentStickers = childData.stickers || {};
     const missing = Object.entries(earnedStickers).filter(([id]) => !currentStickers[id]);
     if (missing.length === 0) return;
-    const merged = { ...currentStickers, ...earnedStickers };
-    setDoc(childDocRef, { stickers: merged }, { merge: true });
+    if (!isTeacherTestMode) {
+      setDoc(childDocRef, { stickers: merged }, { merge: true });
+    }
   }, [childDocRef, childData?.completedTopics]);
 
   useEffect(() => {
@@ -175,6 +188,13 @@ export default function ChestPage() {
   };
 
   const handleQuizComplete = async (completedKey: string) => {
+    if (isTeacherTestMode) {
+      setStage('success');
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3000);
+      return;
+    }
+
     if (childDocRef) {
       let xpToAdd = 20;
       if (completedKey.endsWith('-2')) xpToAdd = 30;
@@ -189,18 +209,47 @@ export default function ChestPage() {
       
       const unlockedBadge = checkNewBadgeUnlock(oldTopics, newTopics);
 
-      await updateDoc(childDocRef, {
-        completedTopics: arrayUnion(completedKey),
-        xp: increment(xpToAdd)
-      });
+      const isHomework = Array.isArray(childData?.activeHomeworkTopics) ? childData.activeHomeworkTopics.includes(params.chestId) : childData?.activeHomeworkTopic === params.chestId;
+      const isPremium = subscriptionTier !== 'free';
 
-      if (unlockedBadge) {
-        setNewBadge(unlockedBadge);
-        const newStickers = {
-          ...(childData?.stickers || {}),
-          [unlockedBadge.id]: unlockedBadge.icon
-        };
-        await setDoc(childDocRef, { stickers: newStickers }, { merge: true });
+      if (!isHomework || isPremium) {
+        await updateDoc(childDocRef, {
+          completedTopics: arrayUnion(completedKey),
+          xp: increment(xpToAdd)
+        });
+
+        if (unlockedBadge) {
+          setNewBadge(unlockedBadge);
+          const newStickers = {
+            ...(childData?.stickers || {}),
+            [unlockedBadge.id]: unlockedBadge.icon
+          };
+          await setDoc(childDocRef, { stickers: newStickers }, { merge: true });
+        }
+      }
+
+      // Ödev Tamamlama Kontrolü (Spesifik Hazine)
+
+      if (isHomework && childDocRef && db) {
+        updateDoc(childDocRef, { activeHomeworkTopic: null, activeHomeworkTopics: arrayRemove(params.chestId) }).catch(console.error);
+        
+        const hwQuery = query(
+          collection(db, 'game-homeworks'),
+          where('childId', '==', childId)
+        );
+        getDocs(hwQuery).then(async (hwDocs) => {
+            const promises: Promise<void>[] = [];
+            hwDocs.forEach(docSnap => {
+                const d = docSnap.data();
+                if (d.topicId === params.chestId && d.status === 'assigned') {
+                    promises.push(updateDoc(docSnap.ref, { status: 'completed', completedAt: serverTimestamp() }));
+                }
+            });
+            await Promise.all(promises);
+        }).catch((e: any) => {
+            console.error(e);
+            alert("Ödev durumu güncellenemedi: " + e.message);
+        });
       }
     }
     setStage('success');
@@ -1013,9 +1062,26 @@ export default function ChestPage() {
   };
 
 
+  const pathname = usePathname();
+  const isTeacherMode = pathname?.includes('ogretmen-portali');
+
   return (
     <div className="flex h-screen overflow-hidden font-sans relative">
-      <ChildSidebar childId={childId} childData={childData} />
+      {isTeacherMode ? (
+        <aside className="w-16 md:w-32 shrink-0 bg-white/20 backdrop-blur-xl border-r border-white/40 flex flex-col items-center py-4 md:py-8 justify-between z-50 shadow-2xl">
+            <Button
+                variant="outline"
+                size="icon"
+                className="rounded-xl md:rounded-2xl h-10 w-10 md:h-14 md:w-14 bg-white/90 border-none shadow-xl hover:scale-110 transition-all hover:bg-white active:scale-95"
+                onClick={() => router.push('/ogretmen-portali/oyunlar')}
+            >
+                <ArrowLeft className="w-6 h-6 md:w-8 md:h-8 text-amber-500" />
+            </Button>
+            <div className="h-10 w-10 md:h-14 md:w-14" /> {/* Spacer */}
+        </aside>
+      ) : (
+        <ChildSidebar childId={childId} childData={childData} />
+      )}
       <BadgeUnlockModal badge={newBadge} onClose={() => setNewBadge(null)} />
 
       <div className="fixed inset-0 bg-gradient-to-b from-[#bae6fd] via-[#fef08a] to-[#fcd34d] z-0" />
@@ -1033,7 +1099,11 @@ export default function ChestPage() {
               if (stage !== 'list') {
                 setStage('list');
               } else {
-                router.push(`/cocuk-modu/${childId}/turkce-hazinem`);
+                if (childId === 'demo') {
+                  router.push('/ogretmen-portali/oyunlar');
+                } else {
+                  router.push(`/cocuk-modu/${childId}/turkce-hazinem`);
+                }
               }
             }}
           >
@@ -1057,15 +1127,19 @@ export default function ChestPage() {
           <div className="w-full max-w-3xl flex flex-col gap-6">
             <div className="text-center mb-6">
               <h1 className="text-4xl md:text-5xl font-black text-amber-950 tracking-tight">Sandık {chestId}</h1>
-              <p className="text-amber-800/80 font-medium text-lg mt-2">Bu hazineyi tamamlamak için aşağıdaki adımları sırasıyla bitirmelisin.</p>
+              <p className="text-amber-800/80 font-medium text-lg mt-2">
+                {isTeacherTestMode
+                  ? 'Öğretmen test modu: Tüm bölümler açıktır ve ilerleme kaydedilmez.'
+                  : 'Bu hazineyi tamamlamak için aşağıdaki adımları sırasıyla bitirmelisin.'}
+              </p>
             </div>
             {(() => {
               const act1Done = childData?.completedTopics?.includes(`chest-${chestId}-1`);
               const act2Done = childData?.completedTopics?.includes(`chest-${chestId}-2`);
               const act3Done = childData?.completedTopics?.includes(`chest-${chestId}-3`);
 
-              const isAct2Locked = !act1Done && !isTekrar;
-              const isAct3Locked = !act2Done && !isTekrar;
+              const isAct2Locked = !isTeacherTestMode && !act1Done && !isTekrar;
+              const isAct3Locked = !isTeacherTestMode && !act2Done && !isTekrar;
 
               return (
                 <>
@@ -1149,7 +1223,11 @@ export default function ChestPage() {
                 className="h-16 px-12 rounded-2xl text-xl font-black bg-emerald-500 text-white hover:bg-emerald-600 hover:scale-105 transition-all shadow-xl"
                 onClick={() => {
                   if (isFullyComplete) {
-                    router.push(`/cocuk-modu/${childId}/turkce-hazinem`);
+                    if (childId === 'demo') {
+                      router.push('/ogretmen-portali/oyunlar');
+                    } else {
+                      router.push(`/cocuk-modu/${childId}/turkce-hazinem`);
+                    }
                   } else {
                     setStage('list');
                   }

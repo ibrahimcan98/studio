@@ -180,12 +180,12 @@ export default function KonusmaPage() {
     }
   };
 
-  const handleMicClick = async () => {
-    if (subscriptionTier === 'free' && usageSeconds >= 120) {
+  const toggleRecording = async () => {
+    if (isLimitReached) {
       toast({
-        title: "Günlük Limit Doldu",
-        description: "Ücretsiz sürümde günlük 2 dakika konuşabilirsin. Yarın görüşürüz! 👋",
-        variant: "destructive"
+        title: 'Süre Doldu',
+        description: 'Ücretsiz sürümde konuşma süreniz doldu.',
+        variant: 'destructive',
       });
       return;
     }
@@ -287,15 +287,16 @@ export default function KonusmaPage() {
               }
             }
 
-            // Veritabanını Güncelle
-            if (db && childDocRef) {
-              const updateData: any = { 'stats.ai': aiStats };
-              if (newlyEarned) {
-                updateData.earnedBadges = earnedBadges;
-                setNewlyUnlockedBadge(newlyEarned);
+              // Veritabanını Güncelle
+              if (db && childDocRef) {
+                const updateData: any = { 'stats.ai': aiStats };
+                if (newlyEarned) {
+                  updateData.earnedBadges = earnedBadges;
+                  setNewlyUnlockedBadge(newlyEarned);
+                }
+
+                await updateDoc(childDocRef, updateData);
               }
-              await updateDoc(childDocRef, updateData);
-            }
           } catch (err) {
             console.error("Stats update error:", err);
           }
@@ -497,7 +498,7 @@ export default function KonusmaPage() {
                     />
                   )}
                   <button
-                    onClick={handleMicClick}
+                    onClick={toggleRecording}
                     className={cn(
                       "relative z-[210] w-28 h-28 md:w-32 md:h-32 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl border-b-[8px] cursor-pointer active:scale-95 active:border-b-0 active:translate-y-1",
                       isListening ? "bg-[#FF5252] border-[#D32F2F] text-white" : "bg-[#4CAF50] border-[#388E3C] text-white"

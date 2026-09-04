@@ -1,14 +1,33 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { TopicCard } from '@/components/child-mode/topic-card';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import { Sparkles, Gamepad2, Info } from 'lucide-react';
+import { Sparkles, Gamepad2, Info, BookOpen, User, Loader2, Map } from 'lucide-react';
+import { useUser, useFirestore, useCollection } from '@/firebase';
+import { collection, query, where, getDocs, doc, updateDoc, addDoc, serverTimestamp, orderBy } from 'firebase/firestore';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { CHEST_DATA } from '@/data/turkce-hazinem-data';
 
 // Mock veriler
-const MOCK_TOPICS = [
+export const MOCK_TOPICS = [
   { id: 'hayvanlar', name: 'HAYVANLAR', icon: '🦁', color: 'green', top: '250px', left: '65%', imageUrl: '/images/1-hayvanlar/1-hayvanlar.png' },
   { id: 'renkler', name: 'RENKLER', icon: '🎨', color: 'purple', top: '450px', left: '25%', imageUrl: '/images/2-renkler/2-renkler.png' },
   { id: 'vucudumuz', name: 'VÜCUDUMUZ', icon: '🖐️', color: 'orange', top: '750px', left: '65%', imageUrl: '/images/3-vucudumuz/3-vucudumuz.png' },
@@ -47,6 +66,13 @@ const MOCK_TOPICS = [
   { id: 'sifatlar', name: 'SIFATLAR', icon: '✨', color: 'orange', top: '10650px', left: '25%', imageUrl: '/images/36-sifatlar/36-sifatlar.png' },
 ];
 
+export const STORY_DATA = [
+  { id: 'sari-top', name: 'Sarı Top', cover: '/hikayeler/1-sari-top/kapak.png' },
+  { id: 'bir-iki-uc-basardim', name: 'Bir İki Üç Başardım!', cover: '/hikayeler/2-bir-iki-uc-basardim/kapak.png' },
+  { id: 'kaptan-kahvaltisi', name: 'Kaptan Kahvaltısı', cover: '/hikayeler/3-kaptan-kahvaltisi/kapak.png' },
+  { id: 'gokusagi-partisi', name: 'Gökkuşağı Partisi', cover: '/hikayeler/4-gokusagi-partisi/kapak.png' }
+];
+
 const Cloud = ({ className, style }: { className?: string, style?: React.CSSProperties }) => (
   <div
     className={cn("absolute opacity-60 animate-float-slow pointer-events-none z-0", className)}
@@ -62,6 +88,12 @@ const Cloud = ({ className, style }: { className?: string, style?: React.CSSProp
 export default function OgretmenOyunlarPage() {
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
+  const { user } = useUser();
+  const db = useFirestore();
+  const { toast } = useToast();
+
+  const [selectedCategory, setSelectedCategory] = useState<'adalar' | 'hikayeler' | 'turkce-hazinem'>('adalar');
+
 
   useEffect(() => {
     setIsMounted(true);
@@ -79,6 +111,18 @@ export default function OgretmenOyunlarPage() {
     }, 300);
     return () => clearTimeout(timer);
   }, []);
+
+  const handleIslandClick = (topic: any) => {
+    localStorage.setItem('last-demo-topic', topic.id);
+    
+    if (selectedCategory === 'hikayeler') {
+      router.push(`/ogretmen-portali/oyunlar/hikayeler/${topic.id}`);
+    } else if (selectedCategory === 'turkce-hazinem') {
+      router.push(`/ogretmen-portali/oyunlar/turkce-hazinem/${topic.id}`);
+    } else {
+      router.push(`/ogretmen-portali/oyunlar/${topic.id}`);
+    }
+  };
 
   if (!isMounted) return null;
 
@@ -112,121 +156,138 @@ export default function OgretmenOyunlarPage() {
                 <h2 className="text-xl font-black text-slate-800 drop-shadow-sm mb-1 uppercase">
                     Öğretmen Modu
                 </h2>
-                <div className="flex items-center gap-1.5 bg-sky-100/80 px-3 py-1 rounded-full border border-sky-200">
+                <div className="flex items-center gap-1.5 bg-sky-100/80 px-3 py-1 rounded-full border border-sky-200 mb-6">
                     <Sparkles className="w-3.5 h-3.5 text-sky-500" />
                     <span className="text-xs font-bold text-sky-700 tracking-wider">Tüm Kilitler Açık</span>
                 </div>
-                
-                <div className="mt-8 p-4 bg-white/60 rounded-2xl border-2 border-white text-sm text-slate-600 font-medium">
+
+                <div className="mt-4 p-4 bg-white/60 rounded-2xl border-2 border-white text-sm text-slate-600 font-medium">
                     <Info className="w-5 h-5 text-sky-500 mx-auto mb-2" />
-                    Bu alan öğrencilerinize veya velilerinize oyunları göstermeniz için tasarlanmıştır. Yaptığınız ilerlemeler kaydedilmez.
+                    Bu alan öğrencilerinize oyunları ve içerikleri göstermeniz içindir. İlerlemeler kaydedilmez.
+                </div>
+
+                <div className="w-full mt-6 space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                    <Gamepad2 className="w-4 h-4" /> BÖLÜMLER
+                  </label>
+                  <div className="flex flex-col gap-2">
+                    <Button 
+                      variant="outline" 
+                      className={cn("w-full justify-start border-2 border-white shadow-sm text-sky-700", selectedCategory === 'adalar' ? 'bg-sky-100' : 'bg-white/80 hover:bg-sky-50')} 
+                      onClick={() => setSelectedCategory('adalar')}
+                    >
+                      🗺️ Macera Haritası
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className={cn("w-full justify-start border-2 border-white shadow-sm text-purple-700", selectedCategory === 'hikayeler' ? 'bg-purple-100' : 'bg-white/80 hover:bg-purple-50')} 
+                      onClick={() => setSelectedCategory('hikayeler')}
+                    >
+                      📚 Hikayeler
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className={cn("w-full justify-start border-2 border-white shadow-sm text-amber-700", selectedCategory === 'turkce-hazinem' ? 'bg-amber-100' : 'bg-white/80 hover:bg-amber-50')} 
+                      onClick={() => setSelectedCategory('turkce-hazinem')}
+                    >
+                      🏴‍☠️ Türkçe Hazinem
+                    </Button>
+                  </div>
                 </div>
             </div>
         </aside>
 
-        {/* ORTA ALAN: Kaydırılabilir Macera Haritası */}
-        <div className="flex-1 relative order-3 md:order-2 overflow-y-auto scrollbar-hide perspective-1000 flex flex-col items-center">
-          {/* Başlık Bölümü */}
-          <div className="w-full flex justify-center pt-8 md:pt-[100px] flex-shrink-0">
-            <div className="relative md:absolute top-0 z-30 hover:scale-105 transition-transform duration-300 cursor-default select-none px-4">
-              <Image
-                src="/macera.png"
-                width={550}
-                height={687}
-                alt="Macera Haritası"
-                className="drop-shadow-[0_15px_25px_rgba(0,0,0,0.3)] object-contain w-[280px] md:w-[550px]"
-                priority
-              />
-            </div>
-          </div>
-
-          {/* Macera Haritası İçeriği (Adalar ve Köprüler) */}
-          <div className="relative w-full min-h-[11100px] flex-shrink-0">
-            {/* Masaüstü Köprü Efektleri */}
-            <svg className="hidden md:block absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 10 }}>
-              <defs>
-                <filter id="glow">
-                  <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-                  <feMerge>
-                    <feMergeNode in="coloredBlur" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
-              </defs>
-              <path d="M 45% 150px Q 30% 300px 25% 450px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 25% 450px Q 40% 600px 55% 750px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 55% 750px Q 45% 900px 35% 1050px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 35% 1050px Q 45% 1200px 55% 1350px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 55% 1350px Q 40% 1500px 25% 1650px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 25% 1650px Q 35% 1800px 45% 1950px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 45% 1950px Q 35% 2100px 25% 2250px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 25% 2250px Q 40% 2400px 55% 2550px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 55% 2550px Q 45% 2700px 35% 2850px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 35% 2850px Q 45% 3000px 55% 3150px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 55% 3150px Q 45% 3300px 35% 3450px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 35% 3450px Q 45% 3600px 55% 3750px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 55% 3750px Q 45% 3900px 35% 4050px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 35% 4050px Q 45% 4200px 55% 4350px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 55% 4350px Q 45% 4500px 35% 4650px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 35% 4650px Q 45% 4800px 55% 4950px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 55% 4950px Q 45% 5100px 35% 5250px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 35% 5250px Q 45% 5400px 55% 5550px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 55% 5550px Q 45% 5700px 35% 5850px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 35% 5850px Q 45% 6000px 55% 6150px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 55% 6150px Q 45% 6300px 35% 6450px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 35% 6450px Q 45% 6600px 55% 6750px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 55% 6750px Q 45% 6900px 35% 7050px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 35% 7050px Q 45% 7200px 55% 7350px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 55% 7350px Q 45% 7500px 35% 7650px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 35% 7650px Q 45% 7800px 55% 7950px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 55% 7950px Q 45% 8100px 35% 8250px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 35% 8250px Q 45% 8400px 55% 8550px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 55% 8550px Q 45% 8700px 35% 8850px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 35% 8850px Q 45% 9000px 55% 9150px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 55% 9150px Q 45% 9300px 35% 9450px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 35% 9450px Q 45% 9600px 55% 9750px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 55% 9750px Q 45% 9900px 35% 10050px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 35% 10050px Q 45% 10150px 55% 10250px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-              <path d="M 55% 10250px Q 45% 10450px 35% 10650px" stroke="rgba(255,255,255,0.4)" strokeWidth="6" fill="transparent" strokeDasharray="10 10" strokeLinecap="round" filter="url(#glow)" />
-            </svg>
-
-            {/* Mobil Köprü Efektleri */}
-            <svg className="block md:hidden absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 10 }}>
-              <path d="M 45% 150px Q 30% 300px 15% 450px" stroke="rgba(255,255,255,0.3)" strokeWidth="4" fill="transparent" strokeDasharray="8 8" strokeLinecap="round" />
-              <path d="M 15% 450px Q 40% 600px 65% 750px" stroke="rgba(255,255,255,0.3)" strokeWidth="4" fill="transparent" strokeDasharray="8 8" strokeLinecap="round" />
-              <path d="M 65% 750px Q 45% 900px 15% 1050px" stroke="rgba(255,255,255,0.3)" strokeWidth="4" fill="transparent" strokeDasharray="8 8" strokeLinecap="round" />
-            </svg>
-
-            {/* 3D CSS Platformları (Hepsi Açık) */}
-            {MOCK_TOPICS.map((topic, index) => {
-              return (
-                <div
-                  key={topic.id}
-                  id={`topic-${topic.id}`}
-                  className="absolute island-container animate-float"
-                  style={{
-                    top: topic.top,
-                    '--desktop-left': topic.left,
-                    '--mobile-left': topic.left === '65%' ? '55%' : '5%',
-                    animationDelay: `${index * 0.7}s`,
-                    zIndex: 20
-                  } as any}
-                >
-                  <TopicCard
-                    topic={topic}
-                    number={index + 1}
-                    isLocked={false}
-                    isPremiumLocked={false}
-                    isCompleted={true}
-                    onClick={() => {
-                        localStorage.setItem('last-demo-topic', topic.id);
-                        router.push(`/ogretmen-portali/oyunlar/${topic.id}`);
-                    }}
+        {/* ORTA ALAN: Kaydırılabilir İçerik */}
+        <div className="flex-1 relative order-3 md:order-2 overflow-y-auto scrollbar-hide perspective-1000 flex flex-col items-center w-full p-4 md:p-8">
+          
+          {selectedCategory === 'adalar' && (
+            <>
+              {/* Başlık Bölümü */}
+              <div className="w-full flex justify-center pt-8 md:pt-[100px] flex-shrink-0">
+                <div className="relative md:absolute top-0 z-30 hover:scale-105 transition-transform duration-300 cursor-default select-none px-4">
+                  <Image
+                    src="/macera.png"
+                    width={550}
+                    height={687}
+                    alt="Macera Haritası"
+                    className="drop-shadow-[0_15px_25px_rgba(0,0,0,0.3)] object-contain w-[280px] md:w-[550px]"
+                    priority
                   />
                 </div>
-              );
-            })}
-          </div>
+              </div>
+
+              {/* Macera Haritası İçeriği (Adalar ve Köprüler) */}
+              <div className="relative w-full min-h-[11100px] flex-shrink-0">
+                {/* 3D CSS Platformları (Hepsi Açık) */}
+                {MOCK_TOPICS.map((topic, index) => {
+                  return (
+                    <div
+                      key={topic.id}
+                      id={`topic-${topic.id}`}
+                      className="absolute island-container animate-float"
+                      style={{
+                        top: topic.top,
+                        '--desktop-left': topic.left,
+                        '--mobile-left': topic.left === '65%' ? '55%' : '5%',
+                        animationDelay: `${index * 0.7}s`,
+                        zIndex: 20
+                      } as any}
+                    >
+                      <TopicCard
+                        topic={topic}
+                        number={index + 1}
+                        isLocked={false}
+                        isPremiumLocked={false}
+                        isCompleted={true}
+                        onClick={() => handleIslandClick(topic)}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {selectedCategory === 'hikayeler' && (
+            <div className="w-full max-w-5xl mx-auto pt-8">
+              <h2 className="text-3xl font-black text-sky-800 mb-8 text-center uppercase tracking-wider bg-white/50 py-4 rounded-3xl border-4 border-white shadow-sm backdrop-blur-sm">📖 HİKAYELER</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {STORY_DATA.map(story => (
+                  <div 
+                    key={story.id}
+                    onClick={() => handleIslandClick({ id: story.id, name: `${story.name} (Hikaye)` })}
+                    className="bg-white/95 rounded-[30px] p-4 border-[4px] border-purple-200/50 shadow-lg cursor-pointer hover:scale-105 transition-all overflow-hidden flex flex-col items-center group"
+                  >
+                    <div className="relative w-full aspect-[4/3] bg-purple-50 rounded-2xl overflow-hidden mb-4">
+                      <Image src={story.cover} fill alt={story.name} className="object-contain p-2 group-hover:scale-110 transition-transform duration-500" />
+                    </div>
+                    <h3 className="text-xl font-bold text-purple-900 text-center mb-2">{story.name}</h3>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {selectedCategory === 'turkce-hazinem' && (
+            <div className="w-full max-w-5xl mx-auto pt-8">
+              <h2 className="text-3xl font-black text-amber-800 mb-8 text-center uppercase tracking-wider bg-white/50 py-4 rounded-3xl border-4 border-white shadow-sm backdrop-blur-sm">🏴‍☠️ TÜRKÇE HAZİNEM</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                {CHEST_DATA.map((chest, i) => (
+                  <div 
+                    key={chest.id}
+                    onClick={() => handleIslandClick({ id: chest.id, name: `Sandık ${i + 1}` })}
+                    className="bg-white/95 rounded-[30px] p-6 border-[4px] border-amber-200 shadow-lg cursor-pointer hover:scale-105 transition-all flex flex-col items-center group"
+                  >
+                    <div className="w-24 h-24 bg-amber-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-amber-200 transition-colors">
+                      <span className="text-5xl">🎁</span>
+                    </div>
+                    <h3 className="text-lg font-bold text-amber-900 text-center mb-1">Sandık {i + 1}</h3>
+                    <p className="text-sm text-slate-500 mb-4">{chest.title}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </main>
 

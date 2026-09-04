@@ -684,53 +684,69 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
             Macera Haritası
           </Button>
 
-          <Button
-            variant="outline"
-            onClick={() => router.push(`/cocuk-modu/${childId}/turkce-hazinem`)}
-            className={cn(
-              "w-full justify-start gap-3 h-12 rounded-[20px] border-[3px] font-black text-sm transition-transform hover:scale-105 shadow-md",
-              pathname.includes('/turkce-hazinem')
-                ? "border-amber-400 bg-amber-100/90 text-amber-700 hover:bg-amber-200"
-                : "border-white/60 bg-white/40 text-slate-600 hover:bg-white/60 backdrop-blur-sm"
-            )}
-          >
-            <div className="bg-white p-1.5 rounded-xl shadow-sm">
-              <Trophy className={cn("w-5 h-5", pathname.includes('/turkce-hazinem') ? "text-amber-500" : "text-slate-400")} />
-            </div>
-            Türkçe Hazinem
-          </Button>
+          <div className="relative w-full">
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/cocuk-modu/${childId}/turkce-hazinem`)}
+              className={cn(
+                "w-full justify-start gap-3 h-12 rounded-[20px] border-[3px] font-black text-sm transition-transform hover:scale-105 shadow-md",
+                pathname.includes('/turkce-hazinem')
+                  ? "border-amber-400 bg-amber-100/90 text-amber-700 hover:bg-amber-200"
+                  : "border-white/60 bg-white/40 text-slate-600 hover:bg-white/60 backdrop-blur-sm"
+              )}
+            >
+              <div className="bg-white p-1.5 rounded-xl shadow-sm">
+                <Trophy className={cn("w-5 h-5", pathname.includes('/turkce-hazinem') ? "text-amber-500" : "text-slate-400")} />
+              </div>
+              Türkçe Hazinem
+            </Button>
+            {(Array.isArray(childData?.activeHomeworkTopics) ? childData.activeHomeworkTopics.some((t: string) => t.startsWith('chest-') || t.startsWith('tekrar-')) : typeof childData?.activeHomeworkTopic === 'string' && (childData.activeHomeworkTopic.startsWith('chest-') || childData.activeHomeworkTopic.startsWith('tekrar-'))) ? (
+              <div className="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 text-[10px] font-black px-2 py-0.5 rounded-full shadow-md animate-bounce border-2 border-white z-10 pointer-events-none">
+                🌟 ÖDEV
+              </div>
+            ) : null}
+          </div>
 
-          <Button
-            variant="outline"
-            onClick={() => router.push(`/cocuk-modu/${childId}/hikayeler`)}
-            className={cn(
-              "w-full justify-start gap-3 h-12 rounded-[20px] border-[3px] font-black text-sm transition-transform hover:scale-105 shadow-md",
-              pathname.includes('/hikayeler')
-                ? "border-purple-400 bg-purple-100/90 text-purple-700 hover:bg-purple-200"
-                : "border-white/60 bg-white/40 text-slate-600 hover:bg-white/60 backdrop-blur-sm"
+          <div className="relative w-full">
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/cocuk-modu/${childId}/hikayeler`)}
+              className={cn(
+                "w-full justify-start gap-3 h-12 rounded-[20px] border-[3px] font-black text-sm transition-transform hover:scale-105 shadow-md",
+                pathname.includes('/hikayeler')
+                  ? "border-purple-400 bg-purple-100/90 text-purple-700 hover:bg-purple-200"
+                  : "border-white/60 bg-white/40 text-slate-600 hover:bg-white/60 backdrop-blur-sm"
+              )}
+            >
+              <div className="bg-white p-1.5 rounded-xl shadow-sm">
+                <BookOpen className={cn("w-5 h-5", pathname.includes('/hikayeler') ? "text-purple-500" : "text-slate-400")} />
+              </div>
+              Hikayeler
+            </Button>
+            {(Array.isArray(childData?.activeHomeworkTopics) ? childData.activeHomeworkTopics.some((t: string) => ['sari-top', 'bir-iki-uc-basardim', 'kaptan-kahvaltisi', 'gokusagi-partisi'].includes(t)) : ['sari-top', 'bir-iki-uc-basardim', 'kaptan-kahvaltisi', 'gokusagi-partisi'].includes(childData?.activeHomeworkTopic || '')) && (
+              <div className="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 text-[10px] font-black px-2 py-0.5 rounded-full shadow-md animate-bounce border-2 border-white z-10 pointer-events-none">
+                🌟 ÖDEV
+              </div>
             )}
-          >
-            <div className="bg-white p-1.5 rounded-xl shadow-sm">
-              <BookOpen className={cn("w-5 h-5", pathname.includes('/hikayeler') ? "text-purple-500" : "text-slate-400")} />
-            </div>
-            Hikayeler
-          </Button>
+          </div>
 
-          <Button
-            variant="outline"
-            onClick={() => router.push(`/cocuk-modu/${childId}/konusma`)}
-            className={cn(
-              "w-full justify-start gap-3 h-12 rounded-[20px] border-[3px] font-black text-sm transition-transform hover:scale-105 shadow-md",
-              pathname.includes('/konusma')
-                ? "border-green-400 bg-green-100/90 text-green-700 hover:bg-green-200"
-                : "border-white/60 bg-white/40 text-slate-600 hover:bg-white/60 backdrop-blur-sm"
-            )}
-          >
-            <div className="bg-white p-1.5 rounded-xl shadow-sm">
-              <MessageCircle className={cn("w-5 h-5", pathname.includes('/konusma') ? "text-green-500" : "text-slate-400")} />
-            </div>
-            Konuşma
-          </Button>
+          <div className="relative w-full">
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/cocuk-modu/${childId}/konusma`)}
+              className={cn(
+                "w-full justify-start gap-3 h-12 rounded-[20px] border-[3px] font-black text-sm transition-transform hover:scale-105 shadow-md",
+                pathname.includes('/konusma')
+                  ? "border-green-400 bg-green-100/90 text-green-700 hover:bg-green-200"
+                  : "border-white/60 bg-white/40 text-slate-600 hover:bg-white/60 backdrop-blur-sm"
+              )}
+            >
+              <div className="bg-white p-1.5 rounded-xl shadow-sm">
+                <MessageCircle className={cn("w-5 h-5", pathname.includes('/konusma') ? "text-green-500" : "text-slate-400")} />
+              </div>
+              Pati ile Konuş
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -752,7 +768,7 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
         <button
           onClick={() => router.push(`/cocuk-modu/${childId}/turkce-hazinem`)}
           className={cn(
-            "flex-1 flex flex-col items-center gap-1 transition-all",
+            "relative flex-1 flex flex-col items-center gap-1 transition-all",
             pathname.includes('/turkce-hazinem') ? "text-amber-600 scale-110" : "text-slate-400"
           )}
         >
@@ -760,12 +776,17 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
             <Trophy className="w-6 h-6" />
           </div>
           <span className="text-[10px] font-black uppercase">Hazinem</span>
+          {(Array.isArray(childData?.activeHomeworkTopics) ? childData.activeHomeworkTopics.some((t: string) => t.startsWith('chest-') || t.startsWith('tekrar-')) : typeof childData?.activeHomeworkTopic === 'string' && (childData.activeHomeworkTopic.startsWith('chest-') || childData.activeHomeworkTopic.startsWith('tekrar-'))) ? (
+            <div className="absolute -top-1 -right-1 bg-yellow-400 text-yellow-900 text-[8px] font-black px-1.5 py-0.5 rounded-full shadow-md animate-bounce border border-white z-10 pointer-events-none">
+              ÖDEV
+            </div>
+          ) : null}
         </button>
 
         <button
           onClick={() => router.push(`/cocuk-modu/${childId}/hikayeler`)}
           className={cn(
-            "flex-1 flex flex-col items-center gap-1 transition-all",
+            "relative flex-1 flex flex-col items-center gap-1 transition-all",
             pathname.includes('/hikayeler') ? "text-purple-600 scale-110" : "text-slate-400"
           )}
         >
@@ -773,12 +794,17 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
             <BookOpen className="w-6 h-6" />
           </div>
           <span className="text-[10px] font-black uppercase">Hikaye</span>
+          {['sari-top', 'bir-iki-uc-basardim', 'kaptan-kahvaltisi', 'gokusagi-partisi'].includes(childData?.activeHomeworkTopic || '') && (
+            <div className="absolute -top-1 -right-1 bg-yellow-400 text-yellow-900 text-[8px] font-black px-1.5 py-0.5 rounded-full shadow-md animate-bounce border border-white z-10 pointer-events-none">
+              ÖDEV
+            </div>
+          )}
         </button>
 
         <button
           onClick={() => router.push(`/cocuk-modu/${childId}/konusma`)}
           className={cn(
-            "flex-1 flex flex-col items-center gap-1 transition-all",
+            "relative flex-1 flex flex-col items-center gap-1 transition-all",
             pathname.includes('/konusma') ? "text-green-600 scale-110" : "text-slate-400"
           )}
         >

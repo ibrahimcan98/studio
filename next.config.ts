@@ -18,6 +18,18 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'firebasestorage.googleapis.com', pathname: '/**' }
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: '/ogretmen-portali/oyunlar/hikayeler/:topicId',
+        destination: '/cocuk-modu/demo/hikayeler/:topicId',
+      },
+      {
+        source: '/ogretmen-portali/oyunlar/turkce-hazinem/:chestId',
+        destination: '/cocuk-modu/demo/turkce-hazinem/:chestId',
+      }
+    ];
+  },
   async headers() {
     return [
       {

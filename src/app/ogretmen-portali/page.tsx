@@ -29,7 +29,7 @@ export default function OgretmenPortaliPage() {
     return query(
         collection(db, 'lesson-slots'), 
         where('teacherId', '==', user.uid),
-        where('status', '==', 'booked'),
+        where('status', 'in', ['booked', 'completed']),
         where('startTime', '>=', startOfCurrentMonth),
         where('startTime', '<=', endOfCurrentMonth)
     );

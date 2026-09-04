@@ -24,7 +24,8 @@ import {
   PhoneCall,
   Megaphone,
   Crown,
-  Library
+  Library,
+  Gamepad2
 } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
@@ -78,6 +79,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     { id: 'uyelikler', href: '/yonetici/uyelikler', label: 'Üyelikler', icon: Crown },
     { id: 'denetim-kaydi', href: '/yonetici/denetim-kaydi', label: 'Denetim Kaydı', icon: History },
     { id: 'admin-yonetimi', href: '/yonetici/admin-yonetimi', label: 'Admin Yönetimi', icon: ShieldAlert },
+    { id: 'odevler', href: '/yonetici/odevler', label: 'Oyun Ödevleri', icon: Gamepad2 },
   ];
 
   const navCategories = [
@@ -91,7 +93,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     },
     {
       title: 'Kullanıcı & Eğitim',
-      items: ['ogrenciler', 'kullanicilar', 'ogretmenler', 'dersler', 'materyaller', 'grup-paketleri']
+      items: ['ogrenciler', 'kullanicilar', 'ogretmenler', 'dersler', 'materyaller', 'grup-paketleri', 'odevler']
     },
     {
       title: 'Finans & Satış',

@@ -382,8 +382,10 @@ function EbeveynPortaliContent() {
         }
     };
 
+    const [showTrialReminderModal, setShowTrialReminderModal] = useState(false);
+
     useEffect(() => {
-        const checkWelcomeModal = () => {
+        const checkModals = () => {
             if (!user || childrenLoading || userData?.isLegacy) return;
 
             if (children && children.length === 0) {
@@ -392,11 +394,22 @@ function EbeveynPortaliContent() {
                     setShowWelcomeModal(true);
                     sessionStorage.setItem('seenWelcomeTrial', 'true');
                 }
+            } else if (children && children.length > 0) {
+                // Çocuk var ama hiç deneme dersi planlanmamışsa
+                if ((userData?.freeTrialsUsed || 0) === 0) {
+                    const hasSeenReminder = sessionStorage.getItem('seenTrialReminder');
+                    // Yeni eklendiğinde onChildAdded üzerinden direkt yönlendiği için o an görmeyecekler.
+                    // Sadece sonradan ana sayfaya dönerlerse veya sayfayı yenilerlerse görecekler.
+                    if (!hasSeenReminder) {
+                        setShowTrialReminderModal(true);
+                        sessionStorage.setItem('seenTrialReminder', 'true');
+                    }
+                }
             }
         };
 
-        checkWelcomeModal();
-    }, [childrenLoading, children, userData?.isLegacy, user]);
+        checkModals();
+    }, [childrenLoading, children, userData?.isLegacy, user, userData?.freeTrialsUsed]);
 
     useEffect(() => {
         if (dbNotifications && dbNotifications.length > 0) {
@@ -958,23 +971,64 @@ function EbeveynPortaliContent() {
             </div>
 
             <Dialog open={showWelcomeModal} onOpenChange={setShowWelcomeModal}>
-                <DialogContent className="max-w-md rounded-[32px] p-8 text-center border-none shadow-2xl">
+                <DialogContent hideClose overlayClassName="bg-slate-900/95 backdrop-blur-sm" className="max-w-md rounded-[32px] p-8 text-center border-none shadow-2xl">
                     <DialogHeader className="space-y-4 items-center flex flex-col pt-4">
                         <div className="flex justify-center mb-4">
                             <Logo className="scale-125 sm:scale-150 transform origin-center" />
                         </div>
-                        <DialogTitle className="text-3xl font-black text-slate-900 tracking-tight">Hoş Geldiniz!</DialogTitle>
+                        <DialogTitle className="text-3xl font-black text-slate-900 tracking-tight">Hoş Geldiniz! 👋</DialogTitle>
                         <DialogDescription className="text-base font-medium text-slate-500 max-w-[280px]">
-                            Hemen çocuğunuzun profilini oluşturun ve <strong className="text-primary italic">ücretsiz deneme dersinizi</strong> planlayın.
+                            Hesabınız başarıyla oluşturuldu. Şimdi çocuğunuzu tanıyalım ve ücretsiz deneme dersinizi planlayalım.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="mt-8 flex flex-col gap-3">
-                        <AddChildForm userId={user.uid} onChildAdded={() => { refetchChildren(); setShowWelcomeModal(false); }}>
+                        <AddChildForm userId={user.uid} onChildAdded={(newChildId) => { 
+                            refetchChildren(); 
+                            setShowWelcomeModal(false);
+                            toast({
+                                title: "Başarılı!",
+                                description: "Çocuğunuz başarıyla eklendi. Şimdi ücretsiz deneme saatini seçebilirsiniz.",
+                                className: "bg-emerald-500 text-white"
+                            });
+                            if (newChildId) {
+                                router.push(`/ebeveyn-portali/ders-planla?childId=${newChildId}`);
+                            } else {
+                                router.push('/ebeveyn-portali/ders-planla');
+                            }
+                        }}>
                             <Button className="w-full h-14 rounded-2xl text-base font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform" size="lg">
-                                <Plus className="mr-2 h-5 w-5" /> Şimdi Çocuk Ekle
+                                <Plus className="mr-2 h-5 w-5" /> Çocuğumu Ekle ve Devam Et
                             </Button>
                         </AddChildForm>
-                        <Button variant="ghost" className="h-12 w-full font-bold text-slate-500 rounded-2xl hover:bg-slate-50" onClick={() => setShowWelcomeModal(false)}>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={showTrialReminderModal} onOpenChange={setShowTrialReminderModal}>
+                <DialogContent hideClose overlayClassName="bg-slate-900/90 backdrop-blur-sm" className="max-w-md rounded-[32px] p-8 text-center border-none shadow-2xl">
+                    <DialogHeader className="space-y-4 items-center flex flex-col pt-4">
+                        <div className="flex justify-center mb-4">
+                            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center">
+                                <Calendar className="w-8 h-8 text-emerald-600" />
+                            </div>
+                        </div>
+                        <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Deneme dersinizi planlamayı tamamlayın</DialogTitle>
+                        <DialogDescription className="text-base font-medium text-slate-500 max-w-[280px]">
+                            Çocuğunuzun profili hazır. Şimdi size uygun günü ve saati seçin.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="mt-8 flex flex-col gap-3">
+                        <Button 
+                            className="w-full h-14 rounded-2xl text-base font-bold shadow-lg shadow-emerald-500/20 hover:scale-[1.02] transition-transform bg-emerald-600 hover:bg-emerald-700" 
+                            size="lg"
+                            onClick={() => {
+                                setShowTrialReminderModal(false);
+                                router.push('/ebeveyn-portali/ders-planla');
+                            }}
+                        >
+                            Deneme Saati Seç
+                        </Button>
+                        <Button variant="ghost" className="h-12 w-full font-bold text-slate-500 rounded-2xl hover:bg-slate-50" onClick={() => setShowTrialReminderModal(false)}>
                             Daha Sonra
                         </Button>
                     </div>

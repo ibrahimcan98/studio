@@ -599,7 +599,9 @@ export default function DersPlanlaPage() {
                     <Button variant="outline" size="icon" onClick={() => router.push('/ebeveyn-portali')} className="h-11 w-11 rounded-xl border-2 hover:bg-slate-100"><ArrowLeft className="h-5 w-5" /></Button>
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
                         <div>
-                            <h2 className="text-3xl font-bold tracking-tight text-slate-900">Ders Planla</h2>
+                            <h2 className="text-3xl font-black tracking-tight text-slate-900">
+                                {rescheduleId ? 'Dersi Yeniden Planla' : (bookingMode === 'free' ? 'Ücretsiz Deneme Dersinizi Planlayın' : 'Ders Planla')}
+                            </h2>
                             <p className="text-slate-500 text-sm md:text-base font-medium mt-0.5">Öğretmenlerimizin takviminden uygun bir zaman seçin.</p>
                         </div>
 

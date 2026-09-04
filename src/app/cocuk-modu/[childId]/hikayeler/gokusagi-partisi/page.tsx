@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, usePathname } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { Loader2, BookOpen, Volume2, Smartphone, X, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -48,6 +48,7 @@ export default function GokusagiPartisiPage() {
   const router = useRouter();
   const params = useParams();
   const childId = params.childId as string;
+  const isTeacherTestMode = childId === 'demo';
   const { user: authUser } = useUser();
   const db = useFirestore();
   const { speak, stop, isPlaying, isLoading: isTTSLoading } = useTTS();
@@ -70,18 +71,21 @@ export default function GokusagiPartisiPage() {
 
   useEffect(() => {
     if (isCompletedPendingReturn && unlockedBadgesQueue.length === 0) {
-      router.push(`/cocuk-modu/${childId}/hikayeler`);
+      if (childId === 'demo') { router.push('/ogretmen-portali/oyunlar'); } else { router.push(`/cocuk-modu/${childId}/hikayeler`); }
     }
   }, [isCompletedPendingReturn, unlockedBadgesQueue.length, router, childId]);
 
   const autoPlayTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const childDocRef = useMemoFirebase(() => {
-    if (!db || !authUser?.uid || !childId) return null;
+    if (!db || !authUser?.uid || !childId || isTeacherTestMode) return null;
     return doc(db, 'users', authUser.uid, 'children', childId);
-  }, [db, authUser?.uid, childId]);
+  }, [db, authUser?.uid, childId, isTeacherTestMode]);
 
-  const { data: childData } = useDoc(childDocRef);
+  const { data: rawChildData } = useDoc(childDocRef);
+  const childData = isTeacherTestMode
+    ? { firstName: 'Demo', storyProgress: {}, stats: {}, earnedBadges: [] }
+    : rawChildData;
 
   const GOKUSAGI_PARTISI_QUESTIONS = [
     { question: "Gökkuşağı partisinde renkleri toplamayı kim akıl etti?", options: ["Sincap Sisi", "Maymun Mimo", "Fil Fufu"], correctAnswer: 0 },
@@ -114,7 +118,7 @@ export default function GokusagiPartisiPage() {
         updates[`stats.story.gokusagi-partisi.perfectScore`] = true;
       }
 
-      await updateDoc(childDocRef, updates);
+      if (childId !== 'demo') { await updateDoc(childDocRef, updates); }
     }
     
     setIsCompletedPendingReturn(true);
@@ -130,7 +134,7 @@ export default function GokusagiPartisiPage() {
       setCanScrollNext(emblaApi.canScrollNext());
 
       // İlerlemeyi kaydet
-      if (childDocRef) {
+      if (childId !== 'demo' && childDocRef) {
         const updateData: any = {
           [`storyProgress.gokusagi-partisi`]: index
         };
@@ -238,15 +242,35 @@ export default function GokusagiPartisiPage() {
     }
   };
 
+  const pathname = usePathname();
+  const isTeacherMode = pathname?.includes('ogretmen-portali');
   const currentBadgeToShow = (!showCelebration && !isQuizOpen && unlockedBadgesQueue.length > 0) ? unlockedBadgesQueue[0] : null;
 
   return (
-    <div className="h-screen w-full overflow-hidden bg-gradient-to-b from-pink-50 to-purple-100 font-sans relative">
+    <div className="flex h-screen overflow-hidden font-sans relative">
+      {isTeacherMode && (
+        <aside className="w-16 md:w-32 shrink-0 bg-white/20 backdrop-blur-xl border-r border-white/40 flex flex-col items-center py-4 md:py-8 justify-between z-50 shadow-2xl">
+            <Button
+                variant="outline"
+                size="icon"
+                className="rounded-xl md:rounded-2xl h-10 w-10 md:h-14 md:w-14 bg-white/90 border-none shadow-xl hover:scale-110 transition-all hover:bg-white active:scale-95"
+                onClick={() => router.push('/ogretmen-portali/oyunlar')}
+            >
+                <ChevronLeft className="w-6 h-6 md:w-8 md:h-8 text-amber-500" />
+            </Button>
+            <div className="h-10 w-10 md:h-14 md:w-14" /> {/* Spacer */}
+        </aside>
+      )}
+      <div className={cn(
+        "flex-1 h-screen relative overflow-hidden",
+        isPortrait ? "bg-purple-100" : "bg-gradient-to-b from-pink-50 to-purple-100"
+      )}>
       <BadgeUnlockModal 
         badge={currentBadgeToShow} 
         onClose={() => setUnlockedBadgesQueue(prev => prev.slice(1))} 
       />
       <StoryCompletionCelebration 
+        storyId="gokusagi-partisi"
         show={showCelebration} 
         onAction={() => {
           setShowCelebration(false);
@@ -269,7 +293,7 @@ export default function GokusagiPartisiPage() {
             size="icon"
             onClick={() => {
               stop();
-              router.push(`/cocuk-modu/${childId}/hikayeler`);
+              if (childId === 'demo') { router.push('/ogretmen-portali/oyunlar'); } else { router.push(`/cocuk-modu/${childId}/hikayeler`); }
             }}
             className="bg-white/80 hover:bg-white rounded-2xl w-10 h-10 sm:w-14 sm:h-14 shadow-lg border-2 border-purple-200 text-purple-600"
           >
@@ -395,6 +419,7 @@ export default function GokusagiPartisiPage() {
             </motion.div>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

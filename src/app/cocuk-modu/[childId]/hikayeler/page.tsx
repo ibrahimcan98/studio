@@ -76,8 +76,8 @@ export default function HikayelerPage() {
     );
   }
 
-  const handleStoryClick = (path: string, index: number) => {
-    if (subscriptionTier === 'free' && index >= 1) {
+  const handleStoryClick = (path: string, isLocked: boolean = false) => {
+    if (isLocked) {
       setIsLockedDialogOpen(true);
       return;
     }
@@ -155,10 +155,11 @@ export default function HikayelerPage() {
 
               {/* Hikaye Kartı: Bir İki Üç Başardım */}
               {(() => {
-                const isLocked = subscriptionTier === 'free';
+                const isHomework = Array.isArray(childData?.activeHomeworkTopics) ? childData.activeHomeworkTopics.includes('bir-iki-uc-basardim') : childData?.activeHomeworkTopic === 'bir-iki-uc-basardim';
+                const isLocked = subscriptionTier === 'free' && !isHomework;
                 return (
                   <div 
-                    onClick={() => handleStoryClick(`/cocuk-modu/${childId}/hikayeler/bir-iki-uc-basardim`, 1)}
+                    onClick={() => handleStoryClick(`/cocuk-modu/${childId}/hikayeler/bir-iki-uc-basardim`, isLocked)}
                     onMouseEnter={() => !isLocked && speak('/hikayeler/2-bir-iki-uc-basardim/kapak.m4a')}
                     onMouseLeave={() => !isLocked && stop()}
                     className={cn(
@@ -199,10 +200,11 @@ export default function HikayelerPage() {
 
               {/* Hikaye Kartı: Kaptan Kahvaltısı */}
               {(() => {
-                const isLocked = subscriptionTier === 'free';
+                const isHomework = Array.isArray(childData?.activeHomeworkTopics) ? childData.activeHomeworkTopics.includes('kaptan-kahvaltisi') : childData?.activeHomeworkTopic === 'kaptan-kahvaltisi';
+                const isLocked = subscriptionTier === 'free' && !isHomework;
                 return (
                   <div 
-                    onClick={() => handleStoryClick(`/cocuk-modu/${childId}/hikayeler/kaptan-kahvaltisi`, 2)}
+                    onClick={() => handleStoryClick(`/cocuk-modu/${childId}/hikayeler/kaptan-kahvaltisi`, isLocked)}
                     onMouseEnter={() => !isLocked && speak('/hikayeler/3-kaptan-kahvaltisi/kapak.m4a')}
                     onMouseLeave={() => !isLocked && stop()}
                     className={cn(
@@ -243,10 +245,11 @@ export default function HikayelerPage() {
 
               {/* Hikaye Kartı: Gökkuşağı Partisi */}
               {(() => {
-                const isLocked = subscriptionTier === 'free';
+                const isHomework = Array.isArray(childData?.activeHomeworkTopics) ? childData.activeHomeworkTopics.includes('gokusagi-partisi') : childData?.activeHomeworkTopic === 'gokusagi-partisi';
+                const isLocked = subscriptionTier === 'free' && !isHomework;
                 return (
                   <div 
-                    onClick={() => handleStoryClick(`/cocuk-modu/${childId}/hikayeler/gokusagi-partisi`, 3)}
+                    onClick={() => handleStoryClick(`/cocuk-modu/${childId}/hikayeler/gokusagi-partisi`, isLocked)}
                     onMouseEnter={() => !isLocked && speak('/hikayeler/4-gokusagi-partisi/kapak.m4a')}
                     onMouseLeave={() => !isLocked && stop()}
                     className={cn(

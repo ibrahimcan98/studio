@@ -9,7 +9,7 @@ import { WordCard } from '@/components/child-mode/word-card';
 import { VoiceMatching } from '@/components/child-mode/voice-matching';
 import { JigsawPuzzle } from '@/components/child-mode/jigsaw-puzzle';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, arrayUnion, setDoc, increment } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, setDoc, increment, arrayRemove, collection, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
 import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
 import { CheckCircle, Trophy, Star, Sparkles, Volume2 } from 'lucide-react';
@@ -84,7 +84,7 @@ export default function TopicPage() {
             if (childData.completedTopics.includes(`${topicId}-learning`)) max = 1;
             if (childData.completedTopics.includes(`${topicId}-matching`)) max = 2;
             if (childData.completedTopics.includes(`${topicId}-quiz`)) max = 3;
-            setMaxStageReached(max);
+            setMaxStageReached(prev => Math.max(prev, max));
         }
     }, [childData, topicId]);
 
@@ -118,12 +118,43 @@ export default function TopicPage() {
             if (currentStage === 'matching') xpToAdd = 30;
             if (currentStage === 'quiz') xpToAdd = 50;
 
-            await updateDoc(childDocRef, {
-                completedTopics: arrayUnion(completedKey),
-                xp: increment(xpToAdd)
-            });
+            const isHomework = Array.isArray((childData as any)?.activeHomeworkTopics) ? (childData as any).activeHomeworkTopics.includes(topicId) : (childData as any)?.activeHomeworkTopic === topicId;
+            const isPremium = (childData as any)?.isPremium || false;
+
+            if (!(isHomework && !isPremium)) {
+                await updateDoc(childDocRef, {
+                    completedTopics: arrayUnion(completedKey),
+                    xp: increment(xpToAdd)
+                });
+            }
 
             if (currentStage === 'quiz') {
+                // Her zaman veritabanında bu konuya ait atanmış ödev var mı diye kontrol et ve tamamlandı yap
+                if (db) {
+                    try {
+                        const hwQuery = query(
+                            collection(db, 'game-homeworks'), 
+                            where('childId', '==', childId)
+                        );
+                        const snap = await getDocs(hwQuery);
+                        const promises: Promise<void>[] = [];
+                        snap.forEach(docSnap => {
+                            const d = docSnap.data();
+                            if (d.topicId === topicId && d.status === 'assigned') {
+                                promises.push(updateDoc(docSnap.ref, { status: 'completed', completedAt: serverTimestamp() }));
+                            }
+                        });
+                        await Promise.all(promises);
+                    } catch(e: any) {
+                        console.error("Error updating homework status:", e);
+                        alert("Ödev güncellenirken hata oluştu: " + e.message + ". Lütfen kuralları güncellediğinizden emin olun!");
+                    }
+                }
+
+                // Child dokümanındaki aktif ödev işaretlerini temizle
+                if (isHomework) {
+                    await updateDoc(childDocRef, { activeHomeworkTopic: null, activeHomeworkTopics: arrayRemove(topicId) });
+                }
                 setStage('completed');
                 return;
             }
@@ -142,8 +173,6 @@ export default function TopicPage() {
                 } else if (currentStage === 'matching') {
                     setStage('quiz');
                     setMaxStageReached(prev => Math.max(prev, 2));
-                } else if (currentStage === 'quiz') {
-                    setStage('completed');
                 }
             }, 6000);
         }
@@ -170,11 +199,16 @@ export default function TopicPage() {
         setTimeout(async () => {
             const randomWord = topic.wordList[Math.floor(Math.random() * topic.wordList.length)];
             
-            await setDoc(childDocRef, {
-                stickers: {
-                    [topicId as string]: randomWord.image
-                }
-            }, { merge: true });
+            const isHomework = Array.isArray((childData as any)?.activeHomeworkTopics) ? (childData as any).activeHomeworkTopics.includes(topicId) : (childData as any)?.activeHomeworkTopic === topicId;
+            const isPremium = (childData as any)?.isPremium || false;
+
+            if (!(isHomework && !isPremium)) {
+                await setDoc(childDocRef, {
+                    stickers: {
+                        [topicId as string]: randomWord.image
+                    }
+                }, { merge: true });
+            }
 
             setShowStickerPopup(randomWord.image);
             speak("Tebrikler! Bir çıkartma kazandın!");

@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, writeBatch, increment, getDocs, Timestamp, addDoc } from 'firebase/firestore';
-import { Loader2, ArrowLeft, Calendar, Clock, User, BookOpen, Baby, History, MessageSquare, Video, ClipboardList, AlertCircle, FileText } from 'lucide-react';
+import { Loader2, ArrowLeft, Calendar, Clock, User, BookOpen, Baby, History, MessageSquare, Video, ClipboardList, AlertCircle, FileText, Gamepad2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatInTimeZone } from 'date-fns-tz';
@@ -298,7 +298,7 @@ function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZon
                     </div>
                 )}
 
-                {(lesson.materials?.length > 0 || lesson.homeworks?.length > 0) && (
+                {(lesson.materials?.length > 0 || lesson.homeworks?.length > 0 || lesson.gameHomeworks?.length > 0) && (
                     <div className="mt-4 pt-3 border-t space-y-2">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ders İçerikleri</span>
                         {lesson.materials?.map((m: any, i: number) => (
@@ -312,6 +312,12 @@ function LessonCard({ lesson, timeZone, onShowProgress }: { lesson: any, timeZon
                                 <FileText className="w-4 h-4 shrink-0" />
                                 <span className="font-semibold text-sm truncate">{hw.title} (Ödev)</span>
                             </a>
+                        ))}
+                        {lesson.gameHomeworks?.map((hw: any, i: number) => (
+                            <div key={i} className="flex items-center gap-2 text-emerald-600 bg-emerald-50 p-2.5 rounded-xl transition-colors cursor-default">
+                                <Gamepad2 className="w-4 h-4 shrink-0" />
+                                <span className="font-semibold text-sm truncate">{hw.topicName} ({hw.category || 'Oyun'})</span>
+                            </div>
                         ))}
                     </div>
                 )}
@@ -503,7 +509,8 @@ export default function DerslerimPage() {
                 cancelReason: firstSlot.cancelReason,
                 bookedAt: firstSlot.bookedAt,
                 materials: firstSlot.materials || [],
-                homeworks: firstSlot.homeworks || []
+                homeworks: firstSlot.homeworks || [],
+                gameHomeworks: firstSlot.gameHomeworks || []
             };
         });
     }, [lessonSlots]);

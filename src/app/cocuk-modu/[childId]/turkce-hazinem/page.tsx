@@ -19,7 +19,7 @@ import {
 import { ChildSidebar } from "@/components/child-mode/sidebar";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { CHESTS_CONTENT } from "@/data/turkce-hazinem-data";
+import { CHESTS_CONTENT, CHEST_DATA } from "@/data/turkce-hazinem-data";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Yüzen elementler için bileşen
@@ -43,187 +43,7 @@ const FloatingElement = ({
   </div>
 );
 
-// Hazine verileri
-const CHEST_DATA = [
-  {
-    id: 1,
-    title: "Büyük ve Küçük Harfler",
-    category: "Giriş Seviyesi",
-    questions: 6,
-  },
-  { id: 2, title: "Hece Kavramı", category: "Giriş Seviyesi", questions: 6 },
-  {
-    id: 3,
-    title: "Alfabe ve Harf Bilgisi",
-    category: "Giriş Seviyesi",
-    questions: 6,
-  },
-  {
-    id: 4,
-    title: "Harften Cümleye Geçiş (Harf-Hece-Kelime-Cümle ilişkisi)",
-    category: "Giriş Seviyesi",
-    questions: 6,
-  },
-  {
-    id: 5,
-    title: "Alfabetik Sıralama (Sözlük sırası)",
-    category: "Giriş Seviyesi",
-    questions: 6,
-  },
-  {
-    id: 6,
-    title: "Zıt Anlamlı Kelimeler",
-    category: "Giriş Seviyesi",
-    questions: 6,
-  },
-  {
-    id: 7,
-    title: "Eş Anlamlı Kelimeler",
-    category: "Giriş Seviyesi",
-    questions: 6,
-  },
-  {
-    id: 8,
-    title: "Sesteş (Eş Sesli) Kelimeler",
-    category: "Giriş Seviyesi",
-    questions: 6,
-  },
-  {
-    id: 9,
-    title: "Nokta (.) ve Virgül (,) Kullanımı",
-    category: "Giriş Seviyesi",
-    questions: 6,
-  },
-  {
-    id: 10,
-    title: 'Soru İşareti (?) ve "mi" Soru Ekinin Yazımı',
-    category: "Giriş Seviyesi",
-    questions: 6,
-  },
 
-  {
-    id: 11,
-    title: "Ünlem İşareti (!) ve Temel Noktalama Kuralları",
-    category: "Orta Seviye",
-    questions: 7,
-  },
-  {
-    id: 12,
-    title: "Özel İsimler ve Büyük Harflerin Kullanımı",
-    category: "Orta Seviye",
-    questions: 7,
-  },
-  {
-    id: 13,
-    title: "Kelimelerin Çağrışımları / Kelime Bilgisi",
-    category: "Orta Seviye",
-    questions: 7,
-  },
-  {
-    id: 14,
-    title: "Sözlük Anlamı (Kelimelerin anlamını bulma)",
-    category: "Orta Seviye",
-    questions: 7,
-  },
-  {
-    id: 15,
-    title: "Anlamlı ve Kurallı Cümle Yapısı",
-    category: "Orta Seviye",
-    questions: 7,
-  },
-  {
-    id: 16,
-    title: "Soru Oluşturalım (Soru sorma becerisi)",
-    category: "Orta Seviye",
-    questions: 7,
-  },
-  {
-    id: 17,
-    title: "Yazımı Yanlış Kelimeler (İmla kuralları)",
-    category: "Orta Seviye",
-    questions: 7,
-  },
-  {
-    id: 18,
-    title: "Konuşma Çizgisi (—) ve Kesme İşareti (')",
-    category: "Orta Seviye",
-    questions: 7,
-  },
-  {
-    id: 19,
-    title: "Cümle Tamamlama (Boşluk doldurma mantığı)",
-    category: "Orta Seviye",
-    questions: 7,
-  },
-
-  {
-    id: 20,
-    title: "Anlam İlişkisi (Kelimeler ve kavramlar arası bağlar)",
-    category: "İleriye Geçiş",
-    questions: 8,
-  },
-  {
-    id: 21,
-    title: "Sebep - Sonuç İfadeleri",
-    category: "İleriye Geçiş",
-    questions: 8,
-  },
-  {
-    id: 22,
-    title: "Bağlaçlar (İçin - Fakat - Çünkü gibi ifadeler)",
-    category: "İleriye Geçiş",
-    questions: 8,
-  },
-  {
-    id: 23,
-    title: "Hayvan İsimleri ve Tekil - Çoğul Kavramı",
-    category: "İleriye Geçiş",
-    questions: 8,
-  },
-  {
-    id: 24,
-    title: "Zaman Kavramı (Cümlede zaman bildiren ifadeler)",
-    category: "İleriye Geçiş",
-    questions: 8,
-  },
-  {
-    id: 25,
-    title: "Önem Belirten İfadeler",
-    category: "İleriye Geçiş",
-    questions: 8,
-  },
-
-  {
-    id: 26,
-    title: "Hayal Ürünü İfadeler (Gerçek vs. Fantastik)",
-    category: "Zor Seviye / Ustalar",
-    questions: 10,
-  },
-  {
-    id: 27,
-    title: "Atasözleri ve Deyimler",
-    category: "Zor Seviye / Ustalar",
-    questions: 10,
-  },
-  {
-    id: 28,
-    title: "Karşılaştırma Cümleleri",
-    category: "Zor Seviye / Ustalar",
-    questions: 10,
-  },
-  {
-    id: 29,
-    title: "Olayları Sıralama (Oluş sırası)",
-    category: "Zor Seviye / Ustalar",
-    questions: 10,
-  },
-  {
-    id: 30,
-    title: "Duygusal, Abartılı ve Farklı Düşünmeye Yönlendiren İfadeler",
-    category: "Zor Seviye / Ustalar",
-    questions: 10,
-  },
-];
 
 export default function TurkceHazinemPage() {
   const router = useRouter();
@@ -302,11 +122,12 @@ export default function TurkceHazinemPage() {
 
     for (let i = 0; i < CHEST_DATA.length; i++) {
       const chestId = CHEST_DATA[i].id;
-      const isPaywallLocked = subscriptionTier === "free" && chestCount >= 1;
+      const isHomework = Array.isArray(childData?.activeHomeworkTopics) ? childData.activeHomeworkTopics.includes(chestId) : childData?.activeHomeworkTopic === chestId;
+      const isPaywallLocked = subscriptionTier === "free" && chestCount >= 1 && !isHomework;
 
       let lockedReason: "none" | "paywall" | "progress" = "none";
       if (isPaywallLocked) lockedReason = 'paywall';
-      else if (!previousChestCompleted) lockedReason = 'progress';
+      else if (!previousChestCompleted && !isHomework) lockedReason = 'progress';
 
       list.push({
         ...CHEST_DATA[i],
@@ -322,11 +143,12 @@ export default function TurkceHazinemPage() {
       // Her 5 sandıkta bir tekrar sandığı ekle
       if ((i + 1) % 5 === 0) {
         const tekrarId = `tekrar-${(i + 1) / 5}`;
-        const isTekrarPaywallLocked = subscriptionTier === "free";
+        const isTekrarHomework = Array.isArray(childData?.activeHomeworkTopics) ? childData.activeHomeworkTopics.includes(tekrarId) : childData?.activeHomeworkTopic === tekrarId;
+        const isTekrarPaywallLocked = subscriptionTier === "free" && !isTekrarHomework;
 
         let tekrarLockedReason: "none" | "paywall" | "progress" = "none";
         if (isTekrarPaywallLocked) tekrarLockedReason = 'paywall';
-        else if (!previousChestCompleted) tekrarLockedReason = 'progress';
+        else if (!previousChestCompleted && !isTekrarHomework) tekrarLockedReason = 'progress';
 
         list.push({
           id: tekrarId,
