@@ -936,9 +936,9 @@ function EbeveynPortaliContent() {
                                     ? "text-orange-700 bg-orange-200/70" 
                                     : "text-amber-700 bg-amber-200/50"
                             )}>
-                                {userData.subscriptionPeriodEnd 
+                                {userData.subscriptionPeriodEnd && (userData.subscriptionCancelledAtPeriodEnd || new Date(userData.subscriptionPeriodEnd.toDate ? userData.subscriptionPeriodEnd.toDate() : userData.subscriptionPeriodEnd).getTime() > Date.now())
                                     ? `${userData.subscriptionCancelledAtPeriodEnd ? 'Son Kullanım' : 'Yenileme'}: ${format(userData.subscriptionPeriodEnd.toDate ? userData.subscriptionPeriodEnd.toDate() : new Date(userData.subscriptionPeriodEnd), 'dd MMM yyyy', { locale: tr })}`
-                                    : 'İşleniyor...'}
+                                    : userData.stripeSubscriptionId ? 'Yenileme tarihini kontrol edin' : 'Manuel üyelik'}
                             </span>
                         )}
                     </div>

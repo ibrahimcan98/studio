@@ -47,6 +47,8 @@ const AVAILABLE_PERMISSIONS = [
     { id: 'satislar', label: 'Satışlar' },
     { id: 'ogretmenler', label: 'Öğretmen Yönetimi' },
     { id: 'dersler', label: 'Ders Planlama' },
+    { id: 'materyaller', label: 'Materyaller' },
+    { id: 'odevler', label: 'Oyun Ödevleri' },
     { id: 'kullanicilar', label: 'Veliler' },
     { id: 'ogrenciler', label: 'Öğrenciler' },
     { id: 'aramalar', label: 'Aramalar' },

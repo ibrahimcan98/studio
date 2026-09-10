@@ -6,10 +6,11 @@ import { collection, query, where, getDocs, addDoc, serverTimestamp, orderBy, on
 import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { getCountryFromPhone, cn } from '@/lib/utils';
-import { Loader2, Phone, Search, History, Clock, PhoneOff, UserCheck, CalendarClock, UserCog, User, MapPin, Hash, PhoneCall, Copy, MoreHorizontal, ShoppingBag, Baby, FileText, Tag as TagIcon, Mail, Calendar, Activity, Trash2, Edit2, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Loader2, Phone, Search, History, Clock, PhoneOff, UserCheck, CalendarClock, UserCog, User, MapPin, Hash, PhoneCall, Copy, MoreHorizontal, ShoppingBag, Baby, FileText, Tag as TagIcon, Mail, Calendar, Activity, Trash2, Edit2, ChevronLeft, ChevronRight, ArrowLeft, Send, MessageCircle, Flame, CheckCircle2, XCircle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { formatInTimeZone } from 'date-fns-tz';
@@ -36,6 +37,24 @@ import { useToast } from '@/hooks/use-toast';
 import { differenceInDays, isBefore, isAfter, format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
+const SALES_STAGES = [
+    { id: 'new', label: 'Yeni', color: 'bg-slate-100 text-slate-700' },
+    { id: 'contacted', label: 'Görüşüldü', color: 'bg-sky-100 text-sky-700' },
+    { id: 'trial-planned', label: 'Deneme Planlandı', color: 'bg-violet-100 text-violet-700' },
+    { id: 'offer-sent', label: 'Teklif Verildi', color: 'bg-amber-100 text-amber-700' },
+    { id: 'won', label: 'Satın Aldı', color: 'bg-emerald-100 text-emerald-700' },
+    { id: 'lost', label: 'Kaybedildi', color: 'bg-red-100 text-red-700' },
+] as const;
+
+const QUICK_OUTCOMES = [
+    { label: 'Açmadı', stage: 'new', color: 'bg-red-50 text-red-600 border-red-200', icon: 'PhoneOff' },
+    { label: 'Sonra Ara', stage: 'contacted', color: 'bg-blue-50 text-blue-600 border-blue-200', icon: 'CalendarClock' },
+    { label: 'Deneme İstiyor', stage: 'trial-planned', color: 'bg-violet-50 text-violet-600 border-violet-200', icon: 'CalendarClock' },
+    { label: 'Fiyat Gönderildi', stage: 'offer-sent', color: 'bg-amber-50 text-amber-700 border-amber-200', icon: 'TagIcon' },
+    { label: 'Satın Aldı', stage: 'won', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: 'UserCheck' },
+    { label: 'İlgilenmiyor', stage: 'lost', color: 'bg-slate-100 text-slate-600 border-slate-200', icon: 'PhoneOff' },
+] as const;
+
 interface ParentData {
     id: string;
     firstName?: string;
@@ -45,6 +64,13 @@ interface ParentData {
     createdAt?: any;
     [key: string]: any;
 }
+
+const getWhatsAppUrl = (phoneNumber?: string, firstName?: string) => {
+    const phone = phoneNumber?.replace(/[^0-9]/g, '');
+    if (!phone) return null;
+    const message = `Merhaba${firstName ? ` ${firstName}` : ''}, Türk Çocuk Akademisi'nden ulaşıyoruz.`;
+    return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+};
 
 export default function AramalarPage() {
     const { user } = useUser();
@@ -77,6 +103,31 @@ export default function AramalarPage() {
     const [allLatestLessons, setAllLatestLessons] = useState<Record<string, number>>({});
     const [isLoadingSlots, setIsLoadingSlots] = useState(false);
     const [isImpersonating, setIsImpersonating] = useState(false);
+    const [isEmailOpen, setIsEmailOpen] = useState(false);
+    const [emailRecipient, setEmailRecipient] = useState('');
+    const [emailSubject, setEmailSubject] = useState('Türk Çocuk Akademisi');
+    const [emailBody, setEmailBody] = useState('');
+    const [salesStage, setSalesStage] = useState('new');
+    const [followUpAt, setFollowUpAt] = useState('');
+
+    const openEmailComposer = () => {
+        setEmailRecipient(selectedParent?.email || '');
+        setEmailSubject('Türk Çocuk Akademisi');
+        setEmailBody(`Merhaba${selectedParent?.firstName ? ` ${selectedParent.firstName}` : ''},\n\nTürk Çocuk Akademisi'nden ulaşıyoruz.\n\n`);
+        setIsEmailOpen(true);
+    };
+
+    const handlePrepareEmail = () => {
+        const recipient = emailRecipient.trim();
+        if (!recipient) {
+            toast({ title: 'E-posta gerekli', description: 'Lütfen alıcı e-posta adresini yazın.', variant: 'destructive' });
+            return;
+        }
+
+        const mailtoUrl = `mailto:${encodeURIComponent(recipient)}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+        window.location.href = mailtoUrl;
+        setIsEmailOpen(false);
+    };
 
     const handleImpersonate = async () => {
         if (!selectedParent || !user) return;
@@ -206,13 +257,21 @@ export default function AramalarPage() {
                 if (activeFilter === 'answered') return status === 'Açtı';
                 if (activeFilter === 'no-answer') return status === 'Açmadı';
                 if (activeFilter === 'potential') return status === 'Potansiyel Veli';
-                if (activeFilter === 'follow-up') return status === 'Tekrar Ara' || status === 'Müsait Değil';
+                if (activeFilter === 'follow-up') return Boolean(p.nextFollowUpAt) && new Date(p.nextFollowUpAt?.toDate?.() || p.nextFollowUpAt) <= new Date();
+                if (activeFilter === 'hot') return ['trial-planned', 'offer-sent'].includes(p.salesStage);
                 return false;
             });
         }
 
-        // Sort: 1. Least lessons first, 2. Closest latest lesson first
+        // Süresi gelen takipleri önce göster; sonra mevcut ders önceliğini koru.
         list.sort((a, b) => {
+            const aFollowUp = a.nextFollowUpAt?.toDate?.()?.getTime?.() || (a.nextFollowUpAt ? new Date(a.nextFollowUpAt).getTime() : Number.MAX_SAFE_INTEGER);
+            const bFollowUp = b.nextFollowUpAt?.toDate?.()?.getTime?.() || (b.nextFollowUpAt ? new Date(b.nextFollowUpAt).getTime() : Number.MAX_SAFE_INTEGER);
+            const now = Date.now();
+            const aDue = aFollowUp <= now;
+            const bDue = bFollowUp <= now;
+            if (aDue !== bDue) return aDue ? -1 : 1;
+            if (aFollowUp !== bFollowUp) return aFollowUp - bFollowUp;
             // 1. Kalan paket sayısına göre (artan - en az olan en üstte)
             if (a.totalLessons !== b.totalLessons) {
                 return a.totalLessons - b.totalLessons;
@@ -232,6 +291,13 @@ export default function AramalarPage() {
 
         return list;
     }, [parents, searchQuery, allChildrenLessons, allLatestLessons, activeFilter]);
+
+    useEffect(() => {
+        if (!selectedParent) return;
+        setSalesStage(selectedParent.salesStage || 'new');
+        const rawFollowUp = selectedParent.nextFollowUpAt?.toDate?.() || (selectedParent.nextFollowUpAt ? new Date(selectedParent.nextFollowUpAt) : null);
+        setFollowUpAt(rawFollowUp && !Number.isNaN(rawFollowUp.getTime()) ? format(rawFollowUp, "yyyy-MM-dd'T'HH:mm") : '');
+    }, [selectedParent?.id]);
 
     // Load extras when a parent is selected (Real-time)
     useEffect(() => {
@@ -373,11 +439,16 @@ export default function AramalarPage() {
         setTags(Array.from(newTags));
     }, [parentChildren, parentSlots, selectedParent?.id]);
 
-    const handleCallAction = async (statusLabel: string, colorClass: string, iconName: string) => {
+    const handleCallAction = async (statusLabel: string, colorClass: string, iconName: string, nextStage = salesStage) => {
         if (!db || !selectedParent || !user) return;
+        if (statusLabel === 'Sonra Ara' && !followUpAt) {
+            toast({ title: 'Tarih seçin', description: 'Tekrar aranacak tarih ve saati seçmeniz gerekiyor.', variant: 'destructive' });
+            return;
+        }
         setIsSavingCall(true);
 
         try {
+            const nextFollowUp = ['won', 'lost'].includes(nextStage) ? null : (followUpAt ? new Date(followUpAt) : null);
             const callData = {
                 status: statusLabel,
                 color: colorClass,
@@ -386,16 +457,27 @@ export default function AramalarPage() {
                 createdAt: serverTimestamp(),
                 adminId: user.uid,
                 adminEmail: user.email,
+                salesStage: nextStage,
+                nextFollowUpAt: nextFollowUp,
             };
 
             // Save Call Log Subcollection
             await addDoc(collection(db, 'users', selectedParent.id, 'call-logs'), callData);
 
             // Update User Doc with latest status so it shows in the list
-            await updateDoc(doc(db, 'users', selectedParent.id), { lastCallStatus: callData });
+            await updateDoc(doc(db, 'users', selectedParent.id), {
+                lastCallStatus: callData,
+                salesStage: nextStage,
+                nextFollowUpAt: nextFollowUp,
+                salesOwnerId: user.uid,
+                salesOwnerEmail: user.email,
+                salesUpdatedAt: serverTimestamp(),
+            });
 
             toast({ title: 'Başarılı', description: 'Arama kaydı veritabanına eklendi.' });
             setCallNote(''); // clear note input after success
+            setSalesStage(nextStage);
+            if (['won', 'lost'].includes(nextStage)) setFollowUpAt('');
         } catch (e) {
             console.error("Error saving call log:", e);
             toast({ variant: 'destructive', title: 'Hata', description: 'Arama kaydedilirken hata oluştu.' });
@@ -481,6 +563,7 @@ export default function AramalarPage() {
             case 'UserCheck': return <UserCheck className="w-4 h-4" />;
             case 'Clock': return <Clock className="w-4 h-4" />;
             case 'CalendarClock': return <CalendarClock className="w-4 h-4" />;
+            case 'TagIcon': return <TagIcon className="w-4 h-4" />;
             default: return <PhoneCall className="w-4 h-4" />;
         }
     };
@@ -603,6 +686,7 @@ export default function AramalarPage() {
                                 { id: 'answered', label: 'Açtı', icon: UserCheck, activeColor: 'bg-emerald-600 border-emerald-600 shadow-emerald-200' },
                                 { id: 'no-answer', label: 'Açmadı', icon: PhoneOff, activeColor: 'bg-red-600 border-red-600 shadow-red-200' },
                                 { id: 'potential', label: 'Potansiyel', icon: TagIcon, activeColor: 'bg-amber-500 border-amber-500 shadow-amber-200' },
+                                { id: 'hot', label: 'Sıcak', icon: Flame, activeColor: 'bg-orange-500 border-orange-500 shadow-orange-200' },
                                 { id: 'follow-up', label: 'Tekrar', icon: History, activeColor: 'bg-blue-600 border-blue-600 shadow-blue-200' }
                             ].map((btn) => (
                                 <button
@@ -710,6 +794,22 @@ export default function AramalarPage() {
                                                     </div>
                                                 </div>
                                             )}
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                                <span className={cn("px-2 py-0.5 rounded-full text-[9px] font-black", SALES_STAGES.find(stage => stage.id === (parent.salesStage || 'new'))?.color)}>
+                                                    {SALES_STAGES.find(stage => stage.id === (parent.salesStage || 'new'))?.label}
+                                                </span>
+                                                {parent.nextFollowUpAt && (
+                                                    <span className={cn(
+                                                        "px-2 py-0.5 rounded-full text-[9px] font-bold flex items-center gap-1",
+                                                        new Date(parent.nextFollowUpAt?.toDate?.() || parent.nextFollowUpAt) <= new Date()
+                                                            ? "bg-red-100 text-red-700"
+                                                            : "bg-blue-50 text-blue-600"
+                                                    )}>
+                                                        <Clock className="w-2.5 h-2.5" />
+                                                        {format(new Date(parent.nextFollowUpAt?.toDate?.() || parent.nextFollowUpAt), 'dd MMM HH:mm', { locale: tr })}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </button>
                                     </div>
                                 );
@@ -793,26 +893,76 @@ export default function AramalarPage() {
                                 </div>
                             </div>
 
-                            {/* CRM ACTIONS BAR (Mobile Optimized - Horizontal Scroll on small) */}
-                            <div className="bg-slate-50 border-b p-3 sm:p-4 px-4 sm:px-6 shrink-0 shadow-sm z-10 overflow-hidden">
-                                <div className="flex flex-col min-[1200px]:flex-row items-center justify-between gap-3">
-                                    <span className="hidden sm:flex text-xs font-black text-slate-500 uppercase tracking-widest items-center gap-2">
-                                        <PhoneCall className="w-4 h-4 text-primary" /> Son Arama Durumu
+                            {/* HIZLI İLETİŞİM: mobil, tablet ve masaüstü */}
+                            <div className="grid grid-cols-1 min-[420px]:grid-cols-3 gap-2 sm:gap-3 bg-white border-b border-slate-100 p-3 sm:px-6 sm:py-4 shrink-0">
+                                <a
+                                    href={selectedParent.phoneNumber ? `tel:${selectedParent.phoneNumber}` : undefined}
+                                    aria-disabled={!selectedParent.phoneNumber}
+                                    className={cn(
+                                        "h-11 sm:h-12 rounded-xl flex items-center justify-center gap-2 border font-black text-xs transition-all",
+                                        selectedParent.phoneNumber
+                                            ? "bg-sky-50 border-sky-200 text-sky-700 hover:bg-sky-100 active:scale-[0.98]"
+                                            : "bg-slate-50 border-slate-100 text-slate-300 pointer-events-none"
+                                    )}
+                                >
+                                    <Phone className="w-4 h-4" /> Ara
+                                </a>
+                                <a
+                                    href={getWhatsAppUrl(selectedParent.phoneNumber, selectedParent.firstName) || undefined}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    aria-disabled={!selectedParent.phoneNumber}
+                                    className={cn(
+                                        "h-11 sm:h-12 rounded-xl flex items-center justify-center gap-2 border font-black text-xs transition-all",
+                                        selectedParent.phoneNumber
+                                            ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 active:scale-[0.98]"
+                                            : "bg-slate-50 border-slate-100 text-slate-300 pointer-events-none"
+                                    )}
+                                >
+                                    <MessageCircle className="w-4 h-4" /> WhatsApp
+                                </a>
+                                <button
+                                    type="button"
+                                    onClick={openEmailComposer}
+                                    className="h-11 sm:h-12 rounded-xl flex items-center justify-center gap-2 border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 active:scale-[0.98] font-black text-xs transition-all"
+                                >
+                                    <Mail className="w-4 h-4" /> E-posta
+                                </button>
+                            </div>
+
+                            {/* SATIŞ TAKİP PANELİ */}
+                            <div className="bg-slate-50 border-b p-3 sm:p-4 sm:px-6 shrink-0 shadow-sm z-10 max-h-[44vh] overflow-y-auto">
+                                <div className="flex items-center justify-between gap-2 mb-3">
+                                    <span className="flex text-xs font-black text-slate-600 uppercase tracking-widest items-center gap-2">
+                                        <PhoneCall className="w-4 h-4 text-primary" /> Görüşmeyi Kaydet
                                     </span>
-                                    <div className="flex flex-col min-[1200px]:flex-row items-center gap-2 w-full xl:w-auto">
-                                        <Input
-                                            placeholder="Arama notu bırakın..."
-                                            className="h-9 sm:h-10 text-[11px] sm:text-xs bg-white rounded-xl flex-1 sm:min-w-[200px] font-medium"
-                                            value={callNote}
-                                            onChange={(e) => setCallNote(e.target.value)}
-                                        />
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 items-center gap-2 w-full min-[1200px]:w-auto">
-                                            <Button disabled={isSavingCall} onClick={() => handleCallAction('Açmadı', 'bg-red-50 text-red-600 border-red-200', 'PhoneOff')} variant="outline" className="h-9 sm:h-10 border-red-200 text-red-600 rounded-xl font-bold flex-1 sm:px-3 text-[10px] sm:text-xs px-1"><PhoneOff className="w-3.5 h-3.5 mr-1.5" /> Açmadı</Button>
-                                            <Button disabled={isSavingCall} onClick={() => handleCallAction('Açtı', 'bg-emerald-50 text-emerald-600 border-emerald-200', 'UserCheck')} variant="outline" className="h-9 sm:h-10 border-emerald-200 text-emerald-600 rounded-xl font-bold flex-1 sm:px-3 text-[10px] sm:text-xs px-1"><UserCheck className="w-3.5 h-3.5 mr-1.5" /> Açtı</Button>
-                                            <Button disabled={isSavingCall} onClick={() => handleCallAction('Potansiyel Veli', 'bg-amber-50 text-amber-600 border-amber-200', 'TagIcon')} variant="outline" className="h-9 sm:h-10 border-amber-200 text-amber-600 rounded-xl font-bold flex-1 sm:px-3 text-[10px] sm:text-xs px-1"><TagIcon className="w-3.5 h-3.5 mr-1.5" /> Potansiyel</Button>
-                                            <Button disabled={isSavingCall} onClick={() => handleCallAction('Tekrar Ara', 'bg-blue-50 text-blue-600 border-blue-200', 'CalendarClock')} variant="outline" className="h-9 sm:h-10 border-blue-200 text-blue-600 rounded-xl font-bold flex-1 sm:px-3 text-[10px] sm:text-xs px-1"><CalendarClock className="w-3.5 h-3.5 mr-1.5" /> Tekrar</Button>
-                                        </div>
-                                    </div>
+                                    <Badge className={cn("border-none", SALES_STAGES.find(stage => stage.id === salesStage)?.color)}>
+                                        {SALES_STAGES.find(stage => stage.id === salesStage)?.label}
+                                    </Badge>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_2fr] gap-2 mb-3">
+                                    <label className="space-y-1">
+                                        <span className="text-[10px] font-black text-slate-500 uppercase">Satış aşaması</span>
+                                        <select value={salesStage} onChange={(e) => setSalesStage(e.target.value)} className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700">
+                                            {SALES_STAGES.map(stage => <option key={stage.id} value={stage.id}>{stage.label}</option>)}
+                                        </select>
+                                    </label>
+                                    <label className="space-y-1">
+                                        <span className="text-[10px] font-black text-slate-500 uppercase">Tekrar aranacak zaman</span>
+                                        <Input type="datetime-local" value={followUpAt} onChange={(e) => setFollowUpAt(e.target.value)} className="h-10 bg-white rounded-xl text-xs" />
+                                    </label>
+                                    <label className="space-y-1 sm:col-span-2 xl:col-span-1">
+                                        <span className="text-[10px] font-black text-slate-500 uppercase">Görüşme notu</span>
+                                        <Input placeholder="Konuşulanları ve sonraki adımı yazın..." className="h-10 text-xs bg-white rounded-xl" value={callNote} onChange={(e) => setCallNote(e.target.value)} />
+                                    </label>
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2">
+                                    {QUICK_OUTCOMES.map(outcome => (
+                                        <Button key={outcome.label} disabled={isSavingCall} onClick={() => handleCallAction(outcome.label, outcome.color, outcome.icon, outcome.stage)} variant="outline" className={cn("h-10 rounded-xl font-bold text-[10px] sm:text-xs px-2", outcome.color)}>
+                                            {isSavingCall ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : getStatusIcon(outcome.icon)}
+                                            <span className="ml-1.5 truncate">{outcome.label}</span>
+                                        </Button>
+                                    ))}
                                 </div>
                             </div>
 
@@ -970,11 +1120,21 @@ export default function AramalarPage() {
                                                             <div className="flex flex-col items-start gap-1 min-w-0">
                                                                 <div className="flex items-center gap-2">
                                                                     <span className="font-bold text-[13px] sm:text-[14px] text-slate-800">{log.status}</span>
+                                                                    {log.salesStage && (
+                                                                        <span className={cn("px-2 py-0.5 rounded-full text-[9px] font-black", SALES_STAGES.find(stage => stage.id === log.salesStage)?.color)}>
+                                                                            {SALES_STAGES.find(stage => stage.id === log.salesStage)?.label}
+                                                                        </span>
+                                                                    )}
                                                                     <span className="hidden sm:inline text-[10px] text-slate-400 font-medium truncate italic max-w-[150px]">Temsilci: {log.adminEmail}</span>
                                                                 </div>
                                                                 {log.note && (
                                                                     <span className="text-[11px] sm:text-[12px] font-medium text-slate-600 bg-slate-50 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-slate-100 line-clamp-2 md:line-clamp-none">
                                                                         {log.note}
+                                                                    </span>
+                                                                )}
+                                                                {log.nextFollowUpAt && (
+                                                                    <span className="text-[10px] font-bold text-blue-600 flex items-center gap-1">
+                                                                        <CalendarClock className="w-3 h-3" /> Tekrar ara: {format(new Date(log.nextFollowUpAt?.toDate?.() || log.nextFollowUpAt), 'dd MMM yyyy HH:mm', { locale: tr })}
                                                                     </span>
                                                                 )}
                                                                 <span className="sm:hidden text-[9px] text-slate-400 italic">Temsilci: {log.adminEmail}</span>
@@ -1061,6 +1221,55 @@ export default function AramalarPage() {
                             />
                         )}
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* EMAIL COMPOSER */}
+            <Dialog open={isEmailOpen} onOpenChange={setIsEmailOpen}>
+                <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-lg rounded-[24px] sm:rounded-[30px] p-0 overflow-hidden border-none shadow-2xl">
+                    <DialogHeader className="bg-gradient-to-br from-violet-600 to-indigo-700 text-white p-6 sm:p-8">
+                        <DialogTitle className="text-xl sm:text-2xl font-black flex items-center gap-3">
+                            <Mail className="w-6 h-6" /> Veliye E-posta Hazırla
+                        </DialogTitle>
+                        <DialogDescription className="text-violet-100">
+                            Alıcıyı, konuyu ve mesajı kontrol ederek cihazınızdaki e-posta uygulamasında gönderin.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="p-5 sm:p-7 space-y-4 bg-white">
+                        <div className="space-y-1.5">
+                            <label className="text-[11px] font-black uppercase tracking-wider text-slate-500">Alıcı e-posta</label>
+                            <Input
+                                type="email"
+                                value={emailRecipient}
+                                onChange={(event) => setEmailRecipient(event.target.value)}
+                                placeholder="veli@example.com"
+                                className="h-12 rounded-xl"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[11px] font-black uppercase tracking-wider text-slate-500">Konu</label>
+                            <Input
+                                value={emailSubject}
+                                onChange={(event) => setEmailSubject(event.target.value)}
+                                className="h-12 rounded-xl"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[11px] font-black uppercase tracking-wider text-slate-500">Mesaj</label>
+                            <Textarea
+                                value={emailBody}
+                                onChange={(event) => setEmailBody(event.target.value)}
+                                className="min-h-40 rounded-xl resize-y"
+                                placeholder="Mesajınızı yazın..."
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter className="p-5 sm:p-7 pt-0 bg-white flex-col-reverse sm:flex-row gap-2">
+                        <Button variant="outline" onClick={() => setIsEmailOpen(false)} className="h-11 rounded-xl sm:flex-1">Vazgeç</Button>
+                        <Button onClick={handlePrepareEmail} className="h-11 rounded-xl sm:flex-1 bg-violet-600 hover:bg-violet-700 font-black">
+                            <Send className="w-4 h-4 mr-2" /> E-postayı Aç
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 

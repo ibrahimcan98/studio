@@ -876,11 +876,18 @@ function OgretmenDerslerimPageContent() {
 
 function QuickHomeworkAssignmentModal({ lesson, childName }: { lesson: any, childName: string }) {
     const db = useFirestore();
+    const { user } = useUser();
     const { toast } = useToast();
     const [isOpen, setIsOpen] = useState(false);
     const [isAssigning, setIsAssigning] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<'adalar' | 'hikayeler' | 'turkce-hazinem'>('adalar');
     const [selectedTopicId, setSelectedTopicId] = useState<string>('');
+
+    const teacherDocRef = useMemoFirebase(() => {
+        if (!db || !user?.uid) return null;
+        return doc(db, 'users', user.uid);
+    }, [db, user?.uid]);
+    const { data: teacherData } = useDoc(teacherDocRef);
 
     const handleAssign = async () => {
         if (!selectedTopicId || !db) {
@@ -936,9 +943,13 @@ function QuickHomeworkAssignmentModal({ lesson, childName }: { lesson: any, chil
             }
 
             // 2. game-homeworks koleksiyonuna ekle
+            const teacherName = [teacherData?.firstName, teacherData?.lastName]
+                .filter(Boolean)
+                .join(' ') || teacherData?.displayName || user?.displayName || user?.email || 'Öğretmen';
+
             await addDoc(collection(db, 'game-homeworks'), {
-                teacherId: lesson.teacherId || 'unknown_teacher',
-                teacherName: 'Öğretmen',
+                teacherId: user?.uid || lesson.teacherId || 'unknown_teacher',
+                teacherName,
                 parentId: lesson.bookedBy || 'unknown_parent',
                 childId: lesson.childId || 'unknown_child',
                 childName: childName,

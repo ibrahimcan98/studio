@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter, usePathname } from 'next/navigation';
 import { useUser, useFirestore, useDoc } from '@/firebase';
-import { doc, getDoc, collection, query, where, getDocs, updateDoc, serverTimestamp, arrayUnion, increment, setDoc, arrayRemove } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, increment, setDoc } from 'firebase/firestore';
 import { Loader2, Trophy, BookOpen, Brain, MapPin, ArrowLeft, ArrowRight, CheckCircle, Heart } from 'lucide-react';
 import { ChildSidebar } from '@/components/child-mode/sidebar';
 import { cn } from '@/lib/utils';
@@ -12,6 +12,7 @@ import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
 import { BadgeUnlockModal } from '@/components/child-mode/badge-unlock-modal';
 import { checkNewBadgeUnlock, getEarnedBadgesAsStickers, BadgeUnlock } from '@/lib/progression';
+import { completeGameHomework } from '@/lib/game-homeworks';
 
 import { CHESTS_CONTENT, Question, Activity } from '@/data/turkce-hazinem-data';
 
@@ -231,25 +232,7 @@ export default function ChestPage() {
       // Ödev Tamamlama Kontrolü (Spesifik Hazine)
 
       if (isHomework && childDocRef && db) {
-        updateDoc(childDocRef, { activeHomeworkTopic: null, activeHomeworkTopics: arrayRemove(params.chestId) }).catch(console.error);
-        
-        const hwQuery = query(
-          collection(db, 'game-homeworks'),
-          where('childId', '==', childId)
-        );
-        getDocs(hwQuery).then(async (hwDocs) => {
-            const promises: Promise<void>[] = [];
-            hwDocs.forEach(docSnap => {
-                const d = docSnap.data();
-                if (d.topicId === params.chestId && d.status === 'assigned') {
-                    promises.push(updateDoc(docSnap.ref, { status: 'completed', completedAt: serverTimestamp() }));
-                }
-            });
-            await Promise.all(promises);
-        }).catch((e: any) => {
-            console.error(e);
-            alert("Ödev durumu güncellenemedi: " + e.message);
-        });
+        await completeGameHomework(authUser, childId, params.chestId as string);
       }
     }
     setStage('success');

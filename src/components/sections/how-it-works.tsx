@@ -25,7 +25,6 @@ const steps = [
   {
     number: "4",
     title: "Oyun Dünyasını Keşfet",
-    subtitle: "(Çok Yakında!)",
     description: "Çocuğunuz tamamen güvenli oyunlarla Türkçesini geliştirsin, puanları ve ödülleri toplasın!",
     icon: <Gamepad2 className="w-10 h-10 text-primary" />,
     isSpecial: true
@@ -58,7 +57,6 @@ export default function HowItWorks() {
               <CardHeader className="p-0 space-y-3">
                 <CardTitle className="text-lg font-bold leading-tight text-slate-800">
                   {item.title}
-                  {item.subtitle && <span className="block text-sm text-primary mt-1 font-semibold">{item.subtitle}</span>}
                 </CardTitle>
                 <CardDescription className="text-sm text-slate-500 font-medium">
                   {item.description}

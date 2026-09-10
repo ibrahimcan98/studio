@@ -9,13 +9,14 @@ import { WordCard } from '@/components/child-mode/word-card';
 import { VoiceMatching } from '@/components/child-mode/voice-matching';
 import { JigsawPuzzle } from '@/components/child-mode/jigsaw-puzzle';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, arrayUnion, setDoc, increment, arrayRemove, collection, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, setDoc, increment, arrayRemove } from 'firebase/firestore';
 import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
 import { CheckCircle, Trophy, Star, Sparkles, Volume2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTTS } from '@/hooks/use-tts';
 import { motion, AnimatePresence } from 'framer-motion';
+import { completeGameHomework } from '@/lib/game-homeworks';
 
 const TreasureChest = ({ isOpen }: { isOpen: boolean }) => (
   <svg viewBox="0 0 64 64" className="w-24 h-24 md:w-32 md:h-32 drop-shadow-[0_10px_20px_rgba(0,0,0,0.3)] transition-transform duration-500">
@@ -129,27 +130,7 @@ export default function TopicPage() {
             }
 
             if (currentStage === 'quiz') {
-                // Her zaman veritabanında bu konuya ait atanmış ödev var mı diye kontrol et ve tamamlandı yap
-                if (db) {
-                    try {
-                        const hwQuery = query(
-                            collection(db, 'game-homeworks'), 
-                            where('childId', '==', childId)
-                        );
-                        const snap = await getDocs(hwQuery);
-                        const promises: Promise<void>[] = [];
-                        snap.forEach(docSnap => {
-                            const d = docSnap.data();
-                            if (d.topicId === topicId && d.status === 'assigned') {
-                                promises.push(updateDoc(docSnap.ref, { status: 'completed', completedAt: serverTimestamp() }));
-                            }
-                        });
-                        await Promise.all(promises);
-                    } catch(e: any) {
-                        console.error("Error updating homework status:", e);
-                        alert("Ödev güncellenirken hata oluştu: " + e.message + ". Lütfen kuralları güncellediğinizden emin olun!");
-                    }
-                }
+                await completeGameHomework(authUser, childId as string, topicId as string);
 
                 // Child dokümanındaki aktif ödev işaretlerini temizle
                 if (isHomework) {

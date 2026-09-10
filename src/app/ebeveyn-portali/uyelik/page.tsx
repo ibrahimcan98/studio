@@ -266,12 +266,14 @@ export default function UyelikYonetimiPage() {
                                             <span className="text-orange-600 font-bold leading-tight">
                                                 Son kullanım tarihi: {periodEnd ? format(periodEnd, 'dd MMMM yyyy', { locale: tr }) : 'Dönem sonu'}
                                             </span>
-                                        ) : periodEnd ? (
+                                        ) : periodEnd && Number.isFinite(periodEnd.getTime()) && periodEnd > new Date() ? (
                                             <span>Sıradaki yenileme: <strong className="text-slate-800">{format(periodEnd, 'dd MMMM yyyy', { locale: tr })}</strong></span>
+                                        ) : periodEnd ? (
+                                            <span>Güncel yenileme tarihinizi Üyeliği Yönet bölümünden kontrol edebilirsiniz.</span>
                                         ) : isManual ? (
                                             <span>Süresiz / Manuel Atanmış Hesap</span>
                                         ) : (
-                                            <span className="animate-pulse">Abonelik işleniyor, lütfen bekleyin...</span>
+                                            <span>Yenileme tarihi henüz doğrulanamadı. Üyeliği Yönet bölümünden kontrol edebilirsiniz.</span>
                                         )}
                                     </div>
                                 </div>

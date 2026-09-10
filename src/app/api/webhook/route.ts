@@ -6,6 +6,7 @@ import { sendAdminNotification, sendUserPaymentReceipt, sendAdminEmail } from '@
 import { getAdminPurchaseTemplate } from '@/lib/email-templates';
 import { sendMetaEvent } from '@/lib/meta-pixel';
 import { SUBSCRIPTION_TIERS } from '@/constants/subscriptions';
+import { subscriptionPeriodEnd } from '@/lib/subscription-period';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-06-20',
@@ -55,7 +56,7 @@ export async function POST(req: Request) {
                 if (session.subscription) {
                     try {
                         const sub = await stripe.subscriptions.retrieve(session.subscription as string);
-                        current_period_end = sub.current_period_end;
+                        current_period_end = subscriptionPeriodEnd(sub);
                     } catch (err: any) {
                         console.error('[Webhook] Failed to fetch subscription:', err.message);
                     }
@@ -270,8 +271,15 @@ export async function POST(req: Request) {
     }
   } else if (event.type === 'invoice.paid') {
     const invoice = event.data.object as Stripe.Invoice;
-    const subscriptionId = invoice.subscription as string;
-    const periodEnd = invoice.lines.data[0]?.period?.end;
+    const invoiceReference = invoice as unknown as {
+      subscription?: string | { id: string };
+      parent?: { subscription_details?: { subscription?: string | { id: string } } };
+    };
+    const reference = invoiceReference.parent?.subscription_details?.subscription || invoiceReference.subscription;
+    const subscriptionId = typeof reference === 'string' ? reference : reference?.id;
+    const periodEnd = subscriptionId
+      ? subscriptionPeriodEnd(await stripe.subscriptions.retrieve(subscriptionId))
+      : null;
 
     if (subscriptionId && periodEnd) {
       // Önce bu aboneliğe sahip kullanıcıyı bul
@@ -302,10 +310,12 @@ export async function POST(req: Request) {
     }
 
     if (userId) {
+      const currentSubscription = await stripe.subscriptions.retrieve(subscription.id);
+      const end = subscriptionPeriodEnd(currentSubscription);
       const updatePayload: any = {
-          subscriptionPeriodEnd: new Date(subscription.current_period_end * 1000),
           subscriptionUpdatedAt: FieldValue.serverTimestamp()
       };
+      if (end) updatePayload.subscriptionPeriodEnd = new Date(end * 1000);
 
       // Fiyat (Price ID) değişmiş olabilir. Güncel Price ID'yi SUBSCRIPTION_TIERS'dan eşleştirip paket özelliklerini çekelim
       if (subscription.items?.data?.length > 0) {

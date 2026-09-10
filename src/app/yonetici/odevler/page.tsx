@@ -1,8 +1,8 @@
 'use client';
 
-import { useFirestore, useCollection, useUser, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useUser, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, addDoc, serverTimestamp, query, orderBy, getDocs, collectionGroup, doc, updateDoc, deleteDoc, arrayUnion, arrayRemove, where } from 'firebase/firestore';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -43,7 +43,7 @@ import { tr } from 'date-fns/locale';
 const chestTopics = CHEST_DATA.map(chest => ({
   id: chest.id,
   name: chest.title,
-  icon: '🏴‍☠️'
+  icon: '🎁'
 }));
 
 const storyTopics = [
@@ -61,6 +61,41 @@ interface Student {
     firstName: string;
     lastName: string;
     parentName: string;
+}
+
+function HomeworkTeacherName({ teacherId, fallback }: { teacherId?: string; fallback?: string }) {
+    const db = useFirestore();
+    const teacherDocRef = useMemoFirebase(() => {
+        if (!db || !teacherId || teacherId.startsWith('unknown_')) return null;
+        return doc(db, 'users', teacherId);
+    }, [db, teacherId]);
+    const { data: teacher } = useDoc(teacherDocRef);
+    const profileName = [teacher?.firstName, teacher?.lastName].filter(Boolean).join(' ');
+
+    return <>{profileName || teacher?.displayName || fallback || 'Bilinmiyor'}</>;
+}
+
+function HomeworkStatus({ homework }: { homework: any }) {
+    const db = useFirestore();
+    const childDocRef = useMemoFirebase(() => {
+        if (!db || !homework.parentId || !homework.childId || homework.status !== 'assigned') return null;
+        return doc(db, 'users', homework.parentId, 'children', homework.childId);
+    }, [db, homework.parentId, homework.childId, homework.status]);
+    const { data: child, isLoading } = useDoc(childDocRef);
+
+    const activeTopics = Array.isArray(child?.activeHomeworkTopics) ? child.activeHomeworkTopics : [];
+    const isStillActive = homework.status === 'assigned' && (
+        isLoading
+        || !child
+        || activeTopics.includes(homework.topicId)
+        || child.activeHomeworkTopic === homework.topicId
+    );
+
+    return isStillActive ? (
+        <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200">Devam Ediyor</Badge>
+    ) : (
+        <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200">Tamamlandı</Badge>
+    );
 }
 
 export default function AdminHomeworksPage() {
@@ -251,16 +286,14 @@ export default function AdminHomeworksPage() {
                                                 <TableCell>
                                                     {hw.topicName} {hw.category ? <span className="text-muted-foreground text-sm">({hw.category})</span> : null}
                                                 </TableCell>
-                                                <TableCell>{hw.teacherName}</TableCell>
+                                                <TableCell>
+                                                    <HomeworkTeacherName teacherId={hw.teacherId} fallback={hw.teacherName} />
+                                                </TableCell>
                                                 <TableCell>
                                                     {hw.assignedAt ? format(hw.assignedAt.toDate(), 'dd MMM yyyy, HH:mm', { locale: tr }) : '-'}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {hw.status === 'assigned' ? (
-                                                        <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200">Devam Ediyor</Badge>
-                                                    ) : (
-                                                        <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200">Tamamlandı</Badge>
-                                                    )}
+                                                    <HomeworkStatus homework={hw} />
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <Button variant="ghost" size="icon" onClick={() => handleDelete(hw.id, hw.childId, hw.parentId, hw.status, hw.topicId)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
