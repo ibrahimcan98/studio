@@ -15,6 +15,7 @@ import {
   Baby,
   CreditCard,
   Activity,
+  BarChart3,
   History,
   Presentation,
   Trophy,
@@ -63,6 +64,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
 
   const allNavItems = [
     { id: 'dashboard', href: '/yonetici', label: 'Genel Bakış', icon: Home },
+    { id: 'analitik', href: '/yonetici/analitik', label: 'Analitik', icon: BarChart3 },
     { id: 'bildirimler', href: '/yonetici/bildirimler', label: 'Bildirim Paneli', icon: Megaphone },
     { id: 'canli-takip', href: '/yonetici/canli-takip', label: 'Canlı İzle', icon: Activity },
     { id: 'inbox', href: '/yonetici/inbox', label: 'Mesajlar', icon: Inbox },
@@ -85,7 +87,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
   const navCategories = [
     {
       title: 'Genel',
-      items: ['dashboard', 'bildirimler', 'canli-takip']
+      items: ['dashboard', 'analitik', 'bildirimler', 'canli-takip']
     },
     {
       title: 'İletişim & CRM',
@@ -114,6 +116,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     if (userData?.permissions) {
       items = allNavItems.filter((item: any) => 
         item.id === 'dashboard' || 
+        item.id === 'analitik' ||
         item.id === 'admin-yonetimi' || // Ensure it potentially stays if we are ultra admin
         userData.permissions.includes(item.id)
       );

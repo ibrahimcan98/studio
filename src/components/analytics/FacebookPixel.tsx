@@ -2,9 +2,10 @@
 
 import { usePathname, useSearchParams } from 'next/navigation';
 import Script from 'next/script';
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const FB_PIXEL_ID = process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID;
+const CLICK_TRACK_THROTTLE_MS = 500;
 
 /**
  * Utility to generate a unique event ID for deduplication
@@ -72,37 +73,70 @@ export const FacebookPixel = () => {
   }, []);
 
   useEffect(() => {
-    if (!FB_PIXEL_ID) return;
+    if (typeof window === 'undefined') return;
 
     // Track pageview on route change
-    if (typeof window !== 'undefined' && (window as any).fbq) {
-      const eventId = generateEventId();
+    const eventId = generateEventId();
       
-      // Handle test code persistence
-      let testEventCode = searchParams.get('test_event_code');
-      if (testEventCode) {
-        sessionStorage.setItem('fb_test_event_code', testEventCode);
-        setActiveTestCode(testEventCode);
-      } else {
-        testEventCode = sessionStorage.getItem('fb_test_event_code');
-        setActiveTestCode(testEventCode);
-      }
-
-      (window as any).fbq('track', 'PageView', {}, { event_id: eventId });
-      
-      // Also send CAPI PageView for full deduplication
-      fetch('/api/analytics/pixel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventName: 'PageView',
-          eventSourceUrl: window.location.href,
-          eventId,
-          testEventCode: testEventCode || undefined,
-        }),
-      }).catch(() => {});
+    // Handle test code persistence
+    let testEventCode = searchParams.get('test_event_code');
+    if (testEventCode) {
+      sessionStorage.setItem('fb_test_event_code', testEventCode);
+      setActiveTestCode(testEventCode);
+    } else {
+      testEventCode = sessionStorage.getItem('fb_test_event_code');
+      setActiveTestCode(testEventCode);
     }
+
+    if (FB_PIXEL_ID && (window as any).fbq) {
+      (window as any).fbq('track', 'PageView', {}, { event_id: eventId });
+    }
+
+    // Also send CAPI PageView for full deduplication and internal analytics.
+    fetch('/api/analytics/pixel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        eventName: 'PageView',
+        eventSourceUrl: window.location.href,
+        eventId,
+        testEventCode: testEventCode || undefined,
+      }),
+    }).catch(() => {});
   }, [pathname, searchParams]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    let lastTrackedAt = 0;
+
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      const clickable = target?.closest('a, button, [role="button"]') as HTMLElement | null;
+      if (!clickable) return;
+
+      const now = Date.now();
+      if (now - lastTrackedAt < CLICK_TRACK_THROTTLE_MS) return;
+      lastTrackedAt = now;
+
+      const link = clickable.closest('a') as HTMLAnchorElement | null;
+      const label = (clickable.getAttribute('aria-label') || clickable.textContent || '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 120);
+      const href = link?.href || clickable.getAttribute('data-href') || '';
+
+      trackPixelEvent('Click', {
+        label: label || clickable.tagName.toLowerCase(),
+        tagName: clickable.tagName.toLowerCase(),
+        href,
+        path: window.location.pathname,
+      });
+    };
+
+    document.addEventListener('click', handleClick, true);
+    return () => document.removeEventListener('click', handleClick, true);
+  }, []);
 
 
 
