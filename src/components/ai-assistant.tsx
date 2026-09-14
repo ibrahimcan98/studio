@@ -44,6 +44,10 @@ export function AIAssistant() {
 
     // Otomatik açılma mantığı
     useEffect(() => {
+        if (pathname === '/ebeveyn-portali/puan-merkezi') {
+            setIsOpen(false);
+            return;
+        }
         const shouldBeHidden = pathname.startsWith('/ogretmen-portali') ||
             pathname.startsWith('/cocuk-modu') ||
             pathname.startsWith('/live-lesson') ||

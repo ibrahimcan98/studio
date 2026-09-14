@@ -14,6 +14,23 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
+function resolveSubscriptionEndDate(userData: any): Date | null {
+    const rawDate = userData?.subscriptionPeriodEnd || userData?.premiumEndDate;
+    if (!rawDate) return null;
+
+    if (rawDate.toDate) {
+        return rawDate.toDate();
+    }
+
+    if (typeof rawDate === 'number') {
+        const date = new Date(rawDate < 10000000000 ? rawDate * 1000 : rawDate);
+        return Number.isFinite(date.getTime()) ? date : null;
+    }
+
+    const date = new Date(rawDate);
+    return Number.isFinite(date.getTime()) ? date : null;
+}
+
 export default function UyelikYonetimiPage() {
     const { user, loading: isUserLoading } = useUser();
     const db = useFirestore();
@@ -186,7 +203,7 @@ export default function UyelikYonetimiPage() {
     const currentTier = (userData?.subscriptionTier as SubscriptionTier) || 'free';
     const currentPeriod = (userData?.subscriptionPeriod as BillingPeriod) || 'monthly';
     const currentChildLimit = (userData?.subscriptionChildLimit as number) || 1;
-    const periodEnd = userData?.subscriptionPeriodEnd?.toDate ? userData.subscriptionPeriodEnd.toDate() : (userData?.subscriptionPeriodEnd ? new Date(userData.subscriptionPeriodEnd) : null);
+    const periodEnd = resolveSubscriptionEndDate(userData);
     const isManual = currentTier !== 'free' && !userData?.stripeSubscriptionId;
     const isCancelledAtPeriodEnd = userData?.subscriptionCancelledAtPeriodEnd;
     const currentTierDetails = SUBSCRIPTION_TIERS[currentTier];

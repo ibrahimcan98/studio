@@ -65,7 +65,7 @@ const MISSIONS_CULTURE = [
 
 // 2. Eğlence ve Yaratıcılık
 const MISSIONS_CREATIVE = [
-    { id: 'tekerleme-challenge', title: 'Tekerleme Challenge', points: 70, icon: <Music className="w-5 h-5" />, desc: "Çocuğunuz en sevdiği Türkçe tekerlemeyi söylerken videosunu çekin ve hikayenizde bizi etiketleyin. Bakalım kimler takılmadan söyleyecek?" },
+    { id: 'tekerleme-challenge', title: 'Tekerleme Meydan Okuması', points: 70, icon: <Music className="w-5 h-5" />, desc: "Çocuğunuz en sevdiği Türkçe tekerlemeyi söylerken videosunu çekin ve hikayenizde bizi etiketleyin. Bakalım kimler takılmadan söyleyecek?" },
     { id: 'nature-explorer', title: 'Doğa Kaşifi', points: 50, icon: <Map className="w-5 h-5" />, desc: 'Dışarıda yürüyüş yaparken doğadaki nesnelerin (ağaç, kuş, bulut) Türkçe isimlerini saydığınız kısa bir videoyu paylaşın.' },
     { id: 'mini-artist', title: 'Minik Sanatkar', points: 60, icon: <Palette className="w-5 h-5" />, desc: 'Çocuğunuzun çizdiği bir resmi Türkçe olarak anlattığı o yaratıcı anı bizimle paylaşın!' },
     { id: 'book-reading', title: 'Kitap Okuma Saati', points: 40, icon: <BookOpen className="w-5 h-5" />, desc: 'Çocuğunuzla Türkçe kitap okurken o büyülü anı paylaşın ve bizi etiketleyin!' },
@@ -137,18 +137,20 @@ export default function PuanMerkeziPage() {
     const isAdmin = user?.email === 'ibrahimcanonder_98@hotmail.com';
 
     const handleMissionAction = (mission: any) => {
+        setUserNote('');
         setSelectedMission(mission);
         setIsProofDialogOpen(true);
     };
 
     const handleSendProof = async () => {
-        if (!user || !userDocRef || !selectedMission || !db) return;
+        if (!user || !userDocRef || !selectedMission || !db || isSaving) return;
         setIsSaving(true);
         const message = `Merhaba! "${selectedMission.title}" görevini tamamladım. \n\nNotum: ${userNote || 'Not eklenmedi.'} \n\nKanıtım ektedir. (ID: ${user.uid})`;
         window.open(`https://wa.me/905058029734?text=${encodeURIComponent(message)}`, '_blank');
         try {
-            await updateDoc(userDocRef, { [`taskStatus.${selectedMission.id}`]: 'pending' });
-            await addDoc(collection(db, 'loyalty-requests'), {
+            const batch = writeBatch(db);
+            batch.update(userDocRef, { [`taskStatus.${selectedMission.id}`]: 'pending' });
+            batch.set(doc(collection(db, 'loyalty-requests')), {
                 userId: user.uid,
                 userEmail: user.email,
                 userName: user.displayName || 'İsimsiz Veli',
@@ -159,10 +161,11 @@ export default function PuanMerkeziPage() {
                 status: 'pending',
                 createdAt: serverTimestamp()
             });
-            toast({ title: 'Harika!', description: 'Kanıtınız incelenmek üzere başarıyla gönderildi.' });
+            await batch.commit();
+            toast({ title: 'Talebiniz oluşturuldu', description: 'Fotoğraf veya videonuzu WhatsApp sohbetinde göndermeyi unutmayın. Puanınız ekip onayından sonra eklenecek.' });
             setIsProofDialogOpen(false);
             setUserNote('');
-        } catch (e) { console.error(e); } finally { setIsSaving(false); }
+        } catch (e) { console.error(e); toast({ variant: 'destructive', title: 'Talep kaydedilemedi', description: 'Lütfen tekrar deneyin.' }); } finally { setIsSaving(false); }
     };
 
     const copyReferralCode = () => {
@@ -250,7 +253,7 @@ export default function PuanMerkeziPage() {
 
             toast({ 
                 title: 'Tebrikler! 🎁', 
-                description: `${childName} için 1 bedava ders hesabına eklendi!`, 
+                description: `${childName} için 1 hediye ders hesabına eklendi!`,
                 className: 'bg-green-600 text-white font-bold' 
             });
 
@@ -295,25 +298,25 @@ export default function PuanMerkeziPage() {
                 <Button variant="outline" size="icon" onClick={() => router.push('/ebeveyn-portali')} className="h-10 w-10 rounded-xl border-2"><ArrowLeft className="h-5 w-5" /></Button>
                 <div>
                     <h2 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Puan Merkezi</h2>
-                    <p className="text-slate-500 text-sm font-medium">Kazanın, biriktirin ve bedava derslerin tadını çıkarın.</p>
+                    <p className="text-slate-500 text-sm font-medium">Kazanın, biriktirin ve hediye derslerin tadını çıkarın.</p>
                 </div>
             </div>
 
             <Card className="bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none shadow-2xl rounded-[32px] overflow-hidden max-w-6xl mx-auto">
-                <CardContent className="p-10">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <CardContent className="p-5 sm:p-8 lg:p-10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-12 items-center">
                         <div className="space-y-8">
                             <div className="flex items-center gap-6">
                                 <div className="p-4 bg-white/10 rounded-3xl"><Star className="w-10 h-10 text-yellow-400 fill-current" /></div>
                                 <div>
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Mevcut Akademi Puanınız</p>
-                                    <p className="text-5xl font-black text-yellow-400">{points} <span className="text-xl opacity-50 uppercase tracking-widest ml-1">Stars 🌟</span></p>
+                                    <p className="text-5xl font-black text-yellow-400">{points} <span className="text-xl opacity-50 uppercase tracking-widest ml-1">Puan</span></p>
                                 </div>
                             </div>
                             <div className="space-y-4">
-                                <div className="flex justify-between items-end">
+                                <div className="flex flex-wrap gap-3 justify-between items-end">
                                     <p className="text-xs font-bold uppercase tracking-widest text-slate-300">İlerleme Durumu</p>
-                                    <Badge className="bg-green-500/20 text-green-400 border-none font-black text-[10px] px-3 py-1 uppercase tracking-widest">HEDİYE DERSE {Math.max(0, 500 - points)} KALDI</Badge>
+                                    <Badge className="bg-green-500/20 text-green-400 border-none font-black text-[10px] px-3 py-1 uppercase tracking-widest">HEDİYE DERSE {Math.max(0, 500 - points)} PUAN KALDI</Badge>
                                 </div>
                                 <Progress value={Math.min(100, (points / 500) * 100)} className="h-4 bg-white/10" />
                                 <p className="text-[10px] text-slate-400 font-bold italic text-center uppercase tracking-widest">Paylaştıkça büyüyen büyük bir aileyiz! ❤️🇹🇷</p>
@@ -321,7 +324,7 @@ export default function PuanMerkeziPage() {
                         </div>
                         <div className="bg-white/5 rounded-[32px] p-8 border border-white/10 space-y-4">
                             <div className="flex items-center gap-3"><Trophy className="w-6 h-6 text-primary" /><h4 className="font-black text-sm uppercase tracking-widest">Sadakat Ödülleri</h4></div>
-                            <p className="text-slate-300 text-sm leading-relaxed font-medium italic">500 puana ulaştığınızda bu ekrandan <span className="text-white font-bold underline decoration-primary underline-offset-4">1 Bedava Ders</span> talep edebilirsiniz. 🎉</p>
+                            <p className="text-slate-300 text-sm leading-relaxed font-medium italic">500 puana ulaştığınızda bu ekrandan <span className="text-white font-bold underline decoration-primary underline-offset-4">1 Hediye Ders</span> talep edebilirsiniz. 🎉</p>
                             {points >= 500 && (
                                 <Button 
                                     className="w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold rounded-2xl h-auto py-3 whitespace-normal text-sm sm:text-base" 
@@ -336,7 +339,7 @@ export default function PuanMerkeziPage() {
                                     }} 
                                     disabled={isSaving}
                                 >
-                                    🎁 1 Bedava Ders Hediyemi Al
+                                    🎁 Hediye Dersimi Al
                                 </Button>
                             )}
                         </div>
@@ -344,7 +347,15 @@ export default function PuanMerkeziPage() {
                 </CardContent>
             </Card>
 
-            <div className="max-w-6xl mx-auto space-y-20">
+            <section aria-label="Nasıl puan kazanırım?" className="max-w-6xl mx-auto grid gap-3 sm:grid-cols-3">
+                {[
+                    { title: 'Görevini seç', text: 'Ailece bir etkinlik tamamlayın ve Yaptım butonuna basın.', icon: <Sparkles className="h-5 w-5" /> },
+                    { title: 'WhatsApp’tan ilet', text: 'Açılan sohbete fotoğraf veya videonuzu ekleyip gönderin.', icon: <MessageCircle className="h-5 w-5" /> },
+                    { title: 'Puanını kazan', text: 'Ekibimiz kontrol ettikten sonra puanınız hesabınıza eklenir.', icon: <CheckCircle2 className="h-5 w-5" /> },
+                ].map((step, index) => <div key={step.title} className="rounded-2xl border border-slate-200 bg-white p-5"><div className="mb-3 flex items-center gap-3 text-primary">{step.icon}<span className="text-xs font-bold">ADIM {index + 1}</span></div><h3 className="font-bold text-slate-900">{step.title}</h3><p className="mt-2 text-sm leading-relaxed text-slate-600">{step.text}</p></div>)}
+            </section>
+
+            <div className="max-w-6xl mx-auto space-y-12">
                 {/* 1. KÜLTÜR VE AİLE BAĞLARI */}
                 <section className="space-y-8">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-slate-200 pb-6"><div className="flex items-center gap-4"><div className="p-3 bg-amber-100 rounded-2xl"><Users className="w-6 h-6 text-amber-600" /></div><div><h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Kültür ve Aile Bağları</h3><p className="text-slate-500 text-xs font-bold uppercase tracking-widest">KÖKLERİMİZLE BAĞ KURUYORUZ</p></div></div><Badge variant="outline" className="px-4 py-1.5 border-amber-300 font-bold text-[10px] uppercase text-amber-600">En Çok Tercih Edilen</Badge></div>
@@ -361,7 +372,8 @@ export default function PuanMerkeziPage() {
                                                     <h4 className="font-bold text-sm lg:text-base text-slate-800 leading-tight">{mission.title}</h4>
                                                     <Badge className="bg-yellow-400/20 text-yellow-700 text-[10px] font-black border-none px-2 py-0.5">+{mission.points}🌟</Badge>
                                                 </div>
-                                                <p className="text-xs text-slate-500 leading-relaxed font-medium">{mission.desc}</p>
+                                                <p className="text-sm text-slate-600 leading-relaxed">{mission.desc}</p>
+                                                <p className="mt-3 text-xs font-semibold text-slate-500">{MISSIONS_GROWTH.some(item => item.id === mission.id) ? 'Bir kez yapılabilir' : 'Her görev döneminde bir kez · Yönetici tarafından yenilenir'}</p>
                                             </div>
                                         </div>
                                         <Button size="sm" variant={status === 'completed' ? 'secondary' : status === 'pending' ? 'outline' : 'default'} className="w-full lg:w-auto mt-2 lg:mt-0 rounded-xl h-10 px-6 font-black text-xs uppercase tracking-widest shrink-0" disabled={!!status} onClick={() => handleMissionAction(mission)}>{status === 'completed' ? '✅ Tamamlandı' : status === 'pending' ? '⏳ Onayda' : 'Yaptım!'}</Button>
@@ -388,7 +400,8 @@ export default function PuanMerkeziPage() {
                                                     <h4 className="font-bold text-sm lg:text-base text-slate-800 leading-tight">{mission.title}</h4>
                                                     <Badge className="bg-yellow-400/20 text-yellow-700 text-[10px] font-black border-none px-2 py-0.5">+{mission.points}🌟</Badge>
                                                 </div>
-                                                <p className="text-xs text-slate-500 leading-relaxed font-medium">{mission.desc}</p>
+                                                <p className="text-sm text-slate-600 leading-relaxed">{mission.desc}</p>
+                                                <p className="mt-3 text-xs font-semibold text-slate-500">{MISSIONS_GROWTH.some(item => item.id === mission.id) ? 'Bir kez yapılabilir' : 'Her görev döneminde bir kez · Yönetici tarafından yenilenir'}</p>
                                             </div>
                                         </div>
                                         <Button size="sm" variant={status === 'completed' ? 'secondary' : status === 'pending' ? 'outline' : 'default'} className="w-full lg:w-auto mt-2 lg:mt-0 rounded-xl h-10 px-6 font-black text-xs uppercase tracking-widest shrink-0" disabled={!!status} onClick={() => handleMissionAction(mission)}>{status === 'completed' ? '✅ Tamamlandı' : status === 'pending' ? '⏳ Onayda' : 'Yaptım!'}</Button>
@@ -415,7 +428,8 @@ export default function PuanMerkeziPage() {
                                                     <h4 className="font-bold text-sm lg:text-base text-slate-800 leading-tight">{mission.title}</h4>
                                                     <Badge className="bg-emerald-500/20 text-emerald-700 text-[10px] font-black border-none px-2 py-0.5">+{mission.points}🌟</Badge>
                                                 </div>
-                                                <p className="text-xs text-slate-500 leading-relaxed font-medium">{mission.desc}</p>
+                                                <p className="text-sm text-slate-600 leading-relaxed">{mission.desc}</p>
+                                                <p className="mt-3 text-xs font-semibold text-slate-500">{MISSIONS_GROWTH.some(item => item.id === mission.id) ? 'Bir kez yapılabilir' : 'Her görev döneminde bir kez · Yönetici tarafından yenilenir'}</p>
                                             </div>
                                         </div>
                                         <Button size="sm" variant={status === 'completed' ? 'secondary' : status === 'pending' ? 'outline' : 'default'} className="w-full lg:w-auto mt-2 lg:mt-0 rounded-xl h-10 px-6 font-black text-xs uppercase tracking-widest shrink-0" disabled={!!status} onClick={() => handleMissionAction(mission)}>{status === 'completed' ? '✅ Tamamlandı' : status === 'pending' ? '⏳ Onayda' : 'Yaptım!'}</Button>
@@ -435,7 +449,7 @@ export default function PuanMerkeziPage() {
                                     <div className="space-y-3 sm:space-y-4">
                                         <Badge className="bg-white/20 text-white border-none px-4 py-1 text-[10px] font-black tracking-widest uppercase">🤝 REFERANS SİSTEMİ</Badge>
                                         <h3 className="text-2xl sm:text-4xl font-black tracking-tight leading-tight uppercase">Arkadaşını Davet Et, <br />Birlikte Kazanın!</h3>
-                                        <p className="text-white/70 font-medium leading-relaxed max-w-sm italic text-sm sm:text-base">Büyük TCA ailemizi birlikte büyütelim! ❤️🇹🇷</p>
+                                        <p className="text-white/70 font-medium leading-relaxed max-w-sm italic text-sm sm:text-base">Arkadaşınız davet kodunuzla kurs satın aldığında referans ödülünüz işlenir. Görev paylaşımı puanları ise WhatsApp kanıtının onayıyla kazanılır.</p>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                         <div className="bg-emerald-500/20 p-5 sm:p-6 rounded-2xl sm:rounded-3xl border border-emerald-500/30 backdrop-blur-sm">
@@ -452,8 +466,8 @@ export default function PuanMerkeziPage() {
                                     <div className="bg-white/10 border border-white/20 rounded-[24px] sm:rounded-[32px] p-6 sm:p-8 backdrop-blur-md">
                                         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-3 sm:mb-4 text-center">ÖZEL DAVET KODUNUZ</p>
                                         <div className="flex gap-3">
-                                            <div className="flex-1 bg-white text-slate-900 font-black text-base sm:text-2xl flex items-center justify-center rounded-xl sm:rounded-2xl h-14 sm:h-16 uppercase tracking-wider shadow-inner px-2">{referralCode}</div>
-                                            <Button size="icon" onClick={copyReferralCode} className="h-14 w-14 sm:h-16 sm:w-16 bg-white/20 hover:bg-white/30 rounded-xl sm:rounded-2xl transition-all active:scale-95 border border-white/10 shrink-0"><Copy className="w-5 h-5 sm:w-6 sm:h-6" /></Button>
+                                            <div className="min-w-0 break-all text-center flex-1 bg-white text-slate-900 font-black text-base sm:text-2xl flex items-center justify-center rounded-xl sm:rounded-2xl h-14 sm:h-16 uppercase tracking-wider shadow-inner px-2">{referralCode}</div>
+                                            <Button aria-label="Davet kodunu kopyala" size="icon" onClick={copyReferralCode} className="h-14 w-14 sm:h-16 sm:w-16 bg-white/20 hover:bg-white/30 rounded-xl sm:rounded-2xl transition-all active:scale-95 border border-white/10 shrink-0"><Copy className="w-5 h-5 sm:w-6 sm:h-6" /></Button>
                                         </div>
                                     </div>
                                     <Button className="w-full h-14 sm:h-16 bg-green-500 hover:bg-green-600 text-white font-black text-base sm:text-lg rounded-xl sm:rounded-2xl shadow-2xl shadow-slate-900/40 transition-all hover:scale-[1.02] active:scale-95" onClick={shareReferralOnWhatsapp}><MessageCircle className="mr-2 sm:mr-3 w-5 h-5 sm:w-7 sm:h-7" /> WHATSAPP'TA PAYLAŞ</Button>
@@ -520,22 +534,23 @@ export default function PuanMerkeziPage() {
 
             {/* DIALOGS */}
             <Dialog open={isProofDialogOpen} onOpenChange={setIsProofDialogOpen}>
-                <DialogContent className="rounded-[40px] p-10 max-w-md border-none shadow-2xl">
+                <DialogContent className="rounded-3xl p-6 sm:p-8 max-w-md max-h-[90dvh] overflow-y-auto border-none shadow-2xl">
                     <DialogHeader className="items-center text-center space-y-6">
                         <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center">
                             <Camera className="w-12 h-12 text-primary" />
                         </div>
                         <div className="space-y-2">
-                            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Harika Bir Haber! 🎉</DialogTitle>
+                            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Görevini tamamladın!</DialogTitle>
                             <DialogDescription className="text-slate-500 font-medium leading-relaxed px-2">
-                                Görev kanıtını WhatsApp ekibimize iletin, yıldızlarınız hemen yüklensin! 🚀
+                                Açılan WhatsApp sohbetine fotoğraf veya videonuzu ekleyip gönderin. Ekibimiz kontrol ettikten sonra puanınız hesabınıza eklenecek.
                             </DialogDescription>
                         </div>
                     </DialogHeader>
-                    <div className="py-4 space-y-3">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Varsa Notunuz (İsteğe bağlı)</label>
+                    <div className="flex items-center justify-between gap-3 rounded-2xl bg-primary/5 border border-primary/15 p-4"><p className="font-bold text-slate-800">{selectedMission?.title}</p><Badge className="shrink-0">+{selectedMission?.points} puan</Badge></div>
+                    <div className="py-2 space-y-3">
+                        <label htmlFor="mission-note" className="text-xs font-bold text-slate-600 uppercase tracking-wider px-1">Varsa Notunuz (İsteğe bağlı)</label>
                         <Textarea 
-                            placeholder="Görevi nasıl yaptınız? Bize anlatın..." 
+                            id="mission-note" placeholder="Eklemek istediğiniz bir açıklama varsa yazın..."
                             className="rounded-2xl border-slate-200 focus:border-primary min-h-[100px]"
                             value={userNote}
                             onChange={(e) => setUserNote(e.target.value)}
@@ -548,7 +563,7 @@ export default function PuanMerkeziPage() {
                             disabled={isSaving}
                         >
                             {isSaving ? <Loader2 className="animate-spin mr-2" /> : <MessageCircle className="mr-2 w-5 h-5" />} 
-                            KANITI GÖNDER 🚀✨
+                            WhatsApp’tan kanıt gönder
                         </Button>
                     </DialogFooter>
                 </DialogContent>

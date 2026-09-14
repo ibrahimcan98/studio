@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useFirestore, useCollection, useDoc, useMemoFirebase, errorEmitter } from '@/firebase';
-import { collection, query, orderBy, doc, updateDoc, increment, addDoc, serverTimestamp, getDoc, getDocs, writeBatch, deleteField, where, setDoc } from 'firebase/firestore';
+import { collection, query, orderBy, doc, updateDoc, increment, addDoc, serverTimestamp, getDoc, getDocs, writeBatch, deleteField, where, setDoc, runTransaction } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -71,9 +71,11 @@ export default function PuanMerkeziPage() {
       snapshot.forEach(userDoc => {
         const updateObj: any = {};
         REPEATABLE_MISSION_IDS.forEach(id => {
-          updateObj[`taskStatus.${id}`] = deleteField();
+          if (userDoc.data().taskStatus?.[id] === 'completed') {
+            updateObj[`taskStatus.${id}`] = deleteField();
+          }
         });
-        batch.update(userDoc.ref, updateObj);
+        if (Object.keys(updateObj).length) batch.update(userDoc.ref, updateObj);
       });
 
       // Update the settings doc
@@ -114,10 +116,12 @@ export default function PuanMerkeziPage() {
   }).sort((a, b) => (b.academyPoints || 0) - (a.academyPoints || 0));
 
   const handleApprove = async (request: any) => {
-    if (!db) return;
+    if (!db || processingId) return;
     setProcessingId(request.id);
     try {
-      const batch = writeBatch(db);
+      await runTransaction(db, async batch => {
+      const current = await batch.get(doc(db, 'loyalty-requests', request.id));
+      if (!current.exists() || current.data().status !== 'pending') throw new Error('Talep zaten işlenmiş.');
       
       // Talebi güncelle
       batch.update(doc(db, 'loyalty-requests', request.id), {
@@ -145,7 +149,7 @@ export default function PuanMerkeziPage() {
         });
       }
 
-      await batch.commit();
+      });
       toast({ title: 'Talep Onaylandı', description: request.type === 'gift_lesson_claim' ? 'Hediye ders talebi işlendi.' : `${request.points} puan eklendi.` });
     } catch (error) {
       console.error(error);
@@ -156,10 +160,12 @@ export default function PuanMerkeziPage() {
   };
 
   const handleReject = async (request: any) => {
-    if (!db) return;
+    if (!db || processingId) return;
     setProcessingId(request.id);
     try {
-      const batch = writeBatch(db);
+      await runTransaction(db, async batch => {
+      const current = await batch.get(doc(db, 'loyalty-requests', request.id));
+      if (!current.exists() || current.data().status !== 'pending') throw new Error('Talep zaten işlenmiş.');
       batch.update(doc(db, 'loyalty-requests', request.id), {
         status: 'rejected',
         processedAt: serverTimestamp()
@@ -175,7 +181,7 @@ export default function PuanMerkeziPage() {
               academyPoints: increment(500)
           });
       }
-      await batch.commit();
+      });
       toast({ title: 'Talep Reddedildi', description: request.type === 'gift_lesson_claim' ? 'Puanlar iade edildi.' : '' });
     } catch (error) {
       toast({ title: 'Hata', description: 'İşlem sırasında bir hata oluştu.', variant: 'destructive' });
@@ -210,8 +216,17 @@ export default function PuanMerkeziPage() {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-3xl font-black text-slate-900">Puan Merkezi Yönetimi</h2>
-          <p className="text-slate-500">Sadakat yolculuğu taleplerini yönetin ve puan bakiyelerini düzenleyin.</p>
+          <p className="text-slate-500">WhatsApp kanıtlarını kontrol edin, görevleri onaylayın ve puan hareketlerini takip edin.</p>
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        {[
+          { label: 'Onay bekleyen görev', count: requests?.filter(r => r.status === 'pending' && r.type !== 'gift_lesson_claim').length, color: 'text-amber-700 bg-amber-50' },
+          { label: 'Onaylanan görev', count: requests?.filter(r => r.status === 'approved' && r.type !== 'gift_lesson_claim').length, color: 'text-emerald-700 bg-emerald-50' },
+          { label: 'Kullanılan hediye ders', count: requests?.filter(r => r.status === 'completed' && r.type === 'gift_lesson_claim').length, color: 'text-indigo-700 bg-indigo-50' },
+          { label: 'Reddedilen talep', count: requests?.filter(r => r.status === 'rejected').length, color: 'text-slate-700 bg-slate-100' },
+        ].map(item => <Card key={item.label} className="rounded-2xl shadow-sm"><CardContent className="p-5"><p className="text-sm text-slate-600">{item.label}</p><p className={cn('mt-3 inline-block rounded-xl px-3 py-1 text-3xl font-bold', item.color)}>{requestsLoading ? '…' : item.count ?? 0}</p></CardContent></Card>)}
       </div>
 
       <Tabs defaultValue="requests" className="space-y-6">
@@ -219,11 +234,14 @@ export default function PuanMerkeziPage() {
           <TabsTrigger value="requests" className="rounded-lg px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white">Onay Bekleyenler</TabsTrigger>
           <TabsTrigger value="approved" className="rounded-lg px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white">Onaylananlar</TabsTrigger>
           <TabsTrigger value="manual" className="rounded-lg px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white">Puan Ekle / Sil</TabsTrigger>
-          <TabsTrigger value="history" className="rounded-lg px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white">Tüm Geçmiş</TabsTrigger>
+          <TabsTrigger value="history" className="rounded-lg px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white">Talep Geçmişi</TabsTrigger>
           <TabsTrigger value="settings" className="rounded-lg px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white">Görev Ayarları</TabsTrigger>
         </TabsList>
 
         <TabsContent value="requests">
+          <div className="mb-4 rounded-2xl border border-teal-200 bg-teal-50 p-4 text-sm leading-relaxed text-teal-900">
+            <strong>Onaydan önce WhatsApp kanıtını kontrol edin.</strong> Talep oluşturulması, fotoğrafın veya videonun ulaştığı anlamına gelmez. Sohbetteki veli kimliği ve görev adını bu kayıtla eşleştirin.
+          </div>
           <div className="grid gap-4">
             {requestsLoading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div> : 
              requests?.filter(r => r.status === 'pending' && r.type !== 'gift_lesson_claim').length === 0 ? (
@@ -263,11 +281,11 @@ export default function PuanMerkeziPage() {
                     )}
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" className="text-red-500 border-red-200 hover:bg-red-50 font-bold" 
-                        onClick={() => handleReject(req)} disabled={processingId === req.id}>
+                        onClick={() => handleReject(req)} disabled={processingId !== null}>
                         {processingId === req.id ? <Loader2 className="animate-spin h-4 w-4" /> : <XCircle className="mr-2 h-4 w-4" />} Reddet
                       </Button>
                       <Button size="sm" className={cn("font-bold", req.type === 'gift_lesson_claim' ? "bg-amber-600 hover:bg-amber-700" : "bg-green-600 hover:bg-green-700")}
-                        onClick={() => handleApprove(req)} disabled={processingId === req.id}>
+                        onClick={() => handleApprove(req)} disabled={processingId !== null}>
                         {processingId === req.id ? <Loader2 className="animate-spin h-4 w-4" /> : <CheckCircle2 className="mr-2 h-4 w-4" />} Onayla
                       </Button>
                     </div>
@@ -360,14 +378,14 @@ export default function PuanMerkeziPage() {
                         {requests?.filter(r => r.status !== 'pending').map(req => (
                             <div key={req.id} className="p-4 flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    {req.status === 'approved' ? <CheckCircle2 className="text-green-500" /> : <XCircle className="text-red-500" />}
+                                    {req.status === 'completed' ? <Gift className="text-indigo-600" /> : req.status === 'approved' ? <CheckCircle2 className="text-green-500" /> : <XCircle className="text-red-500" />}
                                     <div>
                                         <p className="font-bold text-sm text-slate-800">{req.userEmail}</p>
-                                        <p className="text-xs text-slate-500">{req.taskTitle} - {format(req.createdAt.toDate(), 'dd/MM/yyyy', { locale: tr })}</p>
+                                        <p className="text-xs text-slate-500">{req.taskTitle || req.description || 'Hediye ders'} · {req.createdAt?.toDate ? format(req.createdAt.toDate(), 'dd/MM/yyyy', { locale: tr }) : 'Tarih bekleniyor'}</p>
                                     </div>
                                 </div>
-                                <div className={cn("font-bold text-sm", req.status === 'approved' ? "text-green-600" : "text-red-600")}>
-                                    {req.status === 'approved' ? `+${req.points}` : 'Reddedildi'}
+                                <div className={cn("font-bold text-sm", req.status === 'completed' ? 'text-indigo-600' : req.status === 'approved' ? "text-green-600" : "text-red-600")}>
+                                    {req.status === 'completed' ? `Hediye ders · −${req.pointsUsed || 500} puan` : req.status === 'approved' ? `+${req.points} puan` : 'Reddedildi'}
                                 </div>
                             </div>
                         ))}
@@ -379,7 +397,7 @@ export default function PuanMerkeziPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="text-xl">Tekrarlanabilir Görevler</CardTitle>
-                    <CardDescription>Kültür ve Eğlence kategorilerindeki görevler ayda bir kez yapılabilir. Süre dolduğunda aşağıdaki butona basarak tüm ebeveynler için bu görevlerin yapılmış olma durumunu sıfırlayabilirsiniz.</CardDescription>
+                    <CardDescription>Kültür ve Eğlence görevleri dönem başına bir kez yapılabilir. 30 günlük sayaç hatırlatma içindir; görevler otomatik yenilenmez. Sıfırlama tamamlanan görevleri yeniden açar, onay bekleyen talepleri korur. Dijital Büyüme görevleri bu işleme dahil değildir.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex flex-col min-[1200px]:flex-row items-center justify-between gap-6">

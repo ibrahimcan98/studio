@@ -83,6 +83,23 @@ import { COURSES, getCourseByCode } from '@/data/courses';
 
 const MAX_LIVES = 5;
 
+function resolveSubscriptionEndDate(userData: any): Date | null {
+    const rawDate = userData?.subscriptionPeriodEnd || userData?.premiumEndDate;
+    if (!rawDate) return null;
+
+    if (rawDate.toDate) {
+        return rawDate.toDate();
+    }
+
+    if (typeof rawDate === 'number') {
+        const date = new Date(rawDate < 10000000000 ? rawDate * 1000 : rawDate);
+        return Number.isFinite(date.getTime()) ? date : null;
+    }
+
+    const date = new Date(rawDate);
+    return Number.isFinite(date.getTime()) ? date : null;
+}
+
 function StatCard({ title, value, icon: Icon, unit, children, className }: { title: string, value: string | number, icon: React.ElementType, unit?: string, children?: React.ReactNode, className?: string }) {
     return (
         <Card className={cn("flex flex-col h-full", className)}>
@@ -696,6 +713,9 @@ function EbeveynPortaliContent() {
     if (userLoading || childrenLoading || userDataLoading || slotsLoading || dbNotificationsLoading) return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
     if (!user || user.isAnonymous) return null;
 
+    const subscriptionEndDate = resolveSubscriptionEndDate(userData);
+    const hasFutureSubscriptionEndDate = subscriptionEndDate && subscriptionEndDate.getTime() > Date.now();
+
     return (
         <div className="flex-1 w-full max-w-full space-y-4 sm:space-y-8 p-2 sm:p-8 pt-6 bg-muted/20">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
@@ -936,8 +956,8 @@ function EbeveynPortaliContent() {
                                     ? "text-orange-700 bg-orange-200/70" 
                                     : "text-amber-700 bg-amber-200/50"
                             )}>
-                                {userData.subscriptionPeriodEnd && (userData.subscriptionCancelledAtPeriodEnd || new Date(userData.subscriptionPeriodEnd.toDate ? userData.subscriptionPeriodEnd.toDate() : userData.subscriptionPeriodEnd).getTime() > Date.now())
-                                    ? `${userData.subscriptionCancelledAtPeriodEnd ? 'Son Kullanım' : 'Yenileme'}: ${format(userData.subscriptionPeriodEnd.toDate ? userData.subscriptionPeriodEnd.toDate() : new Date(userData.subscriptionPeriodEnd), 'dd MMM yyyy', { locale: tr })}`
+                                {subscriptionEndDate && (userData.subscriptionCancelledAtPeriodEnd || hasFutureSubscriptionEndDate)
+                                    ? `${userData.subscriptionCancelledAtPeriodEnd ? 'Son Kullanım' : 'Yenileme'}: ${format(subscriptionEndDate, 'dd MMM yyyy', { locale: tr })}`
                                     : userData.stripeSubscriptionId ? 'Yenileme tarihini kontrol edin' : 'Manuel üyelik'}
                             </span>
                         )}

@@ -14,6 +14,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { SUBSCRIPTION_TIERS, ChildCount, BillingPeriod } from '@/constants/subscriptions';
 import { cn } from '@/lib/utils';
 
+function resolveSubscriptionEndDate(userData: any): Date | null {
+    const rawDate = userData?.subscriptionPeriodEnd || userData?.premiumEndDate;
+    if (!rawDate) return null;
+
+    if (rawDate.toDate) {
+        return rawDate.toDate();
+    }
+
+    if (typeof rawDate === 'number') {
+        const date = new Date(rawDate < 10000000000 ? rawDate * 1000 : rawDate);
+        return Number.isFinite(date.getTime()) ? date : null;
+    }
+
+    const date = new Date(rawDate);
+    return Number.isFinite(date.getTime()) ? date : null;
+}
+
 const UserRowWithChildren = ({ u, formatPeriod }: { u: any, formatPeriod: (p?: string) => string }) => {
     const db = useFirestore();
     const [isExpanded, setIsExpanded] = useState(false);
@@ -25,7 +42,7 @@ const UserRowWithChildren = ({ u, formatPeriod }: { u: any, formatPeriod: (p?: s
 
     const { data: children, isLoading } = useCollection(childrenQuery);
 
-    const periodEnd = u.subscriptionPeriodEnd?.toDate ? u.subscriptionPeriodEnd.toDate() : (u.subscriptionPeriodEnd ? new Date(u.subscriptionPeriodEnd) : null);
+    const periodEnd = resolveSubscriptionEndDate(u);
     const isFree = u.subscriptionTier === 'free' || !u.subscriptionTier;
     const isManual = !u.stripeSubscriptionId && !isFree;
     const isCancelledAtPeriodEnd = !!u.subscriptionCancelledAtPeriodEnd;
