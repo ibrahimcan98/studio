@@ -3,22 +3,14 @@
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, limit, orderBy, query } from 'firebase/firestore';
 import { useMemo, useState } from 'react';
-import { Activity, BarChart3, Eye, Loader2, MousePointerClick, Search, TrendingUp } from 'lucide-react';
+import { BarChart3, Eye, Loader2, MousePointerClick, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 function toDate(value: any): Date | null {
   if (!value) return null;
@@ -29,7 +21,7 @@ function toDate(value: any): Date | null {
 
 function formatDate(value: any) {
   const date = toDate(value);
-  return date ? format(date, 'd MMM yyyy HH:mm', { locale: tr }) : '-';
+  return date ? format(date, 'd MMM HH:mm', { locale: tr }) : '-';
 }
 
 function countBy<T>(items: T[], getKey: (item: T) => string) {
@@ -44,45 +36,37 @@ function countBy<T>(items: T[], getKey: (item: T) => string) {
     .sort((a, b) => b.count - a.count);
 }
 
-function StatCard({ title, value, icon: Icon, color }: { title: string; value: string | number; icon: any; color: string }) {
+function MiniStat({ label, value, icon: Icon }: { label: string; value: number; icon: any }) {
   return (
-    <Card className="border-none shadow-md bg-white">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400">{title}</CardTitle>
-        <Icon className={cn('h-5 w-5', color)} />
-      </CardHeader>
-      <CardContent>
-        <div className="text-3xl font-black text-slate-900">{value}</div>
-      </CardContent>
-    </Card>
+    <div className="flex items-center justify-between rounded-lg border bg-white px-4 py-3 shadow-sm">
+      <div>
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</p>
+        <p className="mt-1 text-2xl font-black text-slate-900">{value}</p>
+      </div>
+      <Icon className="h-5 w-5 text-slate-400" />
+    </div>
   );
 }
 
-function RankingCard({ title, items, emptyText }: { title: string; items: { label: string; count: number }[]; emptyText: string }) {
-  const max = items[0]?.count || 1;
-
+function SimpleList({ title, items, emptyText }: { title: string; items: { label: string; count: number }[]; emptyText: string }) {
   return (
-    <Card className="border-none shadow-md bg-white overflow-hidden">
-      <CardHeader className="border-b">
-        <CardTitle className="text-base font-black text-slate-800">{title}</CardTitle>
+    <Card className="border-none bg-white shadow-sm">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-black text-slate-800">{title}</CardTitle>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="space-y-2">
         {items.length === 0 ? (
-          <div className="p-6 text-sm font-medium text-slate-400">{emptyText}</div>
+          <p className="py-6 text-sm font-medium text-slate-400">{emptyText}</p>
         ) : (
-          <div className="divide-y">
-            {items.slice(0, 8).map((item) => (
-              <div key={item.label} className="p-4">
-                <div className="mb-2 flex items-center justify-between gap-4 text-sm">
-                  <span className="truncate font-bold text-slate-700" title={item.label}>{item.label}</span>
-                  <Badge variant="outline" className="shrink-0 bg-slate-50 font-black">{item.count}</Badge>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                  <div className="h-full rounded-full bg-primary" style={{ width: `${Math.max(8, (item.count / max) * 100)}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
+          items.slice(0, 6).map((item, index) => (
+            <div key={item.label} className="flex items-center gap-3 rounded-lg border bg-slate-50/60 px-3 py-2">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white text-xs font-black text-slate-400">
+                {index + 1}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-700" title={item.label}>{item.label}</span>
+              <Badge variant="outline" className="bg-white font-black">{item.count}</Badge>
+            </div>
+          ))
         )}
       </CardContent>
     </Card>
@@ -91,9 +75,9 @@ function RankingCard({ title, items, emptyText }: { title: string; items: { labe
 
 export default function AnalitikPage() {
   const db = useFirestore();
-  const [eventFilter, setEventFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [eventLimit, setEventLimit] = useState(500);
+  const [eventLimit, setEventLimit] = useState(250);
+  const [showDetails, setShowDetails] = useState(false);
 
   const analyticsQuery = useMemoFirebase(() => {
     if (!db) return null;
@@ -105,22 +89,17 @@ export default function AnalitikPage() {
   const filteredEvents = useMemo(() => {
     if (!events) return [];
     const q = searchQuery.toLowerCase();
+    const publicEvents = events.filter((event: any) => !String(event.path || '').startsWith('/yonetici'));
+    if (!q) return publicEvents;
 
-    return events.filter((event: any) => {
-      const matchesEvent = eventFilter === 'all' || event.eventName === eventFilter;
-      const text = `${event.eventName || ''} ${event.path || ''} ${event.customData?.label || ''} ${event.customData?.href || ''}`.toLowerCase();
-      return matchesEvent && (!q || text.includes(q));
+    return publicEvents.filter((event: any) => {
+      const text = `${event.eventName || ''} ${event.path || ''} ${event.customData?.label || ''}`.toLowerCase();
+      return text.includes(q);
     });
-  }, [events, eventFilter, searchQuery]);
-
-  const eventTypes = useMemo(() => {
-    if (!events) return [];
-    return Array.from(new Set(events.map((event: any) => event.eventName).filter(Boolean))).sort();
-  }, [events]);
+  }, [events, searchQuery]);
 
   const pageViews = filteredEvents.filter((event: any) => event.eventName === 'PageView');
   const clicks = filteredEvents.filter((event: any) => event.eventName === 'Click');
-  const uniquePaths = new Set(filteredEvents.map((event: any) => event.path).filter(Boolean)).size;
   const topPages = countBy(pageViews, (event: any) => event.path || '/');
   const topClicks = countBy(clicks, (event: any) => event.customData?.label || event.customData?.href || 'Tıklama');
 
@@ -133,103 +112,77 @@ export default function AnalitikPage() {
   }
 
   return (
-    <div className="space-y-8 font-sans pb-20">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <div className="space-y-6 font-sans pb-20">
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="flex items-center gap-3 text-4xl font-black tracking-tight text-slate-900">
-            <BarChart3 className="h-10 w-10 text-primary" /> Analitik
+          <h1 className="flex items-center gap-3 text-3xl font-black tracking-tight text-slate-900">
+            <BarChart3 className="h-8 w-8 text-primary" /> Analitik
           </h1>
-          <p className="mt-1 font-medium text-slate-500">Sayfa görüntüleme, tıklama ve dönüşüm event geçmişi.</p>
+          <p className="mt-1 text-sm font-medium text-slate-500">Sitede en çok nereler geziliyor ve hangi alanlara tıklanıyor?</p>
         </div>
-        <Badge variant="outline" className="w-fit bg-white px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-500">
-          Son {eventLimit} kayıt
-        </Badge>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2 min-[1100px]:grid-cols-4">
-        <StatCard title="Toplam Event" value={filteredEvents.length} icon={Activity} color="text-indigo-500" />
-        <StatCard title="Sayfa Görüntüleme" value={pageViews.length} icon={Eye} color="text-blue-500" />
-        <StatCard title="Tıklama" value={clicks.length} icon={MousePointerClick} color="text-emerald-500" />
-        <StatCard title="Farklı Sayfa" value={uniquePaths} icon={TrendingUp} color="text-amber-500" />
-      </div>
-
-      <Card className="border-none bg-white shadow-md">
-        <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Sayfa, event veya tıklama metni ara..."
-              className="pl-10"
-            />
-          </div>
-          <Select value={eventFilter} onValueChange={setEventFilter}>
-            <SelectTrigger className="w-full md:w-48">
-              <SelectValue placeholder="Event tipi" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tüm Eventler</SelectItem>
-              {eventTypes.map((type: string) => (
-                <SelectItem key={type} value={type}>{type}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-500">
+            Son {eventLimit} kayıt
+          </Badge>
           <Select value={String(eventLimit)} onValueChange={(value) => setEventLimit(Number(value))}>
-            <SelectTrigger className="w-full md:w-36">
+            <SelectTrigger className="h-9 w-28 bg-white">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="100">100</SelectItem>
+              <SelectItem value="250">250</SelectItem>
               <SelectItem value="500">500</SelectItem>
               <SelectItem value="1000">1000</SelectItem>
             </SelectContent>
           </Select>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-6 min-[1100px]:grid-cols-2">
-        <RankingCard title="En Çok Görüntülenen Sayfalar" items={topPages} emptyText="Henüz sayfa görüntüleme kaydı yok." />
-        <RankingCard title="En Çok Tıklanan Alanlar" items={topClicks} emptyText="Henüz tıklama kaydı yok." />
+        </div>
       </div>
 
-      <Card className="border-none bg-white shadow-md">
-        <CardHeader className="border-b">
-          <CardTitle className="text-base font-black text-slate-800">Son Hareketler</CardTitle>
+      <div className="grid gap-3 md:grid-cols-3">
+        <MiniStat label="Toplam" value={filteredEvents.length} icon={BarChart3} />
+        <MiniStat label="Sayfa Görüntüleme" value={pageViews.length} icon={Eye} />
+        <MiniStat label="Tıklama" value={clicks.length} icon={MousePointerClick} />
+      </div>
+
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <Input
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          placeholder="Sayfa veya tıklama ara..."
+          className="h-11 bg-white pl-10"
+        />
+      </div>
+
+      <div className="grid gap-4 min-[1100px]:grid-cols-2">
+        <SimpleList title="En Çok Gezilen Sayfalar" items={topPages} emptyText="Henüz sayfa görüntüleme kaydı yok." />
+        <SimpleList title="En Çok Tıklanan Alanlar" items={topClicks} emptyText="Henüz tıklama kaydı yok." />
+      </div>
+
+      <Card className="border-none bg-white shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <CardTitle className="text-sm font-black text-slate-800">Son Hareketler</CardTitle>
+          <Button variant="ghost" size="sm" onClick={() => setShowDetails((value) => !value)} className="h-8 text-xs font-bold">
+            {showDetails ? 'Gizle' : 'Göster'}
+          </Button>
         </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Zaman</TableHead>
-                <TableHead>Event</TableHead>
-                <TableHead>Sayfa</TableHead>
-                <TableHead>Tıklama</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredEvents.slice(0, 80).map((event: any) => (
-                <TableRow key={event.id}>
-                  <TableCell className="whitespace-nowrap text-xs font-bold text-slate-500">{formatDate(event.createdAt)}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="font-bold">{event.eventName || '-'}</Badge>
-                  </TableCell>
-                  <TableCell className="max-w-[320px] truncate font-medium text-slate-700" title={event.path}>{event.path || '-'}</TableCell>
-                  <TableCell className="max-w-[320px] truncate text-slate-500" title={event.customData?.label || event.customData?.href}>
-                    {event.customData?.label || event.customData?.href || '-'}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filteredEvents.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} className="h-32 text-center font-medium text-slate-400">
-                    Bu filtrelerle eşleşen analitik kaydı yok.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
+        {showDetails && (
+          <CardContent className="space-y-2">
+            {filteredEvents.slice(0, 30).map((event: any) => (
+              <div key={event.id} className="grid gap-2 rounded-lg border px-3 py-2 text-sm md:grid-cols-[120px_110px_1fr_1fr]">
+                <span className="font-bold text-slate-500">{formatDate(event.createdAt)}</span>
+                <span className="font-black text-slate-700">{event.eventName || '-'}</span>
+                <span className="truncate text-slate-600" title={event.path}>{event.path || '-'}</span>
+                <span className="truncate text-slate-400" title={event.customData?.label || event.customData?.href}>
+                  {event.customData?.label || event.customData?.href || '-'}
+                </span>
+              </div>
+            ))}
+            {filteredEvents.length === 0 && (
+              <p className="py-8 text-center text-sm font-medium text-slate-400">Bu aramayla eşleşen kayıt yok.</p>
+            )}
+          </CardContent>
+        )}
       </Card>
     </div>
   );
