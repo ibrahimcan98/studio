@@ -226,7 +226,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     <TooltipProvider>
       <div className="flex min-h-screen w-full flex-col bg-muted/40 font-sans text-slate-900">
         {/* Desktop Sidebar */}
-        <aside className="fixed inset-y-0 left-0 z-10 hidden w-64 flex-col border-r bg-background sm:flex shadow-sm">
+        <aside className="fixed inset-y-0 left-0 z-10 hidden w-64 flex-col border-r bg-background 2xl:flex shadow-sm">
             <div className="flex h-20 items-center border-b px-6">
               <Link href="/yonetici" className="flex items-center gap-2 overflow-hidden">
                 <Logo className="text-lg" />
@@ -264,13 +264,13 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
           </div>
         </aside>
 
-         <div className="flex flex-col sm:pl-64">
+         <div className="flex flex-col 2xl:pl-64">
              <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b bg-background/80 backdrop-blur-md px-10 sm:px-10 px-4">
                 <div className="flex items-center gap-4">
                   {/* Mobile Menu Trigger */}
                   <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                     <SheetTrigger asChild>
-                      <Button variant="ghost" size="icon" className="sm:hidden">
+                      <Button variant="ghost" size="icon" className="2xl:hidden">
                         <Menu className="h-6 w-6" />
                         <span className="sr-only">Menüyü Aç</span>
                       </Button>

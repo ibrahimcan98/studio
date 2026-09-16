@@ -618,7 +618,7 @@ export default function AramalarPage() {
     }, [parentSlots, parentChildren]);
 
     return (
-        <div className="flex flex-col h-[calc(100vh-80px)] sm:h-[calc(100vh-100px)] overflow-hidden font-sans">
+        <div className="flex flex-col min-h-[calc(100vh-96px)] 2xl:h-[calc(100vh-128px)] 2xl:min-h-0 2xl:overflow-hidden font-sans">
             {/* RESPONSIVE HEADER */}
             <div className={cn(
                 "flex items-center justify-between pb-4 sm:pb-6",
@@ -650,12 +650,12 @@ export default function AramalarPage() {
                 </div>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-4 sm:gap-6 flex-1 min-h-0 bg-slate-50 p-1 sm:p-2 rounded-[24px] sm:rounded-3xl border border-slate-200/60 shadow-inner overflow-hidden">
+            <div className="flex flex-col 2xl:flex-row gap-4 sm:gap-6 flex-none 2xl:flex-1 2xl:min-h-0 bg-slate-50 p-1 sm:p-2 rounded-[24px] sm:rounded-3xl border border-slate-200/60 shadow-inner overflow-visible 2xl:overflow-hidden">
 
                 {/* SOL PANEL (List) */}
                 <div className={cn(
-                    "w-full min-[1200px]:w-96 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden shrink-0 h-full transition-all",
-                    activeMobileView === 'details' && "hidden min-[1200px]:flex"
+                    "w-full 2xl:w-96 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden shrink-0 h-[calc(100vh-160px)] 2xl:h-full transition-all",
+                    activeMobileView === 'details' && "hidden 2xl:flex"
                 )}>
                     <div className="p-3 sm:p-4 border-b bg-slate-50/50 space-y-3">
                         <div className="relative">
@@ -822,11 +822,11 @@ export default function AramalarPage() {
 
                 {/* SAĞ PANEL (Details & Actions) */}
                 <div className={cn(
-                    "flex-1 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden h-full relative",
-                    activeMobileView === 'list' && "hidden min-[1200px]:flex"
+                    "flex-1 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-100 overflow-visible 2xl:overflow-hidden h-auto 2xl:h-full relative",
+                    activeMobileView === 'list' && "hidden 2xl:flex"
                 )}>
                     {selectedParent ? (
-                        <div className="flex flex-col h-full overflow-hidden">
+                        <div className="flex flex-col h-auto 2xl:h-full overflow-visible 2xl:overflow-hidden">
                             {loadingExtras && (
                                 <div className="absolute top-2 sm:top-4 right-2 sm:right-4 z-50 bg-white/50 backdrop-blur-sm p-1 rounded-full border">
                                     <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-primary opacity-50" />
@@ -838,17 +838,9 @@ export default function AramalarPage() {
                                 {/* Background decoration */}
                                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
 
-                                <div className="flex flex-col min-[992px]:flex-row items-center min-[992px]:items-start justify-between gap-6 relative z-10">
-                                    <div className="flex flex-col min-[992px]:flex-row items-center min-[992px]:items-start text-center min-[992px]:text-left gap-4 sm:gap-8 w-full">
+                                <div className="flex flex-col 2xl:flex-row items-center 2xl:items-start justify-between gap-6 relative z-10">
+                                    <div className="flex flex-col 2xl:flex-row items-center 2xl:items-start text-center 2xl:text-left gap-4 sm:gap-8 w-full">
                                         <div className="flex flex-col items-center sm:items-start gap-4">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-10 w-10 bg-white/10 hover:bg-white/20 text-white rounded-2xl mb-2 transition-all group min-[992px]:hidden"
-                                                onClick={() => setActiveMobileView('list')}
-                                            >
-                                                <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                                            </Button>
                                             <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-[24px] sm:rounded-[32px] bg-primary flex items-center justify-center text-3xl sm:text-4xl font-black shadow-2xl shadow-primary/20 shrink-0 border-4 border-white/10">
                                                 {selectedParent.firstName?.[0] || 'V'}{selectedParent.lastName?.[0] || 'P'}
                                             </div>
@@ -931,7 +923,7 @@ export default function AramalarPage() {
                             </div>
 
                             {/* SATIŞ TAKİP PANELİ */}
-                            <div className="bg-slate-50 border-b p-3 sm:p-4 sm:px-6 shrink-0 shadow-sm z-10 max-h-[44vh] overflow-y-auto">
+                            <div className="bg-slate-50 border-b p-3 sm:p-4 sm:px-6 shrink-0 shadow-sm z-10 2xl:max-h-[44vh] 2xl:overflow-y-auto">
                                 <div className="flex items-center justify-between gap-2 mb-3">
                                     <span className="flex text-xs font-black text-slate-600 uppercase tracking-widest items-center gap-2">
                                         <PhoneCall className="w-4 h-4 text-primary" /> Görüşmeyi Kaydet
@@ -967,7 +959,7 @@ export default function AramalarPage() {
                             </div>
 
                             {/* TABS & CONTENT */}
-                            <Tabs defaultValue="calls" className="flex-1 flex flex-col min-h-0 bg-white">
+                            <Tabs defaultValue="calls" className="flex-none 2xl:flex-1 flex flex-col min-h-0 bg-white">
                                 <div className="bg-slate-100 px-2 sm:px-6 shrink-0 border-b overflow-x-auto scrollbar-hide">
                                     <TabsList className="bg-transparent gap-2 sm:gap-6 h-12 sm:h-14 p-0">
                                         <TabsTrigger value="calls" className="data-[state=active]:bg-white data-[state=active]:text-slate-900 rounded-t-xl rounded-b-none h-full border-none font-bold text-slate-500 px-3 sm:px-6 text-[11px] sm:text-sm whitespace-nowrap">Geçmiş ({callLogs.length})</TabsTrigger>
@@ -977,7 +969,7 @@ export default function AramalarPage() {
                                     </TabsList>
                                 </div>
 
-                                <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50 scrollbar-thin">
+                                <div className="flex-1 overflow-visible 2xl:overflow-y-auto p-4 sm:p-6 bg-slate-50 scrollbar-thin">
 
                                     {/* TAB: OVERVIEW */}
                                     <TabsContent value="overview" className="m-0 space-y-4 sm:space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
