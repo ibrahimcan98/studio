@@ -60,6 +60,29 @@ export const trackPixelEvent = async (
   }
 };
 
+const trackSiteEvent = async (
+  eventName: string,
+  customData: Record<string, any> = {},
+  eventId = generateEventId()
+) => {
+  if (typeof window === 'undefined') return;
+
+  try {
+    await fetch('/api/analytics/site', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        eventName,
+        eventSourceUrl: window.location.href,
+        customData,
+        eventId,
+      }),
+    });
+  } catch (err) {
+    console.error('Site Analytics Error:', err);
+  }
+};
+
 export const FacebookPixel = () => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -92,17 +115,7 @@ export const FacebookPixel = () => {
       (window as any).fbq('track', 'PageView', {}, { event_id: eventId });
     }
 
-    // Also send CAPI PageView for full deduplication and internal analytics.
-    fetch('/api/analytics/pixel', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        eventName: 'PageView',
-        eventSourceUrl: window.location.href,
-        eventId,
-        testEventCode: testEventCode || undefined,
-      }),
-    }).catch(() => {});
+    trackSiteEvent('PageView', {}, eventId);
   }, [pathname, searchParams]);
 
   useEffect(() => {
@@ -126,7 +139,7 @@ export const FacebookPixel = () => {
         .slice(0, 120);
       const href = link?.href || clickable.getAttribute('data-href') || '';
 
-      trackPixelEvent('Click', {
+      trackSiteEvent('Click', {
         label: label || clickable.tagName.toLowerCase(),
         tagName: clickable.tagName.toLowerCase(),
         href,

@@ -24,6 +24,16 @@ function formatDate(value: any) {
   return date ? format(date, 'd MMM HH:mm', { locale: tr }) : '-';
 }
 
+function cleanPath(path: string) {
+  const [basePath] = String(path || '/').split('?');
+  return basePath || '/';
+}
+
+function shouldShowPublicEvent(event: any) {
+  const path = cleanPath(event.path);
+  return !path.startsWith('/yonetici') && !path.startsWith('/ogretmen-portali');
+}
+
 function countBy<T>(items: T[], getKey: (item: T) => string) {
   const counts = new Map<string, number>();
   items.forEach((item) => {
@@ -89,18 +99,18 @@ export default function AnalitikPage() {
   const filteredEvents = useMemo(() => {
     if (!events) return [];
     const q = searchQuery.toLowerCase();
-    const publicEvents = events.filter((event: any) => !String(event.path || '').startsWith('/yonetici'));
+    const publicEvents = events.filter(shouldShowPublicEvent);
     if (!q) return publicEvents;
 
     return publicEvents.filter((event: any) => {
-      const text = `${event.eventName || ''} ${event.path || ''} ${event.customData?.label || ''}`.toLowerCase();
+      const text = `${event.eventName || ''} ${cleanPath(event.path)} ${event.customData?.label || ''}`.toLowerCase();
       return text.includes(q);
     });
   }, [events, searchQuery]);
 
   const pageViews = filteredEvents.filter((event: any) => event.eventName === 'PageView');
   const clicks = filteredEvents.filter((event: any) => event.eventName === 'Click');
-  const topPages = countBy(pageViews, (event: any) => event.path || '/');
+  const topPages = countBy(pageViews, (event: any) => cleanPath(event.path));
   const topClicks = countBy(clicks, (event: any) => event.customData?.label || event.customData?.href || 'Tıklama');
 
   if (isLoading) {
@@ -172,7 +182,7 @@ export default function AnalitikPage() {
               <div key={event.id} className="grid gap-2 rounded-lg border px-3 py-2 text-sm md:grid-cols-[120px_110px_1fr_1fr]">
                 <span className="font-bold text-slate-500">{formatDate(event.createdAt)}</span>
                 <span className="font-black text-slate-700">{event.eventName || '-'}</span>
-                <span className="truncate text-slate-600" title={event.path}>{event.path || '-'}</span>
+                <span className="truncate text-slate-600" title={cleanPath(event.path)}>{cleanPath(event.path)}</span>
                 <span className="truncate text-slate-400" title={event.customData?.label || event.customData?.href}>
                   {event.customData?.label || event.customData?.href || '-'}
                 </span>

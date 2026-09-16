@@ -822,11 +822,11 @@ export default function AramalarPage() {
 
                 {/* SAĞ PANEL (Details & Actions) */}
                 <div className={cn(
-                    "flex-1 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-100 overflow-visible 2xl:overflow-hidden h-auto 2xl:h-full relative",
+                    "flex-1 min-w-0 min-h-0 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden h-auto 2xl:h-full relative",
                     activeMobileView === 'list' && "hidden 2xl:flex"
                 )}>
                     {selectedParent ? (
-                        <div className="flex flex-col h-auto 2xl:h-full overflow-visible 2xl:overflow-hidden">
+                        <div className="flex flex-col min-w-0 min-h-0 h-auto 2xl:h-full 2xl:overflow-y-auto scrollbar-thin">
                             {loadingExtras && (
                                 <div className="absolute top-2 sm:top-4 right-2 sm:right-4 z-50 bg-white/50 backdrop-blur-sm p-1 rounded-full border">
                                     <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-primary opacity-50" />
@@ -834,21 +834,21 @@ export default function AramalarPage() {
                             )}
 
                             {/* PROFILE HEADER (Responsive heights) */}
-                            <div className="p-4 sm:p-6 lg:p-10 bg-slate-900 text-white shrink-0 scrollbar-hide relative overflow-hidden">
+                            <div className="p-4 sm:p-6 bg-slate-900 text-white shrink-0 relative overflow-hidden">
                                 {/* Background decoration */}
                                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
 
                                 <div className="flex flex-col 2xl:flex-row items-center 2xl:items-start justify-between gap-6 relative z-10">
-                                    <div className="flex flex-col 2xl:flex-row items-center 2xl:items-start text-center 2xl:text-left gap-4 sm:gap-8 w-full">
+                                    <div className="flex min-w-0 flex-1 flex-col 2xl:flex-row items-center 2xl:items-start text-center 2xl:text-left gap-4 w-full">
                                         <div className="flex flex-col items-center sm:items-start gap-4">
                                             <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-[24px] sm:rounded-[32px] bg-primary flex items-center justify-center text-3xl sm:text-4xl font-black shadow-2xl shadow-primary/20 shrink-0 border-4 border-white/10">
                                                 {selectedParent.firstName?.[0] || 'V'}{selectedParent.lastName?.[0] || 'P'}
                                             </div>
                                         </div>
-                                        <div className="space-y-2 sm:space-y-3 min-w-0 flex-1 pt-1 min-[1200px]:pt-12">
+                                        <div className="space-y-2 sm:space-y-3 min-w-0 max-w-full flex-1 pt-1">
                                             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight truncate leading-tight">{selectedParent.firstName} {selectedParent.lastName}</h2>
                                             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-4 text-slate-400 text-[11px] sm:text-sm font-medium">
-                                                <span className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 shrink-0" /> <span className="truncate max-w-[150px] sm:max-w-none">{selectedParent.email}</span></span>
+                                                <span className="flex min-w-0 max-w-full items-center gap-1.5"><Mail className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">{selectedParent.email}</span></span>
                                                 <span className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 shrink-0" /> {selectedParent.phoneNumber || '-'}</span>
                                                 <button
                                                     className="hidden sm:flex items-center gap-1.5 py-1 px-2 border border-slate-700 bg-slate-800 rounded text-slate-300 hover:text-white transition-colors text-[10px] font-bold"
@@ -923,7 +923,7 @@ export default function AramalarPage() {
                             </div>
 
                             {/* SATIŞ TAKİP PANELİ */}
-                            <div className="bg-slate-50 border-b p-3 sm:p-4 sm:px-6 shrink-0 shadow-sm z-10 2xl:max-h-[44vh] 2xl:overflow-y-auto">
+                            <div className="bg-slate-50 border-b p-3 sm:p-4 sm:px-6 shrink-0 shadow-sm z-10">
                                 <div className="flex items-center justify-between gap-2 mb-3">
                                     <span className="flex text-xs font-black text-slate-600 uppercase tracking-widest items-center gap-2">
                                         <PhoneCall className="w-4 h-4 text-primary" /> Görüşmeyi Kaydet
@@ -959,7 +959,7 @@ export default function AramalarPage() {
                             </div>
 
                             {/* TABS & CONTENT */}
-                            <Tabs defaultValue="calls" className="flex-none 2xl:flex-1 flex flex-col min-h-0 bg-white">
+                            <Tabs defaultValue="calls" className="flex-none flex flex-col min-w-0 bg-white">
                                 <div className="bg-slate-100 px-2 sm:px-6 shrink-0 border-b overflow-x-auto scrollbar-hide">
                                     <TabsList className="bg-transparent gap-2 sm:gap-6 h-12 sm:h-14 p-0">
                                         <TabsTrigger value="calls" className="data-[state=active]:bg-white data-[state=active]:text-slate-900 rounded-t-xl rounded-b-none h-full border-none font-bold text-slate-500 px-3 sm:px-6 text-[11px] sm:text-sm whitespace-nowrap">Geçmiş ({callLogs.length})</TabsTrigger>
@@ -969,7 +969,7 @@ export default function AramalarPage() {
                                     </TabsList>
                                 </div>
 
-                                <div className="flex-1 overflow-visible 2xl:overflow-y-auto p-4 sm:p-6 bg-slate-50 scrollbar-thin">
+                                <div className="p-4 sm:p-6 bg-slate-50">
 
                                     {/* TAB: OVERVIEW */}
                                     <TabsContent value="overview" className="m-0 space-y-4 sm:space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
