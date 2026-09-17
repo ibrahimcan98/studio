@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'crypto';
+import { createHash, createHmac, timingSafeEqual } from 'crypto';
 
 const getSecret = () => {
   const secret = process.env.EMAIL_UNSUBSCRIBE_SECRET || process.env.RESEND_API_KEY;
@@ -19,3 +19,6 @@ export const verifyUnsubscribeToken = (userId: string, token: string) => {
 
   return expected.length === received.length && timingSafeEqual(expected, received);
 };
+
+export const getEmailSuppressionId = (email: string) =>
+  createHash('sha256').update(email.trim().toLowerCase()).digest('hex');

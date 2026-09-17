@@ -40,6 +40,22 @@ export function NotificationSender() {
   const [parentSearch, setParentSearch] = useState('');
   const [expiresAt, setExpiresAt] = useState<string>('never');
   const [customExpiryDate, setCustomExpiryDate] = useState<string>('');
+  const [externalRecipientText, setExternalRecipientText] = useState('');
+
+  const externalRecipients = useMemo(() => {
+    const recipients = new Map<string, { name: string; email: string }>();
+    const emailPattern = /[^\s,;<>]+@[^\s,;<>]+\.[^\s,;<>]+/;
+
+    externalRecipientText.split(/\r?\n/).forEach(line => {
+      const match = line.match(emailPattern);
+      if (!match) return;
+      const email = match[0].toLowerCase();
+      const name = line.slice(0, match.index).replace(/[\t,;]+$/, '').trim();
+      recipients.set(email, { name, email });
+    });
+
+    return Array.from(recipients.values());
+  }, [externalRecipientText]);
 
   // Fetch parents for targeting
   const parentsQuery = useMemoFirebase(() => db ? query(collection(db, 'users'), where('role', '==', 'parent')) : null, [db]);
@@ -77,6 +93,16 @@ export function NotificationSender() {
       return;
     }
 
+    if (target === 'external_emails' && externalRecipients.length === 0) {
+      toast({ variant: 'destructive', title: 'Hata', description: 'Lütfen en az bir geçerli e-posta adresi yapıştırın.' });
+      return;
+    }
+
+    if (target === 'external_emails' && !channels.includes('email')) {
+      toast({ variant: 'destructive', title: 'Hata', description: 'Harici listeler için e-posta kanalını seçin.' });
+      return;
+    }
+
     if (expiresAt === 'custom' && !customExpiryDate) {
       toast({ variant: 'destructive', title: 'Hata', description: 'Lütfen bir gecerlilik tarihi seçin.' });
       return;
@@ -95,6 +121,7 @@ export function NotificationSender() {
           target, 
           channels, 
           selectedUserIds, 
+          externalRecipients,
           redirectPath,
           expiresAt: expiresAt === 'never' ? null : expiresAt === 'custom' ? customExpiryDate : expiresAt
         }),
@@ -164,6 +191,7 @@ export function NotificationSender() {
                   <SelectItem value="parents">Sadece Veliler</SelectItem>
                   <SelectItem value="teachers">Sadece Öğretmenler</SelectItem>
                   <SelectItem value="selected_parents">Belirli Velileri Seç</SelectItem>
+                  <SelectItem value="external_emails">Harici E-posta Listesi</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -241,6 +269,21 @@ export function NotificationSender() {
                       })}
                     </div>
                   )}
+                </div>
+              )}
+
+              {target === 'external_emails' && (
+                <div className="pt-2 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <Textarea
+                    value={externalRecipientText}
+                    onChange={(event) => setExternalRecipientText(event.target.value)}
+                    placeholder={'Excel’den Ad Soyad ve E-posta sütunlarını kopyalayıp buraya yapıştırın.\nÖrnek: Ayşe Yılmaz\tayse@example.com'}
+                    className="min-h-[150px] rounded-2xl border-slate-200 bg-slate-50/50 font-mono text-xs"
+                  />
+                  <div className="flex items-center justify-between px-2 text-[11px] font-medium text-slate-500">
+                    <span>Her satırda bir kişi olmalı.</span>
+                    <Badge variant="secondary" className="rounded-lg">{externalRecipients.length} geçerli adres</Badge>
+                  </div>
                 </div>
               )}
             </div>

@@ -3,7 +3,7 @@ import { db, messaging } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { resend, FROM_EMAIL } from '@/lib/resend';
 import { getBaseTemplate } from '@/lib/email-templates';
-import { createUnsubscribeToken } from '@/lib/email-unsubscribe';
+import { createUnsubscribeToken, getEmailSuppressionId } from '@/lib/email-unsubscribe';
 
 const escapeHtml = (value: string) => value
   .replaceAll('&', '&amp;')
@@ -14,7 +14,7 @@ const escapeHtml = (value: string) => value
 
 export async function POST(req: Request) {
   try {
-    const { title, body, target, channels = ['push'], selectedUserIds = [], redirectPath = '', expiresAt = null } = await req.json();
+    const { title, body, target, channels = ['push'], selectedUserIds = [], externalRecipients = [], redirectPath = '', expiresAt = null } = await req.json();
 
     if (!title || !body) {
       return NextResponse.json({ error: 'Başlık ve mesaj gereklidir.' }, { status: 400 });
@@ -32,7 +32,22 @@ export async function POST(req: Request) {
     let users: any[] = [];
     
     // 1. Fetch target users
-    if (target === 'selected_parents' && selectedUserIds.length > 0) {
+    if (target === 'external_emails') {
+      const uniqueRecipients = new Map<string, { email: string; name: string }>();
+      for (const recipient of externalRecipients.slice(0, 500)) {
+        const email = String(recipient?.email || '').trim().toLowerCase();
+        if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+          uniqueRecipients.set(email, { email, name: String(recipient?.name || '').trim() });
+        }
+      }
+      users = Array.from(uniqueRecipients.values()).map(recipient => ({
+        id: getEmailSuppressionId(recipient.email),
+        email: recipient.email,
+        firstName: recipient.name,
+        lastName: '',
+        isExternal: true,
+      }));
+    } else if (target === 'selected_parents' && selectedUserIds.length > 0) {
       const userSnaps = await Promise.all(
         selectedUserIds.map((id: string) => db.collection('users').doc(id).get())
       );
@@ -66,8 +81,9 @@ export async function POST(req: Request) {
 
     // 2. Persist to Firestore (Subcollection)
     const persistenceChunks = [];
-    for (let i = 0; i < users.length; i += 500) {
-      persistenceChunks.push(users.slice(i, i + 500));
+    const registeredUsers = users.filter(user => !user.isExternal);
+    for (let i = 0; i < registeredUsers.length; i += 500) {
+      persistenceChunks.push(registeredUsers.slice(i, i + 500));
     }
 
     for (const chunk of persistenceChunks) {
@@ -133,8 +149,12 @@ export async function POST(req: Request) {
 
     // 4. Send Emails
     if (channels.includes('email')) {
-      const emailUsers = users.filter(u => u.email && u.emailPreferences?.marketingEmails !== false);
-      results.email.skippedCount = users.filter(u => u.email && u.emailPreferences?.marketingEmails === false).length;
+      const candidates = users.filter(u => u.email && u.emailPreferences?.marketingEmails !== false);
+      const suppressionRefs = candidates.map(u => db.collection('email-suppressions').doc(getEmailSuppressionId(u.email)));
+      const suppressionDocs = suppressionRefs.length > 0 ? await db.getAll(...suppressionRefs) : [];
+      const suppressedIds = new Set(suppressionDocs.filter(doc => doc.exists).map(doc => doc.id));
+      const emailUsers = candidates.filter(u => !suppressedIds.has(getEmailSuppressionId(u.email)));
+      results.email.skippedCount = users.filter(u => u.email && u.emailPreferences?.marketingEmails === false).length + suppressedIds.size;
       
       if (emailUsers.length > 0) {
         const htmlBody = body.split('\n').map((line: string) => `<p>${escapeHtml(line)}</p>`).join('');
@@ -153,8 +173,11 @@ export async function POST(req: Request) {
         // Fix: Use Resend Batch API to send INDIVIDUAL emails to each user
         // This ensures privacy so users don't see each other's email addresses.
         const batchData = emailUsers.map(u => {
-          const unsubscribeToken = createUnsubscribeToken(u.id);
-          const unsubscribeUrl = `https://turkcocukakademisi.com/api/email/unsubscribe?userId=${encodeURIComponent(u.id)}&token=${encodeURIComponent(unsubscribeToken)}`;
+          const emailHash = getEmailSuppressionId(u.email);
+          const unsubscribeSubject = u.isExternal ? `email:${emailHash}` : u.id;
+          const unsubscribeToken = createUnsubscribeToken(unsubscribeSubject);
+          const identityQuery = u.isExternal ? `emailHash=${emailHash}` : `userId=${encodeURIComponent(u.id)}`;
+          const unsubscribeUrl = `https://turkcocukakademisi.com/api/email/unsubscribe?${identityQuery}&token=${encodeURIComponent(unsubscribeToken)}`;
           const unsubscribeHtml = `
             <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center;">
               <a href="${unsubscribeUrl}" style="color: #64748b; font-size: 12px; text-decoration: underline;">

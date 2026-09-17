@@ -21,16 +21,20 @@ const page = (title: string, message: string, form = '') => new NextResponse(`<!
 
 const readCredentials = (request: Request) => {
   const url = new URL(request.url);
+  const userId = url.searchParams.get('userId') || '';
+  const emailHash = url.searchParams.get('emailHash') || '';
   return {
-    userId: url.searchParams.get('userId') || '',
+    userId,
+    emailHash,
+    subject: userId || (emailHash ? `email:${emailHash}` : ''),
     token: url.searchParams.get('token') || '',
   };
 };
 
 export async function GET(request: Request) {
-  const { userId, token } = readCredentials(request);
+  const { subject, token } = readCredentials(request);
 
-  if (!userId || !token || !verifyUnsubscribeToken(userId, token)) {
+  if (!subject || !token || !verifyUnsubscribeToken(subject, token)) {
     return page('Bağlantı geçersiz', 'Bu abonelikten çıkma bağlantısı geçerli değil veya artık kullanılamıyor.');
   }
 
@@ -44,16 +48,23 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const { userId, token } = readCredentials(request);
+  const { userId, emailHash, subject, token } = readCredentials(request);
 
-  if (!userId || !token || !verifyUnsubscribeToken(userId, token)) {
+  if (!subject || !token || !verifyUnsubscribeToken(subject, token)) {
     return page('Bağlantı geçersiz', 'Abonelik tercihiniz güncellenemedi. Lütfen e-postadaki bağlantıyı yeniden kullanın.');
   }
 
-  await db.collection('users').doc(userId).update({
-    'emailPreferences.marketingEmails': false,
-    'emailPreferences.marketingUnsubscribedAt': FieldValue.serverTimestamp(),
-  });
+  if (userId) {
+    await db.collection('users').doc(userId).update({
+      'emailPreferences.marketingEmails': false,
+      'emailPreferences.marketingUnsubscribedAt': FieldValue.serverTimestamp(),
+    });
+  } else {
+    await db.collection('email-suppressions').doc(emailHash).set({
+      reason: 'unsubscribed',
+      createdAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+  }
 
   return page('Abonelik sonlandırıldı', 'Duyuru ve kampanya e-postalarından çıkarıldınız. Hesap ve derslerle ilgili gerekli bildirimleri almaya devam edebilirsiniz.');
 }
