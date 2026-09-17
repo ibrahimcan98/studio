@@ -102,6 +102,7 @@ export default function ChestPage() {
     const currentStickers = childData.stickers || {};
     const missing = Object.entries(earnedStickers).filter(([id]) => !currentStickers[id]);
     if (missing.length === 0) return;
+    const merged = { ...currentStickers, ...earnedStickers };
     if (!isTeacherTestMode) {
       setDoc(childDocRef, { stickers: merged }, { merge: true });
     }
@@ -110,12 +111,12 @@ export default function ChestPage() {
   useEffect(() => {
     if (stage === 'list' || stage === 'success' || stage === 'game_over') return;
     
-    let act;
-    if (stage === 'okuyorumAnliyorum') {
-      act = content?.okuyorumAnliyorum;
-    } else if (stage === 'dilimiOgreniyorum' || stage === 'ulkemiOgreniyorum') {
-      act = content?.[stage]?.activities?.[currentActivityIndex];
-    }
+    const reading = stage === 'okuyorumAnliyorum'
+      ? content?.okuyorumAnliyorum
+      : undefined;
+    const act: Activity | undefined = stage === 'dilimiOgreniyorum' || stage === 'ulkemiOgreniyorum'
+      ? content?.[stage]?.activities?.[currentActivityIndex]
+      : undefined;
     
     const shuffleArray = (array: any[]) => {
       const newArr = [...array];
@@ -144,7 +145,7 @@ export default function ChestPage() {
       setShuffledTextOptions(null);
     }
     
-    if (act?.type === 'fill_in_blanks') {
+    if (act?.type === 'fill_in_blanks' && act.sentences) {
       const dict: Record<number, string[]> = {};
       act.sentences.forEach((s: any, idx: number) => {
         const options = s.options || act.words;
@@ -155,9 +156,15 @@ export default function ChestPage() {
       setShuffledOptionsDict(dict);
     }
     
-    if (stage === 'okuyorumAnliyorum' || act?.type === 'multiple_choice' || act?.type === 'true_false') {
-      const newQuestions = act.questions.map((q: Question) => {
-        if (stage === 'okuyorumAnliyorum' || act.type === 'multiple_choice') {
+    const questions = reading?.questions || (
+      act?.type === 'multiple_choice' || act?.type === 'true_false'
+        ? act.questions
+        : undefined
+    );
+
+    if (questions) {
+      const newQuestions = questions.map((q: Question) => {
+        if (reading || act?.type === 'multiple_choice') {
           if (q.imageOptions) {
             const originalCorrect = q.imageOptions[q.correct as number];
             const shuffled = shuffleArray(q.imageOptions);
@@ -416,8 +423,10 @@ export default function ChestPage() {
     
     if (selectedImages.includes(text)) return; // Reusing selectedImages state for text selections
     
-    const optObj = act.options?.find((o: any) => o.text === text);
-    if (!optObj) return;
+    const optObj = act.options?.find(
+      (option) => typeof option !== 'string' && option.text === text
+    );
+    if (!optObj || typeof optObj === 'string') return;
 
     if (optObj.isCorrect) {
       const newSelected = [...selectedImages, text];

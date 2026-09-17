@@ -8,9 +8,13 @@ import { sendMetaEvent } from '@/lib/meta-pixel';
 import { SUBSCRIPTION_TIERS } from '@/constants/subscriptions';
 import { subscriptionPeriodEnd } from '@/lib/subscription-period';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-06-20',
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+type PurchasedChild = {
+    id: string;
+    assignedPackage?: string;
+    remainingLessons?: number;
+};
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -115,7 +119,11 @@ export async function POST(req: Request) {
             const userData = userSnap.data() || {};
             const childrenRef = userRef.collection('children');
             const childrenSnap = await childrenRef.get();
-            const childrenList = childrenSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const childrenList: PurchasedChild[] = childrenSnap.docs.map(doc => ({
+                id: doc.id,
+                assignedPackage: doc.data().assignedPackage,
+                remainingLessons: doc.data().remainingLessons,
+            }));
             const isSingleChild = childrenList.length === 1;
 
             const batch = db.batch();
@@ -133,7 +141,7 @@ export async function POST(req: Request) {
                 const isDifferentType = currentPackagePrefix && currentPackagePrefix !== prefix;
                 const isGroupPackage = prefix.toLowerCase().includes('grup');
 
-                if (isGroupPackage || (child.remainingLessons > 0 && isDifferentType)) {
+                if (isGroupPackage || ((child.remainingLessons || 0) > 0 && isDifferentType)) {
                     // GRUP PAKETLERİ VE FARKLI TÜR PAKETLER HAVUZA ATILIR
                     batch.update(userRef, {
                         enrolledPackages: [...(userData.enrolledPackages || []), ...newPackages],

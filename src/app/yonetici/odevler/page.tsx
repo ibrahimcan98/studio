@@ -357,7 +357,7 @@ export default function AdminHomeworksPage() {
                                 </SelectTrigger>
                                 <SelectContent className="max-h-64">
                                     {activeTopics.map(t => (
-                                        <SelectItem key={t.id} value={t.id}>{t.name} {t.icon}</SelectItem>
+                                        <SelectItem key={t.id} value={String(t.id)}>{t.name} {t.icon}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>

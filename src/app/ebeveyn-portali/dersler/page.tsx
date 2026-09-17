@@ -585,7 +585,7 @@ function DerslerimPageContent() {
     
     
     const allCombinedLessons = useMemo(() => {
-        const combined = [...groupedLessons];
+        const combined: any[] = [...groupedLessons];
         if (groupSessions && groupEnrollments && groupPackages) {
             groupSessions.forEach((session: any) => {
                 const pkg = groupPackages.find((p: any) => p.id === session.packageId);

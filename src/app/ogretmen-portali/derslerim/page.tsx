@@ -33,7 +33,7 @@ import { LessonQuickChat } from '@/components/shared/lesson-quick-chat';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CHEST_DATA } from "@/data/turkce-hazinem-data";
-import { MOCK_TOPICS, STORY_DATA } from "@/app/ogretmen-portali/oyunlar/page";
+import { MOCK_TOPICS, STORY_DATA } from "@/data/teacher-game-content";
 import { sendLessonCancelledEmails } from '@/lib/email-service';
 
 const getCourseDetailsFromPackageCode = (code?: string) => {
@@ -506,7 +506,7 @@ function OgretmenDerslerimPageContent() {
     }, [lessonSlots]);
 
     const allCombinedLessons = useMemo(() => {
-        const combined = [...groupedLessons];
+        const combined: any[] = [...groupedLessons];
 
         // Add Group Sessions mapped to format
         if (groupSessions && groupPackages) {

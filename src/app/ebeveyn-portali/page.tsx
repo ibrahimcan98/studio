@@ -1002,7 +1002,7 @@ function EbeveynPortaliContent() {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="mt-8 flex flex-col gap-3">
-                        <AddChildForm userId={user.uid} onChildAdded={(newChildId) => { 
+                        <AddChildForm userId={user.uid} onChildAdded={(newChildId?: string) => {
                             refetchChildren(); 
                             setShowWelcomeModal(false);
                             toast({

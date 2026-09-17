@@ -109,7 +109,7 @@ type AddChildFormValues = z.infer<typeof formSchema>;
 
 interface AddChildFormProps {
     userId: string;
-    onChildAdded: () => void;
+    onChildAdded: (childId?: string) => void;
     child?: any; // For edit mode
     childId?: string; // For edit mode
     children?: React.ReactNode;

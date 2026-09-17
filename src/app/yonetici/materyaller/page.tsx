@@ -419,10 +419,6 @@ export default function MateryallerPage() {
                           draggable
                           onDragStart={(e) => {
                               e.dataTransfer.setData('text/plain', file.id);
-                              // Optional visual change when dragging
-                              if (e.dataTransfer.setDragImage) {
-                                  // Standard behaviour is fine
-                              }
                           }}
                           className="group bg-white border border-slate-200 rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all flex flex-col justify-between h-[140px] cursor-grab active:cursor-grabbing"
                         >

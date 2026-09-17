@@ -516,7 +516,7 @@ export default function DerslerimPage() {
     }, [lessonSlots]);
 
     const allCombinedLessons = useMemo(() => {
-        const combined = [...groupedLessons];
+        const combined: any[] = [...groupedLessons];
         
         // Add Group Sessions mapped to format
         if (groupSessions && groupEnrollments && groupPackages) {

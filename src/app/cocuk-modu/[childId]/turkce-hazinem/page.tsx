@@ -96,6 +96,7 @@ export default function TurkceHazinemPage() {
       questions: number;
       isReview: boolean;
       isLocked: boolean;
+      isCompleted: boolean;
       lockedReason: "none" | "paywall" | "progress";
     };
     const list: ChestItem[] = [];

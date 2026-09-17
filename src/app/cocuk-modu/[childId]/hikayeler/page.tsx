@@ -128,7 +128,7 @@ export default function HikayelerPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl mx-auto pb-20">
               {/* Hikaye Kartı: Sarı Top */}
               <div 
-                onClick={() => handleStoryClick(`/cocuk-modu/${childId}/hikayeler/sari-top`, 0)}
+                onClick={() => handleStoryClick(`/cocuk-modu/${childId}/hikayeler/sari-top`)}
                 onMouseEnter={() => speak('/hikayeler/1-sari-top/kapak.m4a')}
                 onMouseLeave={() => stop()}
                 className="group relative bg-white/95 rounded-[45px] p-4 border-[6px] border-amber-200/50 shadow-[0_20px_60px_rgba(0,0,0,0.4)] cursor-pointer transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(251,191,36,0.3)] active:scale-95 overflow-hidden flex flex-col"

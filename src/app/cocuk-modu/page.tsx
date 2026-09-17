@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, updateDoc } from 'firebase/firestore';
 import { Loader2, User, Sparkles, ArrowLeft, Crown, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SetPinDialog } from '@/components/child-mode/set-pin-dialog';

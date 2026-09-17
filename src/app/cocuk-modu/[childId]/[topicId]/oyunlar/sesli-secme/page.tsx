@@ -11,6 +11,13 @@ type Word = {
     audio: string;
 };
 
+type Question = {
+    question: string;
+    audio: string;
+    options: Word[];
+    correctAnswer: Word;
+};
+
 // Function to shuffle an array
 function shuffleArray<T>(array: T[]): T[] {
     const shuffled = [...array];
@@ -24,7 +31,7 @@ function shuffleArray<T>(array: T[]): T[] {
 export default function SesliSecmePage() {
     const params = useParams();
     const { topicId } = params;
-    const [wordList, setWordList] = useState<Word[] | null>(null);
+    const [wordList, setWordList] = useState<Question[] | null>(null);
 
     const topic = useMemo(() => {
         return topicsData.find(t => t.id === topicId);
@@ -55,7 +62,6 @@ export default function SesliSecmePage() {
             };
 
             const questions = generateQuestions();
-             // @ts-ignore
             setWordList(questions);
         }
     }, [topic, topicId]);

@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     });
 
     const childData = childSnapshot.data();
-    const childUpdates: Record<string, unknown> = {
+    const childUpdates: Record<string, FieldValue | null> = {
       activeHomeworkTopics: FieldValue.arrayRemove(topicId),
     };
     if (childData?.activeHomeworkTopic === topicId) {

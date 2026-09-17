@@ -12,18 +12,28 @@ export async function POST(req: Request) {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
     const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+    const subscriptionItem = subscription.items.data[0];
+
+    if (!subscriptionItem) {
+      return NextResponse.json(
+        { error: 'Subscription has no billable item' },
+        { status: 400 }
+      );
+    }
     
     // Taslak faturayı alarak mahsuplaşmayı (proration) önizle
-    const invoice = await stripe.invoices.retrieveUpcoming({
+    const invoice = await stripe.invoices.createPreview({
       customer: stripeCustomerId,
       subscription: stripeSubscriptionId,
-      subscription_proration_behavior: 'always_invoice',
-      subscription_items: [
-        {
-          id: subscription.items.data[0].id,
-          price: newPriceId, // Yeni fiyatla taslak fatura
-        },
-      ],
+      subscription_details: {
+        proration_behavior: 'always_invoice',
+        items: [
+          {
+            id: subscriptionItem.id,
+            price: newPriceId, // Yeni fiyatla taslak fatura
+          },
+        ],
+      },
     });
 
     return NextResponse.json({ 

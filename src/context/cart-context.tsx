@@ -279,7 +279,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     return (
         <CartContext.Provider value={{ 
             cartItems, addToCart, removeFromCart, updateQuantity, clearCart, 
-            cartTotal, applyStandardDiscount, discountAmount, publicDiscountAmount, manualDiscountAmount, getItemDiscountBreakdown, finalTotal, appliedCoupon, appliedCouponData, removeCoupon, 
+            cartTotal, applyStandardDiscount, discountAmount, publicDiscountAmount, manualDiscountAmount, getItemDiscountPct, getItemDiscountBreakdown, finalTotal, appliedCoupon, appliedCouponData, removeCoupon,
             applyReferral, appliedReferralCode, removeReferral, referrerId,
             isCartLoaded, selectedCurrency, setSelectedCurrency, exchangeRates 
         }}>

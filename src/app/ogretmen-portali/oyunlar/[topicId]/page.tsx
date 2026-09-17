@@ -97,8 +97,6 @@ export default function DemoTopicPage() {
                 setStage('matching');
             } else if (currentStage === 'matching') {
                 setStage('quiz');
-            } else if (currentStage === 'quiz') {
-                setStage('completed');
             }
         }, 6000);
     };

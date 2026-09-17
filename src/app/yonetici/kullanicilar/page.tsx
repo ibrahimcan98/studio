@@ -88,6 +88,7 @@ interface ParentData {
     phoneNumber: string;
     createdAt?: any;
     remainingLessons: number;
+    totalRemainingLessons?: number;
     enrolledPackages: string[];
     computedTags: string[];
     manualTags: string[];
@@ -838,7 +839,7 @@ function UsersPageContent() {
     if (!db) return;
     const parentChildren = allChildren.filter(c => c.parentId === parent.id);
     if (parentChildren.length !== 1) {
-        toast({ title: 'İşlem İptal Edildi', description: 'Bu özellik sadece tek çocuklu aileler için geçerlidir.', variant: 'outline' });
+        toast({ title: 'İşlem İptal Edildi', description: 'Bu özellik sadece tek çocuklu aileler için geçerlidir.' });
         return;
     }
 
@@ -1158,7 +1159,7 @@ function UsersPageContent() {
                                 key={parent.id} 
                                 parent={parent} 
                                 isSelected={selectedUserIds.includes(parent.id)}
-                                onSelect={(checked) => {
+                                onSelect={(checked: boolean) => {
                                     setSelectedUserIds(prev => checked ? [...prev, parent.id] : prev.filter(id => id !== parent.id));
                                 }}
                                 onDetail={() => { setSelectedParent(parent); setIsDetailOpen(true); }}
@@ -1166,7 +1167,7 @@ function UsersPageContent() {
                                 onManageTags={() => { setSelectedParent(parent); setIsTagsOpen(true); }}
                                 onToggleLegacy={() => handleToggleLegacy(parent)}
                                 onDelete={() => handleDeleteParent(parent)}
-                                onQuickRemoveTag={(tag) => handleQuickRemoveTag(parent, tag)}
+                                onQuickRemoveTag={(tag: string) => handleQuickRemoveTag(parent, tag)}
                                 onUpdateCountry={(newCountry: string) => handleUpdateCountry(parent, newCountry)}
                                 onImpersonate={() => handleImpersonate(parent)}
                                 isImpersonating={isImpersonating === parent.id}
@@ -1194,7 +1195,7 @@ function UsersPageContent() {
                                         key={parent.id} 
                                         parent={parent} 
                                         isSelected={selectedUserIds.includes(parent.id)}
-                                        onSelect={(checked) => {
+                                        onSelect={(checked: boolean) => {
                                             setSelectedUserIds(prev => checked ? [...prev, parent.id] : prev.filter(id => id !== parent.id));
                                         }}
                                         onDetail={() => { setSelectedParent(parent); setIsDetailOpen(true); }}
@@ -1202,7 +1203,7 @@ function UsersPageContent() {
                                         onManageTags={() => { setSelectedParent(parent); setIsTagsOpen(true); }}
                                         onToggleLegacy={() => handleToggleLegacy(parent)}
                                         onDelete={() => handleDeleteParent(parent)}
-                                        onQuickRemoveTag={(tag) => handleQuickRemoveTag(parent, tag)}
+                                        onQuickRemoveTag={(tag: string) => handleQuickRemoveTag(parent, tag)}
                                         onUpdateCountry={(newCountry: string) => handleUpdateCountry(parent, newCountry)}
                                         onImpersonate={() => handleImpersonate(parent)}
                                         isImpersonating={isImpersonating === parent.id}
@@ -1991,6 +1992,8 @@ function UsersPageContent() {
 }
 
 function ParentRow({ parent, isSelected, onSelect, onDetail, onAddLessons, onManageTags, onToggleLegacy, onDelete, onQuickRemoveTag, onUpdateCountry, onImpersonate, isImpersonating }: any) {
+    const { toast } = useToast();
+
     return (
         <TableRow className={cn("hover:bg-slate-50/30 transition-colors border-slate-100", isSelected && "bg-slate-50")}>
             <TableCell className="pl-8">

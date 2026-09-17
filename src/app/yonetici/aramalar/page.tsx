@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { getCountryFromPhone, cn } from '@/lib/utils';
-import { Loader2, Phone, Search, History, Clock, PhoneOff, UserCheck, CalendarClock, UserCog, User, MapPin, Hash, PhoneCall, Copy, MoreHorizontal, ShoppingBag, Baby, FileText, Tag as TagIcon, Mail, Calendar, Activity, Trash2, Edit2, ChevronLeft, ChevronRight, ArrowLeft, Send, MessageCircle, Flame, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, Phone, Search, Clock, PhoneOff, UserCheck, CalendarClock, UserCog, User, MapPin, Hash, PhoneCall, Copy, MoreHorizontal, ShoppingBag, Baby, FileText, Tag as TagIcon, Mail, Calendar, Activity, Trash2, Edit2, ChevronLeft, ChevronRight, ArrowLeft, Send, MessageCircle, CheckCircle2, XCircle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { formatInTimeZone } from 'date-fns-tz';
@@ -47,6 +47,7 @@ const SALES_STAGES = [
 ] as const;
 
 const QUICK_OUTCOMES = [
+    { label: 'Açtı', stage: 'contacted', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: 'UserCheck' },
     { label: 'Açmadı', stage: 'new', color: 'bg-red-50 text-red-600 border-red-200', icon: 'PhoneOff' },
     { label: 'Sonra Ara', stage: 'contacted', color: 'bg-blue-50 text-blue-600 border-blue-200', icon: 'CalendarClock' },
     { label: 'Deneme İstiyor', stage: 'trial-planned', color: 'bg-violet-50 text-violet-600 border-violet-200', icon: 'CalendarClock' },
@@ -54,6 +55,25 @@ const QUICK_OUTCOMES = [
     { label: 'Satın Aldı', stage: 'won', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: 'UserCheck' },
     { label: 'İlgilenmiyor', stage: 'lost', color: 'bg-slate-100 text-slate-600 border-slate-200', icon: 'PhoneOff' },
 ] as const;
+
+const CALL_FILTERS = [
+    { id: 'answered', status: 'Açtı', label: 'Açtı', icon: UserCheck, activeColor: 'bg-emerald-600 border-emerald-600 shadow-emerald-200' },
+    { id: 'no-answer', status: 'Açmadı', label: 'Açmadı', icon: PhoneOff, activeColor: 'bg-red-600 border-red-600 shadow-red-200' },
+    { id: 'call-later', status: 'Sonra Ara', label: 'Sonra Ara', icon: CalendarClock, activeColor: 'bg-blue-600 border-blue-600 shadow-blue-200' },
+    { id: 'trial-requested', status: 'Deneme İstiyor', label: 'Deneme İstiyor', icon: CalendarClock, activeColor: 'bg-violet-600 border-violet-600 shadow-violet-200' },
+    { id: 'price-sent', status: 'Fiyat Gönderildi', label: 'Fiyat Gönderildi', icon: TagIcon, activeColor: 'bg-amber-500 border-amber-500 shadow-amber-200' },
+    { id: 'purchased', status: 'Satın Aldı', label: 'Satın Aldı', icon: UserCheck, activeColor: 'bg-emerald-700 border-emerald-700 shadow-emerald-200' },
+    { id: 'not-interested', status: 'İlgilenmiyor', label: 'İlgilenmiyor', icon: PhoneOff, activeColor: 'bg-slate-600 border-slate-600 shadow-slate-200' },
+] as const;
+
+const getTimestampMillis = (value: any) => {
+    if (!value) return 0;
+    if (typeof value.toMillis === 'function') return value.toMillis();
+    if (typeof value.toDate === 'function') return value.toDate().getTime();
+    if (typeof value.seconds === 'number') return value.seconds * 1000;
+    const timestamp = new Date(value).getTime();
+    return Number.isNaN(timestamp) ? 0 : timestamp;
+};
 
 interface ParentData {
     id: string;
@@ -98,6 +118,7 @@ export default function AramalarPage() {
     const [isUpdatingLog, setIsUpdatingLog] = useState(false);
     const [activeMobileView, setActiveMobileView] = useState<'list' | 'details'>('list');
     const [activeFilter, setActiveFilter] = useState('all');
+    const [sortMode, setSortMode] = useState<'recent' | 'remaining-lessons'>('recent');
     const [allChildrenLessons, setAllChildrenLessons] = useState<Record<string, number>>({});
     const [isLoadingChildren, setIsLoadingChildren] = useState(false);
     const [allLatestLessons, setAllLatestLessons] = useState<Record<string, number>>({});
@@ -253,44 +274,24 @@ export default function AramalarPage() {
         // Apply Status Filter (Single-select)
         if (activeFilter !== 'all') {
             list = list.filter(p => {
-                const status = p.lastCallStatus?.status;
-                if (activeFilter === 'answered') return status === 'Açtı';
-                if (activeFilter === 'no-answer') return status === 'Açmadı';
-                if (activeFilter === 'potential') return status === 'Potansiyel Veli';
-                if (activeFilter === 'follow-up') return Boolean(p.nextFollowUpAt) && new Date(p.nextFollowUpAt?.toDate?.() || p.nextFollowUpAt) <= new Date();
-                if (activeFilter === 'hot') return ['trial-planned', 'offer-sent'].includes(p.salesStage);
-                return false;
+                const selectedFilter = CALL_FILTERS.find(filter => filter.id === activeFilter);
+                return selectedFilter ? p.lastCallStatus?.status === selectedFilter.status : false;
             });
         }
 
-        // Süresi gelen takipleri önce göster; sonra mevcut ders önceliğini koru.
+        // Seçilen sıralamayı uygula; eşitlikte en son işlem yapılan veli öne gelir.
         list.sort((a, b) => {
-            const aFollowUp = a.nextFollowUpAt?.toDate?.()?.getTime?.() || (a.nextFollowUpAt ? new Date(a.nextFollowUpAt).getTime() : Number.MAX_SAFE_INTEGER);
-            const bFollowUp = b.nextFollowUpAt?.toDate?.()?.getTime?.() || (b.nextFollowUpAt ? new Date(b.nextFollowUpAt).getTime() : Number.MAX_SAFE_INTEGER);
-            const now = Date.now();
-            const aDue = aFollowUp <= now;
-            const bDue = bFollowUp <= now;
-            if (aDue !== bDue) return aDue ? -1 : 1;
-            if (aFollowUp !== bFollowUp) return aFollowUp - bFollowUp;
-            // 1. Kalan paket sayısına göre (artan - en az olan en üstte)
-            if (a.totalLessons !== b.totalLessons) {
+            const aLastAction = getTimestampMillis(a.salesUpdatedAt || a.lastCallStatus?.createdAt);
+            const bLastAction = getTimestampMillis(b.salesUpdatedAt || b.lastCallStatus?.createdAt);
+            if (sortMode === 'remaining-lessons' && a.totalLessons !== b.totalLessons) {
                 return a.totalLessons - b.totalLessons;
             }
-
-            // 2. Son ders tarihinin yakınlığına göre (artan - tarihi daha yakın/geçmiş olan en üstte)
-            if (a.latestLesson !== b.latestLesson) {
-                if (a.latestLesson === 0) return 1;
-                if (b.latestLesson === 0) return -1;
-                return a.latestLesson - b.latestLesson;
-            }
-
-            const aT = a.createdAt?.seconds || 0;
-            const bT = b.createdAt?.seconds || 0;
-            return bT - aT;
+            if (aLastAction !== bLastAction) return bLastAction - aLastAction;
+            return getTimestampMillis(b.createdAt) - getTimestampMillis(a.createdAt);
         });
 
         return list;
-    }, [parents, searchQuery, allChildrenLessons, allLatestLessons, activeFilter]);
+    }, [parents, searchQuery, allChildrenLessons, allLatestLessons, activeFilter, sortMode]);
 
     useEffect(() => {
         if (!selectedParent) return;
@@ -682,13 +683,7 @@ export default function AramalarPage() {
                                 <User className="w-3 h-3" />
                                 Hepsi
                             </button>
-                            {[
-                                { id: 'answered', label: 'Açtı', icon: UserCheck, activeColor: 'bg-emerald-600 border-emerald-600 shadow-emerald-200' },
-                                { id: 'no-answer', label: 'Açmadı', icon: PhoneOff, activeColor: 'bg-red-600 border-red-600 shadow-red-200' },
-                                { id: 'potential', label: 'Potansiyel', icon: TagIcon, activeColor: 'bg-amber-500 border-amber-500 shadow-amber-200' },
-                                { id: 'hot', label: 'Sıcak', icon: Flame, activeColor: 'bg-orange-500 border-orange-500 shadow-orange-200' },
-                                { id: 'follow-up', label: 'Tekrar', icon: History, activeColor: 'bg-blue-600 border-blue-600 shadow-blue-200' }
-                            ].map((btn) => (
+                            {CALL_FILTERS.map((btn) => (
                                 <button
                                     key={btn.id}
                                     onClick={() => setActiveFilter(btn.id)}
@@ -703,6 +698,33 @@ export default function AramalarPage() {
                                     {btn.label}
                                 </button>
                             ))}
+                        </div>
+                        <div className="flex items-center gap-2 border-t border-slate-200/70 pt-3">
+                            <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Sırala</span>
+                            <button
+                                type="button"
+                                onClick={() => setSortMode('recent')}
+                                className={cn(
+                                    "px-3 py-1.5 rounded-full text-[10px] font-bold transition-all flex items-center gap-1.5 border",
+                                    sortMode === 'recent'
+                                        ? "bg-slate-700 text-white border-slate-700 shadow-sm"
+                                        : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
+                                )}
+                            >
+                                <Clock className="w-3 h-3" /> Son İşlem
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setSortMode('remaining-lessons')}
+                                className={cn(
+                                    "px-3 py-1.5 rounded-full text-[10px] font-bold transition-all flex items-center gap-1.5 border",
+                                    sortMode === 'remaining-lessons'
+                                        ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                                        : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
+                                )}
+                            >
+                                <ShoppingBag className="w-3 h-3" /> Kalan Ders
+                            </button>
                         </div>
                     </div>
                     <div className="flex-1 overflow-y-auto p-2 sm:p-3 space-y-2 relative scrollbar-thin">
@@ -948,7 +970,7 @@ export default function AramalarPage() {
                                         <Input placeholder="Konuşulanları ve sonraki adımı yazın..." className="h-10 text-xs bg-white rounded-xl" value={callNote} onChange={(e) => setCallNote(e.target.value)} />
                                     </label>
                                 </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-2">
                                     {QUICK_OUTCOMES.map(outcome => (
                                         <Button key={outcome.label} disabled={isSavingCall} onClick={() => handleCallAction(outcome.label, outcome.color, outcome.icon, outcome.stage)} variant="outline" className={cn("h-10 rounded-xl font-bold text-[10px] sm:text-xs px-2", outcome.color)}>
                                             {isSavingCall ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : getStatusIcon(outcome.icon)}
@@ -1204,7 +1226,7 @@ export default function AramalarPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50/50 relative">
-                        {selectedChildForProgress && (
+                        {selectedChildForProgress && selectedParent && (
                             <ProgressPanel
                                 child={selectedChildForProgress}
                                 parentId={selectedParent.id}

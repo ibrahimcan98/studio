@@ -37,6 +37,7 @@ import { Loader2, Plus, Users, Video, Calendar as CalendarIcon, Trash2, Clock, M
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { tr } from 'date-fns/locale';
 
 function PendingAssignmentRow({ parent, db, packages, children }: { parent: any, db: any, packages: any[], children: any[] }) {

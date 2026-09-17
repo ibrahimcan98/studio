@@ -22,7 +22,7 @@ export function EmailVerificationBanner() {
 
   // Gerçek zamanlı olarak Firestore'u dinleyip başka sekmede onaylanırsa banner'ı gizleriz
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.uid) return;
     
     // Yalnızca onaylanmamışsa dinlemeye başla
     if (user.emailVerified || isVerifiedLocally) return;
@@ -34,7 +34,7 @@ export function EmailVerificationBanner() {
         const { doc, onSnapshot } = await import('firebase/firestore');
         const { db } = await import('@/firebase');
         
-        unsubscribe = onSnapshot(doc(db, 'users', user.id), (docSnap) => {
+        unsubscribe = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
           if (docSnap.exists() && docSnap.data().emailVerified === true) {
             setIsVerifiedLocally(true);
             // İsteğe bağlı: Ekranda otomatik kaybolduğuna dair bir toast gösterebiliriz
@@ -55,7 +55,7 @@ export function EmailVerificationBanner() {
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [user?.id, user?.emailVerified, isVerifiedLocally, toast]);
+  }, [user?.uid, user?.emailVerified, isVerifiedLocally, toast]);
 
   if (!shouldShow) return null;
 
@@ -110,11 +110,11 @@ export function EmailVerificationBanner() {
       await auth.currentUser.reload();
       if (auth.currentUser.emailVerified) {
         setIsVerifiedLocally(true);
-        if (user?.id) {
+        if (user?.uid) {
           try {
             const { doc, updateDoc } = await import('firebase/firestore');
             const { db } = await import('@/firebase');
-            await updateDoc(doc(db, 'users', user.id), { emailVerified: true });
+            await updateDoc(doc(db, 'users', user.uid), { emailVerified: true });
           } catch (err) {
             console.error("Firestore update error:", err);
           }

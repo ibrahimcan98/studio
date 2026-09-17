@@ -380,7 +380,7 @@ function PaketlerimPageContent() {
         });
     };
     
-    const unassignedPackages = userData?.enrolledPackages || [];
+    const unassignedPackages: string[] = userData?.enrolledPackages || [];
     const childrenWithoutPackages = children?.filter(c => !c.assignedPackage || (c.remainingLessons || 0) <= 0) || [];
     const totalUnassignedLessons = userData?.remainingLessons || 0;
 
