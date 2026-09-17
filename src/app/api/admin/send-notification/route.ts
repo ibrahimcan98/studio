@@ -3,6 +3,14 @@ import { db, messaging } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { resend, FROM_EMAIL } from '@/lib/resend';
 import { getBaseTemplate } from '@/lib/email-templates';
+import { createUnsubscribeToken } from '@/lib/email-unsubscribe';
+
+const escapeHtml = (value: string) => value
+  .replaceAll('&', '&amp;')
+  .replaceAll('<', '&lt;')
+  .replaceAll('>', '&gt;')
+  .replaceAll('"', '&quot;')
+  .replaceAll("'", '&#039;');
 
 export async function POST(req: Request) {
   try {
@@ -48,7 +56,7 @@ export async function POST(req: Request) {
 
     const results: any = {
       push: { successCount: 0, failureCount: 0 },
-      email: { successCount: 0, failureCount: 0 },
+      email: { successCount: 0, failureCount: 0, skippedCount: 0 },
       persistence: { successCount: 0 }
     };
 
@@ -125,10 +133,11 @@ export async function POST(req: Request) {
 
     // 4. Send Emails
     if (channels.includes('email')) {
-      const emailUsers = users.filter(u => u.email);
+      const emailUsers = users.filter(u => u.email && u.emailPreferences?.marketingEmails !== false);
+      results.email.skippedCount = users.filter(u => u.email && u.emailPreferences?.marketingEmails === false).length;
       
       if (emailUsers.length > 0) {
-        const htmlBody = body.split('\n').map((line: string) => `<p>${line}</p>`).join('');
+        const htmlBody = body.split('\n').map((line: string) => `<p>${escapeHtml(line)}</p>`).join('');
         
         let callToActionHtml = '';
         if (redirectPath) {
@@ -141,16 +150,33 @@ export async function POST(req: Request) {
             `;
         }
 
-        const emailHtml = getBaseTemplate(`${htmlBody}${callToActionHtml}`);
-
         // Fix: Use Resend Batch API to send INDIVIDUAL emails to each user
         // This ensures privacy so users don't see each other's email addresses.
-        const batchData = emailUsers.map(u => ({
-          from: FROM_EMAIL,
-          to: [u.email], // Single recipient per email
-          subject: title,
-          html: emailHtml,
-        }));
+        const batchData = emailUsers.map(u => {
+          const unsubscribeToken = createUnsubscribeToken(u.id);
+          const unsubscribeUrl = `https://turkcocukakademisi.com/api/email/unsubscribe?userId=${encodeURIComponent(u.id)}&token=${encodeURIComponent(unsubscribeToken)}`;
+          const unsubscribeHtml = `
+            <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center;">
+              <a href="${unsubscribeUrl}" style="color: #64748b; font-size: 12px; text-decoration: underline;">
+                Duyuru ve kampanya e-postalarından çık
+              </a>
+            </div>
+          `;
+          const textBody = `${body}${redirectPath ? `\n\nHemen görüntüle: ${finalLink}` : ''}\n\nDuyuru ve kampanya e-postalarından çık: ${unsubscribeUrl}`;
+
+          return {
+            from: `Türk Çocuk Akademisi <${FROM_EMAIL}>`,
+            to: [u.email], // Single recipient per email
+            replyTo: FROM_EMAIL,
+            subject: title,
+            html: getBaseTemplate(`${htmlBody}${callToActionHtml}${unsubscribeHtml}`),
+            text: textBody,
+            headers: {
+              'List-Unsubscribe': `<${unsubscribeUrl}>`,
+              'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+            },
+          };
+        });
 
         // Resend batch limit is usually 100 emails per call
         for (let i = 0; i < batchData.length; i += 100) {
