@@ -26,7 +26,8 @@ import {
   Megaphone,
   Crown,
   Library,
-  Gamepad2
+  Gamepad2,
+  TrendingUp
 } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
@@ -68,6 +69,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     { id: 'bildirimler', href: '/yonetici/bildirimler', label: 'Bildirim Paneli', icon: Megaphone },
     { id: 'canli-takip', href: '/yonetici/canli-takip', label: 'Canlı İzle', icon: Activity },
     { id: 'inbox', href: '/yonetici/inbox', label: 'Mesajlar', icon: Inbox },
+    { id: 'finans', href: '/yonetici/finans', label: 'Kâr & Finans', icon: TrendingUp },
     { id: 'satislar', href: '/yonetici/satislar', label: 'Satışlar', icon: CreditCard },
     { id: 'ogretmenler', href: '/yonetici/ogretmenler', label: 'Öğretmenler', icon: Presentation },
     { id: 'dersler', href: '/yonetici/dersler', label: 'Dersler', icon: Calendar },
@@ -99,7 +101,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
     },
     {
       title: 'Finans & Satış',
-      items: ['satislar', 'uyelikler', 'indirimler']
+      items: ['finans', 'satislar', 'uyelikler', 'indirimler']
     },
     {
       title: 'Sistem',
@@ -117,6 +119,7 @@ function AdminPortalLayout({ children }: { children: React.ReactNode }) {
       items = allNavItems.filter((item: any) => 
         item.id === 'dashboard' || 
         item.id === 'analitik' ||
+        item.id === 'finans' ||
         item.id === 'admin-yonetimi' || // Ensure it potentially stays if we are ultra admin
         userData.permissions.includes(item.id)
       );

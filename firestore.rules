@@ -150,6 +150,10 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /expenses/{id} {
+      allow read, write: if isAdmin();
+    }
+
     // 5. LOGLAR VE SİSTEM VERİLERİ (Sadece Admin)
     match /activity-log/{id} {
       allow create: if true; // Kayıt her zaman yapılabilmeli
