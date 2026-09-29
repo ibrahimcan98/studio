@@ -539,8 +539,8 @@ export function KurslarClientPage({
                         </div>
                         
                         <div>
-                            <h3 className="text-3xl md:text-4xl font-bold mb-8 text-center">{gcseKursu.title} - Paket Seçeneği</h3>
-                            <div className="flex justify-center">
+                            <h3 className="text-3xl md:text-4xl font-bold mb-8 text-center">{gcseKursu.title} - Paket Seçenekleri</h3>
+                            <div className="flex flex-wrap justify-center gap-6">
                                 {gcseKursu.pricing.packages.map((pkg) => {
                                     const perLessonPrice = gcseKursu.pricing.perLesson?.[String(pkg.lessons) as keyof typeof gcseKursu.pricing.perLesson];
                                     if (!perLessonPrice) return null;

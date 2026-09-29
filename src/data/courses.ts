@@ -258,9 +258,10 @@ export const COURSES: Course[] = [
             ],
         },
         pricing: {
-            perLesson: { '12': 60 },
+            perLesson: { '12': 60, '24': 55 },
             packages: [
-                { lessons: 12, price: 720 }
+                { lessons: 12, price: 720 },
+                { lessons: 24, price: 1320 }
             ],
         },
     },
