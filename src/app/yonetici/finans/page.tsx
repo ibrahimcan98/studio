@@ -113,14 +113,14 @@ export default function AdminFinansPage() {
   const db = useFirestore();
   const { toast } = useToast();
 
-  // Period State: 'monthly' | 'quarterly' | 'yearly' | 'since_april'
-  const [periodType, setPeriodType] = useState<'monthly' | 'quarterly' | 'yearly' | 'since_april'>('monthly');
+  // Period State: 'monthly' | 'quarterly' | 'yearly' | 'since_march'
+  const [periodType, setPeriodType] = useState<'monthly' | 'quarterly' | 'yearly' | 'since_march'>('monthly');
   
-  // Selected Month (defaults to current date, but minimum April 2026)
+  // Selected Month (defaults to current date, minimum March 2026)
   const [selectedMonth, setSelectedMonth] = useState<Date>(() => {
     const now = new Date();
-    const april2026 = new Date(2026, 3, 1); // April 2026
-    return now < april2026 ? april2026 : startOfMonth(now);
+    const march2026 = new Date(2026, 2, 1); // March 2026
+    return now < march2026 ? march2026 : startOfMonth(now);
   });
 
   // Selected Quarter for quarterly view
@@ -132,7 +132,8 @@ export default function AdminFinansPage() {
   const [expenseForm, setExpenseForm] = useState({
     title: '',
     amount: '',
-    category: 'reklam',
+    currency: 'EUR',
+    category: 'ogretmen',
     date: format(new Date(), 'yyyy-MM-dd'),
     notes: '',
   });
@@ -222,7 +223,7 @@ export default function AdminFinansPage() {
 
   // Determine Active Date Interval based on Filter
   const activeInterval = useMemo(() => {
-    const april1_2026 = new Date(2026, 3, 1, 0, 0, 0); // 1 Nisan 2026
+    const march1_2026 = new Date(2026, 2, 1, 0, 0, 0); // 1 Mart 2026
 
     if (periodType === 'monthly') {
       return {
@@ -258,11 +259,11 @@ export default function AdminFinansPage() {
       };
     }
 
-    // since_april (1 Nisan 2026'dan bugüne)
+    // since_march (1 Mart 2026'dan bugüne)
     return {
-      start: april1_2026,
+      start: march1_2026,
       end: new Date(2026, 11, 31, 23, 59, 59),
-      label: "Nisan 2026'dan İtibaren (Kümülatif)"
+      label: "Mart 2026'dan İtibaren (Kümülatif)"
     };
   }, [periodType, selectedMonth, selectedQuarter]);
 
@@ -346,9 +347,10 @@ export default function AdminFinansPage() {
   const netProfit = totalRevenue - totalAllExpenses;
   const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
-  // Monthly Table Breakdown (Nisan 2026'dan itibaren tüm aylar)
+  // Monthly Table Breakdown (Mart 2026'dan itibaren tüm aylar)
   const monthlyTimeline = useMemo(() => {
     const months = [
+      new Date(2026, 2, 1), // Mart 2026
       new Date(2026, 3, 1), // Nisan 2026
       new Date(2026, 4, 1), // Mayıs 2026
       new Date(2026, 5, 1), // Haziran 2026
@@ -424,11 +426,20 @@ export default function AdminFinansPage() {
     setIsSubmittingExpense(true);
     try {
       const expenseDate = new Date(expenseForm.date);
+      let calculatedGbp = amountNum;
+      if (expenseForm.currency === 'EUR') {
+        calculatedGbp = Number((amountNum / 1.18).toFixed(2));
+      } else if (expenseForm.currency === 'USD') {
+        calculatedGbp = Number((amountNum / 1.27).toFixed(2));
+      } else if (expenseForm.currency === 'TRY') {
+        calculatedGbp = Number((amountNum / 47.0).toFixed(2));
+      }
+
       await addDoc(collection(db, 'expenses'), {
         title: expenseForm.title.trim(),
         amount: amountNum,
-        amountGbp: amountNum, // Standardized in GBP
-        currency: 'GBP',
+        amountGbp: calculatedGbp,
+        currency: expenseForm.currency,
         category: expenseForm.category,
         date: Timestamp.fromDate(expenseDate),
         month: format(expenseDate, 'yyyy-MM'),
@@ -446,7 +457,8 @@ export default function AdminFinansPage() {
       setExpenseForm({
         title: '',
         amount: '',
-        category: 'reklam',
+        currency: 'EUR',
+        category: 'ogretmen',
         date: format(new Date(), 'yyyy-MM-dd'),
         notes: '',
       });
@@ -490,7 +502,7 @@ export default function AdminFinansPage() {
             <div>
               <h1 className="text-3xl font-black text-slate-900 tracking-tight">Kâr & Finans Yönetimi</h1>
               <p className="text-sm font-medium text-slate-500">
-                Nisan 2026'dan itibaren gelir, öğretmen hak edişleri, giderler ve net kâr analizi.
+                Mart 2026'dan itibaren gelir, öğretmen maaşları / hak edişleri, giderler ve net kâr analizi.
               </p>
             </div>
           </div>
@@ -539,12 +551,12 @@ export default function AdminFinansPage() {
               📈 Yıllık (2026)
             </Button>
             <Button
-              variant={periodType === 'since_april' ? 'default' : 'outline'}
+              variant={periodType === 'since_march' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setPeriodType('since_april')}
-              className={cn("rounded-xl font-bold text-xs h-9", periodType === 'since_april' && "bg-slate-900 text-white")}
+              onClick={() => setPeriodType('since_march')}
+              className={cn("rounded-xl font-bold text-xs h-9", periodType === 'since_march' && "bg-slate-900 text-white")}
             >
-              🗓️ Nisan'dan Beri Toplam
+              🗓️ Mart'tan Beri Toplam
             </Button>
           </div>
 
@@ -568,6 +580,7 @@ export default function AdminFinansPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="2026-03">Mart 2026</SelectItem>
                     <SelectItem value="2026-04">Nisan 2026</SelectItem>
                     <SelectItem value="2026-05">Mayıs 2026</SelectItem>
                     <SelectItem value="2026-06">Haziran 2026</SelectItem>
@@ -900,8 +913,27 @@ export default function AdminFinansPage() {
                           <TableCell className="text-xs text-slate-400 max-w-[200px] truncate">
                             {exp.notes || '-'}
                           </TableCell>
-                          <TableCell className="font-black text-slate-900">
-                            £{(exp.amountGbp || exp.amount || 0).toFixed(2)}
+                          <TableCell className="font-black">
+                            {exp.currency === 'EUR' ? (
+                              <div>
+                                <span className="text-slate-900 font-black">€{exp.amount ? Number(exp.amount).toFixed(2) : (exp.amountGbp ? (exp.amountGbp * 1.18).toFixed(2) : '0.00')}</span>
+                                <span className="text-[11px] text-slate-400 font-bold block">(£{(exp.amountGbp || 0).toFixed(2)})</span>
+                              </div>
+                            ) : exp.currency === 'USD' ? (
+                              <div>
+                                <span className="text-slate-900 font-black">${exp.amount ? Number(exp.amount).toFixed(2) : '0.00'}</span>
+                                <span className="text-[11px] text-slate-400 font-bold block">(£{(exp.amountGbp || 0).toFixed(2)})</span>
+                              </div>
+                            ) : exp.currency === 'TRY' ? (
+                              <div>
+                                <span className="text-slate-900 font-black">₺{exp.amount ? Number(exp.amount).toFixed(2) : '0.00'}</span>
+                                <span className="text-[11px] text-slate-400 font-bold block">(£{(exp.amountGbp || 0).toFixed(2)})</span>
+                              </div>
+                            ) : (
+                              <div className="text-slate-900 font-black">
+                                £{(exp.amountGbp || exp.amount || 0).toFixed(2)}
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell className="text-right pr-6">
                             <Button
@@ -1027,18 +1059,36 @@ export default function AdminFinansPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-slate-700">Tutar (£ GBP) *</Label>
+                <Label className="text-xs font-bold text-slate-700">Tutar *</Label>
                 <Input 
                   type="number" 
                   min="0" 
                   step="0.01"
                   value={expenseForm.amount} 
                   onChange={e => setExpenseForm({...expenseForm, amount: e.target.value})}
-                  placeholder="£ 0.00"
+                  placeholder="0.00"
                   className="h-11 rounded-xl font-bold text-slate-900"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-slate-700">Para Birimi *</Label>
+                <Select 
+                  value={expenseForm.currency} 
+                  onValueChange={val => setExpenseForm({...expenseForm, currency: val})}
+                >
+                  <SelectTrigger className="h-11 rounded-xl font-bold text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="EUR">Euro (€)</SelectItem>
+                    <SelectItem value="GBP">Sterlin (£)</SelectItem>
+                    <SelectItem value="TRY">Türk Lirası (₺)</SelectItem>
+                    <SelectItem value="USD">Dolar ($)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
@@ -1047,7 +1097,7 @@ export default function AdminFinansPage() {
                   type="date" 
                   value={expenseForm.date} 
                   onChange={e => setExpenseForm({...expenseForm, date: e.target.value})}
-                  className="h-11 rounded-xl font-medium"
+                  className="h-11 rounded-xl font-medium text-xs"
                 />
               </div>
             </div>
