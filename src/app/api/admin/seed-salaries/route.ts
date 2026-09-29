@@ -5,15 +5,14 @@ import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 // Exchange rate: 1 GBP = 1.18 EUR => 1 EUR = ~0.8475 GBP
 const EUR_TO_GBP_RATE = 1.18;
 
-const months = [
-  '2026-03',
+// Active months: Nisan 2026 - Eylül 2026 (Mart ve Ekim hariç tutuldu)
+const activeMonths = [
   '2026-04',
   '2026-05',
   '2026-06',
   '2026-07',
   '2026-08',
-  '2026-09',
-  '2026-10'
+  '2026-09'
 ];
 
 export async function POST() {
@@ -37,7 +36,7 @@ export async function POST() {
     const batch = db.batch();
     let count = 0;
 
-    for (const m of months) {
+    for (const m of activeMonths) {
       const [year, month] = m.split('-').map(Number);
       const dateObj = new Date(year, month - 1, 1, 12, 0, 0);
       const dateTimestamp = Timestamp.fromDate(dateObj);
@@ -91,6 +90,41 @@ export async function POST() {
     }
   } catch (err: any) {
     console.error('Seed salaries error:', err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+// DELETE Mart ve Ekim maaş kayıtlarını siler
+export async function DELETE() {
+  try {
+    if (!db) {
+      return NextResponse.json({ error: 'Database not initialized' }, { status: 500 });
+    }
+
+    const expensesRef = db.collection('expenses');
+    const snapshot = await expensesRef.where('category', '==', 'ogretmen').get();
+
+    const batch = db.batch();
+    let deletedCount = 0;
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const month = data.month;
+      // Mart 2026 veya Ekim 2026 kayıtları
+      if (month === '2026-03' || month === '2026-10') {
+        batch.delete(doc.ref);
+        deletedCount++;
+      }
+    });
+
+    if (deletedCount > 0) {
+      await batch.commit();
+      return NextResponse.json({ success: true, deleted: deletedCount, message: `Mart ve Ekim aylarına ait ${deletedCount} kayıt başarıyla silindi.` });
+    } else {
+      return NextResponse.json({ success: true, deleted: 0, message: 'Silinecek Mart/Ekim kaydı bulunamadı.' });
+    }
+  } catch (err: any) {
+    console.error('Delete salaries error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
