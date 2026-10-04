@@ -83,6 +83,7 @@ import {
 } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { historicalSales, HISTORICAL_PAYROLL, historicalPayrollFor, payrollName } from '@/lib/finance-history';
 
 // Expense categories
 export const EXPENSE_CATEGORIES: { [key: string]: { label: string; color: string } } = {
@@ -127,14 +128,15 @@ export default function AdminFinansPage() {
   }, []);
   const euroToGbp = exchangeRates ? 1 / exchangeRates.rates.EUR : NaN;
 
-  // Period State: 'monthly' | 'quarterly' | 'yearly' | 'since_april'
-  const [periodType, setPeriodType] = useState<'monthly' | 'quarterly' | 'yearly' | 'since_april'>('monthly');
+  // Financial reporting starts in January 2026.
+  const [periodType, setPeriodType] = useState<'monthly' | 'quarterly' | 'half_yearly' | 'yearly' | 'since_january'>('monthly');
+  const [selectedHalf, setSelectedHalf] = useState('H1');
   
   // Selected Month (defaults to current date, minimum April 2026)
   const [selectedMonth, setSelectedMonth] = useState<Date>(() => {
     const now = new Date();
-    const april2026 = new Date(2026, 3, 1); // April 2026
-    return now < april2026 ? april2026 : startOfMonth(now);
+    const january2026 = new Date(2026, 0, 1);
+    return now < january2026 ? january2026 : startOfMonth(now);
   });
 
   // Selected Quarter for quarterly view
@@ -158,6 +160,12 @@ export default function AdminFinansPage() {
     return query(collection(db, 'transactions'), orderBy('createdAt', 'desc'));
   }, [db]);
   const { data: rawTransactions, isLoading: transactionsLoading } = useCollection(transactionsQuery);
+  const transactions = useMemo(() => [
+    ...(rawTransactions || []),
+    ...historicalSales.filter(sale => !(rawTransactions || []).some((tx: any) =>
+      tx.id === sale.id || String(tx.legacyOrderId || '') === sale.legacyOrderId
+    )),
+  ], [rawTransactions]);
 
   // 2. Fetch Teachers (Öğretmenler)
   const teachersQuery = useMemoFirebase(() => {
@@ -182,6 +190,43 @@ export default function AdminFinansPage() {
     return query(collection(db, 'expenses'), orderBy('date', 'desc'));
   }, [db]);
   const { data: rawExpenses, isLoading: expensesLoading } = useCollection(expensesQuery);
+  const expenses = useMemo(() => [
+    ...(rawExpenses || []),
+    ...[0, 1, 2].map(month => ({
+      id: `historical-sevval-2026-${month + 1}`, title: 'Şevval maaşı',
+      amount: 180, currency: 'EUR', amountGbp: 180 * euroToGbp,
+      category: 'ogretmen', date: new Date(2026, month, 15).toISOString(),
+      notes: 'Ocak–Mart 2026 · Yönetici tarafından onaylanan eski dönem maaşı',
+      historical: true,
+    })),
+  ], [rawExpenses, euroToGbp]);
+
+  const calculatePayouts = (start: Date, end: Date) => {
+    const stats: Record<string, { teacherId: string; teacherName: string; lessonCount: number; totalPayout: number; historical: boolean }> = {};
+    completedSessions.forEach((session: any) => {
+      const date = session.firstStartTime;
+      if (date < start || date > end) return;
+      const teacher = teachersMap.get(session.teacherId);
+      const name = teacher ? `${teacher.firstName || ''} ${teacher.lastName || ''}`.trim() || teacher.email : 'Bilinmeyen Öğretmen';
+      // Whole-month payroll replaces lesson-derived earnings for Selvi and Dilan.
+      if (historicalPayrollFor(name, date)) return;
+      const key = session.teacherId;
+      stats[key] ||= { teacherId: key, teacherName: name, lessonCount: 0, totalPayout: 0, historical: false };
+      stats[key].lessonCount++;
+      stats[key].totalPayout += teacher?.lessonRates?.[getCourseKey(session.packageCode)] || teacher?.lessonRate || 0;
+    });
+    HISTORICAL_PAYROLL.forEach(row => {
+      const date = new Date(2026, row.month, 15);
+      if (date < start || date > end) return;
+      const teacher = (rawTeachers || []).find((t: any) => payrollName(t.firstName || '') === payrollName(row.name));
+      const key = teacher?.id || `historical-${payrollName(row.name)}`;
+      stats[key] ||= { teacherId: key, teacherName: `${row.name} Öğretmen`, lessonCount: 0, totalPayout: 0, historical: false };
+      stats[key].lessonCount += row.lessonCount;
+      stats[key].totalPayout += row.amountEur;
+      stats[key].historical = true;
+    });
+    return Object.values(stats).sort((a, b) => b.totalPayout - a.totalPayout);
+  };
 
   // Teachers Map by ID for quick rate lookup
   const teachersMap = useMemo(() => {
@@ -239,7 +284,7 @@ export default function AdminFinansPage() {
 
   // Determine Active Date Interval based on Filter
   const activeInterval = useMemo(() => {
-    const april1_2026 = new Date(2026, 3, 1, 0, 0, 0); // 1 Nisan 2026
+    const january1_2026 = new Date(2026, 0, 1, 0, 0, 0);
 
     if (periodType === 'monthly') {
       return {
@@ -266,6 +311,14 @@ export default function AdminFinansPage() {
       };
     }
 
+    if (periodType === 'half_yearly') {
+      const secondHalf = selectedHalf === 'H2';
+      return {
+        start: new Date(2026, secondHalf ? 6 : 0, 1),
+        end: endOfMonth(new Date(2026, secondHalf ? 11 : 5, 1)),
+        label: secondHalf ? 'Temmuz–Aralık 2026' : 'Ocak–Haziran 2026',
+      };
+    }
     if (periodType === 'yearly') {
       const yDate = new Date(2026, 0, 1);
       return {
@@ -275,24 +328,23 @@ export default function AdminFinansPage() {
       };
     }
 
-    // since_april (1 Nisan 2026'dan bugüne)
+    // Cumulative 2026 reporting.
     return {
-      start: april1_2026,
+      start: january1_2026,
       end: new Date(2026, 11, 31, 23, 59, 59),
-      label: "Nisan 2026'dan İtibaren (Kümülatif)"
+      label: "Ocak 2026'dan İtibaren (Kümülatif)"
     };
-  }, [periodType, selectedMonth, selectedQuarter]);
+  }, [periodType, selectedMonth, selectedQuarter, selectedHalf]);
 
   // Filtered Transactions in Active Interval (Gelir)
   const currentRevenueList = useMemo(() => {
-    if (!rawTransactions) return [];
-    return rawTransactions.filter((t: any) => {
+    return transactions.filter((t: any) => {
       if (t.status === 'pending') return false;
       const date = t.createdAt?.toDate?.();
       if (!date) return false;
       return date >= activeInterval.start && date <= activeInterval.end;
     });
-  }, [rawTransactions, activeInterval]);
+  }, [transactions, activeInterval]);
 
   const totalRevenue = useMemo(() => {
     return currentRevenueList.reduce((sum: number, t: any) => sum + (t.amountGbp || 0), 0);
@@ -308,31 +360,8 @@ export default function AdminFinansPage() {
 
   // Teacher payout calculation for active interval
   const teacherPayoutsBreakdown = useMemo(() => {
-    const teacherStats: { [teacherId: string]: { teacherName: string; lessonCount: number; totalPayout: number } } = {};
-
-    currentSessionsList.forEach((s: any) => {
-      const teacher = teachersMap.get(s.teacherId);
-      const teacherName = teacher ? `${teacher.firstName || ''} ${teacher.lastName || ''}`.trim() || teacher.email : 'Bilinmeyen Öğretmen';
-      const courseKey = getCourseKey(s.packageCode);
-      const rate = teacher?.lessonRates?.[courseKey] || teacher?.lessonRate || 0;
-
-      if (!teacherStats[s.teacherId]) {
-        teacherStats[s.teacherId] = {
-          teacherName,
-          lessonCount: 0,
-          totalPayout: 0
-        };
-      }
-
-      teacherStats[s.teacherId].lessonCount += 1;
-      teacherStats[s.teacherId].totalPayout += rate;
-    });
-
-    return Object.entries(teacherStats).map(([teacherId, data]) => ({
-      teacherId,
-      ...data
-    })).sort((a, b) => b.totalPayout - a.totalPayout);
-  }, [currentSessionsList, teachersMap]);
+    return calculatePayouts(activeInterval.start, activeInterval.end);
+  }, [completedSessions, teachersMap, rawTeachers, activeInterval]);
 
   const totalTeacherPayout = useMemo(() => {
     return teacherPayoutsBreakdown.reduce((sum, t) => sum + t.totalPayout, 0);
@@ -340,8 +369,7 @@ export default function AdminFinansPage() {
 
   // Filtered Expenses in Active Interval (Genel Giderler)
   const currentExpensesList = useMemo(() => {
-    if (!rawExpenses) return [];
-    return rawExpenses.filter((e: any) => {
+    return expenses.filter((e: any) => {
       let date: Date | null = null;
       if (e.date?.toDate) date = e.date.toDate();
       else if (typeof e.date === 'string') date = parseISO(e.date);
@@ -350,7 +378,7 @@ export default function AdminFinansPage() {
       if (!date) return false;
       return date >= activeInterval.start && date <= activeInterval.end;
     });
-  }, [rawExpenses, activeInterval]);
+  }, [expenses, activeInterval]);
 
   const totalGeneralExpenses = useMemo(() => {
     return currentExpensesList.reduce((sum: number, e: any) => sum + (e.amountGbp || e.amount || 0), 0);
@@ -372,7 +400,7 @@ export default function AdminFinansPage() {
     // Start from April 2026 (month 3) up to the current month in 2026 (minimum September 2026)
     const endMonth = currentYear === 2026 ? Math.max(currentMonth, 8) : 11;
     const months: Date[] = [];
-    for (let m = 3; m <= endMonth; m++) {
+    for (let m = 0; m <= endMonth; m++) {
       months.push(new Date(2026, m, 1));
     }
 
@@ -381,25 +409,17 @@ export default function AdminFinansPage() {
       const mEnd = endOfMonth(mDate);
 
       // Revenue for this month
-      const rev = (rawTransactions || []).filter((t: any) => {
+      const rev = transactions.filter((t: any) => {
         if (t.status === 'pending') return false;
         const d = t.createdAt?.toDate?.();
         return d && d >= mStart && d <= mEnd;
       }).reduce((sum: number, t: any) => sum + (t.amountGbp || 0), 0);
 
       // Teacher payout for this month
-      const teachPayout = completedSessions.filter((s: any) => {
-        const d = s.firstStartTime;
-        return d && d >= mStart && d <= mEnd;
-      }).reduce((sum: number, s: any) => {
-        const teacher = teachersMap.get(s.teacherId);
-        const courseKey = getCourseKey(s.packageCode);
-        const rate = teacher?.lessonRates?.[courseKey] || teacher?.lessonRate || 0;
-        return sum + rate;
-      }, 0);
+      const teachPayout = calculatePayouts(mStart, mEnd).reduce((sum, teacher) => sum + teacher.totalPayout, 0);
 
       // General expenses for this month
-      const genExp = (rawExpenses || []).filter((e: any) => {
+      const genExp = expenses.filter((e: any) => {
         let d: Date | null = null;
         if (e.date?.toDate) d = e.date.toDate();
         else if (typeof e.date === 'string') d = parseISO(e.date);
@@ -422,7 +442,7 @@ export default function AdminFinansPage() {
         margin: margin
       };
     });
-  }, [rawTransactions, completedSessions, rawExpenses, teachersMap, euroToGbp]);
+  }, [transactions, completedSessions, expenses, teachersMap, rawTeachers, euroToGbp]);
 
   // Handle Add Expense
   const handleSaveExpense = async () => {
@@ -513,7 +533,7 @@ export default function AdminFinansPage() {
             <div>
               <h1 className="text-3xl font-black text-slate-900 tracking-tight">Kâr & Finans Yönetimi</h1>
               <p className="text-sm font-medium text-slate-500">
-                Nisan 2026'dan itibaren gelir, öğretmen maaşları / hak edişleri, giderler ve net kâr analizi.
+                Ocak 2026'dan itibaren gelir, öğretmen maaşları / hak edişleri, giderler ve net kâr analizi.
               </p>
             </div>
           </div>
@@ -553,6 +573,10 @@ export default function AdminFinansPage() {
             >
               📊 Çeyreklik (Q)
             </Button>
+            <Button variant={periodType === 'half_yearly' ? 'default' : 'outline'} size="sm"
+              onClick={() => setPeriodType('half_yearly')} className="rounded-xl font-bold text-xs h-9">
+              6 Aylık
+            </Button>
             <Button
               variant={periodType === 'yearly' ? 'default' : 'outline'}
               size="sm"
@@ -562,12 +586,12 @@ export default function AdminFinansPage() {
               📈 Yıllık (2026)
             </Button>
             <Button
-              variant={periodType === 'since_april' ? 'default' : 'outline'}
+              variant={periodType === 'since_january' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setPeriodType('since_april')}
-              className={cn("rounded-xl font-bold text-xs h-9", periodType === 'since_april' && "bg-slate-900 text-white")}
+              onClick={() => setPeriodType('since_january')}
+              className={cn("rounded-xl font-bold text-xs h-9", periodType === 'since_january' && "bg-slate-900 text-white")}
             >
-              🗓️ Nisan'dan Beri Toplam
+              🗓️ Ocak'tan Beri Toplam
             </Button>
           </div>
 
@@ -591,6 +615,9 @@ export default function AdminFinansPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="2026-01">Ocak 2026</SelectItem>
+                    <SelectItem value="2026-02">Şubat 2026</SelectItem>
+                    <SelectItem value="2026-03">Mart 2026</SelectItem>
                     <SelectItem value="2026-04">Nisan 2026</SelectItem>
                     <SelectItem value="2026-05">Mayıs 2026</SelectItem>
                     <SelectItem value="2026-06">Haziran 2026</SelectItem>
@@ -613,6 +640,15 @@ export default function AdminFinansPage() {
               </div>
             )}
 
+            {periodType === 'half_yearly' && (
+              <Select value={selectedHalf} onValueChange={setSelectedHalf}>
+                <SelectTrigger className="w-[220px] h-9 rounded-xl font-bold text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="H1">Ocak–Haziran 2026</SelectItem>
+                  <SelectItem value="H2">Temmuz–Aralık 2026</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
             {periodType === 'quarterly' && (
               <Select value={selectedQuarter} onValueChange={setSelectedQuarter}>
                 <SelectTrigger className="w-[220px] h-9 rounded-xl font-bold text-xs">
@@ -667,7 +703,7 @@ export default function AdminFinansPage() {
               {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : `€${totalTeacherPayout.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             </div>
             <p className="text-xs font-bold text-slate-400 mt-1">
-              {currentSessionsList.length} tamamlanan ders seansı
+              {teacherPayoutsBreakdown.reduce((sum, teacher) => sum + teacher.lessonCount, 0)} tamamlanan ders seansı
             </p>
             <p className="text-xs text-slate-500 mt-2">
               {exchangeRates ? `Pound karşılığı: £${(totalTeacherPayout * euroToGbp).toFixed(2)} · 1 EUR = £${euroToGbp.toFixed(4)} (${exchangeRates.date})` : exchangeError || 'Güncel kur yükleniyor…'}
@@ -685,7 +721,7 @@ export default function AdminFinansPage() {
           </div>
           <div className="mt-4">
             <div className="text-3xl font-black text-slate-900">
-              {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : `£${totalGeneralExpenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : !Number.isFinite(totalGeneralExpenses) ? '—' : `£${totalGeneralExpenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             </div>
             <p className="text-xs font-bold text-slate-400 mt-1">
               {currentExpensesList.length} kayıtlı gider kalemi
@@ -732,7 +768,7 @@ export default function AdminFinansPage() {
       <Tabs defaultValue="timeline" className="space-y-6">
         <TabsList className="bg-slate-100 p-1.5 rounded-2xl h-auto flex flex-wrap gap-1">
           <TabsTrigger value="timeline" className="rounded-xl font-bold text-xs px-5 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-            📈 Aylık Kâr Dökümü (Nisan'dan Beri)
+            📈 Aylık Kâr Dökümü (Ocak'tan Beri)
           </TabsTrigger>
           <TabsTrigger value="teachers" className="rounded-xl font-bold text-xs px-5 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">
             👩‍🏫 Öğretmen Hak Edişleri ({teacherPayoutsBreakdown.length})
@@ -751,7 +787,7 @@ export default function AdminFinansPage() {
             <CardHeader className="border-b border-slate-100 p-6">
               <CardTitle className="text-xl font-bold text-slate-900">2026 Aylık Kâr & Zarar Tablosu</CardTitle>
               <CardDescription>
-                Nisan 2026 başlangıç alınarak aylık bazda gelir, öğretmen ödemeleri, operasyonel giderler ve net kâr analizi.
+                Ocak 2026 başlangıç alınarak aylık bazda gelir, öğretmen ödemeleri, operasyonel giderler ve net kâr analizi.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0 overflow-x-auto">
@@ -783,7 +819,7 @@ export default function AdminFinansPage() {
                           {exchangeRates ? `£${item.teacherPayout.toFixed(2)}` : '—'}
                         </TableCell>
                         <TableCell className="font-medium text-amber-700">
-                          £{item.generalExpenses.toFixed(2)}
+                          {Number.isFinite(item.generalExpenses) ? `£${item.generalExpenses.toFixed(2)}` : '—'}
                         </TableCell>
                         <TableCell className="font-bold text-slate-700">
                           {exchangeRates ? `£${item.totalExpenses.toFixed(2)}` : '—'}
@@ -844,6 +880,7 @@ export default function AdminFinansPage() {
                         <TableRow key={t.teacherId} className="hover:bg-slate-50/70 border-b border-slate-100">
                           <TableCell className="font-bold text-slate-800 py-4 pl-6">
                             {t.teacherName}
+                            {t.historical && <span className="block text-[10px] text-slate-400">Ocak–Nisan bordro toplamları dahil</span>}
                           </TableCell>
                           <TableCell className="font-medium text-slate-600">
                             {t.lessonCount} Ders
@@ -949,14 +986,14 @@ export default function AdminFinansPage() {
                             )}
                           </TableCell>
                           <TableCell className="text-right pr-6">
-                            <Button
+                            {!exp.historical && <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => handleDeleteExpense(exp.id, exp.title)}
                               className="text-slate-400 hover:text-rose-600 h-8 w-8 rounded-lg"
                             >
                               <Trash2 className="w-4 h-4" />
-                            </Button>
+                            </Button>}
                           </TableCell>
                         </TableRow>
                       );
@@ -1028,7 +1065,7 @@ export default function AdminFinansPage() {
                               "text-[9px] font-black uppercase border-none",
                               tx.type === 'premium' ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800"
                             )}>
-                              {tx.type === 'premium' ? 'Üyelik' : 'Ders Paketi'}
+                              {tx.type === 'legacy' ? 'Eski Site' : tx.type === 'premium' ? 'Üyelik' : 'Ders Paketi'}
                             </Badge>
                           </TableCell>
                           <TableCell className="font-black text-slate-900 text-right pr-6">

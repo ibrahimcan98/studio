@@ -4,7 +4,7 @@
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
-import { Loader2, LogOut, Calendar, Users, Briefcase, User, Gamepad2 } from 'lucide-react';
+import { Loader2, LogOut, Calendar, Users, Briefcase, User, Gamepad2, WalletCards } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
@@ -61,6 +61,7 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
   const navItems = [
     { href: '/ogretmen-portali/takvim', label: 'Takvim', icon: Calendar },
     { href: '/ogretmen-portali/derslerim', label: 'Derslerim', icon: Briefcase },
+    { href: '/ogretmen-portali/hak-edis', label: 'Hak Ediş', icon: WalletCards },
     { href: '/ogretmen-portali/ogrencilerim', label: 'Öğrencilerim', icon: Users },
     { href: '/ogretmen-portali/grup-siniflari', label: 'Grup Sınıflarım', icon: Users },
     { href: '/ogretmen-portali/profil', label: 'Profilim', icon: User },
@@ -88,13 +89,13 @@ function TeacherPortalLayout({ children }: { children: React.ReactNode }) {
                 </div>
             </div>
              <div className="border-b bg-white">
-                <nav className="container flex items-center">
+                <nav className="container flex items-center overflow-x-auto">
                     {navItems.map((item) => (
                         <Link
                             key={item.href}
                             href={item.href}
                             className={cn(
-                                'flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all',
+                                'flex shrink-0 items-center gap-2 px-4 md:px-6 py-4 text-sm font-bold transition-all',
                                 pathname === item.href
                                     ? 'text-primary border-b-2 border-primary bg-primary/5'
                                     : 'text-muted-foreground hover:text-primary hover:bg-slate-50'

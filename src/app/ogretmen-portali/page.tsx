@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
 import { Loader2, Calendar, Users, Wallet } from 'lucide-react';
 import { doc, collection, query, where } from 'firebase/firestore';
-import { startOfMonth, endOfMonth, isBefore } from 'date-fns';
+import { startOfMonth, endOfMonth } from 'date-fns';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { buildCompletedTeacherSessions, getTeacherCourseRate } from '@/lib/teacher-earnings';
 
 export default function OgretmenPortaliPage() {
   const { user, loading: userLoading } = useUser();
@@ -37,38 +38,14 @@ export default function OgretmenPortaliPage() {
 
   const { data: monthSlots } = useCollection(currentMonthLessonsQuery);
 
-  const getCourseId = (code?: string) => {
-    if (!code) return null;
-    if (code === 'FREE_TRIAL') return 'FREE_TRIAL';
-    const courseCodeMap: { [key: string]: string } = { 
-        'B': 'baslangic', 'K': 'konusma', 'G': 'gelisim', 'A': 'akademik', 'GCSE': 'gcse'
-    };
-    return courseCodeMap[code.replace(/[0-9]/g, '')] || null;
-  };
-
   const { completedLessonsCount, monthlyEarnings } = useMemo(() => {
-    if (!monthSlots) return { completedLessonsCount: 0, monthlyEarnings: 0 };
-    const now = new Date();
-    
-    let count = 0;
-    let earnings = 0;
+    const sessions = buildCompletedTeacherSessions(monthSlots);
+    const earnings = sessions.reduce(
+      (total, session) => total + getTeacherCourseRate(userData, session.courseKey),
+      0
+    );
 
-    monthSlots.forEach(slot => {
-        const endTime = slot.endTime?.toDate();
-        if (endTime && isBefore(endTime, now)) {
-            count++;
-            const courseId = getCourseId(slot.packageCode);
-            if (courseId && userData?.lessonRates) {
-                const rate = userData.lessonRates[courseId] || 0;
-                earnings += rate;
-            } else if (!userData?.lessonRates && userData?.lessonRate) {
-                // Fallback to legacy single rate
-                earnings += userData.lessonRate;
-            }
-        }
-    });
-
-    return { completedLessonsCount: count, monthlyEarnings: earnings };
+    return { completedLessonsCount: sessions.length, monthlyEarnings: earnings };
   }, [monthSlots, userData]);
 
   useEffect(() => {
@@ -164,6 +141,9 @@ export default function OgretmenPortaliPage() {
                  <span className="text-sm font-medium text-slate-500">
                      {completedLessonsCount} Tamamlanan Ders (Kurs Bazlı Kazançlar)
                  </span>
+                 <Button asChild variant="outline" className="mt-4 w-fit border-green-200 bg-white text-green-700 hover:bg-green-50">
+                   <Link href="/ogretmen-portali/hak-edis">Hak Ediş Detayını Gör</Link>
+                 </Button>
              </div>
           </CardContent>
         </Card>
