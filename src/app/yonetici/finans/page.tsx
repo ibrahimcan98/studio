@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { 
   collection, 
@@ -112,6 +112,20 @@ const getCourseKey = (code?: string): string => {
 export default function AdminFinansPage() {
   const db = useFirestore();
   const { toast } = useToast();
+  const [exchangeRates, setExchangeRates] = useState<{ rates: Record<string, number>; date: string } | null>(null);
+  const [exchangeError, setExchangeError] = useState('');
+  useEffect(() => {
+    let active = true;
+    fetch('/api/exchange-rates').then(async response => {
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      if (active) setExchangeRates(data);
+    }).catch(() => {
+      if (active) setExchangeError('Güncel kur alınamadı; pound gider ve kâr hesapları kur gelene kadar gösterilemez. Sayfayı yeniden yükleyin.');
+    });
+    return () => { active = false; };
+  }, []);
+  const euroToGbp = exchangeRates ? 1 / exchangeRates.rates.EUR : NaN;
 
   // Period State: 'monthly' | 'quarterly' | 'yearly' | 'since_april'
   const [periodType, setPeriodType] = useState<'monthly' | 'quarterly' | 'yearly' | 'since_april'>('monthly');
@@ -183,7 +197,9 @@ export default function AdminFinansPage() {
     if (!rawSlots) return [];
     const now = new Date();
 
-    const sortedSlots = [...rawSlots].sort((a, b) => a.startTime?.seconds - b.startTime?.seconds);
+    const sortedSlots = [...rawSlots].sort((a, b) =>
+      String(a.teacherId).localeCompare(String(b.teacherId)) || a.startTime?.seconds - b.startTime?.seconds
+    );
     const sessions: any[] = [];
     let currentSession: any = null;
 
@@ -298,7 +314,7 @@ export default function AdminFinansPage() {
       const teacher = teachersMap.get(s.teacherId);
       const teacherName = teacher ? `${teacher.firstName || ''} ${teacher.lastName || ''}`.trim() || teacher.email : 'Bilinmeyen Öğretmen';
       const courseKey = getCourseKey(s.packageCode);
-      const rate = teacher?.lessonRates?.[courseKey] ?? teacher?.lessonRate ?? 0;
+      const rate = teacher?.lessonRates?.[courseKey] || teacher?.lessonRate || 0;
 
       if (!teacherStats[s.teacherId]) {
         teacherStats[s.teacherId] = {
@@ -341,7 +357,7 @@ export default function AdminFinansPage() {
   }, [currentExpensesList]);
 
   // Total Expenses (Öğretmenler + Genel Giderler)
-  const totalAllExpenses = totalTeacherPayout + totalGeneralExpenses;
+  const totalAllExpenses = totalTeacherPayout * euroToGbp + totalGeneralExpenses;
 
   // Net Profit / Loss
   const netProfit = totalRevenue - totalAllExpenses;
@@ -378,7 +394,7 @@ export default function AdminFinansPage() {
       }).reduce((sum: number, s: any) => {
         const teacher = teachersMap.get(s.teacherId);
         const courseKey = getCourseKey(s.packageCode);
-        const rate = teacher?.lessonRates?.[courseKey] ?? teacher?.lessonRate ?? 0;
+        const rate = teacher?.lessonRates?.[courseKey] || teacher?.lessonRate || 0;
         return sum + rate;
       }, 0);
 
@@ -391,7 +407,7 @@ export default function AdminFinansPage() {
         return d && d >= mStart && d <= mEnd;
       }).reduce((sum: number, e: any) => sum + (e.amountGbp || e.amount || 0), 0);
 
-      const totalExp = teachPayout + genExp;
+      const totalExp = teachPayout * euroToGbp + genExp;
       const profit = rev - totalExp;
       const margin = rev > 0 ? (profit / rev) * 100 : 0;
 
@@ -399,14 +415,14 @@ export default function AdminFinansPage() {
         monthDate: mDate,
         monthName: format(mDate, 'MMMM yyyy', { locale: tr }),
         revenue: rev,
-        teacherPayout: teachPayout,
+        teacherPayout: teachPayout * euroToGbp,
         generalExpenses: genExp,
         totalExpenses: totalExp,
         netProfit: profit,
         margin: margin
       };
     });
-  }, [rawTransactions, completedSessions, rawExpenses, teachersMap]);
+  }, [rawTransactions, completedSessions, rawExpenses, teachersMap, euroToGbp]);
 
   // Handle Add Expense
   const handleSaveExpense = async () => {
@@ -424,20 +440,17 @@ export default function AdminFinansPage() {
     setIsSubmittingExpense(true);
     try {
       const expenseDate = new Date(expenseForm.date);
-      let calculatedGbp = amountNum;
-      if (expenseForm.currency === 'EUR') {
-        calculatedGbp = Number((amountNum / 1.18).toFixed(2));
-      } else if (expenseForm.currency === 'USD') {
-        calculatedGbp = Number((amountNum / 1.27).toFixed(2));
-      } else if (expenseForm.currency === 'TRY') {
-        calculatedGbp = Number((amountNum / 47.0).toFixed(2));
-      }
+      const rate = expenseForm.currency === 'GBP' ? 1 : exchangeRates?.rates[expenseForm.currency];
+      if (!rate) throw new Error('Gider kaydı için güncel kur bilgisi gerekli. Sayfayı yeniden yükleyin.');
+      const calculatedGbp = Number((amountNum / rate).toFixed(2));
 
       await addDoc(collection(db, 'expenses'), {
         title: expenseForm.title.trim(),
         amount: amountNum,
         amountGbp: calculatedGbp,
         currency: expenseForm.currency,
+        exchangeRate: rate,
+        exchangeRateDate: exchangeRates?.date || format(new Date(), 'yyyy-MM-dd'),
         category: expenseForm.category,
         date: Timestamp.fromDate(expenseDate),
         month: format(expenseDate, 'yyyy-MM'),
@@ -651,10 +664,13 @@ export default function AdminFinansPage() {
           </div>
           <div className="mt-4">
             <div className="text-3xl font-black text-purple-900">
-              {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : `£${totalTeacherPayout.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : `€${totalTeacherPayout.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             </div>
             <p className="text-xs font-bold text-slate-400 mt-1">
               {currentSessionsList.length} tamamlanan ders seansı
+            </p>
+            <p className="text-xs text-slate-500 mt-2">
+              {exchangeRates ? `Pound karşılığı: £${(totalTeacherPayout * euroToGbp).toFixed(2)} · 1 EUR = £${euroToGbp.toFixed(4)} (${exchangeRates.date})` : exchangeError || 'Güncel kur yükleniyor…'}
             </p>
           </div>
         </Card>
@@ -695,17 +711,17 @@ export default function AdminFinansPage() {
           </div>
           <div className="mt-4">
             <div className={cn("text-3xl font-black", netProfit >= 0 ? "text-emerald-700" : "text-rose-700")}>
-              {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : `${netProfit >= 0 ? '+' : ''}£${netProfit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : !exchangeRates ? '—' : `${netProfit >= 0 ? '+' : ''}£${netProfit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             </div>
             <div className="flex items-center gap-2 mt-1">
               <Badge className={cn(
                 "text-[10px] font-black border-none px-2 py-0.5",
                 netProfit >= 0 ? "bg-emerald-200 text-emerald-800" : "bg-rose-200 text-rose-800"
               )}>
-                %{profitMargin.toFixed(1)} Marj
+                {exchangeRates ? `%${profitMargin.toFixed(1)} Marj` : 'Kur bekleniyor'}
               </Badge>
               <span className="text-[10px] font-bold text-slate-500">
-                Toplam Gider: £{totalAllExpenses.toFixed(2)}
+                Toplam Gider: {exchangeRates ? `£${totalAllExpenses.toFixed(2)}` : '—'}
               </span>
             </div>
           </div>
@@ -744,7 +760,7 @@ export default function AdminFinansPage() {
                   <TableRow>
                     <TableHead className="font-bold text-slate-700 py-4 pl-6">Ay</TableHead>
                     <TableHead className="font-bold text-slate-700">Gelir (Ciro)</TableHead>
-                    <TableHead className="font-bold text-slate-700">Öğretmen Gideri</TableHead>
+                    <TableHead className="font-bold text-slate-700">Öğretmen Gideri (GBP)</TableHead>
                     <TableHead className="font-bold text-slate-700">Diğer Giderler</TableHead>
                     <TableHead className="font-bold text-slate-700">Toplam Gider</TableHead>
                     <TableHead className="font-bold text-slate-700">Net Kâr / Zarar</TableHead>
@@ -764,26 +780,26 @@ export default function AdminFinansPage() {
                           £{item.revenue.toFixed(2)}
                         </TableCell>
                         <TableCell className="font-medium text-purple-700">
-                          £{item.teacherPayout.toFixed(2)}
+                          {exchangeRates ? `£${item.teacherPayout.toFixed(2)}` : '—'}
                         </TableCell>
                         <TableCell className="font-medium text-amber-700">
                           £{item.generalExpenses.toFixed(2)}
                         </TableCell>
                         <TableCell className="font-bold text-slate-700">
-                          £{item.totalExpenses.toFixed(2)}
+                          {exchangeRates ? `£${item.totalExpenses.toFixed(2)}` : '—'}
                         </TableCell>
                         <TableCell className={cn("font-black text-base", isPositive ? "text-emerald-600" : "text-rose-600")}>
-                          {isPositive ? '+' : ''}£{item.netProfit.toFixed(2)}
+                          {exchangeRates ? `${isPositive ? '+' : ''}£${item.netProfit.toFixed(2)}` : '—'}
                         </TableCell>
                         <TableCell className="font-bold text-slate-600">
-                          %{item.margin.toFixed(1)}
+                          {exchangeRates ? `%${item.margin.toFixed(1)}` : '—'}
                         </TableCell>
                         <TableCell className="pr-6 text-right">
                           <Badge className={cn(
                             "font-black text-[10px] px-2.5 py-1 uppercase border-none",
                             isPositive ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
                           )}>
-                            {isPositive ? 'KÂR' : 'ZARAR'}
+                            {!exchangeRates ? 'Kur bekleniyor' : isPositive ? 'KÂR' : 'ZARAR'}
                           </Badge>
                         </TableCell>
                       </TableRow>
@@ -807,7 +823,7 @@ export default function AdminFinansPage() {
               </div>
               <div className="text-right">
                 <span className="text-xs font-bold text-slate-400 block uppercase">Dönem Toplamı</span>
-                <span className="text-2xl font-black text-purple-700">£{totalTeacherPayout.toFixed(2)}</span>
+                <span className="text-2xl font-black text-purple-700">€{totalTeacherPayout.toFixed(2)}</span>
               </div>
             </CardHeader>
             <CardContent className="p-0 overflow-x-auto">
@@ -833,10 +849,10 @@ export default function AdminFinansPage() {
                             {t.lessonCount} Ders
                           </TableCell>
                           <TableCell className="font-medium text-slate-500">
-                            £{avgRate.toFixed(2)} / ders
+                            €{avgRate.toFixed(2)} / ders
                           </TableCell>
                           <TableCell className="font-black text-purple-700 text-right pr-6">
-                            £{t.totalPayout.toFixed(2)}
+                            €{t.totalPayout.toFixed(2)}
                           </TableCell>
                         </TableRow>
                       );
@@ -913,7 +929,7 @@ export default function AdminFinansPage() {
                           <TableCell className="font-black">
                             {exp.currency === 'EUR' ? (
                               <div>
-                                <span className="text-slate-900 font-black">€{exp.amount ? Number(exp.amount).toFixed(2) : (exp.amountGbp ? (exp.amountGbp * 1.18).toFixed(2) : '0.00')}</span>
+                                <span className="text-slate-900 font-black">{exp.amount != null ? `€${Number(exp.amount).toFixed(2)}` : 'Euro tutarı kaydedilmemiş'}</span>
                                 <span className="text-[11px] text-slate-400 font-bold block">(£{(exp.amountGbp || 0).toFixed(2)})</span>
                               </div>
                             ) : exp.currency === 'USD' ? (
