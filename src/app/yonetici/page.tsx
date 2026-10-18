@@ -16,7 +16,8 @@ import {
   ChevronRight, 
   Trash2,
   Bell,
-  PhoneCall
+  PhoneCall,
+  CalendarDays
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,18 +29,36 @@ import { Button } from '@/components/ui/button';
 import { writeBatch, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
-function GrowthCard({ title, value, subValue, icon: Icon, color }: any) {
+type GrowthCardProps = {
+  title: string;
+  value: string | number;
+  subValue: string;
+  icon: React.ElementType;
+  accent: string;
+  iconStyle: string;
+  glowStyle: string;
+};
+
+function GrowthCard({ title, value, subValue, icon: Icon, accent, iconStyle, glowStyle }: GrowthCardProps) {
   return (
-    <Card className="border-none shadow-md bg-white overflow-hidden relative group">
-      <div className={cn("absolute top-0 left-0 w-1 h-full", color)} />
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">{title}</CardTitle>
-        <Icon className={cn("h-4 w-4", color.replace('bg-', 'text-'))} />
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-black text-slate-900">{value}</div>
-        <div className="text-[10px] font-medium text-slate-500 mt-1 flex items-center gap-1">
-            <span className="text-emerald-500 font-bold">{subValue}</span> bu ay
+    <Card className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
+      <div className={cn("absolute inset-x-0 top-0 h-1", accent)} />
+      <div className={cn("pointer-events-none absolute -right-10 -top-12 h-28 w-28 rounded-full blur-2xl opacity-50 transition-opacity group-hover:opacity-80", glowStyle)} />
+      <CardContent className="relative p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{title}</p>
+            <p className="mt-3 text-3xl font-black tracking-tight text-slate-950">{value}</p>
+          </div>
+          <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset", iconStyle)}>
+            <Icon className="h-5 w-5" />
+          </div>
+        </div>
+        <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-3">
+          <span className={cn("h-1.5 w-1.5 rounded-full", accent)} />
+          <p className="text-[11px] font-semibold text-slate-500">
+            {subValue} <span className="font-medium text-slate-400">· seçili ay</span>
+          </p>
         </div>
       </CardContent>
     </Card>
@@ -155,30 +174,90 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-10 font-sans pb-20">
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Merkezi Kontrol</h1>
-          <p className="text-slate-500 font-medium mt-1">Growth, Operasyon ve Satış Verileri</p>
-        </div>
-        <div className="flex items-center gap-2 bg-white rounded-lg border p-1 shadow-sm">
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500" onClick={() => setSelectedDate(subMonths(selectedDate, 1))}>
-                <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <span className="w-32 text-center text-xs font-bold uppercase tracking-widest text-slate-700">
-                {selectedDate.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}
-            </span>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500" onClick={() => setSelectedDate(addMonths(selectedDate, 1))}>
-                <ChevronRight className="w-4 h-4" />
-            </Button>
-        </div>
-      </div>
+      <section className="relative overflow-hidden rounded-[28px] border border-slate-200/80 bg-gradient-to-br from-white via-slate-50 to-indigo-50/70 p-5 shadow-sm sm:p-7">
+        <div className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-indigo-200/30 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 left-1/3 h-64 w-64 rounded-full bg-sky-100/50 blur-3xl" />
 
-      <div className="grid gap-6 md:grid-cols-2 min-[992px]:grid-cols-4">
-        <GrowthCard title="Yeni Öğrenci" value={metrics?.activeStudents || 0} subValue="Bu ay eklenen" icon={Baby} color="bg-indigo-500" />
-        <GrowthCard title="Gerçekleşen Satış" value={metrics?.totalPaidLessons || 0} subValue="Ders İşlendi" icon={DollarSign} color="bg-emerald-500" />
-        <GrowthCard title="Dönüşüm Oranı" value={`%${metrics?.conversionRate || 0}`} subValue="Trial → Paket" icon={TrendingUp} color="bg-amber-500" />
-        <GrowthCard title="Gerçekleşen Deneme" value={metrics?.totalFreeTrials || 0} subValue="Ders İşlendi" icon={CalendarCheck} color="bg-blue-500" />
-      </div>
+        <div className="relative mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]" />
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Yönetim özeti</span>
+            </div>
+            <h1 className="text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Merkezi Kontrol</h1>
+            <p className="mt-1.5 text-sm font-medium text-slate-500">Öğrenci, ders ve dönüşüm performansının aylık görünümü</p>
+          </div>
+
+          <div className="flex w-full items-center rounded-2xl border border-slate-200/80 bg-white/90 p-1.5 shadow-sm backdrop-blur md:w-auto">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Önceki ay"
+              className="h-9 w-9 shrink-0 rounded-xl text-slate-500 hover:bg-slate-100"
+              onClick={() => setSelectedDate(subMonths(selectedDate, 1))}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex min-w-0 flex-1 items-center justify-center gap-2 px-3 md:min-w-40">
+              <CalendarDays className="h-4 w-4 shrink-0 text-indigo-500" />
+              <div className="text-center">
+                <p className="text-[8px] font-black uppercase tracking-[0.18em] text-slate-400">Rapor dönemi</p>
+                <p className="whitespace-nowrap text-xs font-black uppercase tracking-wider text-slate-700">
+                  {selectedDate.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Sonraki ay"
+              className="h-9 w-9 shrink-0 rounded-xl text-slate-500 hover:bg-slate-100"
+              onClick={() => setSelectedDate(addMonths(selectedDate, 1))}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="relative grid gap-4 sm:grid-cols-2 min-[1180px]:grid-cols-4">
+          <GrowthCard
+            title="Yeni Öğrenci"
+            value={metrics?.activeStudents || 0}
+            subValue="Yeni kayıt"
+            icon={Baby}
+            accent="bg-indigo-500"
+            iconStyle="bg-indigo-50 text-indigo-600 ring-indigo-100"
+            glowStyle="bg-indigo-200"
+          />
+          <GrowthCard
+            title="Ücretli Ders"
+            value={metrics?.totalPaidLessons || 0}
+            subValue="Tamamlanan ders"
+            icon={DollarSign}
+            accent="bg-emerald-500"
+            iconStyle="bg-emerald-50 text-emerald-600 ring-emerald-100"
+            glowStyle="bg-emerald-200"
+          />
+          <GrowthCard
+            title="Dönüşüm Oranı"
+            value={`%${metrics?.conversionRate || 0}`}
+            subValue="Denemeden pakete"
+            icon={TrendingUp}
+            accent="bg-amber-500"
+            iconStyle="bg-amber-50 text-amber-600 ring-amber-100"
+            glowStyle="bg-amber-200"
+          />
+          <GrowthCard
+            title="Deneme Dersi"
+            value={metrics?.totalFreeTrials || 0}
+            subValue="Tamamlanan deneme"
+            icon={CalendarCheck}
+            accent="bg-sky-500"
+            iconStyle="bg-sky-50 text-sky-600 ring-sky-100"
+            glowStyle="bg-sky-200"
+          />
+        </div>
+      </section>
 
       <div className="grid gap-6 min-[992px]:grid-cols-3 items-start">
         <div className="lg:col-span-1 space-y-6">
