@@ -2,7 +2,7 @@
 
 import Script from 'next/script';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   isPublicTrackingPath,
   readTrackingConsent,
@@ -16,7 +16,7 @@ export function GoogleAnalytics() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [hasConsent, setHasConsent] = useState(false);
-  const [isReady, setIsReady] = useState(false);
+  const lastTrackedPath = useRef<string | null>(null);
 
   useEffect(() => {
     const updateConsent = (event?: Event) => {
@@ -32,16 +32,26 @@ export function GoogleAnalytics() {
   }, []);
 
   useEffect(() => {
-    if (!isReady || !hasConsent || !GOOGLE_ANALYTICS_ID || !isPublicTrackingPath(pathname)) return;
+    if (!hasConsent || !GOOGLE_ANALYTICS_ID || !isPublicTrackingPath(pathname)) return;
 
     const query = searchParams.toString();
     const pagePath = query ? `${pathname}?${query}` : pathname;
+
+    // The initial view is sent by gtag('config'). Only send subsequent SPA navigations here.
+    if (lastTrackedPath.current === null) {
+      lastTrackedPath.current = pagePath;
+      return;
+    }
+
+    if (lastTrackedPath.current === pagePath) return;
+    lastTrackedPath.current = pagePath;
+
     (window as any).gtag?.('event', 'page_view', {
       page_title: document.title,
       page_location: window.location.href,
       page_path: pagePath,
     });
-  }, [hasConsent, isReady, pathname, searchParams]);
+  }, [hasConsent, pathname, searchParams]);
 
   if (!GOOGLE_ANALYTICS_ID || !hasConsent || !isPublicTrackingPath(pathname)) return null;
 
@@ -57,7 +67,6 @@ export function GoogleAnalytics() {
             window.gtag = gtag;
             gtag('js', new Date());
             gtag('config', '${GOOGLE_ANALYTICS_ID}', {
-              send_page_view: false,
               anonymize_ip: true
             });
           `,
@@ -67,7 +76,6 @@ export function GoogleAnalytics() {
         id="google-analytics-loader"
         src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_ID}`}
         strategy="afterInteractive"
-        onLoad={() => setIsReady(true)}
       />
     </>
   );
