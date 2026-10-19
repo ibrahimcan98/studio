@@ -5,6 +5,8 @@ import { Providers } from '@/components/layout/providers';
 import { LayoutContent } from '@/components/layout/layout-content';
 import { Metadata } from 'next';
 import { FacebookPixel } from '@/components/analytics/FacebookPixel';
+import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
+import { CookieConsent } from '@/components/analytics/CookieConsent';
 import { Suspense } from 'react';
 
 
@@ -89,6 +91,7 @@ export default function RootLayout({
       <body className={`${poppins.className} antialiased`} suppressHydrationWarning>
         <Suspense fallback={null}>
           <FacebookPixel />
+          <GoogleAnalytics />
         </Suspense>
         <Providers>
           <LayoutContent>
@@ -97,6 +100,7 @@ export default function RootLayout({
           </LayoutContent>
         </Providers>
         <Toaster />
+        <CookieConsent />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
-const INTERNAL_PATH_PREFIXES = ['/yonetici', '/ogretmen-portali'];
+const INTERNAL_PATH_PREFIXES = ['/yonetici', '/ogretmen-portali', '/ebeveyn-portali', '/cocuk-modu'];
 const BOT_PATTERN = /bot|crawl|spider|slurp|facebookexternalhit|whatsapp|telegram|preview/i;
 
 function normalizePath(rawUrl?: string) {

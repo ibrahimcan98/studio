@@ -3,6 +3,13 @@
 import { usePathname, useSearchParams } from 'next/navigation';
 import Script from 'next/script';
 import { useEffect, useState } from 'react';
+import {
+  hasTrackingConsent,
+  isPublicTrackingPath,
+  readTrackingConsent,
+  TRACKING_CONSENT_EVENT,
+  TrackingConsent,
+} from '@/lib/tracking-consent';
 
 const FB_PIXEL_ID = process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID;
 const CLICK_TRACK_THROTTLE_MS = 500;
@@ -23,6 +30,7 @@ export const trackPixelEvent = async (
   userData: Record<string, any> = {}
 ) => {
   if (typeof window === 'undefined') return;
+  if (!hasTrackingConsent('marketing') || !isPublicTrackingPath(window.location.pathname)) return;
 
   const eventId = generateEventId();
   
@@ -87,6 +95,8 @@ export const FacebookPixel = () => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [activeTestCode, setActiveTestCode] = useState<string | null>(null);
+  const [hasMarketingConsent, setHasMarketingConsent] = useState(false);
+  const [pixelReady, setPixelReady] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -96,11 +106,29 @@ export const FacebookPixel = () => {
   }, []);
 
   useEffect(() => {
+    const updateConsent = (event?: Event) => {
+      const consent = event instanceof CustomEvent
+        ? (event.detail as TrackingConsent)
+        : readTrackingConsent();
+      setHasMarketingConsent(consent?.marketing === true);
+    };
+
+    updateConsent();
+    window.addEventListener(TRACKING_CONSENT_EVENT, updateConsent);
+    return () => window.removeEventListener(TRACKING_CONSENT_EVENT, updateConsent);
+  }, []);
+
+  useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Track pageview on route change
+    trackSiteEvent('PageView');
+  }, [pathname, searchParams]);
+
+  useEffect(() => {
+    if (!hasMarketingConsent || !pixelReady || !isPublicTrackingPath(pathname) || !FB_PIXEL_ID || !(window as any).fbq) return;
+
     const eventId = generateEventId();
-      
+
     // Handle test code persistence
     let testEventCode = searchParams.get('test_event_code');
     if (testEventCode) {
@@ -111,12 +139,8 @@ export const FacebookPixel = () => {
       setActiveTestCode(testEventCode);
     }
 
-    if (FB_PIXEL_ID && (window as any).fbq) {
-      (window as any).fbq('track', 'PageView', {}, { event_id: eventId });
-    }
-
-    trackSiteEvent('PageView', {}, eventId);
-  }, [pathname, searchParams]);
+    (window as any).fbq('track', 'PageView', {}, { event_id: eventId });
+  }, [hasMarketingConsent, pathname, pixelReady, searchParams]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -153,13 +177,14 @@ export const FacebookPixel = () => {
 
 
 
-  if (!FB_PIXEL_ID) return null;
+  if (!FB_PIXEL_ID || !hasMarketingConsent || !isPublicTrackingPath(pathname)) return null;
 
   return (
     <>
       <Script
         id="fb-pixel"
         strategy="afterInteractive"
+        onReady={() => setPixelReady(true)}
         dangerouslySetInnerHTML={{
           __html: `
             !function(f,b,e,v,n,t,s)

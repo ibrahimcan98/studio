@@ -35,7 +35,7 @@ export default function PrivacyPolicyPage() {
 
           <h2 className="text-2xl font-bold text-slate-800 mt-8 mb-4">3. Yapay Zeka ve 3. Parti Paylaşımı</h2>
           <p>
-            Pati AI, güvenli altyapılar (Örn: OpenAI API) kullanır. API üzerinden gönderilen anonimleştirilmiş metin verileri, söz konusu AI sağlayıcılarının <strong>kendi modellerini eğitmek için kesinlikle kullanılmaz.</strong> Kullanıcı ve çocuk verileri, reklamverenlerle veya yetkisiz üçüncü şahıslarla asla paylaşılmaz ve satılamaz.
+            Pati AI, güvenli altyapılar (Örn: OpenAI API) kullanır. API üzerinden gönderilen anonimleştirilmiş metin verileri, söz konusu AI sağlayıcılarının <strong>kendi modellerini eğitmek için kesinlikle kullanılmaz.</strong> Çocuk profili ve eğitim verileri reklamverenlerle paylaşılmaz veya satılmaz.
           </p>
 
           <h2 className="text-2xl font-bold text-slate-800 mt-8 mb-4">4. Çocuk Güvenliği Politikası</h2>
@@ -45,7 +45,12 @@ export default function PrivacyPolicyPage() {
             <li><strong>Kişisel Veri Uyarısı:</strong> Yapay zeka, çocuklardan hiçbir zaman adres, telefon numarası veya okul adı gibi kişisel verileri paylaşmalarını talep etmez.</li>
           </ul>
 
-          <h2 className="text-2xl font-bold text-slate-800 mt-8 mb-4">5. İletişim</h2>
+          <h2 className="text-2xl font-bold text-slate-800 mt-8 mb-4">5. Analitik ve Çerez Tercihleri</h2>
+          <p>
+            Ziyaretçi onay verdiğinde, herkese açık sayfalardaki kullanım ve reklam performansını ölçmek için Google Analytics ve Meta teknolojileri kullanılabilir. Yönetici, öğretmen, veli ve çocuk portalları pazarlama ölçümüne dahil edilmez. Kullanıcılar, sitedeki “Çerezler” düğmesi üzerinden tercihlerini istedikleri zaman değiştirebilir.
+          </p>
+
+          <h2 className="text-2xl font-bold text-slate-800 mt-8 mb-4">6. İletişim</h2>
           <p>
             Veri gizliliği, güvenlik politikaları veya çocuğunuzun verileri hakkında sorularınız için bizimle her zaman iletişime geçebilirsiniz:<br/>
             <strong>E-posta:</strong> iletisim@turkcocukakademisi.com
