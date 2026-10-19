@@ -46,22 +46,29 @@ export function GoogleAnalytics() {
   if (!GOOGLE_ANALYTICS_ID || !hasConsent || !isPublicTrackingPath(pathname)) return null;
 
   return (
-    <Script
-      id="google-analytics"
-      src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_ID}`}
-      strategy="afterInteractive"
-      onReady={() => {
-        (window as any).dataLayer = (window as any).dataLayer || [];
-        (window as any).gtag = function gtag(...args: any[]) {
-          (window as any).dataLayer.push(args);
-        };
-        (window as any).gtag('js', new Date());
-        (window as any).gtag('config', GOOGLE_ANALYTICS_ID, {
-          send_page_view: false,
-          anonymize_ip: true,
-        });
-        setIsReady(true);
-      }}
-    />
+    <>
+      <Script
+        id="google-analytics-init"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: `
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            window.gtag = gtag;
+            gtag('js', new Date());
+            gtag('config', '${GOOGLE_ANALYTICS_ID}', {
+              send_page_view: false,
+              anonymize_ip: true
+            });
+          `,
+        }}
+      />
+      <Script
+        id="google-analytics-loader"
+        src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_ID}`}
+        strategy="afterInteractive"
+        onLoad={() => setIsReady(true)}
+      />
+    </>
   );
 }
