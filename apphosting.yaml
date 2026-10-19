@@ -8,7 +8,7 @@ runConfig:
 
 env:
   - variable: NEXT_PUBLIC_GOOGLE_ANALYTICS_ID
-    value: G-XJ7RY3KHVW
+    value: G-XJ7RY3KHYW
   - variable: OPENAI_API_KEY
     secret: OPENAI_API_KEY
   - variable: ELEVENLABS_API_KEY
