@@ -3,6 +3,8 @@
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, limit, collectionGroup } from 'firebase/firestore';
 import Link from 'next/link';
+import { MonthlyDashboardDetails } from '@/components/admin/monthly-dashboard-details';
+import { buildCompletedTeacherSessions } from '@/lib/teacher-earnings';
 import { 
   TrendingUp, 
   Globe2, 
@@ -72,7 +74,7 @@ export default function AdminDashboard() {
   const [isClearing, setIsClearing] = useState(false);
 
   const parentsQuery = useMemoFirebase(() => db ? query(collection(db, 'users'), where('role', '==', 'parent')) : null, [db]);
-  const slotsQuery = useMemoFirebase(() => db ? query(collection(db, 'lesson-slots'), where('status', '==', 'booked')) : null, [db]);
+  const slotsQuery = useMemoFirebase(() => db ? query(collection(db, 'lesson-slots'), where('status', 'in', ['booked', 'completed'])) : null, [db]);
   const childrenQuery = useMemoFirebase(() => db ? query(collectionGroup(db, 'children')) : null, [db]);
   const activityLogQuery = useMemoFirebase(() => db ? query(collection(db, 'activity-log'), orderBy('createdAt', 'desc'), limit(30)) : null, [db]);
 
@@ -93,37 +95,12 @@ export default function AdminDashboard() {
         return isWithinInterval(slotTime, { start: monthStart, end: monthEnd });
     });
 
-    const sessions: { [key: string]: any[] } = {};
-    monthSlots.forEach(slot => {
-        const date = slot.startTime?.toDate().toDateString();
-        // Include bookedAt in the key to separate different bookings immediately
-        const bookedAtStr = slot.bookedAt?.seconds || 'manual';
-        const key = `${slot.childId}_${slot.teacherId}_${date}_${slot.packageCode}_${bookedAtStr}`;
-        if (!sessions[key]) sessions[key] = [];
-        sessions[key].push(slot);
-    });
-
-    const groupedLessons: any[] = [];
-    Object.values(sessions).forEach(sessionSlots => {
-        sessionSlots.sort((a, b) => a.startTime.seconds - b.startTime.seconds);
-        let currentLesson: any = null;
-        sessionSlots.forEach(slot => {
-            // Group only if consecutive (5 min) and same booking (already in key but double check is safe)
-            const isConsecutive = currentLesson && (slot.startTime.seconds - currentLesson.lastSlotSeconds <= 300);
-            
-            if (!currentLesson || !isConsecutive) {
-                currentLesson = { ...slot, slotCount: 1, lastSlotSeconds: slot.startTime.seconds };
-                groupedLessons.push(currentLesson);
-            } else {
-                currentLesson.slotCount += 1;
-                currentLesson.lastSlotSeconds = slot.startTime.seconds;
-            }
-        });
-    });
-
+    const groupedLessons = buildCompletedTeacherSessions(monthSlots).map(lesson => ({
+      ...lesson,
+      bookedBy: monthSlots.find(slot => slot.id === lesson.id)?.bookedBy,
+    }));
     const totalPaidLessons = groupedLessons.filter(l => l.packageCode !== 'FREE_TRIAL').length;
     const totalFreeTrials = groupedLessons.filter(l => l.packageCode === 'FREE_TRIAL').length;
-    
     // Total active students newly registered in this month
     const newStudents = children.filter(c => {
         if (!c.createdAt) return false;
@@ -131,18 +108,13 @@ export default function AdminDashboard() {
         return isWithinInterval(cTime, { start: monthStart, end: monthEnd });
     }).length;
 
-    const trialUserIds = new Set(groupedLessons.filter(l => l.packageCode === 'FREE_TRIAL').map(l => l.bookedBy));
-    const paidUserIds = new Set(groupedLessons.filter(l => l.packageCode !== 'FREE_TRIAL').map(l => l.bookedBy));
-    const convertedUsers = Array.from(trialUserIds).filter(id => paidUserIds.has(id)).length;
-    const conversionRate = trialUserIds.size > 0 ? ((convertedUsers / trialUserIds.size) * 100).toFixed(1) : 0;
-
     const countries: any = {};
     parents.forEach(p => {
         const country = p.manualCountry || getCountryFromPhone(p.phoneNumber);
         countries[country] = (countries[country] || 0) + 1;
     });
 
-    return { activeStudents: newStudents, totalPaidLessons, totalFreeTrials, conversionRate, countries };
+    return { activeStudents: newStudents, totalPaidLessons, totalFreeTrials, countries };
   }, [parents, slots, children, selectedDate]);
 
   const handleClearLogs = async () => {
@@ -239,9 +211,9 @@ export default function AdminDashboard() {
             glowStyle="bg-emerald-200"
           />
           <GrowthCard
-            title="Dönüşüm Oranı"
-            value={`%${metrics?.conversionRate || 0}`}
-            subValue="Denemeden pakete"
+            title="Toplam Ders"
+            value={(metrics?.totalPaidLessons || 0) + (metrics?.totalFreeTrials || 0)}
+            subValue="Ücretli ders ve deneme"
             icon={TrendingUp}
             accent="bg-amber-500"
             iconStyle="bg-amber-50 text-amber-600 ring-amber-100"
@@ -258,6 +230,8 @@ export default function AdminDashboard() {
           />
         </div>
       </section>
+
+      <MonthlyDashboardDetails slots={slots || []} month={selectedDate} />
 
       <div className="grid gap-6 min-[992px]:grid-cols-3 items-start">
         <div className="lg:col-span-1 space-y-6">

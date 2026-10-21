@@ -180,6 +180,16 @@ export default function AdminDerslerPage() {
 
     // Local State
     const [searchQuery, setSearchQuery] = useState('');
+    const [monthFilter, setMonthFilter] = useState('all');
+    const [monthOpen, setMonthOpen] = useState<Record<string, boolean>>({});
+    const isMonthOpen = (lessons: any[]) => {
+        const key = format(lessons[0].startDateTime, 'yyyy-MM');
+        return monthOpen[key] ?? (monthFilter !== 'all' || key >= format(currentTime, 'yyyy-MM'));
+    };
+    const toggleMonth = (lessons: any[]) => {
+        const key = format(lessons[0].startDateTime, 'yyyy-MM');
+        setMonthOpen(previous => ({ ...previous, [key]: !isMonthOpen(lessons) }));
+    };
     const [typeFilter, setTypeFilter] = useState<'all' | 'trial' | 'regular'>('all');
     
     // Cancellation State
@@ -348,9 +358,21 @@ export default function AdminDerslerPage() {
         return result.sort((a, b) => b.startDateTime.getTime() - a.startDateTime.getTime());
     }, [bookedLessons, allChildren, users, searchQuery, typeFilter]);
 
+    const monthOptions = useMemo(() => {
+        const months = new Map<string, string>();
+        filteredLessons.forEach(lesson => months.set(format(lesson.startDateTime, 'yyyy-MM'), format(lesson.startDateTime, 'MMMM yyyy', { locale: tr })));
+        return [...months.entries()].sort(([a], [b]) => b.localeCompare(a));
+    }, [filteredLessons]);
+    const monthSelector = (
+        <Select value={monthFilter} onValueChange={value => { setMonthFilter(value); setMonthOpen({}); }}>
+            <SelectTrigger aria-label="Ders ayı" className="h-10 w-full sm:w-[200px] rounded-xl bg-white"><SelectValue placeholder="Tüm aylar" /></SelectTrigger>
+            <SelectContent><SelectItem value="all">Tüm aylar</SelectItem>{monthOptions.map(([key, label]) => <SelectItem key={key} value={key}>{label}</SelectItem>)}</SelectContent>
+        </Select>
+    );
     const { upcomingLessons, completedLessons } = useMemo(() => {
-        const upcoming = filteredLessons?.filter(l => currentTime < addMinutes(l.startDateTime, l.duration)) || [];
-        const completed = filteredLessons?.filter(l => currentTime >= addMinutes(l.startDateTime, l.duration)) || [];
+        const visibleLessons = filteredLessons.filter(lesson => monthFilter === 'all' || format(lesson.startDateTime, 'yyyy-MM') === monthFilter);
+        const upcoming = visibleLessons.filter(l => currentTime < addMinutes(l.startDateTime, l.duration)) || [];
+        const completed = visibleLessons.filter(l => currentTime >= addMinutes(l.startDateTime, l.duration)) || [];
         
         // Sort Upcoming: soonest first
         upcoming.sort((a, b) => a.startDateTime.getTime() - b.startDateTime.getTime());
@@ -358,7 +380,7 @@ export default function AdminDerslerPage() {
         completed.sort((a, b) => b.startDateTime.getTime() - a.startDateTime.getTime());
         
         return { upcomingLessons: upcoming, completedLessons: completed };
-    }, [filteredLessons, currentTime]);
+    }, [filteredLessons, currentTime, monthFilter]);
 
     const groupedUpcomingByMonth = useMemo(() => {
         const groups: { [month: string]: any[] } = {};
@@ -759,6 +781,7 @@ export default function AdminDerslerPage() {
                     <Card className="border-none shadow-xl rounded-3xl overflow-hidden bg-white/80 backdrop-blur-sm">
                         <CardHeader className="border-b bg-slate-50/50 p-4 sm:p-6">
                             <div className="flex flex-col lg:flex-row justify-between gap-4">
+                                {monthSelector}
                                 <div className="relative flex-1 w-full lg:max-w-sm">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                     <Input 
@@ -801,10 +824,10 @@ export default function AdminDerslerPage() {
                                 ) : Object.entries(groupedUpcomingByMonth).map(([month, lessons]) => (
                                     <div key={month} className="space-y-0">
                                         <div className="bg-slate-50/80 px-4 py-2 border-y border-slate-100 sticky top-0 z-10 backdrop-blur-sm">
-                                            <span className="text-[10px] font-black text-primary uppercase tracking-widest">{month} ({lessons.length} Ders)</span>
+                                            <button type="button" onClick={() => toggleMonth(lessons)} aria-expanded={isMonthOpen(lessons)} className="text-[10px] font-black text-primary uppercase tracking-widest inline-flex items-center gap-2 py-1 text-left"><ChevronRight className={cn('h-3.5 w-3.5 transition-transform', isMonthOpen(lessons) && 'rotate-90')} />{month} ({lessons.length} Ders)</button>
                                         </div>
                                         <div className="divide-y divide-slate-100">
-                                            {lessons.map((lesson, idx) => (
+                                            {isMonthOpen(lessons) && lessons.map((lesson, idx) => (
                                                 <LessonCard 
                                                     key={lesson.id || idx} 
                                                     lesson={lesson} 
@@ -848,10 +871,10 @@ export default function AdminDerslerPage() {
                                             <React.Fragment key={month}>
                                                 <TableRow className="bg-slate-50/30 hover:bg-slate-50/30 border-y">
                                                     <TableCell colSpan={6} className="py-2 px-6">
-                                                        <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/5 px-2 py-0.5 rounded">{month} ({lessons.length} Ders)</span>
+                                                        <button type="button" onClick={() => toggleMonth(lessons)} aria-expanded={isMonthOpen(lessons)} className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/5 px-2 py-0.5 rounded inline-flex items-center gap-2 py-1 text-left"><ChevronRight className={cn('h-3.5 w-3.5 transition-transform', isMonthOpen(lessons) && 'rotate-90')} />{month} ({lessons.length} Ders)</button>
                                                     </TableCell>
                                                 </TableRow>
-                                                {lessons.map((lesson, idx) => (
+                                                {isMonthOpen(lessons) && lessons.map((lesson, idx) => (
                                                     <LessonRow 
                                                         key={lesson.id || idx} 
                                                         lesson={lesson} 
@@ -882,6 +905,7 @@ export default function AdminDerslerPage() {
                         {/* Same Header for past as well */}
                         <CardHeader className="border-b bg-slate-50/50 p-4 sm:p-6">
                             <div className="flex flex-col lg:flex-row justify-between gap-4">
+                                {monthSelector}
                                 <div className="relative flex-1 w-full lg:max-w-sm">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                     <Input 
@@ -901,10 +925,10 @@ export default function AdminDerslerPage() {
                                 ) : Object.entries(groupedCompletedByMonth).map(([month, lessons]) => (
                                     <div key={month} className="space-y-0">
                                         <div className="bg-slate-50/80 px-4 py-2 border-y border-slate-100 sticky top-0 z-10 backdrop-blur-sm">
-                                            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{month} ({lessons.length} Ders)</span>
+                                            <button type="button" onClick={() => toggleMonth(lessons)} aria-expanded={isMonthOpen(lessons)} className="text-[10px] font-black text-emerald-600 uppercase tracking-widest inline-flex items-center gap-2 py-1 text-left"><ChevronRight className={cn('h-3.5 w-3.5 transition-transform', isMonthOpen(lessons) && 'rotate-90')} />{month} ({lessons.length} Ders)</button>
                                         </div>
                                         <div className="divide-y divide-slate-100">
-                                            {lessons.map((lesson, idx) => (
+                                            {isMonthOpen(lessons) && lessons.map((lesson, idx) => (
                                                 <LessonCard 
                                                     key={lesson.id || idx} 
                                                     lesson={lesson} 
@@ -948,10 +972,10 @@ export default function AdminDerslerPage() {
                                             <React.Fragment key={month}>
                                                 <TableRow className="bg-slate-50/30 hover:bg-slate-50/30 border-y">
                                                     <TableCell colSpan={6} className="py-2 px-6">
-                                                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded">{month} ({lessons.length} Ders)</span>
+                                                        <button type="button" onClick={() => toggleMonth(lessons)} aria-expanded={isMonthOpen(lessons)} className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded inline-flex items-center gap-2 py-1 text-left"><ChevronRight className={cn('h-3.5 w-3.5 transition-transform', isMonthOpen(lessons) && 'rotate-90')} />{month} ({lessons.length} Ders)</button>
                                                     </TableCell>
                                                 </TableRow>
-                                                {lessons.map((lesson, idx) => (
+                                                {isMonthOpen(lessons) && lessons.map((lesson, idx) => (
                                                     <LessonRow 
                                                         key={lesson.id || idx} 
                                                         lesson={lesson} 

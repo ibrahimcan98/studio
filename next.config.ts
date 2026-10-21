@@ -51,9 +51,9 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: `
               default-src 'self';
-              script-src 'self' 'unsafe-inline' 'unsafe-eval' ajax.googleapis.com modelviewer.dev *.firebaseapp.com *.googleapis.com apis.google.com *.sentry.io https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ connect.facebook.net;
-              connect-src 'self' modelviewer.dev *.googleapis.com *.firebaseapp.com *.sentry.io *.stripe.io *.stripe.com wss://*.firebaseio.com *.facebook.com;
-              img-src 'self' blob: data: modelviewer.dev firebasestorage.googleapis.com *.unsplash.com picsum.photos i.ibb.co placehold.co *.sentry.io *.facebook.com;
+              script-src 'self' 'unsafe-inline' 'unsafe-eval' ajax.googleapis.com modelviewer.dev *.firebaseapp.com *.googleapis.com apis.google.com *.sentry.io https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ connect.facebook.net https://*.googletagmanager.com;
+              connect-src 'self' modelviewer.dev *.googleapis.com *.firebaseapp.com *.sentry.io *.stripe.io *.stripe.com wss://*.firebaseio.com *.facebook.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com;
+              img-src 'self' blob: data: modelviewer.dev firebasestorage.googleapis.com *.unsplash.com picsum.photos i.ibb.co placehold.co *.sentry.io *.facebook.com https://*.google-analytics.com https://*.googletagmanager.com;
               frame-src 'self' *.stripe.com https://www.google.com/recaptcha/ *.firebaseapp.com https://www.youtube.com https://www.youtube-nocookie.com;
               style-src 'self' 'unsafe-inline' fonts.googleapis.com;
               font-src 'self' fonts.gstatic.com data:;

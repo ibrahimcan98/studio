@@ -80,7 +80,20 @@ export function buildCompletedTeacherSessions(rawSlots: any[] | null | undefined
       parsedEndTime: toDate(slot.endTime),
     }))
     .filter(slot => slot.parsedStartTime)
-    .sort((a, b) => a.parsedStartTime.getTime() - b.parsedStartTime.getTime());
+    .sort((a, b) => {
+      // Keep each booking together even when other teachers teach at the same time.
+      for (const [left, right] of [
+        [a.teacherId, b.teacherId],
+        [a.childId, b.childId],
+        [a.packageCode, b.packageCode],
+        [a.status, b.status],
+        [bookingToken(a), bookingToken(b)],
+      ]) {
+        const comparison = String(left ?? '').localeCompare(String(right ?? ''));
+        if (comparison) return comparison;
+      }
+      return a.parsedStartTime.getTime() - b.parsedStartTime.getTime();
+    });
 
   const sessions: Array<CompletedTeacherSession & { bookingToken: string }> = [];
 
@@ -119,5 +132,6 @@ export function buildCompletedTeacherSessions(rawSlots: any[] | null | undefined
 
   return sessions
     .filter(session => session.status === 'completed' || session.lastEndTime < now)
+    .sort((a, b) => a.firstStartTime.getTime() - b.firstStartTime.getTime())
     .map(({ bookingToken: _bookingToken, ...session }) => session);
 }
