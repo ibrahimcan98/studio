@@ -47,6 +47,7 @@ const SALES_STAGES = [
 ] as const;
 
 const QUICK_OUTCOMES = [
+    { label: 'Mesaj Gönderildi', stage: 'contacted', color: 'bg-cyan-50 text-cyan-700 border-cyan-200', icon: 'MessageCircle' },
     { label: 'Açtı', stage: 'contacted', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: 'UserCheck' },
     { label: 'Açmadı', stage: 'new', color: 'bg-red-50 text-red-600 border-red-200', icon: 'PhoneOff' },
     { label: 'Sonra Ara', stage: 'contacted', color: 'bg-blue-50 text-blue-600 border-blue-200', icon: 'CalendarClock' },
@@ -57,6 +58,7 @@ const QUICK_OUTCOMES = [
 ] as const;
 
 const CALL_FILTERS = [
+    { id: 'message-sent', status: 'Mesaj Gönderildi', label: 'Mesaj Gönderildi', icon: MessageCircle, activeColor: 'bg-cyan-600 border-cyan-600 shadow-cyan-200' },
     { id: 'answered', status: 'Açtı', label: 'Açtı', icon: UserCheck, activeColor: 'bg-emerald-600 border-emerald-600 shadow-emerald-200' },
     { id: 'no-answer', status: 'Açmadı', label: 'Açmadı', icon: PhoneOff, activeColor: 'bg-red-600 border-red-600 shadow-red-200' },
     { id: 'call-later', status: 'Sonra Ara', label: 'Sonra Ara', icon: CalendarClock, activeColor: 'bg-blue-600 border-blue-600 shadow-blue-200' },
@@ -560,6 +562,7 @@ export default function AramalarPage() {
 
     const getStatusIcon = (iconName: string) => {
         switch (iconName) {
+            case 'MessageCircle': return <MessageCircle className="w-4 h-4" />;
             case 'PhoneOff': return <PhoneOff className="w-4 h-4" />;
             case 'UserCheck': return <UserCheck className="w-4 h-4" />;
             case 'Clock': return <Clock className="w-4 h-4" />;
@@ -970,7 +973,7 @@ export default function AramalarPage() {
                                         <Input placeholder="Konuşulanları ve sonraki adımı yazın..." className="h-10 text-xs bg-white rounded-xl" value={callNote} onChange={(e) => setCallNote(e.target.value)} />
                                     </label>
                                 </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-2">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-8 gap-2">
                                     {QUICK_OUTCOMES.map(outcome => (
                                         <Button key={outcome.label} disabled={isSavingCall} onClick={() => handleCallAction(outcome.label, outcome.color, outcome.icon, outcome.stage)} variant="outline" className={cn("h-10 rounded-xl font-bold text-[10px] sm:text-xs px-2", outcome.color)}>
                                             {isSavingCall ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : getStatusIcon(outcome.icon)}
