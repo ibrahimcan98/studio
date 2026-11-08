@@ -94,6 +94,7 @@ interface ParentData {
     manualTags: string[];
     hiddenTags: string[];
     lastPurchaseDate?: Date;
+    lastLessonDate?: Date | null;
     countryName: string;
     manualCountry?: string;
     tags?: string[];
@@ -217,7 +218,7 @@ function UsersPageContent() {
   const [isAddingLessons, setIsAddingLessons] = useState(false);
   
   // Sorting State
-  const [sortType, setSortType] = useState<'registration_desc' | 'lessons_desc' | 'lessons_asc'>('registration_desc');
+  const [sortType, setSortType] = useState<'registration_desc' | 'lessons_desc' | 'lessons_asc' | 'last_lesson_desc' | 'last_lesson_asc'>('registration_desc');
 
   // Custom Confirm States
   const [isConfirmRemoveOpen, setIsConfirmRemoveOpen] = useState(false);
@@ -511,6 +512,13 @@ function UsersPageContent() {
             const timeA = a.createdAt?.toMillis?.() || 0;
             const timeB = b.createdAt?.toMillis?.() || 0;
             return timeB - timeA;
+        } else if (sortType === 'last_lesson_desc' || sortType === 'last_lesson_asc') {
+            const timeA = a.lastLessonDate?.getTime();
+            const timeB = b.lastLessonDate?.getTime();
+            // Parents without a scheduled lesson stay at the bottom in either direction.
+            if (timeA == null) return timeB == null ? 0 : 1;
+            if (timeB == null) return -1;
+            return sortType === 'last_lesson_desc' ? timeB - timeA : timeA - timeB;
         } else if (sortType === 'lessons_desc') {
             return (b.totalRemainingLessons || 0) - (a.totalRemainingLessons || 0);
         } else if (sortType === 'lessons_asc') {
@@ -1008,6 +1016,8 @@ function UsersPageContent() {
                   onChange={(e) => setSortType(e.target.value as any)}
               >
                   <option value="registration_desc">Kayıt: En Yeni</option>
+                  <option value="last_lesson_desc">Son Ders: En Yeni</option>
+                  <option value="last_lesson_asc">Son Ders: En Eski</option>
                   <option value="lessons_desc">Ders: En Çok</option>
                   <option value="lessons_asc">Ders: En Az</option>
               </select>
@@ -1184,6 +1194,7 @@ function UsersPageContent() {
                                     <TableHead className="font-bold text-slate-500 py-5">Veli Bilgisi</TableHead>
                                     <TableHead className="font-bold text-slate-500">Ülke</TableHead>
                                     <TableHead className="font-bold text-slate-500">Kayıt Tarihi</TableHead>
+                                    <TableHead className="font-bold text-slate-500">Son Planlanan Ders</TableHead>
                                     <TableHead className="font-bold text-slate-500">Kalan Ders</TableHead>
                                     <TableHead className="font-bold text-slate-500">Etiketler</TableHead>
                                     <TableHead className="w-[80px] text-right pr-8"></TableHead>
@@ -2058,6 +2069,9 @@ function ParentRow({ parent, isSelected, onSelect, onDetail, onAddLessons, onMan
             <TableCell className="text-slate-500 text-xs">
                 {parent.createdAt ? format(parent.createdAt.toDate(), 'dd MMM yyyy', { locale: tr }) : '-'}
             </TableCell>
+            <TableCell className="text-slate-500 text-xs whitespace-nowrap">
+                {parent.lastLessonDate ? format(parent.lastLessonDate, 'dd MMM yyyy', { locale: tr }) : 'Planlanmadı'}
+            </TableCell>
             <TableCell>
                 <div className="flex flex-col gap-1">
                     <div className={cn(
@@ -2202,6 +2216,10 @@ function ParentCard({ parent, isSelected, onSelect, onDetail, onAddLessons, onMa
                     <div className="flex flex-col">
                         <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Kayıt</span>
                         <span className="text-[10px] font-bold text-slate-500">{parent.createdAt ? format(parent.createdAt.toDate(), 'dd.MM.yy') : '-'}</span>
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Son Planlanan Ders</span>
+                        <span className="text-[10px] font-bold text-slate-500">{parent.lastLessonDate ? format(parent.lastLessonDate, 'dd.MM.yy') : 'Planlanmadı'}</span>
                     </div>
                     <div className="flex flex-col text-right items-end gap-0.5">
                         <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Kalan Ders</span>
