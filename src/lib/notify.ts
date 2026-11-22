@@ -3,7 +3,7 @@ import { getPaymentReceiptTemplate } from './email-templates';
 
 const ADMIN_EMAILS = [
     'iletisim@turkcocukakademisi.com',
-    'tubakodak@turkcocukakademisi.com'
+    'tubakodak@turkcocukakademisii.com'
 ];
 
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'iletisim@turkcocukakademisi.com';

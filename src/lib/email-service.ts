@@ -6,7 +6,7 @@
 // ─── Sabit Alıcı Listeleri ────────────────────────────────────────────────────
 
 export const ADMIN_EMAILS = [
-  'tubakodak@turkcocukakademisi.com',
+  'tubakodak@turkcocukakademisii.com',
   'iletisim@turkcocukakademisi.com',
   'rehberlik@turkcocukakademisi.com',
 ];
