@@ -522,7 +522,7 @@ export default function AdminFinansPage() {
   const isLoading = transactionsLoading || teachersLoading || slotsLoading || expensesLoading;
 
   return (
-    <div className="p-6 md:p-10 space-y-8 max-w-7xl mx-auto">
+    <div className="min-w-0 p-2 sm:p-6 md:p-8 space-y-6 sm:space-y-8 max-w-7xl mx-auto">
       {/* PAGE HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
         <div>
@@ -552,7 +552,7 @@ export default function AdminFinansPage() {
 
       {/* FILTER & PERIOD SELECTOR */}
       <Card className="rounded-2xl border-slate-200 shadow-sm bg-white overflow-hidden">
-        <CardContent className="p-4 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <CardContent className="min-w-0 p-4 sm:p-6 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-black uppercase text-slate-400 mr-2 flex items-center gap-1.5">
               <Filter className="w-3.5 h-3.5" /> Görünüm:
@@ -596,13 +596,13 @@ export default function AdminFinansPage() {
           </div>
 
           {/* DYNAMIC SELECTOR BASED ON PERIOD */}
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 w-full flex-wrap items-center gap-2 xl:w-auto xl:shrink-0">
             {periodType === 'monthly' && (
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 w-full items-center gap-2 sm:w-auto">
                 <Button 
                   variant="outline" 
                   size="icon" 
-                  className="h-9 w-9 rounded-xl"
+                  className="h-9 w-9 shrink-0 rounded-xl"
                   onClick={() => setSelectedMonth(prev => subMonths(prev, 1))}
                 >
                   <ChevronLeft className="w-4 h-4" />
@@ -611,7 +611,7 @@ export default function AdminFinansPage() {
                   value={format(selectedMonth, 'yyyy-MM')} 
                   onValueChange={(val) => setSelectedMonth(parseISO(`${val}-01`))}
                 >
-                  <SelectTrigger className="w-[180px] h-9 rounded-xl font-bold text-xs">
+                  <SelectTrigger className="min-w-0 flex-1 sm:w-[180px] sm:flex-none h-9 rounded-xl font-bold text-xs whitespace-nowrap">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -632,7 +632,7 @@ export default function AdminFinansPage() {
                 <Button 
                   variant="outline" 
                   size="icon" 
-                  className="h-9 w-9 rounded-xl"
+                  className="h-9 w-9 shrink-0 rounded-xl"
                   onClick={() => setSelectedMonth(prev => addMonths(prev, 1))}
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -663,7 +663,7 @@ export default function AdminFinansPage() {
               </Select>
             )}
 
-            <Badge variant="outline" className="h-9 px-3 font-black text-slate-700 bg-slate-50 border-slate-200">
+            <Badge variant="outline" className="min-h-9 h-auto max-w-full px-3 py-2 whitespace-normal break-words font-black text-slate-700 bg-slate-50 border-slate-200">
               {activeInterval.label}
             </Badge>
           </div>
@@ -782,15 +782,41 @@ export default function AdminFinansPage() {
         </TabsList>
 
         {/* TAB 1: MONTHLY TIMELINE TABLE (NİSAN 2026'DAN BERİ) */}
-        <TabsContent value="timeline">
-          <Card className="rounded-3xl border-slate-200 shadow-sm overflow-hidden bg-white">
-            <CardHeader className="border-b border-slate-100 p-6">
+        <TabsContent value="timeline" className="min-w-0">
+          <Card className="min-w-0 rounded-3xl border-slate-200 shadow-sm overflow-hidden bg-white">
+            <CardHeader className="border-b border-slate-100 p-4 sm:p-6">
               <CardTitle className="text-xl font-bold text-slate-900">2026 Aylık Kâr & Zarar Tablosu</CardTitle>
               <CardDescription>
                 Ocak 2026 başlangıç alınarak aylık bazda gelir, öğretmen ödemeleri, operasyonel giderler ve net kâr analizi.
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-0 overflow-x-auto">
+            <CardContent className="min-w-0 p-0">
+              <div className="grid min-w-0 gap-3 p-3 md:grid-cols-2 2xl:hidden sm:gap-4 sm:p-4">
+                {monthlyTimeline.map((item) => {
+                  const isPositive = item.netProfit >= 0;
+                  return (
+                    <article key={item.monthName} className="min-w-0 rounded-2xl border border-slate-200 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="min-w-0 break-words font-bold text-slate-900">{item.monthName}</h3>
+                        <Badge className={cn('shrink-0 border-none text-[10px] font-black', !exchangeRates ? 'bg-slate-100 text-slate-600' : isPositive ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800')}>
+                          {!exchangeRates ? 'Kur bekleniyor' : isPositive ? 'KÂR' : 'ZARAR'}
+                        </Badge>
+                      </div>
+                      <dl className="mt-4 grid grid-cols-2 gap-x-3 gap-y-4 text-sm">
+                        <div className="min-w-0"><dt className="text-xs text-slate-500">Gelir (Ciro)</dt><dd className="mt-1 break-words font-bold tabular-nums text-blue-700">£{item.revenue.toFixed(2)}</dd></div>
+                        <div className="min-w-0"><dt className="text-xs text-slate-500">Öğretmen Gideri (GBP)</dt><dd className="mt-1 break-words font-semibold tabular-nums text-purple-700">{exchangeRates ? `£${item.teacherPayout.toFixed(2)}` : '—'}</dd></div>
+                        <div className="min-w-0"><dt className="text-xs text-slate-500">Diğer Giderler</dt><dd className="mt-1 break-words font-semibold tabular-nums text-amber-700">{Number.isFinite(item.generalExpenses) ? `£${item.generalExpenses.toFixed(2)}` : '—'}</dd></div>
+                        <div className="min-w-0"><dt className="text-xs text-slate-500">Toplam Gider</dt><dd className="mt-1 break-words font-bold tabular-nums text-slate-700">{exchangeRates ? `£${item.totalExpenses.toFixed(2)}` : '—'}</dd></div>
+                      </dl>
+                      <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3">
+                        <div className="min-w-0"><dt className="text-xs text-slate-500">Net Kâr / Zarar</dt><dd className={cn('mt-1 break-words text-lg font-black tabular-nums', !exchangeRates ? 'text-slate-400' : isPositive ? 'text-emerald-600' : 'text-rose-600')}>{exchangeRates ? `${isPositive ? '+' : ''}£${item.netProfit.toFixed(2)}` : '—'}</dd></div>
+                        <div className="min-w-0"><dt className="text-xs text-slate-500">Kâr Marjı</dt><dd className="mt-1 font-bold tabular-nums text-slate-600">{exchangeRates ? `%${item.margin.toFixed(1)}` : '—'}</dd></div>
+                      </dl>
+                    </article>
+                  );
+                })}
+              </div>
+              <div className="hidden overflow-x-auto 2xl:block">
               <Table>
                 <TableHeader className="bg-slate-50">
                   <TableRow>
@@ -843,6 +869,7 @@ export default function AdminFinansPage() {
                   })}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

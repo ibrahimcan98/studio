@@ -1,4 +1,5 @@
 "use client";
+import { hasActiveHomework } from '@/lib/homework-navigation';
 
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -123,7 +124,7 @@ export default function TurkceHazinemPage() {
 
     for (let i = 0; i < CHEST_DATA.length; i++) {
       const chestId = CHEST_DATA[i].id;
-      const isHomework = Array.isArray(childData?.activeHomeworkTopics) ? childData.activeHomeworkTopics.includes(chestId) : childData?.activeHomeworkTopic === chestId;
+      const isHomework = hasActiveHomework(childData, chestId);
       const isPaywallLocked = subscriptionTier === "free" && chestCount >= 1 && !isHomework;
 
       let lockedReason: "none" | "paywall" | "progress" = "none";
@@ -144,7 +145,7 @@ export default function TurkceHazinemPage() {
       // Her 5 sandıkta bir tekrar sandığı ekle
       if ((i + 1) % 5 === 0) {
         const tekrarId = `tekrar-${(i + 1) / 5}`;
-        const isTekrarHomework = Array.isArray(childData?.activeHomeworkTopics) ? childData.activeHomeworkTopics.includes(tekrarId) : childData?.activeHomeworkTopic === tekrarId;
+        const isTekrarHomework = hasActiveHomework(childData, tekrarId);
         const isTekrarPaywallLocked = subscriptionTier === "free" && !isTekrarHomework;
 
         let tekrarLockedReason: "none" | "paywall" | "progress" = "none";
@@ -171,7 +172,7 @@ export default function TurkceHazinemPage() {
       top: `${350 + i * 200}px`,
       left: i % 2 === 0 ? "65%" : "25%",
     }));
-  }, [userData?.subscriptionTier, userData?.subscriptionChildIds, childId]);
+  }, [userData?.subscriptionTier, userData?.subscriptionChildIds, childId, childData?.activeHomeworkTopics, childData?.activeHomeworkTopic, childData?.completedTopics]);
 
   // Yol çizimi için SVG path oluşturma
   const pathD = useMemo(() => {

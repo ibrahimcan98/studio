@@ -6,6 +6,7 @@ import { useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from '@
 import { collection, doc, updateDoc } from 'firebase/firestore';
 import { Loader2, User, Sparkles, ArrowLeft, Crown, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { activeHomeworkTopics } from '@/lib/homework-navigation';
 import { SetPinDialog } from '@/components/child-mode/set-pin-dialog';
 
 export default function ChildModeSelectPage() {
@@ -125,6 +126,7 @@ export default function ChildModeSelectPage() {
                                 <span className="text-lg md:text-xl font-bold text-slate-700 group-hover:text-sky-600 transition-colors">
                                     {child.firstName}
                                 </span>
+                                {activeHomeworkTopics(child).length > 0 && <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-bold text-amber-800">Ödevin var! ({activeHomeworkTopics(child).length})</span>}
                             </div>
                         </SetPinDialog>
                         )

@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
+import { notifyHomeworkAssigned } from '@/lib/homework-notification';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, query, where, doc, writeBatch, getDoc, updateDoc, serverTimestamp, increment, arrayUnion, addDoc, Timestamp } from 'firebase/firestore';
@@ -929,7 +930,7 @@ function QuickHomeworkAssignmentModal({ lesson, childName }: { lesson: any, chil
             } else if (selectedCategory === 'hikayeler') {
                 topicName = STORY_DATA.find((t: any) => t.id === selectedTopicId)?.name || '';
             } else {
-                const chestIndex = CHEST_DATA.findIndex((c: any) => c.id === selectedTopicId);
+                const chestIndex = CHEST_DATA.findIndex((c: any) => String(c.id) === String(selectedTopicId));
                 topicName = chestIndex !== -1 ? `Sandık ${chestIndex + 1}` : '';
             }
 
@@ -947,7 +948,7 @@ function QuickHomeworkAssignmentModal({ lesson, childName }: { lesson: any, chil
                 .filter(Boolean)
                 .join(' ') || teacherData?.displayName || user?.displayName || user?.email || 'Öğretmen';
 
-            await addDoc(collection(db, 'game-homeworks'), {
+            const homework = await addDoc(collection(db, 'game-homeworks'), {
                 teacherId: user?.uid || lesson.teacherId || 'unknown_teacher',
                 teacherName,
                 parentId: lesson.bookedBy || 'unknown_parent',
@@ -971,7 +972,12 @@ function QuickHomeworkAssignmentModal({ lesson, childName }: { lesson: any, chil
                 })
             });
 
-            toast({ title: 'Başarılı', description: `${topicName} ödevi atandı.` });
+            try {
+                await notifyHomeworkAssigned(user, { homeworkId: homework.id });
+                toast({ title: 'Başarılı', description: `${topicName} ödevi atandı ve iletişim adresine bildirim gönderildi.` });
+            } catch {
+                toast({ title: 'Ödev atandı', description: 'İletişim e-postası gönderilemedi. Lütfen yöneticiye bildirin.', variant: 'destructive' });
+            }
             setIsOpen(false);
             setSelectedTopicId('');
         } catch (error: any) {

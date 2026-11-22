@@ -212,30 +212,30 @@ export default function PuanMerkeziPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="min-w-0 space-y-5 sm:space-y-8">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-black text-slate-900">Puan Merkezi Yönetimi</h2>
-          <p className="text-slate-500">WhatsApp kanıtlarını kontrol edin, görevleri onaylayın ve puan hareketlerini takip edin.</p>
+          <h2 className="break-words text-2xl sm:text-3xl font-black text-slate-900">Puan Merkezi Yönetimi</h2>
+          <p className="text-sm sm:text-base text-slate-500">WhatsApp kanıtlarını kontrol edin, görevleri onaylayın ve puan hareketlerini takip edin.</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid min-w-0 grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
         {[
           { label: 'Onay bekleyen görev', count: requests?.filter(r => r.status === 'pending' && r.type !== 'gift_lesson_claim').length, color: 'text-amber-700 bg-amber-50' },
           { label: 'Onaylanan görev', count: requests?.filter(r => r.status === 'approved' && r.type !== 'gift_lesson_claim').length, color: 'text-emerald-700 bg-emerald-50' },
           { label: 'Kullanılan hediye ders', count: requests?.filter(r => r.status === 'completed' && r.type === 'gift_lesson_claim').length, color: 'text-indigo-700 bg-indigo-50' },
           { label: 'Reddedilen talep', count: requests?.filter(r => r.status === 'rejected').length, color: 'text-slate-700 bg-slate-100' },
-        ].map(item => <Card key={item.label} className="rounded-2xl shadow-sm"><CardContent className="p-5"><p className="text-sm text-slate-600">{item.label}</p><p className={cn('mt-3 inline-block rounded-xl px-3 py-1 text-3xl font-bold', item.color)}>{requestsLoading ? '…' : item.count ?? 0}</p></CardContent></Card>)}
+        ].map(item => <Card key={item.label} className="rounded-2xl shadow-sm"><CardContent className="p-3 sm:p-5"><p className="text-sm text-slate-600">{item.label}</p><p className={cn('mt-3 inline-block rounded-xl px-3 py-1 text-3xl font-bold', item.color)}>{requestsLoading ? '…' : item.count ?? 0}</p></CardContent></Card>)}
       </div>
 
-      <Tabs defaultValue="requests" className="space-y-6">
-        <TabsList className="bg-white border p-1 rounded-xl h-auto gap-2 overflow-x-auto flex-nowrap justify-start">
-          <TabsTrigger value="requests" className="rounded-lg px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white">Onay Bekleyenler</TabsTrigger>
-          <TabsTrigger value="approved" className="rounded-lg px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white">Onaylananlar</TabsTrigger>
-          <TabsTrigger value="manual" className="rounded-lg px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white">Puan Ekle / Sil</TabsTrigger>
-          <TabsTrigger value="history" className="rounded-lg px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white">Talep Geçmişi</TabsTrigger>
-          <TabsTrigger value="settings" className="rounded-lg px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white">Görev Ayarları</TabsTrigger>
+      <Tabs defaultValue="requests" className="min-w-0 space-y-4 sm:space-y-6">
+        <TabsList className="grid w-full min-w-0 grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 bg-white border p-1 rounded-xl h-auto gap-1">
+          <TabsTrigger value="requests" className="min-w-0 whitespace-normal rounded-lg px-2 py-3 text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-white">Onay Bekleyenler</TabsTrigger>
+          <TabsTrigger value="approved" className="min-w-0 whitespace-normal rounded-lg px-2 py-3 text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-white">Onaylananlar</TabsTrigger>
+          <TabsTrigger value="manual" className="min-w-0 whitespace-normal rounded-lg px-2 py-3 text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-white">Puan Ekle / Sil</TabsTrigger>
+          <TabsTrigger value="history" className="min-w-0 whitespace-normal rounded-lg px-2 py-3 text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-white">Talep Geçmişi</TabsTrigger>
+          <TabsTrigger value="settings" className="min-w-0 whitespace-normal rounded-lg px-2 py-3 text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-white">Görev Ayarları</TabsTrigger>
         </TabsList>
 
         <TabsContent value="requests">
@@ -248,43 +248,43 @@ export default function PuanMerkeziPage() {
                <Card className="border-dashed py-20 text-center text-slate-400">Onay bekleyen talep bulunmuyor.</Card>
              ) : requests?.filter(r => r.status === 'pending' && r.type !== 'gift_lesson_claim').map((req) => (
               <Card key={req.id} className={cn("overflow-hidden border-2 transition-all", req.type === 'gift_lesson_claim' ? "border-amber-200 bg-amber-50/20" : "hover:border-primary/20")}>
-                <div className="flex flex-col min-[1200px]:flex-row items-center p-6 gap-6">
+                <div className="flex min-w-0 flex-col min-[1200px]:flex-row items-start min-[1200px]:items-center p-4 sm:p-6 gap-4 sm:gap-6">
                   <div className={cn("p-4 rounded-2xl shrink-0", req.type === 'gift_lesson_claim' ? "bg-amber-100" : "bg-yellow-100")}>
                       {req.type === 'gift_lesson_claim' ? <Gift className="h-8 w-8 text-amber-600" /> : <Clock className="h-8 w-8 text-yellow-600" />}
                   </div>
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-2">
+                  <div className="min-w-0 w-full flex-1 space-y-1">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
                         {req.type === 'gift_lesson_claim' ? (
                             <Badge className="bg-amber-500 text-white font-black uppercase tracking-widest text-[10px]">🎁 Hediye Ders Talebi</Badge>
                         ) : (
-                            <Badge variant="outline" className="font-bold">{req.taskTitle}</Badge>
+                            <Badge variant="outline" className="max-w-full whitespace-normal break-words font-bold">{req.taskTitle}</Badge>
                         )}
                         <span className="text-xs text-slate-400">{req.createdAt && format(req.createdAt.toDate(), 'dd MMM HH:mm', { locale: tr })}</span>
                     </div>
-                    <h3 className="text-lg font-bold text-slate-800">
+                    <h3 className="break-words text-lg font-bold text-slate-800">
                         {req.userName || req.userEmail}
                     </h3>
                     {req.childName && <p className="text-sm font-bold text-amber-700">Öğrenci: {req.childName}</p>}
-                    <p className="text-sm font-mono text-slate-500 mb-1">ID: {req.userId}</p>
-                    <p className="text-sm text-slate-600 italic">"{req.userNote || 'Not eklenmemiş.'}"</p>
+                    <p className="break-all text-xs sm:text-sm font-mono text-slate-500 mb-1">ID: {req.userId}</p>
+                    <p className="break-words text-sm text-slate-600 italic">"{req.userNote || 'Not eklenmemiş.'}"</p>
                     {req.evidenceUrl && (
                         <a href={req.evidenceUrl} target="_blank" className="text-xs text-primary font-bold hover:underline inline-flex items-center gap-1 mt-2">
                             Kanıtı Görüntüle <ArrowUpRight className="h-3 w-3" />
                         </a>
                     )}
                   </div>
-                  <div className="text-center min-[1200px]:text-right space-y-3 shrink-0">
+                  <div className="w-full min-[1200px]:w-auto text-left min-[1200px]:text-right space-y-3 shrink-0">
                     {req.type === 'gift_lesson_claim' ? (
                         <div className="text-xl font-black text-amber-600">500 PUAN HARCANDI</div>
                     ) : (
                         <div className="text-2xl font-black text-primary">+{req.points} PUAN</div>
                     )}
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="text-red-500 border-red-200 hover:bg-red-50 font-bold" 
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button variant="outline" size="sm" className="min-h-11 text-red-500 border-red-200 hover:bg-red-50 font-bold"
                         onClick={() => handleReject(req)} disabled={processingId !== null}>
                         {processingId === req.id ? <Loader2 className="animate-spin h-4 w-4" /> : <XCircle className="mr-2 h-4 w-4" />} Reddet
                       </Button>
-                      <Button size="sm" className={cn("font-bold", req.type === 'gift_lesson_claim' ? "bg-amber-600 hover:bg-amber-700" : "bg-green-600 hover:bg-green-700")}
+                      <Button size="sm" className={cn("min-h-11 font-bold", req.type === 'gift_lesson_claim' ? "bg-amber-600 hover:bg-amber-700" : "bg-green-600 hover:bg-green-700")}
                         onClick={() => handleApprove(req)} disabled={processingId !== null}>
                         {processingId === req.id ? <Loader2 className="animate-spin h-4 w-4" /> : <CheckCircle2 className="mr-2 h-4 w-4" />} Onayla
                       </Button>
@@ -303,24 +303,24 @@ export default function PuanMerkeziPage() {
                <Card className="border-dashed py-20 text-center text-slate-400">Onaylanmış talep bulunmuyor.</Card>
              ) : requests?.filter(r => r.status === 'approved').map((req) => (
               <Card key={req.id} className="overflow-hidden border-2 hover:border-green-500/20 transition-all">
-                <div className="flex flex-col min-[1200px]:flex-row items-center p-6 gap-6">
+                <div className="flex min-w-0 flex-col min-[1200px]:flex-row items-start min-[1200px]:items-center p-4 sm:p-6 gap-4 sm:gap-6">
                   <div className="bg-green-100 p-4 rounded-2xl shrink-0"><CheckCircle2 className="h-8 w-8 text-green-600" /></div>
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="font-bold border-green-200 text-green-700 bg-green-50">{req.taskTitle}</Badge>
+                  <div className="min-w-0 w-full flex-1 space-y-1">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="max-w-full whitespace-normal break-words font-bold border-green-200 text-green-700 bg-green-50">{req.taskTitle}</Badge>
                         <span className="text-xs text-slate-400">{req.processedAt ? format(req.processedAt.toDate(), 'dd MMM HH:mm', { locale: tr }) : format(req.createdAt.toDate(), 'dd MMM', { locale: tr })}</span>
                     </div>
-                    <h3 className="text-lg font-bold text-slate-800">
+                    <h3 className="break-words text-lg font-bold text-slate-800">
                         {req.userName || req.userEmail}
                     </h3>
-                    <p className="text-sm font-mono text-slate-500 mb-1">ID: {req.userId}</p>
+                    <p className="break-all text-xs sm:text-sm font-mono text-slate-500 mb-1">ID: {req.userId}</p>
                     {req.evidenceUrl && (
                         <a href={req.evidenceUrl} target="_blank" className="text-xs text-primary font-bold hover:underline inline-flex items-center gap-1 mt-2">
                             Kanıtı Görüntüle <ArrowUpRight className="h-3 w-3" />
                         </a>
                     )}
                   </div>
-                  <div className="text-center min-[1200px]:text-right space-y-3 shrink-0">
+                  <div className="w-full min-[1200px]:w-auto text-left min-[1200px]:text-right space-y-3 shrink-0">
                     <div className="text-2xl font-black text-green-600">+{req.points} PUAN</div>
                     <Badge className="bg-green-100 text-green-700 border-none font-bold uppercase tracking-widest text-[10px]">Onaylandı</Badge>
                   </div>
@@ -344,20 +344,20 @@ export default function PuanMerkeziPage() {
                   {filteredParents?.map(parent => {
                       const fullName = parent.displayName || (parent.firstName ? `${parent.firstName} ${parent.lastName || ''}`.trim() : 'İsimsiz Veli');
                       return (
-                          <div key={parent.id} className="flex items-center justify-between p-4 border rounded-2xl hover:bg-slate-50 transition-colors">
-                              <div className="flex items-center gap-3">
-                                  <Avatar className="h-10 w-10">
+                          <div key={parent.id} className="flex min-w-0 flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 p-3 sm:p-4 border rounded-2xl hover:bg-slate-50 transition-colors">
+                              <div className="flex min-w-0 items-start gap-3">
+                                  <Avatar className="h-10 w-10 shrink-0">
                                       <AvatarFallback className="bg-primary/10 text-primary font-bold">{fullName[0]}</AvatarFallback>
                                   </Avatar>
-                                  <div>
-                                      <p className="font-bold text-slate-800">
+                                  <div className="min-w-0 flex-1">
+                                      <p className="break-words font-bold text-slate-800">
                                           {fullName} 
-                                          <span className="text-xs font-mono text-slate-400 ml-2">ID: {parent.id}</span>
+                                          <span className="block break-all text-[10px] font-mono text-slate-400">ID: {parent.id}</span>
                                       </p>
-                                      <p className="text-xs text-slate-500">{parent.email}</p>
+                                      <p className="break-words text-xs text-slate-500">{parent.email}</p>
                                   </div>
                               </div>
-                              <div className="flex items-center gap-6">
+                              <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3 lg:border-0 lg:pt-0">
                                   <div className="text-right">
                                       <p className="text-[10px] font-bold text-slate-400 uppercase">Mevcut Puan</p>
                                       <p className="text-lg font-black text-primary">{parent.academyPoints || 0}</p>
@@ -376,12 +376,12 @@ export default function PuanMerkeziPage() {
                 <CardContent className="p-0">
                     <div className="divide-y">
                         {requests?.filter(r => r.status !== 'pending').map(req => (
-                            <div key={req.id} className="p-4 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
+                            <div key={req.id} className="min-w-0 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                <div className="flex min-w-0 items-start gap-3">
                                     {req.status === 'completed' ? <Gift className="text-indigo-600" /> : req.status === 'approved' ? <CheckCircle2 className="text-green-500" /> : <XCircle className="text-red-500" />}
-                                    <div>
-                                        <p className="font-bold text-sm text-slate-800">{req.userEmail}</p>
-                                        <p className="text-xs text-slate-500">{req.taskTitle || req.description || 'Hediye ders'} · {req.createdAt?.toDate ? format(req.createdAt.toDate(), 'dd/MM/yyyy', { locale: tr }) : 'Tarih bekleniyor'}</p>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="break-words font-bold text-sm text-slate-800">{req.userEmail}</p>
+                                        <p className="break-words text-xs text-slate-500">{req.taskTitle || req.description || 'Hediye ders'} · {req.createdAt?.toDate ? format(req.createdAt.toDate(), 'dd/MM/yyyy', { locale: tr }) : 'Tarih bekleniyor'}</p>
                                     </div>
                                 </div>
                                 <div className={cn("font-bold text-sm", req.status === 'completed' ? 'text-indigo-600' : req.status === 'approved' ? "text-green-600" : "text-red-600")}>
@@ -399,16 +399,16 @@ export default function PuanMerkeziPage() {
                     <CardTitle className="text-xl">Tekrarlanabilir Görevler</CardTitle>
                     <CardDescription>Kültür ve Eğlence görevleri dönem başına bir kez yapılabilir. 30 günlük sayaç hatırlatma içindir; görevler otomatik yenilenmez. Sıfırlama tamamlanan görevleri yeniden açar, onay bekleyen talepleri korur. Dijital Büyüme görevleri bu işleme dahil değildir.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex flex-col min-[1200px]:flex-row items-center justify-between gap-6">
-                        <div className="flex items-center gap-4">
+                <CardContent className="min-w-0 space-y-4 sm:space-y-6">
+                    <div className="min-w-0 bg-slate-50 p-3 sm:p-6 rounded-2xl border border-slate-100 flex flex-col min-[1200px]:flex-row items-stretch min-[1200px]:items-center justify-between gap-4 sm:gap-6">
+                        <div className="flex min-w-0 flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
                             <div className="p-4 bg-primary/10 rounded-full">
                                 <Clock className="w-8 h-8 text-primary" />
                             </div>
                             <div>
                                 <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Sıradaki Sıfırlamaya Kalan Süre</p>
                                 {timeLeft ? (
-                                    <div className="text-3xl font-black text-slate-800 flex items-baseline gap-2 mt-1">
+                                    <div className="text-2xl sm:text-3xl font-black text-slate-800 flex flex-wrap items-baseline gap-2 mt-1">
                                         {timeLeft.days} <span className="text-sm font-bold text-slate-500">Gün</span>
                                         {timeLeft.hours} <span className="text-sm font-bold text-slate-500">Saat</span>
                                         {timeLeft.minutes} <span className="text-sm font-bold text-slate-500">Dk</span>
@@ -444,11 +444,11 @@ function PointActionDialog({ user, onConfirm }: { user: any, onConfirm: (id: str
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="font-bold rounded-lg border-primary/20 text-primary hover:bg-primary/5">Düzenle</Button>
+                <Button variant="outline" size="sm" className="min-h-11 font-bold rounded-lg border-primary/20 text-primary hover:bg-primary/5">Düzenle</Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto rounded-2xl p-4 sm:p-6">
                 <DialogHeader>
-                    <DialogTitle>{user.displayName} - Puan Düzenle</DialogTitle>
+                    <DialogTitle className="break-words pr-5">{user.displayName} - Puan Düzenle</DialogTitle>
                     <DialogDescription>Pozitif rakam puan ekler, negatif rakam puan siler.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
@@ -461,8 +461,8 @@ function PointActionDialog({ user, onConfirm }: { user: any, onConfirm: (id: str
                         <Textarea placeholder="Neden puan ekliyor/siliyorsunuz?" value={reason} onChange={e => setReason(e.target.value)} />
                     </div>
                 </div>
-                <div className="flex gap-2">
-                    <Button className="flex-1 font-bold" onClick={() => {
+                <div className="grid grid-cols-2 gap-2">
+                    <Button className="col-span-2 min-h-11 w-full font-bold" onClick={() => {
                         onConfirm(user.id, parseInt(amount), reason);
                         setIsOpen(false);
                     }}>İşlemi Tamamla</Button>

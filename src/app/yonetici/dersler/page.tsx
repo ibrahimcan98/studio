@@ -104,6 +104,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { getCourseByCode, COURSES } from '@/data/courses';
+import { notifyHomeworkAssigned } from '@/lib/homework-notification';
 import { sendAdminLessonActionEmails, sendHomeworkAssignedEmail, sendMaterialAssignedEmail } from '@/lib/email-service';
 import { Label } from "@/components/ui/label";
 
@@ -1516,7 +1517,13 @@ export default function AdminDerslerPage() {
                                                         });
                                                     }
 
-                                                    toast({ title: 'Başarılı', description: 'Ödev yüklendi ve veliye e-posta gönderildi.' });
+                                                    try {
+                                                        const { getAuth } = await import('firebase/auth');
+                                                        await notifyHomeworkAssigned(getAuth().currentUser, { lessonId: lessonForMedia.slotIds[0], homeworkUrl: url });
+                                                        toast({ title: 'Başarılı', description: 'Ödev yüklendi ve iletişim adresine bildirim gönderildi.' });
+                                                    } catch {
+                                                        toast({ title: 'Ödev yüklendi', description: 'İletişim e-postası gönderilemedi.', variant: 'destructive' });
+                                                    }
                                                     resolve();
                                                 }
                                             );

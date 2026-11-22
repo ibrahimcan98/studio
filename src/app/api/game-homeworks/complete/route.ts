@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     const matchingHomeworks = homeworkSnapshot.docs.filter((homework) => {
       const data = homework.data();
       return data.parentId === decodedToken.uid
-        && data.topicId === topicId
+        && String(data.topicId) === topicId
         && data.status === 'assigned';
     });
 
@@ -42,9 +42,9 @@ export async function POST(request: Request) {
 
     const childData = childSnapshot.data();
     const childUpdates: Record<string, FieldValue | null> = {
-      activeHomeworkTopics: FieldValue.arrayRemove(topicId),
+      activeHomeworkTopics: FieldValue.arrayRemove(topicId, ...(/^\d+$/.test(topicId) ? [Number(topicId)] : [])),
     };
-    if (childData?.activeHomeworkTopic === topicId) {
+    if (String(childData?.activeHomeworkTopic) === topicId) {
       childUpdates.activeHomeworkTopic = null;
     }
     batch.update(childRef, childUpdates);

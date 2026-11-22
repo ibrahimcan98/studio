@@ -1,4 +1,6 @@
 'use client';
+import { activeHomeworkTopics } from '@/lib/homework-navigation';
+import { NewHomeworkNotice } from '@/components/parent-portal/new-homework-notice';
 
 import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
@@ -718,6 +720,7 @@ function EbeveynPortaliContent() {
 
     return (
         <div className="flex-1 w-full max-w-full space-y-4 sm:space-y-8 p-2 sm:p-8 pt-6 bg-muted/20">
+            <NewHomeworkNotice key={user.uid} userId={user.uid} seenKeys={userData?.seenHomeworkNotifications} childrenData={children || []} slots={slots || []} />
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
                 <div className="flex-1 w-full text-left">
                     <h2 className="text-xl sm:text-3xl md:text-5xl font-black tracking-tight text-slate-900 leading-tight">Hoş geldiniz, {user.displayName?.split(' ')[0]}! 👋</h2>
@@ -904,7 +907,7 @@ function EbeveynPortaliContent() {
                 </Card>
 
                 <Card className="p-6 bg-gradient-to-br from-yellow-100 to-orange-100 border-yellow-200 hover:shadow-lg transition-all cursor-pointer group border-2 border-dashed border-orange-300 relative" onClick={() => router.push('/cocuk-modu')}>
-                    <div className="absolute -top-2 -right-2 bg-orange-500 text-white text-[10px] font-black px-2 py-1 rounded-full animate-bounce z-10">YENİ AI</div>
+                    <div className="absolute -top-2 -right-2 bg-orange-500 text-white text-[10px] font-black px-2 py-1 rounded-full animate-bounce z-10">{children?.some(child => activeHomeworkTopics(child).length > 0) ? 'ÖDEVİNİZ VAR' : 'YENİ AI'}</div>
                     <h3 className="text-xl font-black flex items-center gap-2 text-slate-800"><MonitorPlay className="text-orange-600 group-hover:scale-110 transition-transform"/> Çocuk Modu</h3>
                     <p className="text-xs text-slate-600 mt-2 font-medium leading-relaxed">Çocuklara özel tasarlanmış, güvenli ve eğitici yapay zeka macera dünyası.</p>
                     <ArrowRight className="mt-4 text-orange-600 group-hover:translate-x-2 transition-transform" />

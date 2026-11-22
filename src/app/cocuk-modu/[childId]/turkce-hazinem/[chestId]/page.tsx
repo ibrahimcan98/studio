@@ -1,4 +1,5 @@
 'use client';
+import { hasActiveHomework } from '@/lib/homework-navigation';
 
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter, usePathname } from 'next/navigation';
@@ -217,7 +218,7 @@ export default function ChestPage() {
       
       const unlockedBadge = checkNewBadgeUnlock(oldTopics, newTopics);
 
-      const isHomework = Array.isArray(childData?.activeHomeworkTopics) ? childData.activeHomeworkTopics.includes(params.chestId) : childData?.activeHomeworkTopic === params.chestId;
+      const isHomework = hasActiveHomework(childData, params.chestId);
       const isPremium = subscriptionTier !== 'free';
 
       if (!isHomework || isPremium) {

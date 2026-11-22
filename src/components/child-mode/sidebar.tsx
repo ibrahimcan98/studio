@@ -1,5 +1,6 @@
 'use client';
 
+import { activeHomeworkTopics } from '@/lib/homework-navigation';
 import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
@@ -700,7 +701,7 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
               </div>
               Türkçe Hazinem
             </Button>
-            {(Array.isArray(childData?.activeHomeworkTopics) ? childData.activeHomeworkTopics.some((t: string) => t.startsWith('chest-') || t.startsWith('tekrar-')) : typeof childData?.activeHomeworkTopic === 'string' && (childData.activeHomeworkTopic.startsWith('chest-') || childData.activeHomeworkTopic.startsWith('tekrar-'))) ? (
+            {activeHomeworkTopics(childData).some(id => /^[0-9]+$/.test(id) || id.startsWith('chest-') || id.startsWith('tekrar-')) ? (
               <div className="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 text-[10px] font-black px-2 py-0.5 rounded-full shadow-md animate-bounce border-2 border-white z-10 pointer-events-none">
                 🌟 ÖDEV
               </div>
@@ -723,7 +724,7 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
               </div>
               Hikayeler
             </Button>
-            {(Array.isArray(childData?.activeHomeworkTopics) ? childData.activeHomeworkTopics.some((t: string) => ['sari-top', 'bir-iki-uc-basardim', 'kaptan-kahvaltisi', 'gokusagi-partisi'].includes(t)) : ['sari-top', 'bir-iki-uc-basardim', 'kaptan-kahvaltisi', 'gokusagi-partisi'].includes(childData?.activeHomeworkTopic || '')) && (
+            {activeHomeworkTopics(childData).some(id => ['sari-top', 'bir-iki-uc-basardim', 'kaptan-kahvaltisi', 'gokusagi-partisi'].includes(id)) && (
               <div className="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 text-[10px] font-black px-2 py-0.5 rounded-full shadow-md animate-bounce border-2 border-white z-10 pointer-events-none">
                 🌟 ÖDEV
               </div>
@@ -776,7 +777,7 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
             <Trophy className="w-6 h-6" />
           </div>
           <span className="text-[10px] font-black uppercase">Hazinem</span>
-          {(Array.isArray(childData?.activeHomeworkTopics) ? childData.activeHomeworkTopics.some((t: string) => t.startsWith('chest-') || t.startsWith('tekrar-')) : typeof childData?.activeHomeworkTopic === 'string' && (childData.activeHomeworkTopic.startsWith('chest-') || childData.activeHomeworkTopic.startsWith('tekrar-'))) ? (
+          {activeHomeworkTopics(childData).some(id => /^[0-9]+$/.test(id) || id.startsWith('chest-') || id.startsWith('tekrar-')) ? (
             <div className="absolute -top-1 -right-1 bg-yellow-400 text-yellow-900 text-[8px] font-black px-1.5 py-0.5 rounded-full shadow-md animate-bounce border border-white z-10 pointer-events-none">
               ÖDEV
             </div>
@@ -794,7 +795,7 @@ export function ChildSidebar({ childId, childData }: ChildSidebarProps) {
             <BookOpen className="w-6 h-6" />
           </div>
           <span className="text-[10px] font-black uppercase">Hikaye</span>
-          {['sari-top', 'bir-iki-uc-basardim', 'kaptan-kahvaltisi', 'gokusagi-partisi'].includes(childData?.activeHomeworkTopic || '') && (
+          {activeHomeworkTopics(childData).some(id => ['sari-top', 'bir-iki-uc-basardim', 'kaptan-kahvaltisi', 'gokusagi-partisi'].includes(id)) && (
             <div className="absolute -top-1 -right-1 bg-yellow-400 text-yellow-900 text-[8px] font-black px-1.5 py-0.5 rounded-full shadow-md animate-bounce border border-white z-10 pointer-events-none">
               ÖDEV
             </div>

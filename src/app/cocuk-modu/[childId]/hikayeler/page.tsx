@@ -1,4 +1,5 @@
 'use client';
+import { hasActiveHomework } from '@/lib/homework-navigation';
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -155,7 +156,7 @@ export default function HikayelerPage() {
 
               {/* Hikaye Kartı: Bir İki Üç Başardım */}
               {(() => {
-                const isHomework = Array.isArray(childData?.activeHomeworkTopics) ? childData.activeHomeworkTopics.includes('bir-iki-uc-basardim') : childData?.activeHomeworkTopic === 'bir-iki-uc-basardim';
+                const isHomework = hasActiveHomework(childData, 'bir-iki-uc-basardim');
                 const isLocked = subscriptionTier === 'free' && !isHomework;
                 return (
                   <div 
@@ -200,7 +201,7 @@ export default function HikayelerPage() {
 
               {/* Hikaye Kartı: Kaptan Kahvaltısı */}
               {(() => {
-                const isHomework = Array.isArray(childData?.activeHomeworkTopics) ? childData.activeHomeworkTopics.includes('kaptan-kahvaltisi') : childData?.activeHomeworkTopic === 'kaptan-kahvaltisi';
+                const isHomework = hasActiveHomework(childData, 'kaptan-kahvaltisi');
                 const isLocked = subscriptionTier === 'free' && !isHomework;
                 return (
                   <div 
@@ -245,7 +246,7 @@ export default function HikayelerPage() {
 
               {/* Hikaye Kartı: Gökkuşağı Partisi */}
               {(() => {
-                const isHomework = Array.isArray(childData?.activeHomeworkTopics) ? childData.activeHomeworkTopics.includes('gokusagi-partisi') : childData?.activeHomeworkTopic === 'gokusagi-partisi';
+                const isHomework = hasActiveHomework(childData, 'gokusagi-partisi');
                 const isLocked = subscriptionTier === 'free' && !isHomework;
                 return (
                   <div 

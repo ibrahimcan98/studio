@@ -34,6 +34,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { notifyHomeworkAssigned } from '@/lib/homework-notification';
 import { useToast } from "@/hooks/use-toast";
 import topicsDataJson from '@/data/topics.json';
 import { CHEST_DATA } from '@/data/turkce-hazinem-data';
@@ -160,7 +161,7 @@ export default function AdminHomeworksPage() {
         setIsAssigning(true);
         try {
             const student = students.find(s => s.id === selectedStudentId);
-            const topic = activeTopics.find(t => t.id === selectedTopicId);
+            const topic = activeTopics.find(t => String(t.id) === selectedTopicId);
             
             if (!student || !topic) throw new Error('Student or topic not found');
 
@@ -192,18 +193,18 @@ export default function AdminHomeworksPage() {
             // 1. Assign in activeHomeworkTopic on child doc
             const childRef = doc(db, 'users', student.parentId, 'children', student.id);
             await updateDoc(childRef, {
-                activeHomeworkTopic: topic.id,
-                activeHomeworkTopics: arrayUnion(topic.id)
+                activeHomeworkTopic: String(topic.id),
+                activeHomeworkTopics: arrayUnion(String(topic.id))
             });
 
             // 2. Add to game-homeworks collection
-            await addDoc(collection(db, 'game-homeworks'), {
+            const homework = await addDoc(collection(db, 'game-homeworks'), {
                 teacherId: user.uid,
                 teacherName: 'Sistem Yöneticisi',
                 parentId: student.parentId,
                 childId: student.id,
                 childName: `${student.firstName} ${student.lastName}`,
-                topicId: topic.id,
+                topicId: String(topic.id),
                 topicName: topic.name,
                 category: categoryLabel,
                 status: 'assigned',
@@ -211,7 +212,12 @@ export default function AdminHomeworksPage() {
                 completedAt: null
             });
 
-            toast({ title: 'Başarılı', description: 'Ödev başarıyla atandı.' });
+            try {
+                await notifyHomeworkAssigned(user, { homeworkId: homework.id });
+                toast({ title: 'Başarılı', description: 'Ödev atandı ve iletişim adresine bildirim gönderildi.' });
+            } catch {
+                toast({ title: 'Ödev atandı', description: 'İletişim e-postası gönderilemedi. Lütfen yöneticiye bildirin.', variant: 'destructive' });
+            }
             setIsAssignModalOpen(false);
             setSelectedStudentId('');
             setSelectedTopicId('');
@@ -241,28 +247,55 @@ export default function AdminHomeworksPage() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-4 sm:space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Oyun Ödevleri</h2>
-                    <p className="text-muted-foreground mt-1">Öğrencilere atanan ada ödevlerini takip edin.</p>
+                    <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Oyun Ödevleri</h2>
+                    <p className="text-sm sm:text-base text-muted-foreground mt-1">Öğrencilere atanan oyun ödevlerini takip edin.</p>
                 </div>
-                <Button onClick={openAssignModal} className="gap-2 bg-indigo-600 hover:bg-indigo-700">
+                <Button onClick={openAssignModal} className="min-h-11 w-full sm:w-auto shrink-0 gap-2 bg-indigo-600 hover:bg-indigo-700">
                     <Plus className="w-4 h-4" /> Yeni Ödev Ata
                 </Button>
             </div>
 
-            <Card>
-                <CardHeader>
+            <Card className="min-w-0">
+                <CardHeader className="p-4 sm:p-6">
                     <CardTitle className="text-lg flex items-center gap-2">
                         <Gamepad2 className="w-5 h-5 text-indigo-500" /> Ödev Geçmişi
                     </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="min-w-0 p-3 pt-0 sm:p-6 sm:pt-0">
                     {isLoading ? (
                         <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>
                     ) : (
-                        <div className="rounded-md border">
+                        <>
+                        <div className="grid min-w-0 gap-3 md:grid-cols-2 xl:hidden">
+                            {!homeworks?.length ? (
+                                <p className="col-span-full py-10 text-center text-sm text-muted-foreground">Kayıt bulunamadı.</p>
+                            ) : homeworks.map((hw: any) => (
+                                <article key={hw.id} className="min-w-0 rounded-xl border bg-white p-4">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0 space-y-1">
+                                            <p className="text-xs text-muted-foreground">Öğrenci</p>
+                                            <h3 className="break-words text-base font-semibold text-slate-900">{hw.childName}</h3>
+                                        </div>
+                                        <Button variant="ghost" size="icon" aria-label={`${hw.childName} için ${hw.topicName} ödevini sil`} onClick={() => handleDelete(hw.id, hw.childId, hw.parentId, hw.status, hw.topicId)} className="h-11 w-11 shrink-0 text-red-500 hover:text-red-700 hover:bg-red-50">
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                    <div className="mt-3 min-w-0 rounded-lg bg-slate-50 p-3">
+                                        <p className="break-words font-medium text-slate-900">{hw.topicName}</p>
+                                        {hw.category && <p className="mt-1 break-words text-xs text-muted-foreground">{hw.category}</p>}
+                                    </div>
+                                    <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                                        <div className="min-w-0"><dt className="text-xs text-muted-foreground">Atayan öğretmen</dt><dd className="mt-1 break-words"><HomeworkTeacherName teacherId={hw.teacherId} fallback={hw.teacherName} /></dd></div>
+                                        <div className="min-w-0"><dt className="text-xs text-muted-foreground">Veriliş tarihi</dt><dd className="mt-1">{hw.assignedAt ? format(hw.assignedAt.toDate(), 'dd MMM yyyy', { locale: tr }) : '-'}{hw.assignedAt && <span className="block text-xs text-muted-foreground">{format(hw.assignedAt.toDate(), 'HH:mm')}</span>}</dd></div>
+                                    </dl>
+                                    <div className="mt-4 border-t pt-3"><HomeworkStatus homework={hw} /></div>
+                                </article>
+                            ))}
+                        </div>
+                        <div className="hidden rounded-md border xl:block">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -296,7 +329,7 @@ export default function AdminHomeworksPage() {
                                                     <HomeworkStatus homework={hw} />
                                                 </TableCell>
                                                 <TableCell className="text-right">
-                                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(hw.id, hw.childId, hw.parentId, hw.status, hw.topicId)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                                                    <Button variant="ghost" size="icon" aria-label={`${hw.childName} için ${hw.topicName} ödevini sil`} onClick={() => handleDelete(hw.id, hw.childId, hw.parentId, hw.status, hw.topicId)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
                                                         <Trash2 className="w-4 h-4" />
                                                     </Button>
                                                 </TableCell>
@@ -306,12 +339,13 @@ export default function AdminHomeworksPage() {
                                 </TableBody>
                             </Table>
                         </div>
+                        </>
                     )}
                 </CardContent>
             </Card>
 
             <Dialog open={isAssignModalOpen} onOpenChange={setIsAssignModalOpen}>
-                <DialogContent>
+                <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl p-4 sm:p-6">
                     <DialogHeader>
                         <DialogTitle>Yeni Oyun Ödevi Ata</DialogTitle>
                     </DialogHeader>

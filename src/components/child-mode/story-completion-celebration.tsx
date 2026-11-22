@@ -1,4 +1,5 @@
 'use client';
+import { hasActiveHomework } from '@/lib/homework-navigation';
 
 import { useEffect } from 'react';
 import Confetti from 'react-confetti';
@@ -37,7 +38,7 @@ export function StoryCompletionCelebration({ show, onAction, storyId }: StoryCom
       speak("/hikayeler/tebrikler.mp3");
       
       // Ödev kontrolü (Spesifik Hikaye)
-      const isHomework = Array.isArray(childData?.activeHomeworkTopics) ? childData.activeHomeworkTopics.includes(storyId) : childData?.activeHomeworkTopic === storyId;
+      const isHomework = hasActiveHomework(childData, storyId);
       if (storyId && isHomework) {
         completeGameHomework(authUser, childId, storyId).catch(console.error);
       }

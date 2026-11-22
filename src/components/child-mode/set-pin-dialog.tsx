@@ -17,8 +17,10 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, MonitorPlay } from 'lucide-react';
 
-export function SetPinDialog({ children, childId }: { children: React.ReactNode, childId: string }) {
-  const [open, setOpen] = useState(false);
+export function SetPinDialog({ children, childId, open: controlledOpen, onOpenChange }: { children?: React.ReactNode; childId: string; open?: boolean; onOpenChange?: (value: boolean) => void }) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = (value: boolean) => { setInternalOpen(value); onOpenChange?.(value); };
   const [pin, setPin] = useState(['', '', '', '']);
   const [confirmPin, setConfirmPin] = useState(['', '', '', '']);
   const [error, setError] = useState('');
@@ -111,7 +113,7 @@ export function SetPinDialog({ children, childId }: { children: React.ReactNode,
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
       <DialogContent className="sm:max-w-md rounded-[32px]">
         <DialogHeader>
           <DialogTitle>Çocuk Modu PIN Ayarla</DialogTitle>

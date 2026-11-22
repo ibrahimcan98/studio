@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Loader2, LogOut, Star, Settings, Home, User as UserIcon, Coins, Gem, Map, BookOpen, MessageCircle } from 'lucide-react';
+import { activeHomeworkTopics, hasActiveHomework, homeworkDestination } from '@/lib/homework-navigation';
 import { TopicCard } from '@/components/child-mode/topic-card';
 import Image from 'next/image';
 import { Button } from "@/components/ui/button";
@@ -177,24 +178,22 @@ export default function CocukModuPage() {
     }
   }, [childData, childDocRef]);
 
-  // Kaldığı adaya odaklan
+  const focusedChild = useRef<string | null>(null);
+  const homeworkTopics = activeHomeworkTopics(childData);
+
+  // Ödev varsa önce ona, yoksa son ziyaret edilen adaya odaklan
   useEffect(() => {
-    if (isMounted && isAuthenticated) {
-      const timer = setTimeout(() => {
-        const lastTopic = localStorage.getItem('last-topic');
-        if (lastTopic) {
-          const element = document.getElementById(`topic-${lastTopic}`);
-          if (element) {
-            element.scrollIntoView({
-              behavior: 'instant',
-              block: 'center'
-            });
-          }
-        }
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [isMounted, isAuthenticated]);
+    if (!isMounted || !isAuthenticated || childLoading || !childData || focusedChild.current === childId) return;
+    const timer = setTimeout(() => {
+      const topics = activeHomeworkTopics(childData);
+      const island = topics.find(id => MOCK_TOPICS.some(topic => topic.id === id));
+      const target = topics.length ? (island ? `topic-${island}` : 'active-homeworks') : `topic-${localStorage.getItem('last-topic')}`;
+      const element = document.getElementById(target);
+      if (element) element.scrollIntoView({ behavior: 'instant', block: 'center' });
+      focusedChild.current = childId;
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [isMounted, isAuthenticated, childLoading, childData, childId]);
 
   const xp = useMemo(() => {
     if (childData?.xp !== undefined) return childData.xp;
@@ -246,9 +245,19 @@ export default function CocukModuPage() {
         {/* ORTA ALAN: Kaydırılabilir Macera Haritası */}
         <div className="flex-1 relative order-3 md:order-2 overflow-y-auto scrollbar-hide perspective-1000 flex flex-col items-center">
 
+          {homeworkTopics.length > 0 && (
+            <section id="active-homeworks" className="relative z-30 mx-3 mt-5 w-[calc(100%_-_1.5rem)] max-w-2xl shrink-0 rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 shadow-lg">
+              <h2 className="font-black text-amber-900">Ödevin var! 🌟</h2>
+              <p className="mt-1 text-sm text-amber-800">Öğretmeninin verdiği etkinlikle başlayabilirsin.</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {homeworkTopics.map(id => <Button key={id} onClick={() => router.push(homeworkDestination(childId, id))} className="h-auto min-h-11 max-w-full whitespace-normal rounded-xl bg-amber-500 text-left text-white hover:bg-amber-600">{MOCK_TOPICS.find(topic => topic.id === id)?.name || (/^\d+$/.test(id) ? `Sandık ${id}` : id.replace(/-/g, ' '))}</Button>)}
+              </div>
+            </section>
+          )}
+
           {/* Başlık Bölümü */}
           <div className="w-full flex justify-center pt-8 md:pt-[100px] flex-shrink-0">
-            <div className="relative md:absolute top-0 z-30 hover:scale-105 transition-transform duration-300 cursor-default select-none px-4">
+            <div className={cn("relative top-0 z-30 hover:scale-105 transition-transform duration-300 cursor-default select-none px-4", homeworkTopics.length === 0 && "md:absolute")}>
               <Image
                 src="/macera.png"
                 width={550}
@@ -328,7 +337,7 @@ export default function CocukModuPage() {
               const isPrevCompleted = prevTopic ? !!childData?.stickers?.[prevTopic.id] : true;
               
               // Abonelik Kontrolü: Ücretsiz sürümde sadece ilk 1 ada açık
-              const isHomework = Array.isArray((childData as any)?.activeHomeworkTopics) ? (childData as any).activeHomeworkTopics.includes(topic.id) : (childData as any)?.activeHomeworkTopic === topic.id;
+              const isHomework = hasActiveHomework(childData, topic.id);
               let isSubscriptionLocked = subscriptionTier === 'free' && index >= 1;
               let isProgressLocked = !isFirst && !isPrevCompleted;
 
