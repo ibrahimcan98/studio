@@ -484,8 +484,8 @@ export default function AdminDerslerPage() {
 
             // Notify via email (Admin action)
             try {
-                const parent = users?.find(u => u.uid === lessonToCancel.bookedBy);
-                const teacher = users?.find(u => u.uid === lessonToCancel.teacherId);
+                const parent = users?.find(u => u.id === lessonToCancel.bookedBy || u.uid === lessonToCancel.bookedBy || u._id === lessonToCancel.bookedBy);
+                const teacher = users?.find(u => u.id === lessonToCancel.teacherId || u.uid === lessonToCancel.teacherId || u._id === lessonToCancel.teacherId);
                 
                 await sendAdminLessonActionEmails('cancelled', {
                     studentName: lessonToCancel.studentName || '-',
@@ -585,7 +585,7 @@ export default function AdminDerslerPage() {
 
             // Check if student has remaining lessons (skip if FREE_TRIAL)
             if (packageCode === 'FREE_TRIAL') {
-                const parent = users?.find(u => u.uid === parentId);
+                const parent = users?.find(u => u.id === parentId || u.uid === parentId || u._id === parentId);
                 if (parent?.isLegacy) {
                     toast({ 
                         variant: 'destructive', 
@@ -693,8 +693,8 @@ export default function AdminDerslerPage() {
             // Notify via Email (Non-blocking)
             const handleNotifications = async () => {
                 try {
-                    const parent = users?.find(u => u.uid === parentId);
-                    const teacher = users?.find(u => u.uid === selectedTeacherId);
+                    const parent = users?.find(u => u.id === parentId || u.uid === parentId || u._id === parentId);
+                    const teacher = users?.find(u => u.id === selectedTeacherId || u.uid === selectedTeacherId || u._id === selectedTeacherId);
                     const childName = childInfo?.firstName || '-';
                     const details = getCourseDetailsFromPackageCode(packageCode);
 
