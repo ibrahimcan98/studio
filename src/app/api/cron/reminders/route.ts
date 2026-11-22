@@ -42,7 +42,7 @@ export async function GET(request: Request) {
         for (const lessonDoc of querySnapshot.docs) {
             const lesson = lessonDoc.data();
             
-            // In-memory status filter (bypasses composite index requirement)
+            // In-memory status filter
             if (lesson.status !== 'booked') continue;
             // Only send once per lesson
             if (lesson.pushReminderSent) continue;
@@ -54,6 +54,28 @@ export async function GET(request: Request) {
 
             if (!parentId) continue;
 
+            // ─── 1. BİRLEŞİK 5 DAKİKALIK SLOT KONTROLÜ ─────────────────────────
+            // Bir ders 35-45 dk sürer ve birden fazla 5 dakikalık slottan oluşur.
+            // Eğer bu slottan 5 dakika önce aynı öğretmen ve öğrenciye ait 'booked' bir slot varsa,
+            // bu slot dersin BAŞLANGICI DEĞİLDİR (ara parçasıdır). Tekrar mail göndermiyoruz!
+            const fiveMinBefore = new Date(startTime.getTime() - 5 * 60000);
+            const prevSlotSnap = await db.collection('lesson-slots')
+                .where('teacherId', '==', lesson.teacherId)
+                .where('childId', '==', childId)
+                .where('startTime', '==', Timestamp.fromDate(fiveMinBefore))
+                .where('status', '==', 'booked')
+                .get();
+
+            if (!prevSlotSnap.empty) {
+                // Dersin devam parçası; reminder gönderildi olarak işaretle ve geç
+                await lessonDoc.ref.update({
+                    pushReminderSent: true,
+                    pushReminderSentAt: FieldValue.serverTimestamp()
+                });
+                continue;
+            }
+
+            // ─── 2. VELİ VE ÖĞRETMEN BİLGİLERİ ─────────────────────────────────
             // Fetch Parent Info
             const parentDoc = await db.collection('users').doc(parentId).get();
             const parentData = parentDoc.data();
@@ -80,7 +102,15 @@ export async function GET(request: Request) {
                 }
             }
 
-            const formattedTime = formatInTimeZone(startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr });
+            // ─── 3. SAAT VE SAAT DİLİMİ (TIMEZONE) FORMATLAMA ─────────────────
+            const parentTimezone = parentData?.timezone || 'Europe/Istanbul';
+            let formattedTime = formatInTimeZone(startTime, parentTimezone, 'HH:mm', { locale: tr });
+            
+            // Eğer velinin saat dilimi Türkiye'den farklıysa kafa karışıklığını önlemek için her ikisini de göster
+            if (parentTimezone !== 'Europe/Istanbul') {
+                const istanbulTime = formatInTimeZone(startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr });
+                formattedTime = `${formattedTime} (Yerel Saatiniz) / ${istanbulTime} (TSİ)`;
+            }
 
             // Send Push Notification to Parent
             await sendPushNotification(
@@ -110,13 +140,37 @@ export async function GET(request: Request) {
                 }
             }
 
-            // Mark as sent
-            await lessonDoc.ref.update({
-                pushReminderSent: true,
-                pushReminderSentAt: FieldValue.serverTimestamp()
-            });
+            // ─── 4. DERSE AİT TÜM ARDIŞIK SLOTLARI TOPLUCA İŞARETLE ─────────────
+            // Böylece sonraki 5-10 dakikalarda bu dersin diğer parçaları için tekrar tekrar mail gitmez!
+            try {
+                const batch = db.batch();
+                batch.update(lessonDoc.ref, {
+                    pushReminderSent: true,
+                    pushReminderSentAt: FieldValue.serverTimestamp()
+                });
 
-            remindersSent.push({ lessonId, childName });
+                // Bu derse ait sonraki 60 dakika içindeki ardışık parçaları bul ve işaretle
+                const nextSlotsSnap = await db.collection('lesson-slots')
+                    .where('teacherId', '==', lesson.teacherId)
+                    .where('childId', '==', childId)
+                    .where('status', '==', 'booked')
+                    .where('startTime', '>', Timestamp.fromDate(startTime))
+                    .where('startTime', '<=', Timestamp.fromDate(new Date(startTime.getTime() + 60 * 60000)))
+                    .get();
+
+                nextSlotsSnap.docs.forEach(doc => {
+                    batch.update(doc.ref, {
+                        pushReminderSent: true,
+                        pushReminderSentAt: FieldValue.serverTimestamp()
+                    });
+                });
+
+                await batch.commit();
+            } catch (batchErr) {
+                console.error('Error marking session slots:', batchErr);
+            }
+
+            remindersSent.push({ lessonId, childName, time: formattedTime });
         }
 
         return NextResponse.json({ 

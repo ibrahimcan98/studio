@@ -100,11 +100,19 @@ export async function GET(request: Request) {
                     }
                 }
 
+                // Saat ve Saat Dilimi Formatlama
+                const parentTimezone = parentData?.timezone || 'Europe/Istanbul';
+                let sessionTime = formatInTimeZone(startTime, parentTimezone, 'HH:mm', { locale: tr });
+                if (parentTimezone !== 'Europe/Istanbul') {
+                    const istanbulTime = formatInTimeZone(startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr });
+                    sessionTime = `${sessionTime} (Yerel Saatiniz) / ${istanbulTime} (TSİ)`;
+                }
+
                 // Send Push Notification
                 await sendPushNotification(
                     parentId,
                     '⏰ Grup Dersi Başlıyor!',
-                    `Merhaba ${parentName}, ${childName}'nin ${packageName} dersi 10 dakika içinde (${formattedTime}) başlayacaktır. İyi dersler! 🚀`,
+                    `Merhaba ${parentName}, ${childName}'nin ${packageName} dersi 10 dakika içinde (${sessionTime}) başlayacaktır. İyi dersler! 🚀`,
                     '/ebeveyn-portali/derslerim'
                 ).catch(err => console.error('Push group reminder error:', err));
 
@@ -118,7 +126,7 @@ export async function GET(request: Request) {
                             html: getLessonReminderTemplate({
                                 studentName: childName,
                                 teacherName: teacherName,
-                                time: formattedTime,
+                                time: sessionTime,
                                 meetingLink: googleMeetLink
                             })
                         });
