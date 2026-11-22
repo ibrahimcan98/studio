@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { collection, query, where, getDocs, getDoc, doc, updateDoc, Timestamp } from 'firebase/firestore';
-import { db } from '@/firebase/server'; 
+import { db } from '@/lib/firebase-admin';
+import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { sendPushNotification } from '@/lib/notifications';
 import { formatInTimeZone } from 'date-fns-tz';
 import { tr } from 'date-fns/locale';
@@ -20,49 +20,65 @@ export async function GET(request: Request) {
     }
 
     try {
+        if (!db) {
+            return NextResponse.json({ error: 'Database not initialized' }, { status: 500 });
+        }
+
         const now = new Date();
-        // Look for lessons starting in 10-15 minutes specifically
+        // Look for lessons starting in 8-15 minutes specifically (10 min reminder window)
         const windowStart = new Date(now.getTime() + 8 * 60000); 
         const windowEnd = new Date(now.getTime() + 15 * 60000);
 
         console.log(`Checking for lessons between ${windowStart.toISOString()} and ${windowEnd.toISOString()}`);
 
-        const lessonsRef = collection(db, 'lesson-slots');
-        const q = query(
-            lessonsRef,
-            where('startTime', '>=', Timestamp.fromDate(windowStart)),
-            where('startTime', '<=', Timestamp.fromDate(windowEnd)),
-            where('status', '==', 'booked')
-        );
+        const lessonsRef = db.collection('lesson-slots');
+        const querySnapshot = await lessonsRef
+            .where('startTime', '>=', Timestamp.fromDate(windowStart))
+            .where('startTime', '<=', Timestamp.fromDate(windowEnd))
+            .get();
 
-        const querySnapshot = await getDocs(q);
         const remindersSent = [];
 
         for (const lessonDoc of querySnapshot.docs) {
             const lesson = lessonDoc.data();
             
+            // In-memory status filter (bypasses composite index requirement)
+            if (lesson.status !== 'booked') continue;
             // Only send once per lesson
             if (lesson.pushReminderSent) continue;
 
             const lessonId = lessonDoc.id;
             const parentId = lesson.bookedBy;
             const childId = lesson.childId;
-            const startTime = lesson.startTime.toDate();
+            const startTime = lesson.startTime?.toDate?.() || new Date(lesson.startTime);
+
+            if (!parentId) continue;
 
             // Fetch Parent Info
-            const parentDoc = await getDoc(doc(db, 'users', parentId));
+            const parentDoc = await db.collection('users').doc(parentId).get();
             const parentData = parentDoc.data();
             const parentName = parentData?.firstName || 'Veli';
 
             // Fetch Child Info
-            const childDoc = await getDoc(doc(db, 'users', parentId, 'children', childId));
-            const childName = childDoc.data()?.firstName || 'Öğrenci';
+            let childName = 'Öğrenci';
+            if (childId) {
+                const childDoc = await db.collection('users').doc(parentId).collection('children').doc(childId).get();
+                if (childDoc.exists) {
+                    childName = childDoc.data()?.firstName || 'Öğrenci';
+                }
+            }
 
             // Fetch Teacher Info for Meet Link
-            const teacherDoc = await getDoc(doc(db, 'users', lesson.teacherId));
-            const teacherData = teacherDoc.data();
-            const teacherName = teacherData?.firstName || 'Öğretmen';
-            const googleMeetLink = teacherData?.googleMeetLink;
+            let teacherName = 'Öğretmen';
+            let googleMeetLink = '';
+            if (lesson.teacherId) {
+                const teacherDoc = await db.collection('users').doc(lesson.teacherId).get();
+                if (teacherDoc.exists) {
+                    const teacherData = teacherDoc.data();
+                    teacherName = teacherData?.firstName || 'Öğretmen';
+                    googleMeetLink = teacherData?.googleMeetLink || '';
+                }
+            }
 
             const formattedTime = formatInTimeZone(startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr });
 
@@ -72,7 +88,7 @@ export async function GET(request: Request) {
                 '⏰ Dersiniz Başlıyor!',
                 `Merhaba ${parentName}, ${childName}'nin dersi 10 dakika içinde (${formattedTime}) başlayacaktır. İyi dersler! 🚀`,
                 '/ebeveyn-portali/derslerim'
-            );
+            ).catch(err => console.error('Push reminder error:', err));
 
             // Send Email Notification to Parent
             if (parentData?.email) {
@@ -95,9 +111,9 @@ export async function GET(request: Request) {
             }
 
             // Mark as sent
-            await updateDoc(doc(db, 'lesson-slots', lessonId), {
+            await lessonDoc.ref.update({
                 pushReminderSent: true,
-                pushReminderSentAt: Timestamp.fromDate(new Date())
+                pushReminderSentAt: FieldValue.serverTimestamp()
             });
 
             remindersSent.push({ lessonId, childName });
