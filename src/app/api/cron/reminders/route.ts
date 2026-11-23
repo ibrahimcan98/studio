@@ -6,181 +6,74 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { tr } from 'date-fns/locale';
 import { resend, FROM_EMAIL } from '@/lib/resend';
 import { getLessonReminderTemplate } from '@/lib/email-templates';
+import { groupReminderSessions, lessonReminderIdentity } from '@/lib/lesson-reminders';
+import { deliverReminderOnce } from '@/lib/reminder-delivery';
 
-// Secret key to prevent unauthorized access to the cron route
 const CRON_SECRET = process.env.CRON_SECRET || 'dev_secret_123';
 
 export async function GET(request: Request) {
-    const { searchParams } = new URL(request.url);
-    const secret = searchParams.get('secret');
-
-    // Simple security check
-    if (secret !== CRON_SECRET) {
+    if (new URL(request.url).searchParams.get('secret') !== CRON_SECRET) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
     try {
-        if (!db) {
-            return NextResponse.json({ error: 'Database not initialized' }, { status: 500 });
-        }
-
         const now = new Date();
-        // Look for lessons starting in 8-15 minutes specifically (10 min reminder window)
-        const windowStart = new Date(now.getTime() + 8 * 60000); 
+        const windowStart = new Date(now.getTime() + 8 * 60000);
         const windowEnd = new Date(now.getTime() + 15 * 60000);
-
-        console.log(`Checking for lessons between ${windowStart.toISOString()} and ${windowEnd.toISOString()}`);
-
-        const lessonsRef = db.collection('lesson-slots');
-        const querySnapshot = await lessonsRef
-            .where('startTime', '>=', Timestamp.fromDate(windowStart))
-            .where('startTime', '<=', Timestamp.fromDate(windowEnd))
+        // Read a bounded range with a single-field index. Include surrounding slots so a
+        // continuation in the reminder window is never mistaken for a lesson start.
+        const snapshot = await db.collection('lesson-slots')
+            .where('startTime', '>=', Timestamp.fromDate(new Date(windowStart.getTime() - 120 * 60000)))
+            .where('startTime', '<=', Timestamp.fromDate(new Date(windowEnd.getTime() + 120 * 60000)))
             .get();
-
+        const sessions = groupReminderSessions(snapshot.docs.map(slot => ({ ...slot.data(), id: slot.id })))
+            .filter(session => session.startDate >= windowStart && session.startDate <= windowEnd && !session.pushReminderSent);
         const remindersSent = [];
-
-        for (const lessonDoc of querySnapshot.docs) {
-            const lesson = lessonDoc.data();
-            
-            // In-memory status filter
-            if (lesson.status !== 'booked') continue;
-            // Only send once per lesson
-            if (lesson.pushReminderSent) continue;
-
-            const lessonId = lessonDoc.id;
-            const parentId = lesson.bookedBy;
-            const childId = lesson.childId;
-            const startTime = lesson.startTime?.toDate?.() || new Date(lesson.startTime);
-
-            if (!parentId) continue;
-
-            // ─── 1. BİRLEŞİK 5 DAKİKALIK SLOT KONTROLÜ ─────────────────────────
-            // Bir ders 35-45 dk sürer ve birden fazla 5 dakikalık slottan oluşur.
-            // Eğer bu slottan 5 dakika önce aynı öğretmen ve öğrenciye ait 'booked' bir slot varsa,
-            // bu slot dersin BAŞLANGICI DEĞİLDİR (ara parçasıdır). Tekrar mail göndermiyoruz!
-            const fiveMinBefore = new Date(startTime.getTime() - 5 * 60000);
-            const prevSlotSnap = await db.collection('lesson-slots')
-                .where('teacherId', '==', lesson.teacherId)
-                .where('childId', '==', childId)
-                .where('startTime', '==', Timestamp.fromDate(fiveMinBefore))
-                .where('status', '==', 'booked')
-                .get();
-
-            if (!prevSlotSnap.empty) {
-                // Dersin devam parçası; reminder gönderildi olarak işaretle ve geç
-                await lessonDoc.ref.update({
-                    pushReminderSent: true,
-                    pushReminderSentAt: FieldValue.serverTimestamp()
-                });
-                continue;
-            }
-
-            // ─── 2. VELİ VE ÖĞRETMEN BİLGİLERİ ─────────────────────────────────
-            // Fetch Parent Info
-            const parentDoc = await db.collection('users').doc(parentId).get();
-            const parentData = parentDoc.data();
-            const parentName = parentData?.firstName || 'Veli';
-
-            // Fetch Child Info
-            let childName = 'Öğrenci';
-            if (childId) {
-                const childDoc = await db.collection('users').doc(parentId).collection('children').doc(childId).get();
-                if (childDoc.exists) {
-                    childName = childDoc.data()?.firstName || 'Öğrenci';
-                }
-            }
-
-            // Fetch Teacher Info for Meet Link
-            let teacherName = 'Öğretmen';
-            let googleMeetLink = '';
-            if (lesson.teacherId) {
-                const teacherDoc = await db.collection('users').doc(lesson.teacherId).get();
-                if (teacherDoc.exists) {
-                    const teacherData = teacherDoc.data();
-                    teacherName = teacherData?.firstName || 'Öğretmen';
-                    googleMeetLink = teacherData?.googleMeetLink || '';
-                }
-            }
-
-            // ─── 3. SAAT VE SAAT DİLİMİ (TIMEZONE) FORMATLAMA ─────────────────
-            const parentTimezone = parentData?.timezone || 'Europe/Istanbul';
-            let formattedTime = formatInTimeZone(startTime, parentTimezone, 'HH:mm', { locale: tr });
-            
-            // Eğer velinin saat dilimi Türkiye'den farklıysa kafa karışıklığını önlemek için her ikisini de göster
-            if (parentTimezone !== 'Europe/Istanbul') {
-                const istanbulTime = formatInTimeZone(startTime, 'Europe/Istanbul', 'HH:mm', { locale: tr });
-                formattedTime = `${formattedTime} (Yerel Saatiniz) / ${istanbulTime} (TSİ)`;
-            }
-
-            // Send Push Notification to Parent
-            await sendPushNotification(
-                parentId,
-                '⏰ Dersiniz Başlıyor!',
-                `Merhaba ${parentName}, ${childName}'nin dersi 10 dakika içinde (${formattedTime}) başlayacaktır. İyi dersler! 🚀`,
-                '/ebeveyn-portali/derslerim'
-            ).catch(err => console.error('Push reminder error:', err));
-
-            // Send Email Notification to Parent
-            if (parentData?.email) {
-                try {
-                    await resend.emails.send({
-                        from: `Türk Çocuk Akademisi <${FROM_EMAIL}>`,
-                        to: parentData.email,
-                        subject: '⏰ Dersiniz Başlıyor!',
-                        html: getLessonReminderTemplate({
-                            studentName: childName,
-                            teacherName: teacherName,
-                            time: formattedTime,
-                            meetingLink: googleMeetLink,
-                            materials: lesson.materials || []
-                        })
-                    });
-                } catch (emailError) {
-                    console.error('Reminder Email Error:', emailError);
-                }
-            }
-
-            // ─── 4. DERSE AİT TÜM ARDIŞIK SLOTLARI TOPLUCA İŞARETLE ─────────────
-            // Böylece sonraki 5-10 dakikalarda bu dersin diğer parçaları için tekrar tekrar mail gitmez!
+        const failed = [];
+        for (const lesson of sessions) {
             try {
-                const batch = db.batch();
-                batch.update(lessonDoc.ref, {
-                    pushReminderSent: true,
-                    pushReminderSentAt: FieldValue.serverTimestamp()
+                const parent = (await db.collection('users').doc(lesson.bookedBy).get()).data();
+                if (!parent) continue;
+                const child = (await db.collection('users').doc(lesson.bookedBy).collection('children').doc(lesson.childId).get()).data();
+                const teacher = (await db.collection('users').doc(lesson.teacherId).get()).data();
+                const childName = child?.firstName || 'Öğrenci';
+                const parentTimezone = parent.timezone || 'Europe/Istanbul';
+                let formattedTime = formatInTimeZone(lesson.startDate, parentTimezone, 'HH:mm', { locale: tr });
+                if (parentTimezone !== 'Europe/Istanbul') {
+                    formattedTime += ` (Yerel Saatiniz) / ${formatInTimeZone(lesson.startDate, 'Europe/Istanbul', 'HH:mm', { locale: tr })} (TSİ)`;
+                }
+                const identity = lessonReminderIdentity(lesson);
+                const emailState = parent.email ? await deliverReminderOnce(db, identity, 'email', async idempotencyKey => {
+                    const result = await resend.emails.send({
+                        from: `Türk Çocuk Akademisi <${FROM_EMAIL}>`,
+                        to: parent.email,
+                        subject: '⏰ Dersiniz Başlıyor!',
+                        html: getLessonReminderTemplate({ studentName: childName, teacherName: teacher?.firstName || 'Öğretmen', time: formattedTime, meetingLink: teacher?.googleMeetLink || '', materials: lesson.materials || [] }),
+                    }, { idempotencyKey });
+                    if (result.error || !result.data?.id) throw new Error('Hatırlatma e-postası gönderilemedi.');
+                    return result.data.id;
+                }) : 'already-sent';
+                const pushState = await deliverReminderOnce(db, identity, 'push', async () => {
+                    const result = await sendPushNotification(lesson.bookedBy, '⏰ Dersiniz Başlıyor!',
+                        `Merhaba ${parent.firstName || 'Veli'}, ${childName}'nin dersi 10 dakika içinde (${formattedTime}) başlayacaktır. İyi dersler! 🚀`, '/ebeveyn-portali/dersler');
+                    if (!result.success && result.error !== 'No tokens found') throw new Error('Push hatırlatması gönderilemedi.');
                 });
-
-                // Bu derse ait sonraki 60 dakika içindeki ardışık parçaları bul ve işaretle
-                const nextSlotsSnap = await db.collection('lesson-slots')
-                    .where('teacherId', '==', lesson.teacherId)
-                    .where('childId', '==', childId)
-                    .where('status', '==', 'booked')
-                    .where('startTime', '>', Timestamp.fromDate(startTime))
-                    .where('startTime', '<=', Timestamp.fromDate(new Date(startTime.getTime() + 60 * 60000)))
-                    .get();
-
-                nextSlotsSnap.docs.forEach(doc => {
-                    batch.update(doc.ref, {
-                        pushReminderSent: true,
-                        pushReminderSentAt: FieldValue.serverTimestamp()
-                    });
-                });
-
-                await batch.commit();
-            } catch (batchErr) {
-                console.error('Error marking session slots:', batchErr);
+                if (emailState === 'busy' || pushState === 'busy') continue;
+                // Best-effort legacy flags. Delivery receipts above prevent duplicates even
+                // if this write fails; there is no post-send composite-index query anymore.
+                try {
+                    const batch = db.batch();
+                    for (const id of lesson.slotIds) batch.update(db.collection('lesson-slots').doc(id), { pushReminderSent: true, pushReminderSentAt: FieldValue.serverTimestamp() });
+                    await batch.commit();
+                } catch (error) { console.error('Reminder slot flags could not be updated:', error); }
+                if (emailState === 'sent' || pushState === 'sent') remindersSent.push({ lessonId: lesson.id, childName, time: formattedTime });
+            } catch (error) {
+                console.error('Lesson reminder failed:', error);
+                failed.push(lesson.id);
             }
-
-            remindersSent.push({ lessonId, childName, time: formattedTime });
         }
-
-        return NextResponse.json({ 
-            success: true, 
-            remindersSentCount: remindersSent.length,
-            remindersSent 
-        });
-
-    } catch (error: any) {
+        return NextResponse.json({ success: failed.length === 0, remindersSentCount: remindersSent.length, remindersSent, failed }, { status: failed.length ? 500 : 200 });
+    } catch (error) {
         console.error('Error in reminders cron:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: 'Hatırlatmalar işlenemedi.' }, { status: 500 });
     }
 }
